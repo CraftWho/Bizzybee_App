@@ -1,0 +1,153 @@
+/* ==========================================================================
+   NANO-HIVE & BEE CORE
+   A glowing hex core with a bee flying an infinity path around it.
+   Ported from the "BizzyBee.html" prototype. Renders at two sizes:
+   --mini (the Hive Mind FAB icon) and --hero (the Login page centerpiece).
+   ========================================================================== */
+
+.nano-bee-scene {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nano-bee-scene .scene-inner {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nano-bee-scene--hero {
+    width: 400px;
+    height: 400px;
+}
+
+.nano-bee-scene--mini {
+    width: 70px;
+    height: 70px;
+    overflow: visible;
+}
+
+.nano-bee-scene--mini .scene-inner {
+    transform: scale(0.175);
+}
+
+.hive-core {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    animation: nano-pulse-glow 4s infinite alternate;
+}
+
+.hive-core .inner-line {
+    stroke: url(#metallic-gold);
+    stroke-width: 1;
+    opacity: 0.2;
+}
+
+.hive-core .hex-outline {
+    fill: transparent;
+    stroke: url(#metallic-gold);
+    stroke-width: 3;
+}
+
+.nano-bee {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    z-index: 10;
+    animation: nano-infinity-flight 6s infinite linear;
+}
+
+.nano-bee .bee-body {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 14px;
+    background: var(--obsidian);
+    border: 1px solid var(--gold-end);
+    clip-path: polygon(20% 0%, 80% 0%, 100% 50%, 80% 100%, 20% 100%, 0% 50%);
+    z-index: 2;
+}
+
+.nano-bee .bee-eye {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    width: 4px;
+    height: 4px;
+    background: var(--gold-start);
+    border-radius: 50%;
+    box-shadow: 0 0 5px var(--gold-start);
+}
+
+.nano-bee .bee-tail {
+    position: absolute;
+    top: 19px;
+    left: 2px;
+    width: 8px;
+    height: 3px;
+    background: var(--obsidian);
+    border: 0.5px solid var(--gold-end);
+    clip-path: polygon(0 50%, 100% 0, 100% 100%);
+    z-index: 1;
+}
+
+.nano-bee .bee-leg {
+    position: absolute;
+    width: 2px;
+    height: 5px;
+    background: var(--obsidian);
+    transform-origin: top;
+    transform: rotate(45deg);
+    z-index: 1;
+}
+
+.nano-bee .leg-pair-1 { left: 14px; top: 25px; }
+.nano-bee .leg-pair-2 { left: 20px; top: 25px; }
+.nano-bee .leg-pair-3 { left: 26px; top: 25px; }
+
+.nano-bee .bee-wing {
+    position: absolute;
+    width: 15px;
+    height: 20px;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold-end);
+    border-radius: 50% 50% 0 50%;
+    top: -12px;
+    left: 5px;
+    transform-origin: bottom right;
+    animation: nano-flap 0.05s infinite alternate linear;
+    z-index: 3;
+}
+
+.nano-bee .bee-wing.back {
+    top: -8px;
+    left: -2px;
+    width: 12px;
+    height: 16px;
+    z-index: 1;
+}
+
+@keyframes nano-infinity-flight {
+    0%   { transform: translate(-100px, 0) rotate(15deg); }
+    25%  { transform: translate(0, -50px) rotate(-10deg); }
+    50%  { transform: translate(100px, 0) rotate(-25deg); }
+    75%  { transform: translate(0, 50px) rotate(10deg); }
+    100% { transform: translate(-100px, 0) rotate(15deg); }
+}
+
+@keyframes nano-pulse-glow {
+    0% { filter: drop-shadow(0 0 5px var(--gold-glow)); }
+    100% { filter: drop-shadow(0 0 20px var(--gold-dim)); }
+}
+
+@keyframes nano-flap {
+    0% { transform: rotate(10deg) skewX(-10deg); }
+    100% { transform: rotate(-40deg) skewX(-20deg); }
+}

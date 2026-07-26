@@ -1,0 +1,276 @@
+/* ==========================================================================
+   MARKDOWN VIEWER / EDITOR MODAL
+   Renders a .md file's content, with an edit mode that saves to localStorage.
+   Wide and richly styled since quest logs are full story documents (tables,
+   button-style links), not short blurbs.
+   ========================================================================== */
+
+.md-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.md-viewer-modal {
+    background: #0d0d0d;
+    border: 1px solid #333;
+    border-top: 4px solid var(--crimson);
+    border-radius: 8px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(220, 20, 60, 0.2);
+    width: 95vw;
+    max-width: 1100px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.md-viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 25px;
+    border-bottom: 1px solid #333;
+    background: #050505;
+    flex-shrink: 0;
+}
+
+.md-viewer-title {
+    color: var(--gold-start);
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.md-viewer-close {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 5px;
+    box-shadow: none;
+}
+
+.md-viewer-close:hover {
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}
+
+.md-viewer-body {
+    padding: 30px 40px;
+    overflow-y: auto;
+    flex: 1;
+    color: #ccc;
+    line-height: 1.7;
+}
+
+.md-viewer-rendered h1 {
+    color: var(--gold-start);
+    font-size: 1.7rem;
+    border-bottom: 2px solid var(--gold-dim);
+    padding-bottom: 12px;
+    margin: 0 0 20px;
+}
+
+.md-viewer-rendered h2 {
+    color: var(--gold-start);
+    font-size: 1.25rem;
+    margin-top: 30px;
+}
+
+.md-viewer-rendered h3 {
+    color: var(--gold-start);
+    font-size: 1.05rem;
+    margin-top: 25px;
+}
+
+.md-viewer-rendered hr {
+    border: 0;
+    border-top: 1px solid #333;
+    margin: 20px 0;
+}
+
+.md-viewer-rendered strong {
+    color: #fff;
+}
+
+.md-viewer-rendered p {
+    margin: 0 0 15px;
+}
+
+.md-viewer-rendered ul,
+.md-viewer-rendered ol {
+    padding-left: 20px;
+    margin: 0 0 15px;
+}
+
+.md-viewer-rendered li {
+    margin-bottom: 6px;
+}
+
+/* Links render as full-width buttons - matches the original Codex OS look. */
+.md-viewer-rendered a {
+    display: block;
+    background: linear-gradient(to bottom, #8b0000, #5c0000);
+    color: var(--gold-start);
+    text-decoration: none;
+    text-align: center;
+    padding: 12px 20px;
+    border: 2px solid var(--gold-start);
+    border-radius: 6px;
+    margin: 15px 0;
+    font-weight: bold;
+}
+
+.md-viewer-rendered a:hover {
+    background: #a52a2a;
+    box-shadow: 0 0 10px var(--gold-glow);
+}
+
+.md-viewer-rendered code {
+    background: #1a1a1a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--gold-start);
+    font-size: 0.9em;
+}
+
+.md-viewer-rendered table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0 25px;
+    font-size: 0.9rem;
+}
+
+.md-viewer-rendered th {
+    color: var(--gold-start);
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--gold-dim);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.md-viewer-rendered td {
+    padding: 10px 12px;
+    border-bottom: 1px dashed #333;
+    color: #ccc;
+}
+
+.md-viewer-rendered tr:last-child td {
+    border-bottom: none;
+}
+
+.md-viewer-rendered blockquote {
+    border-left: 3px solid var(--crimson);
+    margin: 15px 0;
+    padding-left: 15px;
+    color: #aaa;
+    font-style: italic;
+}
+
+/* Edit (friendly) mode: the header/stats block above the first "---" divider
+   renders read-only, dimmed, and non-interactive - only the narrative below
+   it is an editable textarea. Dev Edit skips all of this. */
+.md-viewer-locked-region {
+    opacity: 0.55;
+    pointer-events: none;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #333;
+    margin-bottom: 10px;
+}
+
+.md-viewer-locked-note {
+    color: #888;
+    font-size: 0.8rem;
+    font-style: italic;
+    margin: 0 0 15px;
+}
+
+.md-viewer-textarea {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    background: #0a0a0a;
+    color: #ddd;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 15px;
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    resize: none;
+}
+
+.md-viewer-locked-region ~ .md-viewer-textarea {
+    height: 300px;
+    min-height: 300px;
+}
+
+.md-viewer-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #333;
+    background: #050505;
+    flex-shrink: 0;
+}
+
+.md-viewer-footer-actions,
+.md-viewer-footer-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.md-viewer-footer button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+.md-viewer-action {
+    background: transparent;
+    color: var(--crimson);
+    border: 2px solid var(--crimson);
+}
+
+.md-viewer-action:hover {
+    background: var(--crimson);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+/* Dev Edit is the power-user option - visually secondary to Edit. */
+.md-viewer-dev-edit-btn {
+    background: transparent;
+    color: #888;
+    border: 2px solid #555;
+}
+
+.md-viewer-dev-edit-btn:hover {
+    background: #333;
+    color: #fff;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .md-viewer-modal {
+        width: 100%;
+        height: 95vh;
+    }
+
+    .md-viewer-body {
+        padding: 20px;
+    }
+}

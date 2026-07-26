@@ -1,14 +1,19 @@
 console.log("/// BIZZYBEE MOTHERBOARD ONLINE ///");
 
+// Single source of truth for every page reachable from the header nav.
+// key doubles as the folder/file name (e.g. features/dashboard/dashboard.html).
+const NAV_ITEMS = [
+    { key: 'index', icon: '🏠', label: 'Home' },
+    { key: 'dashboard', icon: '👨🏾‍💻', label: 'Dashboard' },
+    { key: 'quests', icon: '📜', label: 'Quests' },
+    { key: 'skills', icon: '🌿', label: 'Skills' },
+    { key: 'dictionary', icon: '📖', label: 'Dictionary' },
+    { key: 'profile', icon: '🧘🏾', label: 'Profile' },
+    { key: 'settings', icon: '⚙️', label: 'Settings' }
+];
+
 class CodexSystem {
     constructor() {
-        // We will load user data from db.js here later
-        this.user = {
-            level: 1,
-            currentXP: 0,
-            nextLevelXP: 1000
-        };
-        
         this.init();
     }
 
@@ -17,45 +22,78 @@ class CodexSystem {
     }
 
     renderGlobalUI() {
-        // 1. Detect if we are on the Login page
         const isLoginPage = window.location.pathname.includes('login.html');
-        
-        // 2. If it is NOT the login page, inject the Terminal Navigation Header
+
         if (!isLoginPage) {
             this.injectHeader();
         }
+
+        this.injectFooter();
+    }
+
+    getCurrentPageKey() {
+        const path = window.location.pathname;
+        if (path.includes('dashboard.html')) return 'dashboard';
+        if (path.includes('quests.html')) return 'quests';
+        if (path.includes('skills.html')) return 'skills';
+        if (path.includes('dictionary.html')) return 'dictionary';
+        if (path.includes('profile.html')) return 'profile';
+        if (path.includes('settings.html')) return 'settings';
+        return 'index';
     }
 
     injectHeader() {
-        // Create the header element
+        // Determine the correct relative path prefixes based on the current page location
+        const currentPath = window.location.pathname;
+
+        // linkPrefix handles hopping between the different feature folders
+        const linkPrefix = currentPath.includes('features') ? '..' : './src/features';
+
+        // rootPrefix handles jumping all the way back to the main project folder
+        const rootPrefix = currentPath.includes('features') ? '../../..' : '.';
+
+        const hrefFor = (key) => key === 'index'
+            ? `${rootPrefix}/index.html`
+            : `${linkPrefix}/${key}/${key}.html`;
+
+        const currentKey = this.getCurrentPageKey();
+        const currentItem = NAV_ITEMS.find(item => item.key === currentKey);
+
+        const navLinksHTML = NAV_ITEMS.map(item => `
+            <a href="${hrefFor(item.key)}" class="nav-link${item.key === currentKey ? ' nav-link--active' : ''}">
+                <span class="nav-link-icon">${item.icon}</span>
+                <span class="nav-link-label">${item.label}</span>
+            </a>
+        `).join('');
+
         const header = document.createElement('header');
         header.className = 'global-header';
-        
-        // Build the HTML for the header (Using the relative paths we established)
+
         header.innerHTML = `
-            <div class="header-brand">
-                <span style="color: #ffd700; font-weight: bold; letter-spacing: 2px;">🐝 BIZZYBEE</span>
-                <span style="color: #444; font-size: 0.8rem; margin-left: 10px;">v0.1.0</span>
+            <div class="header-page-name">
+                <span class="page-name-icon">${currentItem.icon}</span>
+                <span class="page-name-text">${currentItem.label}</span>
             </div>
-            
+
             <nav class="header-nav">
-                <a href="../dashboard/dashboard.html" class="nav-link">Dashboard</a>
-                <a href="../quests/quests.html" class="nav-link">Quests</a>
-                <a href="../skills/skills.html" class="nav-link">Skills</a>
-                <a href="../dictionary/dictionary.html" class="nav-link">Dictionary</a>
-                <a href="../profile/profile.html" class="nav-link">Profile</a>
+                ${navLinksHTML}
             </nav>
-            
-            <div class="header-stats">
-                <div class="level-badge" style="background: #222; border: 1px solid #ffd700; padding: 5px 10px; border-radius: 4px;">
-                    <span style="color: #aaa; font-size: 0.8rem;">LVL</span>
-                    <span style="color: #ffd700; font-weight: bold; margin-left: 5px;" id="global-level">${this.user.level}</span>
-                </div>
-            </div>
         `;
 
         // Inject it at the very top of the body
         document.body.insertBefore(header, document.body.firstChild);
+    }
+
+    injectFooter() {
+        const footer = document.createElement('footer');
+        footer.className = 'global-footer';
+
+        footer.innerHTML = `
+            <span class="footer-brand">🐝 BIZZYBEE</span>
+            <span class="footer-version">v0.1.0</span>
+        `;
+
+        document.body.appendChild(footer);
     }
 }
 

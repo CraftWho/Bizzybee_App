@@ -1,0 +1,51 @@
+/* --- ISOLATED DASHBOARD STYLES --- */
+/* Every section on this page is a .panel (shared global) for visual consistency
+   with Profile - do not mix in .quest-card/.quest-container here. */
+
+.dashboard-container {
+    width: 100%;
+    max-width: 850px;
+    margin: 20px auto 60px;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.dashboard-title {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.panel--stacked {
+    margin-top: 25px;
+}
+
+.progress-header h3 {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.status-optimal {
+    color: #0f0;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
+}
+
+.skill-container .skill-row {
+    margin-bottom: 20px;
+}
+
+.skill-container .skill-row:last-child {
+    margin-bottom: 0;
+}
+
+.skill-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-family: var(--font-main);
+    color: #fff;
+}

@@ -1,0 +1,13 @@
+# Personal data - never commit real user info to the shared/base template.
+# db.js loads this first and falls back to the generic src/core/data.json.
+src/core/data.personal.json
+
+# Real migrated quest/career logs (personal content). The folder structure
+# stays tracked; only its file contents are excluded.
+src/features/quests/logs/*
+!src/features/quests/logs/.gitkeep
+
+# Editor/OS cruft
+.vscode/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,264 @@
+/* --- LAYOUT --- */
+/* Visual chrome (background, border, crimson accent, glow) comes from the
+   shared .panel class (global.css) - this file only adds quest-specific
+   layout on top of it. */
+.quests-container {
+    width: 100%;
+    max-width: 850px;
+    margin: 20px auto 60px;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.quest-section-title {
+    text-align: center;
+    margin: 0;
+}
+
+/* --- SECTION HEADER BACKGROUNDS ---
+   Same dark-grey/crimson/gold-text recipe as .panel, so headers read clearly
+   against the busy hex background without introducing a new color scheme. */
+.quest-section-toggle,
+.quest-section--spotlight .quest-section-title {
+    background: #151515;
+    border: 1px solid #333;
+    border-top: 2px solid var(--crimson);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 18px rgba(220, 20, 60, 0.15);
+}
+
+/* --- COLLAPSIBLE SECTIONS (Main Campaign / Side Operations / Completed) ---
+   The Active Quest spotlight is a plain .quest-section, always expanded -
+   only sections with a .quest-section-toggle button can collapse. */
+.quest-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    padding: 14px 20px;
+    margin: 0 0 25px;
+}
+
+.quest-section-toggle:hover {
+    transform: none;
+}
+
+.quest-section-toggle .quest-section-title {
+    margin: 0;
+}
+
+.quest-section-chevron {
+    color: var(--crimson);
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.quest-section--collapsed .quest-section-chevron {
+    transform: rotate(-90deg);
+}
+
+.quest-section--collapsed .quest-section-body {
+    display: none;
+}
+
+.quest-section--spotlight .quest-section-title {
+    padding: 14px 20px;
+    margin-bottom: 25px;
+}
+
+/* --- QUEST CARDS ---
+   These are story missions, not checklists: a short summary card that opens
+   the full log in the markdown viewer. No accordion, no inline task list. */
+.quest-card-title {
+    color: var(--crimson);
+    margin: 0 0 15px;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.quest-card-divider {
+    border: 0;
+    border-top: 1px solid #333;
+    margin: 0 0 15px;
+}
+
+.quest-meta {
+    margin: 0 0 10px;
+    color: #ccc;
+}
+
+.quest-meta strong {
+    color: #fff;
+}
+
+/* Completed quests get a distinct polished-gold look instead of the standard
+   dark panel - text flips to dark bronze/black since the backdrop is now
+   bright, and the button (dark crimson) reads as a strong accent against it. */
+.quest-card--completed {
+    background: linear-gradient(135deg, #7a5c00 0%, #d4af37 15%, #fff5cc 30%, #d4af37 45%, #997a00 60%, #fff5cc 75%, #d4af37 90%, #7a5c00 100%);
+    border-color: #7a5c00;
+}
+
+.quest-card--completed .quest-card-title {
+    color: #3a2a00;
+    text-decoration: line-through;
+}
+
+.quest-card--completed .quest-card-divider {
+    border-top-color: rgba(0, 0, 0, 0.3);
+}
+
+.quest-card--completed .quest-meta {
+    color: #3a2a00;
+}
+
+.quest-card--completed .quest-meta strong {
+    color: #000;
+}
+
+.quest-view-intel-btn {
+    display: block;
+    width: 100%;
+    background: linear-gradient(to bottom, #8b0000, #5c0000);
+    color: var(--gold-start);
+    border: 2px solid var(--gold-start);
+    padding: 14px;
+    margin-top: 15px;
+    font-weight: bold;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+.quest-view-intel-btn:hover {
+    background: #a52a2a;
+    box-shadow: 0 0 10px var(--gold-glow);
+    transform: none;
+}
+
+.quest-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #888;
+    padding: 20px 0;
+}
+
+.quest-divider {
+    border: 0;
+    border-top: 1px dashed var(--gold-dim);
+    margin: 40px 0;
+}
+
+/* --- TASK CHECKLIST (rendered inside View Intel via MDViewer's mountExtra) ---
+   Real-time DP: checking a task calls Vault.toggleTask() immediately, no
+   save step - matches the Habitica-style "check it, get the points" feel. */
+.quest-task-panel {
+    background: #151515;
+    border-bottom: 2px solid var(--crimson);
+    padding: 20px 40px;
+}
+
+.quest-task-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.quest-task-header h3 {
+    margin: 0;
+    color: var(--gold-start);
+}
+
+.quest-task-progress {
+    color: var(--gold-start);
+    font-weight: bold;
+}
+
+/* Header/progress always stay visible - only the item list itself scrolls,
+   so a long task list can't crowd out the document below it. */
+.quest-task-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.quest-task-item {
+    justify-content: space-between;
+}
+
+.quest-task-label {
+    flex: 1;
+}
+
+.quest-task-item--done .quest-task-label {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.quest-task-dp {
+    color: var(--gold-start);
+    white-space: nowrap;
+}
+
+/* Task management: edit/remove icons per row, plus add/edit inline forms. */
+.quest-task-icon-btn {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 2px 4px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.quest-task-icon-btn:hover {
+    color: var(--gold-start);
+    transform: none;
+    box-shadow: none;
+}
+
+.quest-task-icon-btn--remove:hover {
+    color: var(--danger-red);
+}
+
+.quest-task-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.quest-task-form-label {
+    flex: 1;
+    padding: 8px 10px;
+}
+
+.quest-task-form-dp {
+    width: 70px;
+    padding: 8px 10px;
+}
+
+.quest-task-form button {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+}
+
+.quest-task-add-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    background: transparent;
+    color: var(--gold-start);
+    border: 2px dashed var(--gold-dim);
+    padding: 8px;
+    font-size: 0.85rem;
+    box-shadow: none;
+}
+
+.quest-task-add-btn:hover {
+    border-color: var(--gold-start);
+    box-shadow: none;
+    transform: none;
+}
