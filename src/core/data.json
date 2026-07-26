@@ -1,0 +1,27 @@
+{
+    "user": {
+        "name": "Worker Bee",
+        "class": "Recruit",
+        "level": 1,
+        "title": "Swarm Initiate",
+        "currentXP": 0,
+        "nextLevelXP": 1000,
+        "totalDP": 0
+    },
+    "onboardingComplete": false,
+    "storage_mode": null,
+    "activeQuestId": "WELCOME-01",
+    "quests": [
+        {
+            "id": "WELCOME-01",
+            "category": "main",
+            "status": "active",
+            "title": "Calibrate Your Hive",
+            "reward": 50,
+            "logFile": null,
+            "tasks": [
+                { "id": "welcome-t1", "label": "Complete your first calibration step", "dp": 50, "completed": false, "dateCompleted": null }
+            ]
+        }
+    ]
+}

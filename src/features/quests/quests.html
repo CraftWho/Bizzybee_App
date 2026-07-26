@@ -4,20 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📜 Quests</title>
-    
+
     <link rel="stylesheet" href="../../core/global.css">
-    
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/md-viewer/md-viewer.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="./quests.css">
 </head>
 <body>
 
-    <main id="quests-root">
-        </main>
+    <main class="quests-container">
+
+        <section class="quest-section quest-section--spotlight" id="active-quest-section">
+            <h2 class="quest-section-title">🎯 <span class="gold-gradient-text">ACTIVE QUEST</span></h2>
+            <div class="dashboard-grid" id="active-quest-list"></div>
+        </section>
+
+        <hr class="quest-divider">
+
+        <section class="quest-section" id="main-quest-section">
+            <button class="quest-section-toggle" aria-expanded="true">
+                <span class="quest-section-chevron">▾</span>
+                <h2 class="quest-section-title">🛡️ <span class="gold-gradient-text">MAIN CAMPAIGN</span></h2>
+            </button>
+            <div class="dashboard-grid quest-section-body" id="main-quest-list"></div>
+        </section>
+
+        <hr class="quest-divider">
+
+        <section class="quest-section quest-section--collapsed" id="side-quest-section">
+            <button class="quest-section-toggle" aria-expanded="false">
+                <span class="quest-section-chevron">▾</span>
+                <h2 class="quest-section-title">⚔️ <span class="gold-gradient-text">SIDE OPERATIONS</span></h2>
+            </button>
+            <div class="dashboard-grid quest-section-body" id="side-quest-list"></div>
+        </section>
+
+        <hr class="quest-divider">
+
+        <section class="quest-section quest-section--collapsed" id="completed-quest-section">
+            <button class="quest-section-toggle" aria-expanded="false">
+                <span class="quest-section-chevron">▾</span>
+                <h2 class="quest-section-title">🏆 <span class="gold-gradient-text">COMPLETED</span></h2>
+            </button>
+            <div class="dashboard-grid quest-section-body" id="completed-quest-list"></div>
+        </section>
+
+    </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
-    
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/vendor/marked.min.js"></script>
+    <script src="../../core/md-viewer/md-viewer.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+
     <script src="./quests.js"></script>
 </body>
 </html>

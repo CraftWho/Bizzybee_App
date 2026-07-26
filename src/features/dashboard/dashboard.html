@@ -6,18 +6,90 @@
     <title>👨🏾‍💻 Dashboard</title>
     
     <link rel="stylesheet" href="../../core/global.css">
-    
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="./dashboard.css">
 </head>
 <body>
 
-    <main id="dashboard-root">
-        </main>
+    <main class="dashboard-container">
+        <section class="panel">
+            <div class="progress-header">
+                <h3>📊 CORE SYSTEM STATS</h3>
+                <span class="xp-text" id="dash-active-arc">ACTIVE ARC: FD-ARC</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">TOTAL XP (DP)</span>
+                    <span class="stat-value text-gold" id="dash-total-dp">—</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">CURRENT LEVEL</span>
+                    <span class="stat-value" id="dash-level">—</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">SYSTEM HEALTH</span>
+                    <span class="stat-value status-optimal">OPTIMAL</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel panel--stacked">
+            <div class="progress-header">
+                <h3>🧬 SKILL MASTERY MATRIX</h3>
+                <span class="xp-text">Target: 1,000 DP per Node</span>
+            </div>
+            <div class="skill-container" id="skill-container"></div>
+        </section>
+
+        <div class="dashboard-grid">
+
+            <div class="panel">
+                <h3>📋 <span class="gold-gradient-text">DAILY OBJECTIVES</span></h3>
+                <ul class="task-list">
+                    <li>
+                        <input type="checkbox">
+                        <span>Complete CSS Grid challenge</span>
+                    </li>
+                    <li>
+                        <input type="checkbox">
+                        <span>Refactor login components</span>
+                    </li>
+                    <li>
+                        <input type="checkbox">
+                        <span>Generate new quest path with Eevee</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="panel">
+                <h3>📡 <span class="gold-gradient-text">TERMINAL METRICS</span></h3>
+                <ul class="cyber-list">
+                    <li class="metric-row">
+                        <span class="xp-text">Quests Completed:</span>
+                        <span class="gold-gradient-text">12</span>
+                    </li>
+                    <li class="metric-row">
+                        <span class="xp-text">Current Streak:</span>
+                        <span class="gold-gradient-text">5 Days</span>
+                    </li>
+                    <li class="metric-row">
+                        <span class="xp-text">Last Sync:</span>
+                        <span class="xp-text">System Online</span>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+    </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
-    
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+
     <script src="./dashboard.js"></script>
 </body>
 </html>

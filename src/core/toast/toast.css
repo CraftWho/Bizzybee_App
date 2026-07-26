@@ -1,0 +1,39 @@
+/* ==========================================================================
+   TOAST - brief self-dismissing notification for live reward feedback
+   ========================================================================== */
+
+.bizzybee-toast {
+    position: fixed;
+    right: 30px;
+    background: #151515;
+    border: 2px solid var(--gold-start);
+    color: var(--gold-start);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px var(--gold-glow);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 3000;
+    pointer-events: none;
+}
+
+.bizzybee-toast--visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.bizzybee-toast--negative {
+    border-color: var(--crimson);
+    color: var(--crimson);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(220, 20, 60, 0.4);
+}
+
+@media (max-width: 768px) {
+    .bizzybee-toast {
+        right: 15px;
+        left: 15px;
+        text-align: center;
+    }
+}

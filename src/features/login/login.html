@@ -6,18 +6,46 @@
     <title>🔐 Login - Bizzybee</title>
     
     <link rel="stylesheet" href="../../core/global.css">
-    
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="./login.css">
 </head>
-<body>
+<body class="login-body">
 
-    <main id="login-root">
-        </main>
+    <main class="login-container">
+        <div class="hive-core-bg"></div>
+
+        <div class="login-card">
+            <h1 class="gold-gradient-text">Bizzybee Login</h1>
+            <p class="subtitle">Authenticate to access the Hive.</p>
+
+            <form id="login-form" class="auth-form">
+                <div class="input-group-auth">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="enter_email@hive.net" required>
+                </div>
+
+                <div class="input-group-auth">
+                    <label for="password">Passcode</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" id="auth-submit-btn">Enter Hive</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>New Worker Bee?</p>
+                <a href="#" class="btn-link">Request Access</a>
+            </div>
+        </div>
+    </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
-    
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+
     <script src="./login.js"></script>
 </body>
 </html>

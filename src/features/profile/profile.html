@@ -6,18 +6,81 @@
     <title>🧘🏾 Profile</title>
     
     <link rel="stylesheet" href="../../core/global.css">
-    
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="./profile.css">
 </head>
 <body>
 
-    <main id="profile-root">
-        </main>
+    <main class="profile-container">
+
+        <section class="operative-card panel">
+            <div class="avatar-hex">
+                <img src="../../assets/images/me.jpg" alt="Operative Avatar" class="profile-pic" onerror="this.src='https://placehold.co/150x150/111111/ffd700?text=OP'">
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">CLASS</span>
+                    <span class="stat-value text-gold" id="user-class">—</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">LEVEL</span>
+                    <span class="stat-value" id="user-level">—</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">TITLE</span>
+                    <span class="stat-value" id="user-title">—</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">DEV POINTS</span>
+                    <span class="stat-value text-gold" id="user-dp">—</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="progress-header">
+                <h3>NANITE CORE SYNTHESIS</h3>
+                <span class="xp-text">Next Level: <span id="next-level-dp">—</span> DP</span>
+            </div>
+            <div class="hive-progress-track">
+                <div class="hive-progress-fill" id="dp-progress-bar" style="width: 0%;"></div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h3>/// ACTIVE PROTOCOLS (Projects)</h3>
+            <div class="project-grid">
+                <div class="project-item">
+                    <h4>Bizzybee Terminal</h4>
+                    <p>Status: Active Construction</p>
+                </div>
+                <div class="project-item">
+                    <h4>Feathers of the Fallen</h4>
+                    <p>Status: Scaffolding Phase</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h3>/// SERVICE RECORD</h3>
+            <ul class="cyber-list">
+                <li><span class="log-date">[07-25-26]</span> Ported the Hive Mind FAB and Nano-Bee core into the modular architecture.</li>
+                <li><span class="log-date">[07-25-26]</span> Unified the global header and fixed dead CSS from the pre-refactor era.</li>
+            </ul>
+        </section>
+
+        <div class="action-footer">
+            <a href="../quests/quests.html" class="btn-hex-primary">INITIALIZE ACTIVE MISSION</a>
+        </div>
+
+    </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
-    
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+
     <script src="./profile.js"></script>
 </body>
 </html>
