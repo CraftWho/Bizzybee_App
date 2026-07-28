@@ -8,18 +8,68 @@
     <link rel="stylesheet" href="../../core/global.css">
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/modal/modal.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./settings.css">
 </head>
 <body>
 
-    <main id="settings-root">
-        </main>
+    <main class="settings-container">
+
+        <h2 class="settings-title">⚙️ <span class="gold-gradient-text">SETTINGS</span></h2>
+
+        <section class="panel">
+            <h3>🐝 Eevee</h3>
+            <p class="settings-intro">Talk to Eevee from the honeycomb button anywhere in the app. Here, you can export what she's picked up so far. See ROADMAP.md's "Two-track plan" for what these exports are actually for.</p>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Export Conversations</strong>
+                    <p>Downloads everything you and Eevee have said to each other as a .jsonl file - the raw material for training her for real, later.</p>
+                </div>
+                <button id="export-conversations-btn">📤 Export</button>
+            </div>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Export Quest Data</strong>
+                    <p>Downloads your quest and career history as its own .json file, kept separate from conversations since it's a different shape of data.</p>
+                </div>
+                <button id="export-quests-btn">📤 Export</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h3>💾 Data Management</h3>
+            <p class="settings-intro">Your progress lives in this browser. Use these if you've hand-edited the blueprint file and want those changes reflected here.</p>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Sync from Blueprint</strong>
+                    <p>Pulls in content changes (names, objectives, new or removed quests/tasks) while keeping your progress - completed tasks and your level are untouched.</p>
+                </div>
+                <button id="sync-blueprint-btn">🔄 Sync</button>
+            </div>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Reset Local Data</strong>
+                    <p>Wipes everything and reloads fresh from the blueprint. This cannot be undone - all progress will be lost.</p>
+                </div>
+                <button id="reset-data-btn" class="settings-btn-danger">⚠️ Reset</button>
+            </div>
+        </section>
+
+    </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./settings.js"></script>
 </body>

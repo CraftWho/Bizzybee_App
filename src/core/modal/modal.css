@@ -1,0 +1,149 @@
+/* ==========================================================================
+   MODAL SHELL
+   Generic overlay/box/header/footer chrome + shared button and textarea
+   styles. Any feature can build a modal on top of this (MDViewer, Quests'
+   QuestDetail, etc.) without depending on another module's stylesheet for
+   its look. This file has no idea what content goes inside .modal-body.
+   ========================================================================== */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.modal-box {
+    background: #0d0d0d;
+    border: 1px solid #333;
+    border-top: 4px solid var(--crimson);
+    border-radius: 8px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(220, 20, 60, 0.2);
+    width: 95vw;
+    max-width: 1100px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 25px;
+    border-bottom: 1px solid #333;
+    background: #050505;
+    flex-shrink: 0;
+}
+
+.modal-title {
+    color: var(--gold-start);
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 5px;
+    box-shadow: none;
+}
+
+.modal-close:hover {
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}
+
+.modal-body {
+    padding: 30px 40px;
+    overflow-y: auto;
+    flex: 1;
+    color: #ccc;
+    line-height: 1.7;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #333;
+    background: #050505;
+    flex-shrink: 0;
+}
+
+.modal-footer-actions,
+.modal-footer-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-footer button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+/* Crimson-outline "highlighted action" button (e.g. Make Active). */
+.modal-btn-accent {
+    background: transparent;
+    color: var(--crimson);
+    border: 2px solid var(--crimson);
+}
+
+.modal-btn-accent:hover {
+    background: var(--crimson);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+/* Grey-outline "secondary/power-user" button (e.g. Dev Edit). */
+.modal-btn-muted {
+    background: transparent;
+    color: #888;
+    border: 2px solid #555;
+}
+
+.modal-btn-muted:hover {
+    background: #333;
+    color: #fff;
+    box-shadow: none;
+}
+
+/* Generic dark-themed textarea for editing text inside a modal body. */
+.modal-textarea {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    background: #0a0a0a;
+    color: #ddd;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 15px;
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    resize: none;
+}
+
+@media (max-width: 768px) {
+    .modal-box {
+        width: 100%;
+        height: 95vh;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+}

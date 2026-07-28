@@ -4,9 +4,9 @@
    layout on top of it. */
 .quests-container {
     width: 100%;
-    max-width: 850px;
+    max-width: 1400px;
     margin: 20px auto 60px;
-    padding: 0 15px;
+    padding: 0 25px;
     box-sizing: border-box;
 }
 
@@ -151,38 +151,97 @@
     margin: 40px 0;
 }
 
-/* --- TASK CHECKLIST (rendered inside View Intel via MDViewer's mountExtra) ---
+/* --- QUEST DETAIL (rendered by QuestDetail into the modal's own body) ---
+   One unified scrolling document: stats, then objective, then source, then
+   the live task checklist - no separate panels, no independent scrollbars.
    Real-time DP: checking a task calls Vault.toggleTask() immediately, no
    save step - matches the Habitica-style "check it, get the points" feel. */
-.quest-task-panel {
-    background: #151515;
-    border-bottom: 2px solid var(--crimson);
-    padding: 20px 40px;
+.quest-detail-stats {
+    margin-bottom: 10px;
 }
 
-.quest-task-header {
+.quest-detail-heading {
+    color: var(--gold-start);
+    margin: 25px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #333;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
 }
 
-.quest-task-header h3 {
+/* Black background + grey left line - distinguishes descriptive/narrative
+   content from the crimson-lined stat boxes above it. */
+.quest-detail-text-box {
+    background: #0a0a0a;
+    border-left: 3px solid #555;
+    padding: 15px;
+}
+
+.quest-detail-text {
+    color: #ccc;
+    line-height: 1.6;
     margin: 0;
+}
+
+.quest-detail-text--empty {
+    color: #666;
+    font-style: italic;
+}
+
+.quest-detail-edit-textarea {
+    display: block;
+    width: 100%;
+    min-height: 100px;
+    background: var(--obsidian);
     color: var(--gold-start);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.quest-detail-edit-textarea:focus {
+    outline: none;
+    border-color: var(--gold-start);
+    box-shadow: 0 0 8px var(--gold-glow);
+}
+
+.quest-detail-source-input {
+    display: block;
+    width: 100%;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.quest-detail-json-editor {
+    height: auto;
+    min-height: 300px;
+}
+
+.quest-detail-source-link {
+    display: block;
+    background: linear-gradient(to bottom, #8b0000, #5c0000);
+    color: var(--gold-start);
+    text-decoration: none;
+    text-align: center;
+    padding: 12px 20px;
+    border: 2px solid var(--gold-start);
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.quest-detail-source-link:hover {
+    background: #a52a2a;
+    box-shadow: 0 0 10px var(--gold-glow);
 }
 
 .quest-task-progress {
     color: var(--gold-start);
     font-weight: bold;
-}
-
-/* Header/progress always stay visible - only the item list itself scrolls,
-   so a long task list can't crowd out the document below it. */
-.quest-task-list {
-    max-height: 220px;
-    overflow-y: auto;
-    padding-right: 8px;
 }
 
 .quest-task-item {
@@ -193,6 +252,15 @@
     flex: 1;
 }
 
+.quest-task-label--link {
+    color: var(--gold-start);
+    text-decoration: underline;
+}
+
+.quest-task-label--link:hover {
+    color: #fff;
+}
+
 .quest-task-item--done .quest-task-label {
     text-decoration: line-through;
     opacity: 0.6;
@@ -201,6 +269,57 @@
 .quest-task-dp {
     color: var(--gold-start);
     white-space: nowrap;
+}
+
+.quest-task-completed-at {
+    color: #888;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+.quest-task-relevance {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid currentColor;
+}
+
+.quest-task-relevance--high { color: #4caf50; }
+.quest-task-relevance--medium { color: var(--gold-start); }
+.quest-task-relevance--low { color: #888; }
+
+/* --- Repo Task / Quiz Challenge / Patch Notes ---
+   Optional sections, only present when a quest's data includes them (see
+   ROADMAP.md - this is real data ported from the old Codex app for GEN1
+   only, not fabricated for every quest, and deliberately left out of the
+   generic data.json base template). */
+.quest-repo-requirements {
+    margin: 6px 0 10px;
+    padding-left: 20px;
+    color: #ccc;
+}
+
+.quest-repo-requirements li {
+    margin-bottom: 4px;
+}
+
+.quest-patch-notes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.quest-patch-notes li {
+    padding: 10px 0;
+    border-top: 1px dashed #333;
+    color: #ccc;
+    line-height: 1.5;
+}
+
+.quest-patch-notes li:first-child {
+    border-top: none;
 }
 
 /* Task management: edit/remove icons per row, plus add/edit inline forms. */

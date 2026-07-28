@@ -2,11 +2,8 @@
     "user": {
         "name": "Worker Bee",
         "class": "Recruit",
-        "level": 1,
         "title": "Swarm Initiate",
-        "currentXP": 0,
-        "nextLevelXP": 1000,
-        "totalDP": 0
+        "skills": []
     },
     "onboardingComplete": false,
     "storage_mode": null,
@@ -17,10 +14,12 @@
             "category": "main",
             "status": "active",
             "title": "Calibrate Your Hive",
-            "reward": 50,
-            "logFile": null,
+            "objective": "Get familiar with your Hive Mind terminal and complete your first calibration task.",
+            "source": null,
+            "dateStarted": null,
+            "dateCompleted": null,
             "tasks": [
-                { "id": "welcome-t1", "label": "Complete your first calibration step", "dp": 50, "completed": false, "dateCompleted": null }
+                { "id": "welcome-t1", "label": "Complete your first calibration step", "dp": 50, "completed": false, "dateCompleted": null, "link": null }
             ]
         }
     ]

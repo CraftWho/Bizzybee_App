@@ -1,0 +1,68 @@
+/* --- LAYOUT ---
+   Self-contained: no classes borrowed from other features' stylesheets.
+   Only .panel and .gold-gradient-text (both genuinely global) are reused. */
+.settings-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+.settings-title {
+    text-align: center;
+    margin: 0 0 25px;
+}
+
+.settings-intro {
+    color: #ccc;
+    line-height: 1.6;
+    margin: 0 0 20px;
+}
+
+.settings-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px 0;
+    border-top: 1px dashed #333;
+}
+
+.settings-action-row:first-of-type {
+    border-top: none;
+}
+
+.settings-action-info strong {
+    display: block;
+    color: var(--gold-start);
+    margin-bottom: 4px;
+}
+
+.settings-action-info p {
+    margin: 0;
+    max-width: 500px;
+    color: #999;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.settings-btn-danger {
+    background: transparent;
+    color: var(--danger-red);
+    border: 2px solid var(--danger-red);
+    white-space: nowrap;
+}
+
+.settings-btn-danger:hover {
+    background: var(--danger-red);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+}
+
+@media (max-width: 600px) {
+    .settings-action-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
