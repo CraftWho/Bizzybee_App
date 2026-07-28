@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏰 Hive Mind</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/modal/modal.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./colony.css">
+</head>
+<body>
+
+    <main class="colony-container">
+
+        <div class="colony-view" id="colony-exterior">
+            <h2 class="colony-title">🏰 <span class="gold-gradient-text">HIVE MIND</span></h2>
+            <p class="colony-subtitle">Your colony grows as you do. Emoji stand-ins for now, until the real art exists.</p>
+
+            <div class="colony-nest-scene" id="colony-nest-scene">
+                <div class="colony-nest" id="colony-nest"></div>
+                <div class="colony-swarm" id="colony-exterior-swarm"></div>
+            </div>
+
+            <button class="colony-enter-btn" id="enter-hive-btn">Enter Hive →</button>
+        </div>
+
+        <div class="colony-view" id="colony-interior" style="display: none;">
+            <h2 class="colony-title">🍯 <span class="gold-gradient-text">INSIDE THE HIVE</span></h2>
+
+            <div class="colony-interior-scene">
+                <div class="colony-honeycomb-grid" id="colony-honeycomb-grid"></div>
+                <div class="colony-queen-wrap">
+                    <div class="colony-queen" id="colony-queen"></div>
+                    <span class="colony-queen-label">👑 The Queen</span>
+                </div>
+                <div class="colony-swarm" id="colony-interior-swarm"></div>
+            </div>
+
+            <section class="panel colony-gacha-panel">
+                <h3>🧪 Pollination Chamber <span class="colony-test-badge">TEST</span></h3>
+                <p class="colony-gacha-note">Placeholder mechanic — free for now, just testing how it feels before it's tied to a real cost.</p>
+                <button id="colony-pollinate-btn">🌼 Pollinate for a New Bee</button>
+                <p class="colony-gacha-result" id="colony-gacha-result"></p>
+
+                <div class="colony-bee-collection" id="colony-bee-collection"></div>
+            </section>
+
+            <button class="colony-leave-btn" id="leave-hive-btn">← Leave Hive</button>
+        </div>
+
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./colony.js"></script>
+</body>
+</html>

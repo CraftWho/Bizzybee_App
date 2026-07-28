@@ -1,0 +1,198 @@
+/* --- LAYOUT --- */
+.colony-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.colony-title {
+    margin: 0 0 8px;
+}
+
+.colony-subtitle {
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0 0 30px;
+}
+
+/* --- EXTERIOR: THE NEST ---
+   No accurate "beehive" emoji exists in Unicode, so the nest itself is a
+   CSS hexagon (same gold gradient language as the rest of the app) rather
+   than a wrong emoji. Bees are real emoji per redacted's call to keep those as-is
+   for now. Tiers grow with level - see nestTier() in colony.js. */
+.colony-nest-scene {
+    position: relative;
+    height: 320px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.colony-nest-scene.is-entering {
+    overflow: hidden;
+}
+
+.colony-nest {
+    width: 120px;
+    height: 140px;
+    background: linear-gradient(135deg, #fff5cc 0%, #d4af37 40%, #8a5a19 100%);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+    transition: transform 0.9s ease-in-out;
+    z-index: 2;
+}
+
+.colony-nest--tier-2 { width: 155px; height: 180px; }
+.colony-nest--tier-3 { width: 195px; height: 225px; }
+.colony-nest--tier-4 { width: 240px; height: 280px; }
+.colony-nest--tier-5 { width: 290px; height: 335px; box-shadow: 0 0 45px rgba(212, 175, 55, 0.6); }
+
+.colony-nest-scene.is-entering .colony-nest {
+    transform: scale(10);
+}
+
+.colony-enter-btn {
+    font-size: 1.05rem;
+    padding: 14px 30px;
+}
+
+/* --- AMBIENT SWARM ---
+   Plain emoji floating around the scene - lightweight and expected to be a
+   placeholder per redacted's own call ("use emojis available for now"). */
+.colony-swarm {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.colony-swarm-bee {
+    position: absolute;
+    font-size: 1.3rem;
+    animation-name: colony-float;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+@keyframes colony-float {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(14px, -10px); }
+    50% { transform: translate(-10px, 8px); }
+    75% { transform: translate(10px, 12px); }
+}
+
+/* --- INTERIOR: INSIDE THE HIVE --- */
+.colony-interior-scene {
+    position: relative;
+    min-height: 260px;
+    margin-bottom: 25px;
+    padding: 20px;
+    box-sizing: border-box;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.colony-honeycomb-grid {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 20px;
+    opacity: 0.15;
+    z-index: 0;
+}
+
+.colony-comb-cell {
+    width: 50px;
+    height: 58px;
+    background: var(--gold-start);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.colony-queen-wrap {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.colony-queen {
+    width: 90px;
+    height: 90px;
+}
+
+.colony-queen-label {
+    color: var(--gold-start);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+/* --- POLLINATION CHAMBER (gacha test placeholder) --- */
+.colony-gacha-panel {
+    text-align: left;
+}
+
+.colony-test-badge {
+    display: inline-block;
+    background: var(--crimson);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+.colony-gacha-note {
+    color: #999;
+    font-size: 0.85rem;
+    margin: 8px 0 15px;
+}
+
+.colony-gacha-result {
+    min-height: 1.4em;
+    margin: 12px 0 0;
+    font-size: 1rem;
+}
+
+.colony-bee-collection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.colony-bee-chip {
+    background: #0a0a0a;
+    border: 1px solid #555;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+}
+
+.colony-empty-state {
+    color: #666;
+    font-style: italic;
+    margin-top: 15px;
+}
+
+.colony-leave-btn {
+    margin-top: 10px;
+    background: transparent;
+    border: 2px solid #555;
+    color: #ccc;
+}
+
+.colony-leave-btn:hover {
+    border-color: var(--gold-start);
+    color: var(--gold-start);
+}
