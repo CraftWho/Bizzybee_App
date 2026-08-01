@@ -33,6 +33,20 @@ function formatCompletedAt(iso) {
     return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+// Rough DP anchors per difficulty tier - matches the guidance baked into
+// Eevee's prompt in llm-engine.js, so manual entry and LLM-generated tasks
+// land on a similar scale. Auto-fills the DP field when a difficulty is
+// picked in the add/edit forms below; still freely editable afterward.
+const DIFFICULTY_DP_SUGGESTIONS = { Easy: 20, Medium: 60, Hard: 120 };
+
+function difficultySelectHTML(selected) {
+    const options = ['', 'Easy', 'Medium', 'Hard'].map(level => {
+        const label = level || 'No difficulty';
+        return `<option value="${level}"${level === (selected || '') ? ' selected' : ''}>${label}</option>`;
+    }).join('');
+    return `<select class="quest-task-form-difficulty">${options}</select>`;
+}
+
 function questMaxPoints(quest) {
     return (quest.tasks || []).reduce((sum, t) => sum + t.dp, 0);
 }
@@ -324,6 +338,7 @@ const QuestDetail = {
                     : `<span class="quest-task-label">${escapeHTML(task.label)}</span>`
                 }
                 ${task.relevance ? `<small class="quest-task-relevance quest-task-relevance--${escapeAttr(task.relevance.toLowerCase())}">${escapeHTML(task.relevance)}</small>` : ''}
+                ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${escapeHTML(task.difficulty)}</small>` : ''}
                 <small class="quest-task-dp">+${task.dp} DP</small>
                 ${task.completed && task.dateCompleted ? `<small class="quest-task-completed-at">✓ ${formatCompletedAt(task.dateCompleted)}</small>` : ''}
                 <button class="quest-task-icon-btn" data-role="edit" aria-label="Edit task">✏️</button>
@@ -370,21 +385,37 @@ const QuestDetail = {
     }
 };
 
-// Swaps a task row for an inline label/DP edit form.
+// Selecting a difficulty auto-fills the DP field with the matching
+// suggestion (still freely editable after) - shared by every add/edit form
+// below, quest tasks and dailies alike.
+function wireDifficultyAutoFill(form) {
+    const select = form.querySelector('.quest-task-form-difficulty');
+    const dpInput = form.querySelector('.quest-task-form-dp');
+    select.addEventListener('change', () => {
+        if (DIFFICULTY_DP_SUGGESTIONS[select.value] !== undefined) {
+            dpInput.value = DIFFICULTY_DP_SUGGESTIONS[select.value];
+        }
+    });
+}
+
+// Swaps a task row for an inline label/DP/difficulty edit form.
 function renderTaskEditForm(row, quest, task, onDone) {
     row.innerHTML = `
         <input type="text" class="quest-task-form-label" value="${escapeAttr(task.label)}">
+        ${difficultySelectHTML(task.difficulty)}
         <input type="number" class="quest-task-form-dp" value="${task.dp}" min="0">
         <button class="quest-task-form-save">Save</button>
         <button class="quest-task-form-cancel">Cancel</button>
     `;
+    wireDifficultyAutoFill(row);
 
     row.querySelector('.quest-task-form-save').addEventListener('click', () => {
         const label = row.querySelector('.quest-task-form-label').value.trim();
         const dp = row.querySelector('.quest-task-form-dp').value;
+        const difficulty = row.querySelector('.quest-task-form-difficulty').value;
         if (!label) return;
 
-        if (Vault.updateTask(quest.id, task.id, { label, dp })) {
+        if (Vault.updateTask(quest.id, task.id, { label, dp, difficulty })) {
             onDone();
             renderQuestsPage();
         }
@@ -400,6 +431,7 @@ function renderTaskAddForm(body, quest, onDone) {
     addBtn.insertAdjacentHTML('beforebegin', `
         <div class="quest-task-form">
             <input type="text" class="quest-task-form-label" placeholder="Task name">
+            ${difficultySelectHTML(null)}
             <input type="number" class="quest-task-form-dp" placeholder="DP" min="0">
             <button class="quest-task-form-save">Save</button>
             <button class="quest-task-form-cancel">Cancel</button>
@@ -408,12 +440,15 @@ function renderTaskAddForm(body, quest, onDone) {
     addBtn.style.display = 'none';
 
     const form = body.querySelector('.quest-task-form');
+    wireDifficultyAutoFill(form);
+
     form.querySelector('.quest-task-form-save').addEventListener('click', () => {
         const label = form.querySelector('.quest-task-form-label').value.trim();
         const dp = form.querySelector('.quest-task-form-dp').value;
+        const difficulty = form.querySelector('.quest-task-form-difficulty').value;
         if (!label) return;
 
-        if (Vault.addTask(quest.id, { label, dp })) {
+        if (Vault.addTask(quest.id, { label, dp, difficulty })) {
             onDone();
             renderQuestsPage();
         }
@@ -421,6 +456,11 @@ function renderTaskAddForm(body, quest, onDone) {
 
     form.querySelector('.quest-task-form-cancel').addEventListener('click', onDone);
 }
+
+// Daily Tasks moved to their own page (src/features/dailies/) - they were
+// getting lost at the bottom of this page's collapsed sections. See
+// dailies.js for the management UI (add/edit/remove); Home still just
+// displays/toggles them for quick daily check-ins.
 
 function renderQuestsPage() {
     const quests = Vault.getQuests();

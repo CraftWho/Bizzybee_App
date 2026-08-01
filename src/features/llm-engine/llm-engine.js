@@ -116,6 +116,8 @@ const Eevee = {
         const instructions = `
 Generate exactly one quest as JSON. Respond with JSON only - no commentary, no markdown fences.
 
+Break the goal down into as many tasks as it actually takes to fully accomplish it - do NOT artificially stop at 2-3 tasks just because that's a tidy-looking list. The only real limit on the number of tasks is the goal itself being genuinely complete once they're all done. A shallow goal might only need 3-4 tasks; a substantial one may need 8, 12, or more. Under-listing tasks so the goal is left half-finished is a bigger failure than a long list.
+
 Required shape:
 {
   "title": string,
@@ -123,10 +125,18 @@ Required shape:
   "objective": string (plain and professional - this doubles as real resume documentation, keep your Queen persona OUT of this field),
   "queensDecree": string (your in-character voice ONLY - hive/bee themed, warm but with an edge, 1-2 sentences max),
   "dateStarted": "YYYY-MM-DD",
-  "tasks": [ { "label": string, "dp": number } ]
+  "tasks": [ { "label": string, "dp": number, "difficulty": "Easy" or "Medium" or "Hard" } ]
 }
 
-DP guidance: base each task's DP on realistic time/effort to complete it, roughly 10 DP per minute of estimated real-world effort - a quick 6-minute task is about 60 DP, a 15-minute chapter of reading is about 150 DP. Very trivial sub-2-minute actions should still get a small nominal amount rather than rounding to 0. Use judgment, not a rigid formula - a mentally demanding 10-minute task can outweigh a mindless 20-minute one.
+DP guidance: judge each task's difficulty (and therefore its DP) on THREE factors together, not time alone:
+1. Time - how long it realistically takes.
+2. The task itself - how technically demanding or mentally taxing it actually is, independent of time.
+3. Goal alignment - how directly it advances the worker bee's stated goal. A task that's a real step toward the goal outweighs busywork that merely fills time, even at equal length.
+Rough DP anchors, not a rigid formula:
+- Easy (quick, low-thought, or only loosely tied to the goal - e.g. a 2-5 minute read or a trivial fix): 15-30 DP
+- Medium (real effort, ~10-20 minutes, moderate problem-solving, or a genuine step toward the goal): 40-80 DP
+- Hard (genuinely difficult, technically demanding, 30+ minutes of focus, or a task that meaningfully advances the goal): 90-180 DP
+A mentally demanding 10-minute task tied directly to the goal should outrank a mindless 20-minute task that isn't - weight difficulty and goal relevance over the clock. Very trivial sub-2-minute actions still get a small nominal amount rather than rounding to 0.
 ${styleExample ? `\nHouse style reference (tone/format only, do not copy content):\n${JSON.stringify({ title: styleExample.title, objective: styleExample.objective, tasks: (styleExample.tasks || []).slice(0, 3).map(t => ({ label: t.label, dp: t.dp })) }, null, 2)}` : ''}
 
 The worker bee's stated goal: "${goalText}"
@@ -167,7 +177,8 @@ The worker bee's stated goal: "${goalText}"
                 dp: Number(task.dp) || 10,
                 completed: false,
                 dateCompleted: null,
-                link: null
+                link: null,
+                difficulty: ['Easy', 'Medium', 'Hard'].includes(task.difficulty) ? task.difficulty : null
             }))
         };
 

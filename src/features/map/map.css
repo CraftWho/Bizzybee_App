@@ -1,0 +1,103 @@
+.map-container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.map-title {
+    margin: 0 0 8px;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.map-subtitle {
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0 0 20px;
+}
+
+.map-path-wrap {
+    overflow-x: auto;
+    padding: 40px 10px;
+}
+
+/* A gold line running behind every marker (::before), with the flags and
+   quest markers laid on top of it as flex children - reads as "a path from
+   start to finish" without needing any actual map artwork. */
+.map-path {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    min-width: max-content;
+    padding: 0 30px;
+}
+
+.map-path::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 4px;
+    background: linear-gradient(to right, var(--gold-dim), var(--gold-start));
+    transform: translateY(-50%);
+    z-index: 0;
+}
+
+.map-flag,
+.map-marker {
+    position: relative;
+    z-index: 1;
+    font-size: 1.8rem;
+    background: var(--obsidian);
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--gold-dim);
+}
+
+.map-flag--start,
+.map-flag--finish {
+    border-color: var(--gold-start);
+    box-shadow: 0 0 15px var(--gold-glow);
+}
+
+.map-marker--completed {
+    border-color: var(--gold-start);
+}
+
+.map-marker--active {
+    border-color: var(--crimson);
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.4);
+}
+
+.map-legend {
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+    margin-top: 25px;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.map-footer-link {
+    margin-top: 20px;
+}
+
+.map-footer-link a {
+    color: var(--gold-start);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.map-footer-link a:hover {
+    text-decoration: underline;
+}

@@ -1,0 +1,233 @@
+.home-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+/* --- STATUS STRIP --- */
+.home-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.home-status-name {
+    font-size: 1.7rem;
+    font-weight: bold;
+    color: var(--gold-start);
+}
+
+.home-status-level {
+    color: #ccc;
+    font-size: 1.15rem;
+}
+
+.home-status-level strong {
+    color: var(--gold-start);
+    font-size: 1.5rem;
+}
+
+/* --- DP PROGRESS (lives in the same status panel as Name/Level, not its
+   own section) --- */
+.home-dp-progress-wrap {
+    position: relative;
+    margin-top: 12px;
+}
+
+/* Matches the hive-progress-fill's existing base styles from global.css -
+   only overriding the transition to be a slow, deliberate fill rather than
+   an instant snap, per the "slow fill animation" request. */
+.home-dp-fill {
+    transition: width 2.2s ease-out;
+}
+
+.home-dp-progress-text {
+    text-align: right;
+    color: #999;
+    font-size: 1rem;
+    margin: 6px 0 0;
+}
+
+/* Anchored at the fill's current end (left: X%, set in JS) - confetti
+   pieces spawn from here so the burst reads as coming from the tip of the
+   bar, not the whole track. */
+.home-confetti-anchor {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.confetti-piece {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 10px;
+    opacity: 1;
+    animation: confetti-burst 1.1s ease-out forwards;
+}
+
+@keyframes confetti-burst {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+        opacity: 0;
+    }
+}
+
+/* --- COLLAPSIBLE HOME SECTIONS (Active Quest, Daily Tasks) - collapsed by
+   default so the app icon grid isn't buried below them, centered content,
+   each with a link out to its own full page. --- */
+/* The toggle button holds the chevron AND the h3 side by side, so the new
+   global ".panel h3" rectangle-banner rule (see global.css) would only box
+   the text half, leaving the chevron stranded outside it. Box the whole
+   button instead - same bleed-to-the-panel's-edges trick, and explicitly
+   flatten the nested h3 back to plain text so it isn't boxed twice. */
+.home-collapsible .home-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    background: #0a0a0a;
+    border: none;
+    border-bottom: 2px solid var(--crimson);
+    border-radius: 8px 8px 0 0;
+    box-shadow: none;
+    cursor: pointer;
+    padding: 14px 20px;
+    margin: -20px -20px 0;
+}
+
+.home-collapsible .home-section-toggle:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.home-collapsible .home-section-toggle h3 {
+    margin: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
+
+.home-section-chevron {
+    color: var(--crimson);
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.home-collapsible--collapsed .home-section-chevron {
+    transform: rotate(-90deg);
+}
+
+.home-collapsible--collapsed .home-section-body {
+    display: none;
+}
+
+.home-section-body {
+    margin-top: 18px;
+    text-align: center;
+}
+
+.home-section-body .task-list {
+    max-width: 420px;
+    margin: 0 auto;
+    text-align: left;
+    font-size: 1.1rem;
+}
+
+.home-section-link {
+    display: inline-block;
+    margin-top: 15px;
+    color: var(--gold-start);
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.05rem;
+}
+
+.home-section-link:hover {
+    text-decoration: underline;
+}
+
+/* --- ACTIVE QUEST (simplified) --- */
+.home-active-quest-title {
+    color: var(--crimson);
+    font-weight: bold;
+    font-size: 1.25rem;
+    margin: 0 0 12px;
+    text-align: center;
+}
+
+/* --- Shared task-list row treatment for both Active Quest and Daily Tasks --- */
+.home-task-label {
+    flex: 1;
+}
+
+.home-task-label--done {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* --- APP ICON GRID: 4 square icons per row - "more apps" launcher for
+   destinations that live outside the header nav (Skills, Dictionary,
+   Profile, Settings, Honey Store, Plugins, The Hive Archive - all pulled
+   from the header/promoted out of it to keep the header itself short). --- */
+.home-app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 25px;
+}
+
+.home-app-icon {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #151515;
+    border: 1px solid #333;
+    border-top: 2px solid var(--crimson);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.home-app-icon:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 12px var(--gold-glow);
+}
+
+.home-app-icon-emoji {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.home-app-icon-label {
+    color: var(--gold-start);
+    font-size: 0.95rem;
+    font-weight: bold;
+    text-align: center;
+    letter-spacing: 0.3px;
+}
+
+@media (max-width: 480px) {
+    .home-app-icon-emoji {
+        font-size: 2rem;
+    }
+    .home-app-icon-label {
+        font-size: 0.8rem;
+    }
+}

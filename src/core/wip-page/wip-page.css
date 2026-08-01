@@ -1,0 +1,48 @@
+/* Shared "coming soon" placeholder shell - used by any WIP page (Honey
+   Store, Plugins, The Hive Archive) rather than duplicating the same
+   layout three times. If a page outgrows this, give it its own CSS. */
+.wip-container {
+    max-width: 500px;
+    margin: 60px auto;
+    padding: 0 25px;
+    text-align: center;
+}
+
+.wip-icon {
+    font-size: 4rem;
+    margin-bottom: 10px;
+}
+
+.wip-title {
+    margin: 0 0 10px;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.wip-badge {
+    display: inline-block;
+    background: var(--crimson);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+}
+
+.wip-description {
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.wip-back-link {
+    color: var(--gold-start);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.wip-back-link:hover {
+    text-decoration: underline;
+}

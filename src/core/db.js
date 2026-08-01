@@ -19,20 +19,48 @@ function computeTotalDP(quests) {
     }, 0);
 }
 
+// Same "live, not a ledger" philosophy as computeTotalDP: a daily task's DP
+// contribution is however many days it's been checked off (completedDates
+// stores a list of "YYYY-MM-DD" strings) times its CURRENT dp value - so
+// editing a daily task's dp retroactively reflects across all its past
+// completions too, same as editing a quest task's dp does.
+function computeDailyDP(dailyTasks) {
+    return (dailyTasks || []).reduce((sum, task) => {
+        return sum + (task.completedDates || []).length * task.dp;
+    }, 0);
+}
+
+function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+}
+
 // Pure, stateless: derives level/currentXP/nextLevelXP from a total DP
-// figure using the same compounding-threshold curve the old incremental
-// version used (each level costs 1.5x the last, starting at 1000).
-// Recomputed fresh every call instead of stored, for the same reason as
-// computeTotalDP above.
+// figure. Recomputed fresh every call instead of stored, for the same
+// reason as computeTotalDP above.
+//
+// REBALANCED TWICE. v1 (original): starts at 1000, x1.5 compounding - by
+// level 20 that demands over 2 million DP for a single level, which is why
+// leveling felt endless. v2: flat +75/level - fixed the explosion, but a
+// flat step isn't actually "progressive," it's linear - level 19->20 costs
+// the same marginal amount as level 2->3, which made later levels feel too
+// cheap (barely more than a task or two). This version: still starts at
+// 150, but now GROWS by a gentle 15% each level instead of a fixed amount -
+// early levels stay quick, but the threshold genuinely climbs faster the
+// higher you go, without spiraling anywhere near the old x1.5 curve. Tune
+// GROWTH_RATE (currently 1.15) if the pace still feels off with more real
+// usage to judge it against.
 function computeLevelProgress(totalDP) {
+    const BASE_THRESHOLD = 150;
+    const GROWTH_RATE = 1.15;
+
     let level = 1;
-    let threshold = 1000;
+    let threshold = BASE_THRESHOLD;
     let remaining = totalDP;
 
     while (remaining >= threshold) {
         remaining -= threshold;
         level += 1;
-        threshold = Math.floor(threshold * 1.5);
+        threshold = Math.round(threshold * GROWTH_RATE);
     }
 
     return { level, currentXP: remaining, nextLevelXP: threshold };
@@ -158,6 +186,17 @@ class DatabaseManager {
             return mergedQuest;
         });
 
+        // Same merge philosophy as quests: blueprint wins for label/dp,
+        // localStorage wins for completion history.
+        const existingDailyTasks = this.state.dailyTasks || [];
+        this.state.dailyTasks = (blueprint.dailyTasks || []).map(blueprintTask => {
+            const existingTask = existingDailyTasks.find(t => t.id === blueprintTask.id);
+            return {
+                ...blueprintTask,
+                completedDates: existingTask ? existingTask.completedDates : []
+            };
+        });
+
         // Keep your local choice of active quest if it still exists after
         // merging; otherwise fall back to whatever the blueprint suggests.
         const activeStillExists = this.state.quests.some(q => q.id === this.state.activeQuestId);
@@ -189,7 +228,7 @@ class DatabaseManager {
     getUser() {
         if (!this.state) return null;
 
-        const totalDP = computeTotalDP(this.state.quests);
+        const totalDP = computeTotalDP(this.state.quests) + computeDailyDP(this.state.dailyTasks);
         const { level, currentXP, nextLevelXP } = computeLevelProgress(totalDP);
 
         return {
@@ -260,7 +299,7 @@ class DatabaseManager {
 
     // 5b. Logic: Task management (add/edit/remove) - the LLM or the user can
     // both shape a quest's tasks this way, not just check them off.
-    addTask(questId, { label, dp }) {
+    addTask(questId, { label, dp, difficulty }) {
         if (!this.state) return null;
 
         const quest = (this.state.quests || []).find(q => q.id === questId);
@@ -273,7 +312,8 @@ class DatabaseManager {
             dp: Number(dp) || 0,
             completed: false,
             dateCompleted: null,
-            link: null
+            link: null,
+            difficulty: difficulty || null
         });
 
         this._updateQuestCompletionState(quest);
@@ -281,7 +321,7 @@ class DatabaseManager {
         return quest;
     }
 
-    updateTask(questId, taskId, { label, dp }) {
+    updateTask(questId, taskId, { label, dp, difficulty }) {
         if (!this.state) return null;
 
         const quest = (this.state.quests || []).find(q => q.id === questId);
@@ -292,6 +332,7 @@ class DatabaseManager {
 
         if (label !== undefined) task.label = label;
         if (dp !== undefined) task.dp = Number(dp) || 0;
+        if (difficulty !== undefined) task.difficulty = difficulty || null;
 
         this.save();
         return quest;
@@ -395,6 +436,83 @@ class DatabaseManager {
         this.state.colony.bees.push(bee);
         this.save();
         return bee;
+    }
+
+    // 5h. Logic: Daily Tasks (a Habitica-style "Dailies" checklist, distinct
+    // from quest tasks - these reset every day rather than being one-off).
+    // Blueprint-authored (label/dp), like quests, but Vault tracks a running
+    // list of the dates each one was completed on. getDailyTasks() derives
+    // "is this checked off today" live from that list rather than storing a
+    // separate boolean, so there's nothing to reset at midnight - a new day
+    // just means today's date isn't in the list yet.
+    getDailyTasks() {
+        if (!this.state) return [];
+        const today = todayISO();
+
+        return (this.state.dailyTasks || []).map(task => ({
+            ...task,
+            completedToday: (task.completedDates || []).includes(today)
+        }));
+    }
+
+    toggleDailyTask(taskId) {
+        if (!this.state) return null;
+
+        const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
+        if (!task) return null;
+
+        if (!task.completedDates) task.completedDates = [];
+        const today = todayISO();
+        const index = task.completedDates.indexOf(today);
+
+        if (index === -1) {
+            task.completedDates.push(today);
+        } else {
+            task.completedDates.splice(index, 1);
+        }
+
+        this.save();
+        return task;
+    }
+
+    // 5i. Logic: Daily Task management (add/edit/remove) - mirrors
+    // addTask/updateTask/removeTask for quest tasks above.
+    addDailyTask({ label, dp, difficulty }) {
+        if (!this.state) return null;
+        if (!this.state.dailyTasks) this.state.dailyTasks = [];
+
+        this.state.dailyTasks.push({
+            id: `daily-${Date.now()}`,
+            label,
+            dp: Number(dp) || 0,
+            difficulty: difficulty || null,
+            completedDates: []
+        });
+
+        this.save();
+        return this.state.dailyTasks;
+    }
+
+    updateDailyTask(taskId, { label, dp, difficulty }) {
+        if (!this.state) return null;
+
+        const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
+        if (!task) return null;
+
+        if (label !== undefined) task.label = label;
+        if (dp !== undefined) task.dp = Number(dp) || 0;
+        if (difficulty !== undefined) task.difficulty = difficulty || null;
+
+        this.save();
+        return task;
+    }
+
+    removeDailyTask(taskId) {
+        if (!this.state || !this.state.dailyTasks) return false;
+
+        this.state.dailyTasks = this.state.dailyTasks.filter(t => t.id !== taskId);
+        this.save();
+        return true;
     }
 
     // 6. Logic: Privacy Preference Write

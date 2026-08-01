@@ -16,11 +16,12 @@
 }
 
 /* --- SECTION HEADER BACKGROUNDS ---
-   Same dark-grey/crimson/gold-text recipe as .panel, so headers read clearly
-   against the busy hex background without introducing a new color scheme. */
+   Same recessed dark-box/crimson/gold-text recipe as the global ".panel h3"
+   rectangle banner (see global.css), so every header in the app reads as
+   the same shape - this was the original pattern that recipe was based on. */
 .quest-section-toggle,
 .quest-section--spotlight .quest-section-title {
-    background: #151515;
+    background: #0a0a0a;
     border: 1px solid #333;
     border-top: 2px solid var(--crimson);
     border-radius: 8px;
@@ -69,13 +70,30 @@
     margin-bottom: 25px;
 }
 
+/* The shared .dashboard-grid is a fixed 2-column grid above 768px (see
+   global.css) - fine for a full board of cards, but it left a single
+   spotlighted card filling only half the row on anything wider than mobile.
+   Force it to a single, always-full-width column here specifically, so it
+   truly fills the screen at any size instead of only below the breakpoint. */
+#active-quest-list {
+    grid-template-columns: 1fr;
+}
+
 /* --- QUEST CARDS ---
    These are story missions, not checklists: a short summary card that opens
    the full log in the markdown viewer. No accordion, no inline task list. */
-.quest-card-title {
+/* Compound selector (.quest-card .quest-card-title) deliberately, not just
+   .quest-card-title alone - the new global ".panel h3" rectangle-banner
+   rule (see global.css) has higher specificity than a single class, and
+   would otherwise leak its background/border-radius/text-align onto card
+   titles, which are meant to stay plain crimson text, not a boxed banner. */
+.quest-card .quest-card-title {
+    background: none;
+    border-radius: 0;
+    text-align: left;
     color: var(--crimson);
     margin: 0 0 15px;
-    padding-bottom: 0;
+    padding: 0;
     border-bottom: none;
 }
 
@@ -290,6 +308,19 @@
 .quest-task-relevance--medium { color: var(--gold-start); }
 .quest-task-relevance--low { color: #888; }
 
+.quest-task-difficulty {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid currentColor;
+}
+
+.quest-task-difficulty--easy { color: #4caf50; }
+.quest-task-difficulty--medium { color: var(--gold-start); }
+.quest-task-difficulty--hard { color: var(--danger-red); }
+
 /* --- Repo Task / Quiz Challenge / Patch Notes ---
    Optional sections, only present when a quest's data includes them (see
    ROADMAP.md - this is real data ported from the old Codex app for GEN1
@@ -356,6 +387,11 @@
 
 .quest-task-form-dp {
     width: 70px;
+    padding: 8px 10px;
+}
+
+.quest-task-form-difficulty {
+    width: 110px;
     padding: 8px 10px;
 }
 
