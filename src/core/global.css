@@ -401,11 +401,20 @@ button:hover {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 18px rgba(220, 20, 60, 0.15);
 }
 
+/* Rectangle "title bar" banner, consistent everywhere a .panel has a
+   header - matches the recipe quests.css already used for its own section
+   titles (dark recessed box, crimson accent, rounded top corners) rather
+   than every page inventing its own header treatment. Bleeds to the
+   panel's edges via negative margin so it reads as its own bar, not text
+   floating inside the panel's padding. */
 .panel h3 {
-    margin-top: 0;
+    margin: -20px -20px 15px;
+    background: #0a0a0a;
+    border-bottom: 2px solid var(--crimson);
+    border-radius: 8px 8px 0 0;
+    padding: 14px 20px;
+    text-align: center;
     color: var(--gold-start);
-    border-bottom: 1px dashed #333;
-    padding-bottom: 10px;
 }
 
 .stats-grid {

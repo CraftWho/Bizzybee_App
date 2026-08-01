@@ -7,10 +7,10 @@
     },
     "onboardingComplete": false,
     "storage_mode": null,
-    "activeQuestId": "WELCOME-01",
+    "activeQuestId": "MQ1",
     "quests": [
         {
-            "id": "WELCOME-01",
+            "id": "MQ1",
             "category": "main",
             "status": "active",
             "title": "Calibrate Your Hive",
@@ -22,5 +22,8 @@
                 { "id": "welcome-t1", "label": "Complete your first calibration step", "dp": 50, "completed": false, "dateCompleted": null, "link": null }
             ]
         }
+    ],
+    "dailyTasks": [
+        { "id": "daily-01", "label": "Check in on your active quest", "dp": 10, "completedDates": [] }
     ]
 }

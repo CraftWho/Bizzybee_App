@@ -1,0 +1,107 @@
+.dailies-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+.dailies-title {
+    text-align: center;
+    margin: 0 0 8px;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.dailies-subtitle {
+    text-align: center;
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0 0 25px;
+}
+
+.quest-empty-state {
+    text-align: center;
+    color: #888;
+    padding: 20px 0;
+}
+
+/* --- Task rows (duplicated from quests.css - this feature is
+   self-contained, not dependent on another feature's stylesheet) --- */
+.quest-task-item {
+    justify-content: space-between;
+}
+
+.quest-task-label {
+    flex: 1;
+}
+
+.quest-task-item--done .quest-task-label {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.quest-task-dp {
+    color: var(--gold-start);
+    white-space: nowrap;
+}
+
+.quest-task-difficulty {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid currentColor;
+}
+
+.quest-task-difficulty--easy { color: #4caf50; }
+.quest-task-difficulty--medium { color: var(--gold-start); }
+.quest-task-difficulty--hard { color: var(--danger-red); }
+
+.quest-task-icon-btn {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 2px 4px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.quest-task-icon-btn:hover {
+    color: var(--gold-start);
+    transform: none;
+    box-shadow: none;
+}
+
+.quest-task-icon-btn--remove:hover {
+    color: var(--danger-red);
+}
+
+/* --- Add/edit form row --- */
+.quest-task-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.quest-task-form-label {
+    flex: 1;
+    padding: 8px 10px;
+}
+
+.quest-task-form-dp {
+    width: 70px;
+    padding: 8px 10px;
+}
+
+.quest-task-form-difficulty {
+    width: 110px;
+    padding: 8px 10px;
+}
+
+.quest-task-form button {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+}
