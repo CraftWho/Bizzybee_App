@@ -76,7 +76,25 @@ const Eevee = {
                 })
             });
         } catch (error) {
-            throw new Error('Could not reach Eevee - is Ollama running? (try `ollama serve` in a terminal)');
+            // This fetch always targets the VISITOR's own machine (localhost:11434
+            // means "your computer," not wherever this page is hosted) - so it
+            // fails the same way whether the page is opened from a local file,
+            // localhost, or a deployed Netlify URL. Two separate causes look
+            // identical to JS (both throw a generic "failed to fetch"), so this
+            // message covers both:
+            // 1. Ollama isn't running at all - `ollama serve` fixes this.
+            // 2. Ollama IS running, but is on a different origin than this page
+            //    (e.g. this page is served from a Netlify URL, not localhost) -
+            //    Ollama blocks cross-origin browser requests by default, so it
+            //    needs OLLAMA_ORIGINS set to allow this page's origin before
+            //    restarting: OLLAMA_ORIGINS=https://your-site.netlify.app,http://localhost:* ollama serve
+            //    (OLLAMA_ORIGINS=* works too, but is unrestricted - fine for
+            //    your own local testing, not something to ship as guidance to
+            //    other people running this app).
+            // Either way, Ollama only ever talks to whoever's browser is
+            // loading the page in front of them - a visitor without Ollama
+            // installed and running locally can never use Eevee, full stop.
+            throw new Error('Could not reach Eevee. Make sure Ollama is running on THIS machine (`ollama serve`), and if this page isn\'t on localhost, that OLLAMA_ORIGINS includes this page\'s address.');
         }
 
         if (!response.ok) {
@@ -194,14 +212,18 @@ The worker bee's stated goal: "${goalText}"
 // itself and can add its own extras on top (e.g. Quests adds "Add Campaign")
 // - hive-mind.js's contract is that each page owns its own action list, this
 // just saves every page from redeclaring the two universal ones by hand.
-// All feature pages live at the same depth (src/features/<name>/), so this
-// relative path holds from any of them.
+// Feature pages live two levels deep (src/features/<name>/), so '..' reaches
+// src/features/ from any of them - but this FAB is ALSO wired up on the root
+// index.html (see index.js), where '..' would walk OUTSIDE the project
+// entirely and 404. Mirrors app.js's injectHeader() linkPrefix logic so both
+// places compute the same "am I at the root or two levels deep" path.
 function baseHiveMindActions() {
+    const linkPrefix = window.location.pathname.includes('features') ? '..' : './src/features';
     return [
         {
             icon: '🏰',
             label: 'Hive Mind',
-            onClick: () => { window.location.href = '../colony/colony.html'; }
+            onClick: () => { window.location.href = `${linkPrefix}/colony/colony.html`; }
         },
         {
             icon: '💬',

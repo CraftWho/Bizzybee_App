@@ -2,6 +2,11 @@
 # db.js loads this first and falls back to the generic src/core/data.json.
 src/core/data.personal.json
 
+# Personal profile photo. profile.html falls back to the local
+# avatar-placeholder.svg (a generic camera icon) whenever this file is
+# missing, so the shared/base template never ships your actual photo.
+src/assets/images/me.jpg
+
 # Real migrated quest/career logs (personal content). The folder structure
 # stays tracked; only its file contents are excluded.
 src/features/quests/logs/*

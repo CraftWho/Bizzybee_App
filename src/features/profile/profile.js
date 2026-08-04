@@ -37,5 +37,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         progressBar.style.width = `${progressPercentage}%`;
     }, 300);
 
+    // Projects/service record - blueprint content (see db.js's
+    // getProfileExtras), so the generic data.json ships placeholder text
+    // and only a real data.personal.json shows actual project history.
+    const { projects, serviceRecord } = Vault.getProfileExtras();
+
+    const projectGrid = document.getElementById('profile-project-grid');
+    projectGrid.innerHTML = (projects.length > 0 ? projects : [{ name: 'No projects logged yet', status: '' }])
+        .map(project => `
+            <div class="project-item">
+                <h4>${escapeHTML(project.name)}</h4>
+                ${project.status ? `<p>${escapeHTML(project.status)}</p>` : ''}
+            </div>
+        `).join('');
+
+    const serviceRecordList = document.getElementById('profile-service-record');
+    serviceRecordList.innerHTML = serviceRecord.length > 0
+        ? serviceRecord.map(entry => `<li><span class="log-date">[${escapeHTML(entry.date)}]</span> ${escapeHTML(entry.note)}</li>`).join('')
+        : '<li class="quest-empty-state">No service record entries yet.</li>';
+
     HiveMind.setActions(baseHiveMindActions());
 });

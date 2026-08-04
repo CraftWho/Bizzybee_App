@@ -3,7 +3,11 @@ console.log("/// VAULT (DB) INITIALIZED ///");
 // Bump this whenever data.json/data.personal.json's shape changes (new
 // fields, renamed fields, etc.). A cached Vault from an older version gets
 // discarded and re-fetched automatically - no manual localStorage clearing.
-const VAULT_SCHEMA_VERSION = 6;
+// v7: added the "profile" block (projects/serviceRecord) - this used to be
+// hardcoded directly in profile.html, which meant the real (personal)
+// content shipped in the tracked base template. Now it's blueprint content
+// like everything else, so data.json/data.personal.json stay properly split.
+const VAULT_SCHEMA_VERSION = 7;
 
 // Pure, stateless: total DP is always the live sum of every completed
 // task's current dp value, across every quest - never a stored running
@@ -154,6 +158,12 @@ class DatabaseManager {
             skills: blueprint.user.skills || []
         };
 
+        // Static profile content (projects/service record) - blueprint is
+        // fully authoritative here, same as user.name/class/title above.
+        // Nothing to preserve locally since there's no user-driven progress
+        // on this data (unlike quests/dailies).
+        this.state.profile = blueprint.profile || { projects: [], serviceRecord: [] };
+
         const existingQuests = this.state.quests || [];
 
         this.state.quests = (blueprint.quests || []).map(blueprintQuest => {
@@ -242,6 +252,14 @@ class DatabaseManager {
 
     getQuests() {
         return this.state ? (this.state.quests || []) : [];
+    }
+
+    // Static profile content (projects/service record) - see the schema v7
+    // note above VAULT_SCHEMA_VERSION for why this moved out of profile.html.
+    getProfileExtras() {
+        return this.state && this.state.profile
+            ? this.state.profile
+            : { projects: [], serviceRecord: [] };
     }
 
     // The one quest you're currently focused on - separate from each quest's
