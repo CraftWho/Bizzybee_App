@@ -3,27 +3,52 @@
         "name": "Worker Bee",
         "class": "Recruit",
         "title": "Swarm Initiate",
-        "skills": []
+        "skills": ["🐝 Getting Started"]
     },
     "onboardingComplete": false,
     "storage_mode": null,
     "activeQuestId": "MQ1",
+    "profile": {
+        "projects": [
+            { "name": "Your First Project", "status": "Add your active builds here" }
+        ],
+        "serviceRecord": [
+            { "date": "—", "note": "Your accomplishments will show up here as you log them." }
+        ]
+    },
     "quests": [
         {
             "id": "MQ1",
             "category": "main",
             "status": "active",
             "title": "Calibrate Your Hive",
-            "objective": "Get familiar with your Hive Mind terminal and complete your first calibration task.",
+            "objective": "Get familiar with your Hive Mind terminal - work through the tasks below to see how DP, leveling, and quest completion work.",
             "source": null,
             "dateStarted": null,
             "dateCompleted": null,
             "tasks": [
-                { "id": "welcome-t1", "label": "Complete your first calibration step", "dp": 50, "completed": false, "dateCompleted": null, "link": null }
+                { "id": "welcome-t1", "label": "Check off this first calibration step", "dp": 50, "completed": false, "dateCompleted": null, "link": null },
+                { "id": "welcome-t2", "label": "Open the Hive Mind menu (🏰 button) and visit the Colony page", "dp": 30, "completed": false, "dateCompleted": null, "link": null },
+                { "id": "welcome-t3", "label": "Complete every task on this quest to see it auto-complete", "dp": 40, "completed": false, "dateCompleted": null, "link": null }
+            ]
+        },
+        {
+            "id": "SQ1",
+            "category": "side",
+            "status": "active",
+            "title": "Explore a Side Quest",
+            "objective": "Side quests work exactly like main quests, just categorized separately - use this one to test switching your active quest and editing tasks.",
+            "source": null,
+            "dateStarted": null,
+            "dateCompleted": null,
+            "tasks": [
+                { "id": "side-t1", "label": "Set this quest as your active quest from the Quests page", "dp": 20, "completed": false, "dateCompleted": null, "link": null },
+                { "id": "side-t2", "label": "Add a brand new task to this quest", "dp": 20, "completed": false, "dateCompleted": null, "link": null }
             ]
         }
     ],
     "dailyTasks": [
-        { "id": "daily-01", "label": "Check in on your active quest", "dp": 10, "completedDates": [] }
+        { "id": "daily-01", "label": "Check in on your active quest", "dp": 10, "completedDates": [] },
+        { "id": "daily-02", "label": "Try checking off a Daily and see it track today's date", "dp": 10, "completedDates": [] }
     ]
 }
