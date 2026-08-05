@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎒 Inventory</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/modal/modal.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./inventory.css">
+</head>
+<body>
+
+    <main class="inventory-container">
+
+        <div class="panel page-header-panel">
+            <h2 class="page-title">🎒 <span class="gold-gradient-text">INVENTORY</span></h2>
+            <p class="page-subtitle">Everything your Collector bees can bring back, plus your full colony roster.</p>
+        </div>
+
+        <button class="inventory-bee-roster-card" id="inventory-bee-roster-btn">
+            <span class="inventory-bee-roster-icon">🐝</span>
+            <span class="inventory-bee-roster-text">
+                <strong>View &amp; Manage Colony Bees</strong>
+                <span id="inventory-bee-roster-count">0 bees</span>
+            </span>
+            <span class="inventory-bee-roster-arrow">→</span>
+        </button>
+
+        <section class="panel">
+            <h3>🌾 Materials</h3>
+            <p class="inventory-materials-note">Collector bees have a chance to bring one of these back whenever you complete a task or daily. High-grade materials unlock cosmetics down the line.</p>
+            <div class="inventory-materials-grid" id="inventory-materials-grid"></div>
+        </section>
+
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/bee-card/bee-card.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./inventory.js"></script>
+</body>
+</html>

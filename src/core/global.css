@@ -417,6 +417,40 @@ button:hover {
     color: var(--gold-start);
 }
 
+/* Reusable page title/subtitle banner - same dark bg + crimson top border
+   as .panel/quest cards. Any page whose heading would otherwise sit
+   directly on the raw hex-grid body background (see body::before above)
+   should wrap it in .page-header-panel rather than leaving it exposed -
+   originally a colony.css-only rule (colony-header-panel), promoted here
+   after inventory.html turned out to reference that same class name
+   without ever loading colony.css, so it silently got none of this
+   styling. Centralizing it means every page that needs it just works. */
+.page-header-panel {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.page-title {
+    margin: 0 0 8px;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.page-subtitle {
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Generic "nothing here yet" state - used anywhere a list can legitimately
+   be empty (bee collection, quest lists, etc.) instead of each feature
+   inventing its own near-identical rule. */
+.empty-state {
+    color: #666;
+    font-style: italic;
+    margin-top: 15px;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

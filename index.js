@@ -144,7 +144,11 @@ function renderDailyTasks() {
 // "More apps" launcher for destinations that live outside the header entirely.
 // Dailies and Map graduated INTO the header nav itself; Skills, Dictionary,
 // and Profile moved the other way (out of the header, into here) to keep
-// the header short - see app.js's NAV_ITEMS/EXTRA_PAGE_META.
+// the header short - see app.js's NAV_ITEMS/EXTRA_PAGE_META. Colony,
+// Pollination Chamber (gacha), and Inventory are deliberately NOT here -
+// that trio is reached exclusively through the Hive Mind FAB menu (see
+// HIVE_MIND_NAV_PAGES in llm-engine.js) as its own cohesive "system",
+// same as Colony always has been.
 const HOME_APP_DESTINATIONS = [
     { key: 'skills', icon: '🌿', label: 'Skills' },
     { key: 'dictionary', icon: '📖', label: 'Dictionary' },

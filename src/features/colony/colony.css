@@ -8,18 +8,6 @@
     text-align: center;
 }
 
-.colony-title {
-    margin: 0 0 8px;
-    font-size: 2rem;
-    font-weight: 800;
-}
-
-.colony-subtitle {
-    color: #999;
-    font-size: 0.9rem;
-    margin: 0 0 30px;
-}
-
 /* --- EXTERIOR: THE NEST ---
    No accurate "beehive" emoji exists in Unicode, so the nest itself is a
    CSS hexagon (same gold gradient language as the rest of the app) rather
@@ -74,10 +62,21 @@
 
 .colony-swarm-bee {
     position: absolute;
-    font-size: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
     animation-name: colony-float;
     animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
+}
+
+.colony-swarm-bee-name {
+    font-size: 0.55rem;
+    font-weight: bold;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    pointer-events: none;
 }
 
 @keyframes colony-float {
@@ -87,10 +86,80 @@
     75% { transform: translate(10px, 12px); }
 }
 
+/* Assigned bees (see gacha.js's classSelectHTML/Vault.assignBeeClass)
+   swap the default idle float for a class-flavored motion - Guardians get
+   a wide, purposeful loop (patrolling/scanning), Collectors a lower,
+   dipping search pattern (foraging). Overrides colony-float's
+   animation-name since these rules load after it and share specificity. */
+@keyframes colony-patrol {
+    0% { transform: translate(0, 0); }
+    20% { transform: translate(45px, -8px); }
+    40% { transform: translate(75px, 10px); }
+    60% { transform: translate(35px, 28px); }
+    80% { transform: translate(-25px, 10px); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes colony-forage {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    30% { transform: translate(-10px, 16px) scale(0.92); }
+    60% { transform: translate(12px, 20px) scale(0.96); }
+}
+
+.colony-swarm-bee--guardian {
+    animation-name: colony-patrol;
+    animation-timing-function: linear;
+}
+
+.colony-swarm-bee--collector {
+    animation-name: colony-forage;
+    animation-timing-function: ease-in-out;
+}
+
+/* Barrier holds a near-fixed post (small shake, not a wander) - Architect
+   moves in short deliberate steps like it's placing material - Nurse
+   circles gently and low, close to whatever it's tending. */
+@keyframes colony-fortify {
+    0%, 100% { transform: translate(0, 0); }
+    15% { transform: translate(-3px, -2px); }
+    30% { transform: translate(2px, 3px); }
+    45% { transform: translate(-2px, 2px); }
+    60% { transform: translate(3px, -2px); }
+    80% { transform: translate(-2px, -3px); }
+}
+
+@keyframes colony-build {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(20px, -4px); }
+    50% { transform: translate(20px, 6px); }
+    75% { transform: translate(0, 6px); }
+}
+
+@keyframes colony-tend {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(8px, -6px) rotate(8deg); }
+    66% { transform: translate(-8px, -4px) rotate(-8deg); }
+}
+
+.colony-swarm-bee--barrier {
+    animation-name: colony-fortify;
+    animation-timing-function: ease-in-out;
+}
+
+.colony-swarm-bee--architect {
+    animation-name: colony-build;
+    animation-timing-function: steps(4, end);
+}
+
+.colony-swarm-bee--nurse {
+    animation-name: colony-tend;
+    animation-timing-function: ease-in-out;
+}
+
 /* --- INTERIOR: INSIDE THE HIVE --- */
 .colony-interior-scene {
     position: relative;
-    min-height: 260px;
+    min-height: 480px;
     margin-bottom: 25px;
     padding: 20px;
     box-sizing: border-box;
@@ -128,8 +197,8 @@
 }
 
 .colony-queen {
-    width: 90px;
-    height: 90px;
+    width: 420px;
+    height: 420px;
 }
 
 .colony-queen-label {
@@ -138,53 +207,24 @@
     letter-spacing: 0.5px;
 }
 
-/* --- POLLINATION CHAMBER (gacha test placeholder) --- */
-.colony-gacha-panel {
-    text-align: left;
-}
-
-.colony-test-badge {
-    display: inline-block;
-    background: var(--crimson);
-    color: #fff;
-    font-size: 0.65rem;
-    padding: 2px 8px;
+/* Points to the new Pollination Chamber page (src/features/gacha/) - see
+   colony.html's comment for why the gacha/ticket mechanics moved there. */
+.colony-gacha-link-btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    font-weight: bold;
+    padding: 14px 20px;
     border-radius: 4px;
-    vertical-align: middle;
-    margin-left: 8px;
+    margin-bottom: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.colony-gacha-note {
-    color: #999;
-    font-size: 0.85rem;
-    margin: 8px 0 15px;
-}
-
-.colony-gacha-result {
-    min-height: 1.4em;
-    margin: 12px 0 0;
-    font-size: 1rem;
-}
-
-.colony-bee-collection {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 15px;
-}
-
-.colony-bee-chip {
-    background: #0a0a0a;
-    border: 1px solid #555;
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 0.85rem;
-}
-
-.colony-empty-state {
-    color: #666;
-    font-style: italic;
-    margin-top: 15px;
+.colony-gacha-link-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px var(--gold-glow);
 }
 
 .colony-leave-btn {

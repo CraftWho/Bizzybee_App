@@ -18,8 +18,10 @@
     <main class="colony-container">
 
         <div class="colony-view" id="colony-exterior">
-            <h2 class="colony-title">🏰 <span class="gold-gradient-text">HIVE MIND</span></h2>
-            <p class="colony-subtitle">Your colony grows as you do. Emoji stand-ins for now, until the real art exists.</p>
+            <div class="panel page-header-panel">
+                <h2 class="page-title">🏰 <span class="gold-gradient-text">HIVE MIND</span></h2>
+                <p class="page-subtitle">Your colony grows as you do. Emoji stand-ins for now, until the real art exists.</p>
+            </div>
 
             <div class="colony-nest-scene" id="colony-nest-scene">
                 <div class="colony-nest" id="colony-nest"></div>
@@ -30,25 +32,25 @@
         </div>
 
         <div class="colony-view" id="colony-interior" style="display: none;">
-            <h2 class="colony-title">🍯 <span class="gold-gradient-text">INSIDE THE HIVE</span></h2>
+            <div class="panel page-header-panel">
+                <h2 class="page-title">🍯 <span class="gold-gradient-text">INSIDE THE HIVE</span></h2>
+            </div>
 
             <div class="colony-interior-scene">
                 <div class="colony-honeycomb-grid" id="colony-honeycomb-grid"></div>
                 <div class="colony-queen-wrap">
                     <div class="colony-queen" id="colony-queen"></div>
-                    <span class="colony-queen-label">👑 The Queen</span>
+                    <span class="colony-queen-label">👑 Queen Bee</span>
                 </div>
                 <div class="colony-swarm" id="colony-interior-swarm"></div>
             </div>
 
-            <section class="panel colony-gacha-panel">
-                <h3>🧪 Pollination Chamber <span class="colony-test-badge">TEST</span></h3>
-                <p class="colony-gacha-note">Placeholder mechanic — free for now, just testing how it feels before it's tied to a real cost.</p>
-                <button id="colony-pollinate-btn">🌼 Pollinate for a New Bee</button>
-                <p class="colony-gacha-result" id="colony-gacha-result"></p>
-
-                <div class="colony-bee-collection" id="colony-bee-collection"></div>
-            </section>
+            <!-- Pulling new bees, renaming, assigning work, and unwrapping
+                 gacha tickets all moved to their own page (see
+                 baseHiveMindActions() in llm-engine.js for the Pollination
+                 Chamber link in the Hive Mind menu) - this page is just the
+                 nest/hive visualization now. -->
+            <a href="../gacha/gacha.html" class="colony-gacha-link-btn">🌼 Visit the Pollination Chamber →</a>
 
             <button class="colony-leave-btn" id="leave-hive-btn">← Leave Hive</button>
         </div>
