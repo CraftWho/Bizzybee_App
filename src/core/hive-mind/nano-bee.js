@@ -33,9 +33,27 @@ const NanoBee = {
         `;
     },
 
-    render(container, size = 'hero') {
+    // options.color: CSS color string - overrides the bee's gold accents
+    // (wings/eye/outline) via the --bee-accent custom property, so a colony
+    // bee's icon can mirror its rarity color (see BEE_RARITIES in db.js).
+    // Leaves the hex-core glow (if shown) gold regardless, since that's the
+    // hive's own color, not any individual bee's.
+    // options.hideCore: renders just the bee, no glowing hex backdrop -
+    // used for the Queen (colony.js) and small chip icons where the hex
+    // core would be visual noise or too large to fit.
+    // options.noFlight: freezes the bee at its centered rest position
+    // instead of looping the wide infinity-path flight animation (wings
+    // still flap) - needed for small inline icons where that flight path
+    // would carry the bee straight out of a tiny container.
+    render(container, size = 'hero', options = {}) {
         if (!container) return;
+        const { color, hideCore, noFlight } = options;
+
         container.classList.add('nano-bee-scene', `nano-bee-scene--${size}`);
+        container.classList.toggle('nano-bee-scene--no-core', !!hideCore);
+        container.classList.toggle('nano-bee-scene--no-flight', !!noFlight);
+        if (color) container.style.setProperty('--bee-accent', color);
+
         container.innerHTML = this.markup();
     }
 };

@@ -16,3 +16,6 @@ src/features/quests/logs/*
 .vscode/
 Thumbs.db
 .DS_Store
+
+# Local AI tool config/permissions - machine-specific, not app source.
+.claude/

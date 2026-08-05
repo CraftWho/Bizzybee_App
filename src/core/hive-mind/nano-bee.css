@@ -35,6 +35,74 @@
     transform: scale(0.175);
 }
 
+/* Small inline icon variant - colony bee collection chips and similar. */
+.nano-bee-scene--chip {
+    width: 26px;
+    height: 26px;
+    overflow: visible;
+}
+
+.nano-bee-scene--chip .scene-inner {
+    transform: scale(0.07);
+}
+
+/* Ambient swarm bees (colony.js exterior/interior) - the --chip variant
+   (0.07 scale, ~3px body) was built for a compact inline chip next to
+   text and turned out to be nearly invisible when used standalone for the
+   swarm. This is sized to match the Queen's own bee-body scale (0.5) so
+   every bee in the colony reads as visually the same "kind" of bee, just
+   at a smaller/static presentation here. */
+.nano-bee-scene--swarm {
+    width: 60px;
+    height: 60px;
+    overflow: visible;
+}
+
+.nano-bee-scene--swarm .scene-inner {
+    transform: scale(0.5);
+}
+
+/* The Queen (colony.js interior view) - bigger than --mini since she's
+   rendered with hideCore (no hex backdrop filling out the visual), so the
+   bee itself needs to actually read as a presence next to the ~20px swarm
+   emoji around her, not the ~7px sliver --mini's 0.175 scale would give. */
+.nano-bee-scene--queen {
+    width: 420px;
+    height: 420px;
+    overflow: visible;
+}
+
+.nano-bee-scene--queen .scene-inner {
+    transform: scale(1.5);
+}
+
+/* Trading-card art variant (bee-card.js) - the card is a real, roomy
+   rectangle (see bee-card.css), so the bee gets to be the actual focal
+   point instead of a compact inline accent like --chip/--swarm are. */
+.nano-bee-scene--card {
+    width: 150px;
+    height: 150px;
+    overflow: visible;
+}
+
+.nano-bee-scene--card .scene-inner {
+    transform: scale(0.85);
+}
+
+/* Hides the glowing hex backdrop, leaving just the bee itself - see the
+   render() options doc in nano-bee.js. */
+.nano-bee-scene--no-core .hive-core {
+    display: none;
+}
+
+/* Freezes the bee at its centered rest position instead of looping the
+   wide infinity-path flight animation - see the render() options doc in
+   nano-bee.js. Wings keep flapping (separate animation, untouched). */
+.nano-bee-scene--no-flight .nano-bee {
+    animation: none;
+    transform: none;
+}
+
 .hive-core {
     position: absolute;
     width: 250px;
@@ -70,7 +138,7 @@
     width: 24px;
     height: 14px;
     background: var(--obsidian);
-    border: 1px solid var(--gold-end);
+    border: 1px solid var(--bee-accent, var(--gold-end));
     clip-path: polygon(20% 0%, 80% 0%, 100% 50%, 80% 100%, 20% 100%, 0% 50%);
     z-index: 2;
 }
@@ -81,9 +149,9 @@
     right: 4px;
     width: 4px;
     height: 4px;
-    background: var(--gold-start);
+    background: var(--bee-accent, var(--gold-start));
     border-radius: 50%;
-    box-shadow: 0 0 5px var(--gold-start);
+    box-shadow: 0 0 5px var(--bee-accent, var(--gold-start));
 }
 
 .nano-bee .bee-tail {
@@ -93,7 +161,7 @@
     width: 8px;
     height: 3px;
     background: var(--obsidian);
-    border: 0.5px solid var(--gold-end);
+    border: 0.5px solid var(--bee-accent, var(--gold-end));
     clip-path: polygon(0 50%, 100% 0, 100% 100%);
     z-index: 1;
 }
@@ -116,8 +184,8 @@
     position: absolute;
     width: 15px;
     height: 20px;
-    background: var(--gold-dim);
-    border: 1px solid var(--gold-end);
+    background: var(--bee-accent, var(--gold-dim));
+    border: 1px solid var(--bee-accent, var(--gold-end));
     border-radius: 50% 50% 0 50%;
     top: -12px;
     left: 5px;

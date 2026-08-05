@@ -207,24 +207,42 @@ The worker bee's stated goal: "${goalText}"
     }
 };
 
-// The two Hive Mind menu actions every page shares (chat with Eevee, and the
-// Colony page nav). Each page's own JS still calls HiveMind.setActions()
-// itself and can add its own extras on top (e.g. Quests adds "Add Campaign")
-// - hive-mind.js's contract is that each page owns its own action list, this
-// just saves every page from redeclaring the two universal ones by hand.
+// The Hive Mind menu actions every page shares (chat with Eevee, plus nav
+// to the Hive Mind "system" pages - Colony, Pollination Chamber,
+// Inventory). Each page's own JS still calls HiveMind.setActions() itself
+// and can add its own extras on top (e.g. Quests adds "Add Campaign") -
+// hive-mind.js's contract is that each page owns its own action list, this
+// just saves every page from redeclaring the shared ones by hand.
 // Feature pages live two levels deep (src/features/<name>/), so '..' reaches
 // src/features/ from any of them - but this FAB is ALSO wired up on the root
 // index.html (see index.js), where '..' would walk OUTSIDE the project
 // entirely and 404. Mirrors app.js's injectHeader() linkPrefix logic so both
 // places compute the same "am I at the root or two levels deep" path.
+//
+// Each nav item is filtered out while you're already ON that page - no
+// point offering "Hive Mind" from inside the Hive Mind page itself. HIVE_
+// MIND_NAV_PAGES is the single source of truth for that filtering AND the
+// href, so adding a future page here only means editing one list.
+const HIVE_MIND_NAV_PAGES = [
+    { page: 'colony', icon: '🏰', label: 'Hive Mind' },
+    { page: 'gacha', icon: '🌼', label: 'Pollination Chamber' },
+    { page: 'inventory', icon: '🎒', label: 'Inventory' }
+];
+
 function baseHiveMindActions() {
     const linkPrefix = window.location.pathname.includes('features') ? '..' : './src/features';
+    const currentPath = window.location.pathname;
+
+    const navActions = HIVE_MIND_NAV_PAGES
+        .filter(entry => !currentPath.includes(`${entry.page}.html`))
+        .map(entry => ({
+            icon: entry.icon,
+            label: entry.label,
+            onClick: () => { window.location.href = `${linkPrefix}/${entry.page}/${entry.page}.html`; }
+        }));
+
     return [
-        {
-            icon: '🏰',
-            label: 'Hive Mind',
-            onClick: () => { window.location.href = `${linkPrefix}/colony/colony.html`; }
-        },
+        ...navActions,
         {
             icon: '💬',
             label: 'Chat with Eevee',

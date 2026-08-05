@@ -18,12 +18,14 @@ const NAV_ITEMS = [
 const EXTRA_PAGE_META = {
     settings: { icon: '⚙️', label: 'Settings' },
     colony: { icon: '🏰', label: 'Hive Mind' },
+    gacha: { icon: '🌼', label: 'Pollination Chamber' },
     'honey-store': { icon: '🍯', label: 'Honey Store' },
     'plugin-hub': { icon: '🧩', label: 'Plugins' },
     'hive-archive': { icon: '📚', label: 'The Hive Archive' },
     skills: { icon: '🌿', label: 'Skills' },
     dictionary: { icon: '📖', label: 'Dictionary' },
-    profile: { icon: '🧘🏾', label: 'Profile' }
+    profile: { icon: '🧘🏾', label: 'Profile' },
+    inventory: { icon: '🎒', label: 'Inventory' }
 };
 
 class CodexSystem {
@@ -52,8 +54,10 @@ class CodexSystem {
         if (path.includes('skills.html')) return 'skills';
         if (path.includes('dictionary.html')) return 'dictionary';
         if (path.includes('profile.html')) return 'profile';
+        if (path.includes('inventory.html')) return 'inventory';
         if (path.includes('settings.html')) return 'settings';
         if (path.includes('colony.html')) return 'colony';
+        if (path.includes('gacha.html')) return 'gacha';
         if (path.includes('honey-store.html')) return 'honey-store';
         if (path.includes('plugin-hub.html')) return 'plugin-hub';
         if (path.includes('map.html')) return 'map';
