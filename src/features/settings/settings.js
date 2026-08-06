@@ -45,4 +45,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         await Vault.forceReset();
         Toast.show('🗑️ Local data reset.', 'negative');
     });
+
+    document.getElementById('export-full-save-btn').addEventListener('click', () => {
+        const snapshot = Vault.exportFullState();
+        if (!snapshot) {
+            Toast.show('Nothing to export yet.', 'negative');
+            return;
+        }
+        downloadFile(snapshot, 'bizzybee-full-save.json', 'application/json');
+        Toast.show('📤 Full save exported.', 'positive');
+    });
+
+    document.getElementById('import-full-save-btn').addEventListener('click', () => {
+        const input = document.getElementById('import-full-save-input');
+        const file = input.files[0];
+        if (!file) {
+            Toast.show('Choose a save file first.', 'negative');
+            return;
+        }
+
+        const confirmed = confirm(
+            'This replaces everything currently saved in this browser with the imported file. This cannot be undone. Continue?'
+        );
+        if (!confirmed) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = Vault.importFullState(reader.result);
+            if (!result.ok) {
+                Toast.show(`⚠️ ${result.error}`, 'negative');
+                return;
+            }
+            Toast.show('📥 Save imported - reloading...', 'positive');
+            setTimeout(() => window.location.reload(), 800);
+        };
+        reader.onerror = () => Toast.show('⚠️ Could not read that file.', 'negative');
+        reader.readAsText(file);
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        localStorage.removeItem('bizzybee_session');
+        window.location.href = '../login/login.html';
+    });
 });

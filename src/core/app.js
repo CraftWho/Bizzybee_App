@@ -42,6 +42,20 @@ class CodexSystem {
     renderGlobalUI() {
         const isLoginPage = window.location.pathname.includes('login.html');
 
+        // Login gate: every page except login.html itself requires the
+        // 'bizzybee_session' flag (set by login.js on a successful demo or
+        // personal login). This is a client-side-only check on a static
+        // site - it keeps casual visitors on the front door, it isn't real
+        // access control (anyone could clear the flag or skip straight to
+        // a URL). Real protection would need an actual backend, which this
+        // app deliberately doesn't have yet.
+        if (!isLoginPage && !localStorage.getItem('bizzybee_session')) {
+            const path = window.location.pathname;
+            const rootPrefix = (path.includes('features') || path.includes('plugins')) ? '../../..' : '.';
+            window.location.href = `${rootPrefix}/src/features/login/login.html`;
+            return;
+        }
+
         if (!isLoginPage) {
             this.injectHeader();
             this.injectBackButton();

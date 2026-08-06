@@ -61,6 +61,39 @@
             </div>
         </section>
 
+        <section class="panel">
+            <h3>📱 Full Save Transfer</h3>
+            <p class="settings-intro">Move your entire progress - every quest, DP, level, bee, everything - to another device. No account or internet connection needed, just a file you carry over yourself.</p>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Export Full Save</strong>
+                    <p>Downloads your complete Vault as one file. Send it to your other device however you like (email, Drive, AirDrop) and import it there.</p>
+                </div>
+                <button id="export-full-save-btn">📤 Export</button>
+            </div>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Import Full Save</strong>
+                    <p>Loads a save file exported from another device. This replaces everything currently in this browser - make sure you actually want to overwrite it first.</p>
+                    <input type="file" id="import-full-save-input" accept="application/json" class="settings-file-input">
+                </div>
+                <button id="import-full-save-btn">📥 Import</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h3>🔐 Session</h3>
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Log Out</strong>
+                    <p>Clears this device's login and sends you back to the login screen.</p>
+                </div>
+                <button id="logout-btn" class="settings-btn-danger">🚪 Log Out</button>
+            </div>
+        </section>
+
     </main>
 
     <script src="../../core/db.js"></script>

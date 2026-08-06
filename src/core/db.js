@@ -797,15 +797,25 @@ class DatabaseManager {
         const path = window.location.pathname;
         const rootPrefix = (path.includes('features') || path.includes('plugins')) ? '../../..' : '.';
 
+        // Stamps which file actually won (blueprintSource: 'personal' | 'generic')
+        // onto the returned blueprint - the login backdoor (login.js) checks this
+        // via getBlueprintSource() to know whether this device already has your
+        // real data locally, or needs you to import a save file first.
         try {
             const personalResponse = await fetch(`${rootPrefix}/src/core/data.personal.json`);
-            if (personalResponse.ok) return await personalResponse.json();
+            if (personalResponse.ok) {
+                const data = await personalResponse.json();
+                data.blueprintSource = 'personal';
+                return data;
+            }
         } catch (error) {
             // No personal blueprint on this machine - fall through to the generic one.
         }
 
         const response = await fetch(`${rootPrefix}/src/core/data.json`);
-        return await response.json();
+        const data = await response.json();
+        data.blueprintSource = 'generic';
+        return data;
     }
 
     // 2. Overwrite: used when starting fresh, or by a full Reset.
@@ -1029,6 +1039,17 @@ class DatabaseManager {
 
     getQuests() {
         return this.state ? (this.state.quests || []) : [];
+    }
+
+    // Which blueprint actually loaded this state - 'personal' means
+    // data.personal.json was found on this machine (your own dev box, or a
+    // device that's already had a full-state save imported onto it, since
+    // that import overwrites this.state wholesale - see importFullState
+    // below). 'generic' means data.json (the public/demo content). The
+    // login backdoor (login.js) checks this to decide whether a device
+    // already has your real data or still needs a save file imported.
+    getBlueprintSource() {
+        return this.state ? (this.state.blueprintSource || 'generic') : 'generic';
     }
 
     // Static profile content (projects/service record) - see the schema v7
@@ -2580,6 +2601,43 @@ class DatabaseManager {
         this.save();
 
         return { category, newLevel, pollen, bonusMaterialId, ticketsGranted: 1 };
+    }
+
+    // 7. Logic: Full-state export/import - a manual, no-backend way to move
+    // your progress between devices (e.g. computer -> phone). Everything
+    // lives under one localStorage key (this.storageKey), so "export" is
+    // just that whole blob as a downloadable file, and "import" is
+    // overwriting the same key from a file you brought over yourself. This
+    // is also what the login backdoor's "Load My Save" step calls once
+    // personal credentials are entered on a device that doesn't already
+    // have personal data loaded (see getBlueprintSource above).
+    exportFullState() {
+        if (!this.state) return null;
+        return JSON.stringify(this.state, null, 2);
+    }
+
+    // Returns { ok: true } on success or { ok: false, error } on failure.
+    // Doesn't call save()/re-run init()'s backfills itself - the caller
+    // (settings.js, login.js) reloads the page after a successful import so
+    // Vault.init() re-runs fresh against the newly-loaded state, same as
+    // any other schema-migration path.
+    importFullState(jsonString) {
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonString);
+        } catch (error) {
+            return { ok: false, error: "That file isn't valid JSON." };
+        }
+
+        // Loose sanity check - not a full schema validation, just enough to
+        // catch "wrong file entirely" (e.g. a quest-only export) before it
+        // overwrites a real save.
+        if (!parsed || typeof parsed !== 'object' || !parsed.user || !Array.isArray(parsed.quests)) {
+            return { ok: false, error: "That doesn't look like a Bizzybee save file." };
+        }
+
+        localStorage.setItem(this.storageKey, JSON.stringify(parsed));
+        return { ok: true };
     }
 
     // 6. Logic: Privacy Preference Write

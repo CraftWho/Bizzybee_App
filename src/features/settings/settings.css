@@ -49,6 +49,13 @@
     line-height: 1.5;
 }
 
+.settings-file-input {
+    margin-top: 10px;
+    color: #999;
+    font-size: 0.85rem;
+    max-width: 500px;
+}
+
 .settings-btn-danger {
     background: transparent;
     color: var(--danger-red);
