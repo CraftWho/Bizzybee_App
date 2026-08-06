@@ -11,58 +11,68 @@ function renderStatus(user) {
     document.getElementById('home-user-level').textContent = user.level;
 }
 
-// Confetti palette matches the app's own gold/crimson language rather than
-// generic rainbow confetti, so it reads as part of the theme, not a
-// bolted-on effect.
-const CONFETTI_COLORS = ['#FFD700', '#DC143C', '#FFF8B0', '#996515'];
-const DP_FILL_DURATION_MS = 2200;
-
-function spawnConfetti(anchor) {
-    for (let i = 0; i < 24; i++) {
-        const piece = document.createElement('span');
-        piece.className = 'confetti-piece';
-
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 40 + Math.random() * 55;
-        piece.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
-        piece.style.setProperty('--ty', `${Math.sin(angle) * distance - 25}px`);
-        piece.style.setProperty('--rot', `${Math.random() * 360}deg`);
-        piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-        piece.style.animationDelay = `${Math.random() * 120}ms`;
-
-        anchor.appendChild(piece);
-        setTimeout(() => piece.remove(), 1300);
-    }
+// icon/label lookup for awarded materials - MATERIAL_CATALOG is a plain
+// global from db.js (loaded before this file), same as Eevee/Vault.
+function materialDisplay(materialId) {
+    const material = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(m => m.id === materialId);
+    return material ? `${material.icon} ${material.label}` : materialId;
 }
 
-// animate=true (initial page load only) resets the bar to 0% and lets the
-// slow CSS transition carry it up to the real percentage, popping confetti
-// once it lands. Re-renders after checking a task (animate=false) just
-// update the width directly - the CSS transition still animates the change
-// smoothly, but skips the 0%-reset/confetti replay so ticking a checkbox
-// doesn't retrigger the whole "grand entrance" every time.
-function renderDPProgress(user, animate) {
-    const fill = document.getElementById('home-dp-fill');
-    const anchor = document.getElementById('home-confetti-anchor');
-    const text = document.getElementById('home-dp-progress-text');
+// Character leveling now uses the same shared, gated LevelBar as the
+// Dashboard's Skill Mastery matrix (src/core/level-bar/) - one row, always
+// - instead of its own bespoke fill/confetti system. The bar itself can run
+// ahead of what's been "claimed" (see computeCharacterLevelBandState in
+// db.js); the header's Level number above it still always shows your real,
+// live level regardless of whether you've pressed Level Up yet.
+function characterLevelBarToRows(bar) {
+    return [{
+        key: 'character',
+        icon: '⚡',
+        label: 'Character Level',
+        levelBadge: `Lv. ${bar.level}`,
+        dpIntoLevel: bar.dpIntoLevel,
+        cap: bar.cap,
+        percentage: bar.percentage,
+        maxed: bar.maxed,
+        gradient: 'linear-gradient(90deg, var(--gold-end), var(--gold-start))',
+        shadow: '0 0 10px var(--gold-glow)'
+    }];
+}
 
-    const percentage = Math.min(100, (user.currentXP / user.nextLevelXP) * 100);
-    text.textContent = `${user.currentXP.toLocaleString()} / ${user.nextLevelXP.toLocaleString()} DP`;
-    anchor.style.left = `${percentage}%`;
+// Vault.levelUpCharacterBar() already grants the bees/tickets/materials
+// (via _syncLevelUpBees) and reports exactly what was granted - this just
+// formats that into the celebration modal's { title, lines } shape.
+function formatCharacterLevelReward(reward) {
+    const lines = [];
 
-    if (!animate) {
-        fill.style.width = `${percentage}%`;
-        return;
+    if (reward.awardedBees.length > 0) {
+        const label = reward.awardedBees.length === 1 ? escapeHTML(reward.awardedBees[0].name) : `${reward.awardedBees.length} bees`;
+        lines.push(`🐝 ${label} joined your colony!`);
     }
+    if (reward.ticketsGranted > 0) {
+        lines.push(`🎟️ +${reward.ticketsGranted} Gacha Ticket${reward.ticketsGranted === 1 ? '' : 's'}`);
+    }
+    if (reward.awardedMaterials.length > 0) {
+        const counts = {};
+        reward.awardedMaterials.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+        Object.entries(counts).forEach(([id, count]) => lines.push(`${materialDisplay(id)} +${count}`));
+    }
+    if (lines.length === 0) lines.push('Onward!');
 
-    fill.style.width = '0%';
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            fill.style.width = `${percentage}%`;
-        });
+    return { title: `Character reached Level ${reward.newLevel}!`, lines };
+}
+
+function renderCharacterLevelBar() {
+    const container = document.getElementById('home-level-bar');
+    if (!container) return;
+
+    LevelBar.renderRows(container, {
+        getRows: () => characterLevelBarToRows(Vault.getCharacterLevelBar()),
+        onLevelUp: async () => {
+            const reward = await Vault.levelUpCharacterBar();
+            return reward ? formatCharacterLevelReward(reward) : null;
+        }
     });
-
-    setTimeout(() => spawnConfetti(anchor), DP_FILL_DURATION_MS);
 }
 
 // Simplified on purpose - just the title and a plain checklist, no edit/
@@ -96,12 +106,14 @@ function renderActiveQuest() {
         const row = list.querySelector(`[data-task-id="${task.id}"]`);
         row.querySelector('[data-role="toggle"]').addEventListener('change', () => {
             const willComplete = !task.completed;
-            const levelBefore = Vault.getUser().level;
             Vault.toggleTask(quest.id, task.id);
-            const levelAfter = Vault.getUser().level;
 
+            // No instant "LEVEL UP!" toast any more - the character-level
+            // bar (see renderCharacterLevelBar) shakes and offers its own
+            // Level Up button once it's actually maxed, same ritual as
+            // Skill Mastery, instead of announcing it the moment DP crosses
+            // the threshold.
             Toast.show(willComplete ? `🐝 +${task.dp} DP` : `➖ ${task.dp} DP`, willComplete ? 'positive' : 'negative');
-            if (levelAfter > levelBefore) Toast.show(`🎉 LEVEL UP! Lv. ${levelAfter}`, 'positive');
 
             renderHome();
         });
@@ -129,12 +141,9 @@ function renderDailyTasks() {
         const row = list.querySelector(`[data-task-id="${task.id}"]`);
         row.querySelector('[data-role="toggle"]').addEventListener('change', () => {
             const willComplete = !task.completedToday;
-            const levelBefore = Vault.getUser().level;
             Vault.toggleDailyTask(task.id);
-            const levelAfter = Vault.getUser().level;
 
             Toast.show(willComplete ? `🐝 +${task.dp} DP` : `➖ ${task.dp} DP`, willComplete ? 'positive' : 'negative');
-            if (levelAfter > levelBefore) Toast.show(`🎉 LEVEL UP! Lv. ${levelAfter}`, 'positive');
 
             renderHome();
         });
@@ -159,11 +168,30 @@ const HOME_APP_DESTINATIONS = [
     { key: 'settings', icon: '⚙️', label: 'Settings' }
 ];
 
+// Installed plugins (see Plugins.isEnabled/PLUGIN_CATALOG in plugins.js)
+// join the static destinations above dynamically - a plugin only needs
+// its status flipped to 'available' and to be installed from Plugin Hub
+// to show up here, no index.html/index.js changes needed per plugin.
+// Lives under src/plugins/<id>/<id>.html instead of src/features/, so it
+// gets its own tiny map function rather than reusing HOME_APP_DESTINATIONS'
+// hardcoded features/ path.
+function installedPluginDestinations() {
+    if (typeof Plugins === 'undefined') return [];
+    return Plugins.getCatalog()
+        .filter(entry => Plugins.isEnabled(entry.id))
+        .map(entry => ({ key: entry.id, icon: entry.icon, label: entry.label, base: 'plugins' }));
+}
+
 function renderAppGrid() {
     const grid = document.getElementById('home-app-grid');
 
-    grid.innerHTML = HOME_APP_DESTINATIONS.map(item => `
-        <a class="home-app-icon" href="./src/features/${item.key}/${item.key}.html">
+    const destinations = [
+        ...HOME_APP_DESTINATIONS.map(item => ({ ...item, base: 'features' })),
+        ...installedPluginDestinations()
+    ];
+
+    grid.innerHTML = destinations.map(item => `
+        <a class="home-app-icon" href="./src/${item.base}/${item.key}/${item.key}.html">
             <span class="home-app-icon-emoji">${item.icon}</span>
             <span class="home-app-icon-label">${item.label}</span>
         </a>
@@ -183,12 +211,12 @@ function setupHomeCollapsibles() {
     });
 }
 
-function renderHome(animateDP) {
+function renderHome() {
     const user = Vault.getUser();
     if (!user) return;
 
     renderStatus(user);
-    renderDPProgress(user, animateDP);
+    renderCharacterLevelBar();
     renderActiveQuest();
     renderDailyTasks();
 }
@@ -196,7 +224,7 @@ function renderHome(animateDP) {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    renderHome(true);
+    renderHome();
     renderAppGrid();
     setupHomeCollapsibles();
 

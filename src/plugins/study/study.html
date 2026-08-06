@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 Study</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../../core/status-dot/status-dot.css">
+    <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./study.css">
+</head>
+<body>
+
+    <main class="study-container">
+
+        <div class="panel page-header-panel">
+            <h2 class="page-title">🎓 <span class="gold-gradient-text">STUDY</span></h2>
+            <p class="page-subtitle">Courses, topics, and learning goals - the parts of leveling up that aren't a Quest or a Daily. Track what you're working through and how far along it is.</p>
+        </div>
+
+        <div id="study-not-installed" class="panel study-not-installed" hidden>
+            <p>This plugin isn't installed yet.</p>
+            <a href="../plugin-hub/plugin-hub.html" class="study-install-link">🧩 Go to Plugin Hub →</a>
+        </div>
+
+        <section id="study-app" class="study-panel panel" hidden>
+            <h3>➕ Add To Queue</h3>
+            <label class="form-label" for="study-topic-input">Topic</label>
+            <input type="text" id="study-topic-input" class="study-text-input" placeholder="e.g. CSS Grid vs Flexbox">
+
+            <div class="study-form-row">
+                <div>
+                    <label class="form-label" for="study-type-select">Type</label>
+                    <select id="study-type-select" class="study-select">
+                        <option>Video</option>
+                        <option>Article</option>
+                        <option>Course</option>
+                        <option>Book</option>
+                        <option>Documentation</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="study-priority-select">Priority</label>
+                    <select id="study-priority-select" class="study-select">
+                        <option>High</option>
+                        <option selected>Medium</option>
+                        <option>Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <label class="form-label" for="study-link-input">Link (optional)</label>
+            <input type="text" id="study-link-input" class="study-text-input" placeholder="https://...">
+
+            <button type="button" id="study-add-btn" class="study-add-btn">💾 Add to Queue</button>
+
+            <h3 class="study-list-heading">📚 Your Queue</h3>
+            <div class="study-list" id="study-list"></div>
+        </section>
+
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/status-dot/status-dot.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../../features/llm-engine/llm-engine.js"></script>
+
+    <script src="./study.js"></script>
+</body>
+</html>

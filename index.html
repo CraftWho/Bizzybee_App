@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="./src/core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="./src/core/modal/modal.css">
     <link rel="stylesheet" href="./src/core/toast/toast.css">
+    <link rel="stylesheet" href="./src/core/level-bar/level-bar.css">
     <link rel="stylesheet" href="./src/features/llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./index.css">
     <link rel="manifest" href="./manifest.json">
@@ -23,13 +24,7 @@
                 <span class="home-status-name" id="home-user-name">—</span>
                 <span class="home-status-level">Level <strong id="home-user-level">—</strong></span>
             </div>
-            <div class="home-dp-progress-wrap" id="home-dp-progress-wrap">
-                <div class="hive-progress-track">
-                    <div class="hive-progress-fill home-dp-fill" id="home-dp-fill" style="width: 0%;"></div>
-                </div>
-                <div class="home-confetti-anchor" id="home-confetti-anchor"></div>
-            </div>
-            <p class="home-dp-progress-text" id="home-dp-progress-text">— / — DP</p>
+            <div class="home-level-bar-wrap" id="home-level-bar"></div>
         </section>
 
         <section class="panel home-collapsible home-collapsible--collapsed" id="home-active-quest-section">
@@ -38,8 +33,10 @@
                 <h3>🎯 <span class="gold-gradient-text">ACTIVE QUEST</span></h3>
             </button>
             <div class="home-section-body">
-                <div id="home-active-quest"></div>
-                <a href="./src/features/quests/quests.html" class="home-section-link">View All Quests →</a>
+                <div class="home-section-body-inner">
+                    <div id="home-active-quest"></div>
+                    <a href="./src/features/quests/quests.html" class="home-section-link">View All Quests →</a>
+                </div>
             </div>
         </section>
 
@@ -49,8 +46,10 @@
                 <h3>☀️ <span class="gold-gradient-text">DAILY TASKS</span></h3>
             </button>
             <div class="home-section-body">
-                <ul class="task-list" id="home-daily-task-list"></ul>
-                <a href="./src/features/dailies/dailies.html" class="home-section-link">View All Dailies →</a>
+                <div class="home-section-body-inner">
+                    <ul class="task-list" id="home-daily-task-list"></ul>
+                    <a href="./src/features/dailies/dailies.html" class="home-section-link">View All Dailies →</a>
+                </div>
             </div>
         </section>
 
@@ -64,6 +63,8 @@
     <script src="./src/core/hive-mind/nano-bee.js"></script>
     <script src="./src/core/hive-mind/hive-mind.js"></script>
     <script src="./src/core/toast/toast.js"></script>
+    <script src="./src/core/reminders/reminders.js"></script>
+    <script src="./src/core/level-bar/level-bar.js"></script>
     <script src="./src/features/llm-engine/llm-engine.js"></script>
 
     <script src="./index.js"></script>

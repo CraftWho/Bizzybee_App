@@ -1,0 +1,50 @@
+/* ==========================================================================
+   STATUS DOT (shared)
+   The standard small colored indicator for anything on a red/yellow/green
+   (or any other color) scale - relevance, difficulty, partial-credit status,
+   and so on. A single small circle whose color is set per-use via the
+   --dot-color custom property, animated with a gentle "lava lamp" pulse
+   (scale + glow breathing) so it reads as alive rather than a flat static
+   chip. Pair with status-dot.js's StatusDot.html() helper for a consistent
+   way to build the markup and pick a color from the shared palette - but
+   the CSS class alone is enough if a caller already has its own color.
+   ========================================================================== */
+
+.status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--dot-color, #888);
+    box-shadow: 0 0 5px 0 var(--dot-color, #888);
+    vertical-align: middle;
+    animation: status-dot-pulse 3.4s ease-in-out infinite;
+    /* Slight per-instance stagger so a row of several dots doesn't all
+       breathe in perfect unison - set inline by StatusDot.html() via a
+       small randomized delay; harmless if a caller never sets it. */
+    animation-delay: var(--dot-delay, 0s);
+}
+
+.status-dot--lg {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes status-dot-pulse {
+    0%, 100% {
+        transform: scale(0.85);
+        box-shadow: 0 0 4px 0 var(--dot-color, #888);
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.2);
+        box-shadow: 0 0 10px 2px var(--dot-color, #888);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .status-dot {
+        animation: none;
+    }
+}

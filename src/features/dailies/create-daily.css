@@ -1,0 +1,515 @@
+.create-daily-container {
+    width: 100%;
+    max-width: 640px;
+    margin: 20px auto 100px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+.create-daily-container .panel {
+    margin-bottom: 20px;
+}
+
+/* --- One continuous panel now (see create-daily.html) - every internal
+   section is separated only by its own <h3>, same convention as
+   dictionary.css. The first <h3> gets the default full-bleed bar (see
+   global.css's ".panel h3"); every section after it needs its top margin
+   overridden back to positive so it doesn't try to pull up into the
+   content above it. --- */
+.daily-section-heading {
+    margin-top: 30px !important;
+}
+
+/* --- Shared field styling - same recipe Calendar's event modal already
+   uses (dark fill, thin border, gold on focus) so this page's inputs read
+   as the same app rather than a bolted-on new style. --- */
+.form-label {
+    display: block;
+    color: var(--gold-start);
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin: 14px 0 6px;
+}
+
+.daily-text-input,
+.daily-notes-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: #eee;
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.daily-text-input:focus,
+.daily-notes-input:focus {
+    outline: none;
+    border-color: var(--gold-start);
+}
+
+.daily-notes-input {
+    min-height: 90px;
+    resize: vertical;
+    margin-top: 10px;
+}
+
+/* --- CHECKLIST - real rows and the trailing "ghost" row share the same
+   layout; the ghost is just visually muted until it's promoted (see
+   create-daily.js's createGhostRowEl). --- */
+.daily-checklist-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.daily-checklist-row .daily-checklist-text {
+    flex: 1;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: #eee;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.daily-checklist-row .daily-checklist-text:focus {
+    outline: none;
+    border-color: var(--gold-start);
+}
+
+.daily-checklist-remove {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: #2a1414;
+    color: var(--crimson);
+    border: 1px solid var(--crimson);
+    border-radius: 50%;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.daily-checklist-remove:hover {
+    background: var(--crimson);
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}
+
+.daily-checklist-row--ghost .daily-checklist-ghost-input {
+    border-style: dashed;
+    color: #999;
+}
+
+.daily-checklist-ghost-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold-start);
+    font-size: 1.1rem;
+}
+
+/* --- DIFFICULTY TILES --- */
+.daily-difficulty-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.daily-difficulty-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: #151515;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 14px 6px;
+    color: var(--gold-start);
+    font-weight: normal;
+}
+
+.daily-difficulty-icon {
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    color: var(--gold-dim);
+}
+
+.daily-difficulty-label {
+    font-size: 0.85rem;
+}
+
+.daily-difficulty-tile--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    border-color: var(--gold-start);
+    color: var(--obsidian);
+    font-weight: bold;
+}
+
+.daily-difficulty-tile--selected .daily-difficulty-icon {
+    color: var(--obsidian);
+}
+
+/* --- DP DISPLAY (Eevee-assessed, no manual input any more) --- */
+.daily-dp-row {
+    margin-top: 16px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.daily-dp-display {
+    display: flex;
+    flex-direction: column;
+}
+
+.daily-dp-value {
+    color: var(--gold-start);
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.daily-ask-eevee-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.daily-dp-note {
+    margin: 10px 0 0;
+    color: #666;
+    font-size: 0.78rem;
+    font-style: italic;
+}
+
+/* --- SCHEDULING --- */
+.daily-schedule-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.daily-every-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.daily-every-row .daily-text-input {
+    width: 70px;
+}
+
+.daily-every-unit {
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.daily-days-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.daily-day-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #999;
+    font-weight: bold;
+    padding: 0;
+}
+
+.daily-day-toggle--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    border-color: var(--gold-start);
+    color: var(--obsidian);
+}
+
+.daily-schedule-summary {
+    margin: 14px 0 0;
+    color: #999;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.daily-schedule-summary strong {
+    color: var(--gold-start);
+}
+
+/* --- REMINDERS --- */
+.daily-reminders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.daily-reminder-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #151515;
+    border: 1px solid #333;
+    border-left: 3px solid var(--gold-start);
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+
+.daily-reminder-time {
+    color: var(--gold-start);
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.daily-reminder-remove {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 1rem;
+    padding: 0 4px;
+    box-shadow: none;
+}
+
+.daily-reminder-remove:hover {
+    color: var(--crimson);
+    transform: none;
+    box-shadow: none;
+}
+
+.daily-add-reminder-row {
+    display: flex;
+    gap: 10px;
+}
+
+.daily-add-reminder-row .daily-text-input {
+    flex: 1;
+}
+
+.daily-add-reminder-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.daily-reminder-note {
+    margin: 10px 0 0;
+    color: #666;
+    font-size: 0.78rem;
+    font-style: italic;
+}
+
+/* --- CLOCK WHEEL - circular time-of-day picker for reminders. Hour mode
+   (1-12) advances straight into minute mode (:00/:05/.../:55) on tap, same
+   two-step flow as a native mobile time picker; AM/PM is a separate toggle
+   below the dial. Positions are placed with plain trigonometry (see
+   clockPolarXY in create-daily.js) against this fixed 200x200 face rather
+   than CSS transform math, so the JS and CSS never have to agree on a
+   shared rotate/translate origin. --- */
+.clock-wheel-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.clock-wheel {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    flex-shrink: 0;
+}
+
+.clock-wheel[data-mode="minute"] {
+    border-color: var(--gold-dim);
+}
+
+.clock-wheel-face {
+    position: absolute;
+    inset: 0;
+}
+
+.clock-wheel-num {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: #999;
+    font-size: 0.85rem;
+    font-weight: bold;
+    padding: 0;
+    line-height: 32px;
+}
+
+.clock-wheel-num:hover {
+    background: #1a1a1a;
+    color: var(--gold-start);
+    transform: translate(-50%, -50%);
+}
+
+.clock-wheel-num--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    transform: translate(-50%, -50%);
+}
+
+.clock-wheel-center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold-start);
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+.clock-wheel-hand {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    background: var(--gold-start);
+    transform-origin: top center;
+    transform: translateX(-50%) rotate(0deg);
+    z-index: 1;
+    transition: transform 0.15s ease, height 0.15s ease;
+}
+
+.clock-wheel-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.clock-wheel-readout {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--gold-start);
+}
+
+.clock-wheel-period-toggle {
+    display: flex;
+    gap: 6px;
+}
+
+.clock-wheel-period-btn {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #999;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.clock-wheel-period-btn--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    border-color: var(--gold-start);
+    color: var(--obsidian);
+}
+
+/* --- TAGS - fully automatic now, no text input (see create-daily.js's
+   rescanTags/findMatchingTerms). The only manual action left is dismissing
+   a chip via ×. --- */
+.daily-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.daily-tags-empty {
+    color: #666;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.daily-tags-note {
+    margin: 4px 0 0;
+    color: #666;
+    font-size: 0.78rem;
+    font-style: italic;
+}
+
+.daily-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a1a1a;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-start);
+    border-radius: 20px;
+    padding: 5px 10px 5px 14px;
+    font-size: 0.85rem;
+}
+
+.daily-tag-remove {
+    background: transparent;
+    border: none;
+    color: #999;
+    font-size: 0.9rem;
+    padding: 0 2px;
+    box-shadow: none;
+}
+
+.daily-tag-remove:hover {
+    color: var(--crimson);
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- SAVE / CANCEL --- */
+.daily-form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-bottom: 40px;
+}
+
+.daily-cancel-btn {
+    background: transparent;
+    color: #999;
+    border: 2px solid #555;
+}
+
+.daily-cancel-btn:hover {
+    background: #333;
+    color: #fff;
+    box-shadow: none;
+}
+
+@media (max-width: 480px) {
+    .daily-difficulty-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .daily-schedule-row {
+        grid-template-columns: 1fr;
+    }
+    .daily-form-actions {
+        flex-direction: column-reverse;
+    }
+}

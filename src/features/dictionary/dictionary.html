@@ -4,22 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📖 Dictionary</title>
-    
+
     <link rel="stylesheet" href="../../core/global.css">
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./dictionary.css">
 </head>
 <body>
 
-    <main id="dictionary-root">
-        </main>
+    <main class="dictionary-container">
+        <div class="panel page-header-panel">
+            <h2 class="page-title">📖 <span class="gold-gradient-text">DICTIONARY</span></h2>
+            <p class="page-subtitle">Terms you define here feed the Skill Mastery matrix on your Dashboard - matched against your Dailies' tags and against any completed Quest whose title, objective, or task mentions the term by name.</p>
+        </div>
+
+        <section class="panel dictionary-panel">
+            <h3>➕ New Term</h3>
+            <label class="form-label" for="term-name-input">Term</label>
+            <input type="text" id="term-name-input" class="dictionary-text-input" placeholder="e.g. Flexbox">
+
+            <label class="form-label" for="term-category-input">Category</label>
+            <input type="text" id="term-category-input" class="dictionary-text-input" list="dictionary-category-list" placeholder="e.g. CSS">
+            <datalist id="dictionary-category-list"></datalist>
+
+            <label class="form-label" for="term-definition-input">Definition</label>
+            <textarea id="term-definition-input" class="dictionary-textarea" placeholder="What does it mean?"></textarea>
+
+            <button type="button" id="add-term-btn" class="dictionary-add-btn">💾 Add Term</button>
+
+            <h3 class="dictionary-list-heading">📚 Your Terms</h3>
+            <div class="dictionary-list" id="dictionary-list"></div>
+        </section>
+    </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./dictionary.js"></script>
 </body>

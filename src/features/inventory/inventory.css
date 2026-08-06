@@ -55,65 +55,14 @@
     flex-shrink: 0;
 }
 
-/* --- MATERIALS GRID --- */
+/* --- MATERIALS/ITEMS GRIDS ---
+   Cards themselves render via the shared ItemCard component
+   (item-card.js/.css, .item-card-grid) - this file only keeps the note
+   text style now. */
 .inventory-materials-note {
     color: #999;
     font-size: 0.85rem;
     margin: 8px 0 15px;
-}
-
-.inventory-materials-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 12px;
-}
-
-.inventory-material-card {
-    display: flex;
-    gap: 12px;
-    background: #0a0a0a;
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 14px;
-}
-
-.inventory-material-card--unowned {
-    opacity: 0.4;
-}
-
-.inventory-material-icon {
-    font-size: 1.8rem;
-    flex-shrink: 0;
-}
-
-.inventory-material-body {
-    flex: 1;
-    min-width: 0;
-}
-
-.inventory-material-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
-}
-
-.inventory-material-label {
-    font-weight: bold;
-    color: #fff;
-}
-
-.inventory-material-count {
-    color: var(--gold-start);
-    font-weight: bold;
-    font-size: 0.9rem;
-}
-
-.inventory-material-desc {
-    color: #888;
-    font-size: 0.8rem;
-    margin: 4px 0 0;
-    line-height: 1.4;
 }
 
 /* --- BEE ROSTER MODAL --- */
