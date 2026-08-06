@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+    <!--
+        Bizzybee Roadmap - original hand-built illustration, no external
+        assets or copied game art. A dark teal-to-moss sky over layered
+        hill silhouettes, a winding gold road from the bottom-left corner
+        to a small hive citadel at the top-right, framed by soft clouds.
+        The road path below (id="map-road-path") is the single source of
+        truth for both what you SEE and where map.js places checkpoints -
+        it reads this exact element back via getPointAtLength so every
+        marker sits dead-center on the visible road, no matter how many
+        quests exist.
+    -->
+    <defs>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#122336"/>
+            <stop offset="55%" stop-color="#173321"/>
+            <stop offset="100%" stop-color="#0c1a11"/>
+        </linearGradient>
+        <linearGradient id="roadGrad" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="#c99f5c"/>
+            <stop offset="100%" stop-color="#f0d28f"/>
+        </linearGradient>
+        <filter id="softBlur" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="9"/>
+        </filter>
+    </defs>
+
+    <!-- sky -->
+    <rect x="0" y="0" width="1000" height="1000" fill="url(#skyGrad)"/>
+
+    <!-- distant hills -->
+    <path d="M0,650 C120,600 220,680 340,630 C460,580 560,660 680,610 C800,560 900,630 1000,600 L1000,1000 L0,1000 Z" fill="#24405a" opacity="0.5"/>
+    <!-- mid hills -->
+    <path d="M0,760 C150,700 260,780 400,730 C540,680 640,760 780,710 C880,680 950,730 1000,710 L1000,1000 L0,1000 Z" fill="#1d3a28"/>
+    <!-- near hills -->
+    <path d="M0,880 C180,830 300,900 460,850 C600,810 700,880 850,840 C920,820 970,850 1000,840 L1000,1000 L0,1000 Z" fill="#153322"/>
+
+    <!-- soft cloud clusters -->
+    <g filter="url(#softBlur)" opacity="0.55" fill="#e9f3ff">
+        <circle cx="95" cy="90" r="40"/>
+        <circle cx="145" cy="80" r="30"/>
+        <circle cx="60" cy="112" r="24"/>
+
+        <circle cx="430" cy="55" r="44"/>
+        <circle cx="480" cy="72" r="30"/>
+        <circle cx="390" cy="75" r="22"/>
+
+        <circle cx="60" cy="520" r="34"/>
+        <circle cx="30" cy="550" r="22"/>
+
+        <circle cx="945" cy="470" r="30"/>
+        <circle cx="915" cy="500" r="20"/>
+    </g>
+
+    <!-- mountain, top-left -->
+    <g opacity="0.92">
+        <path d="M35,265 L135,118 L228,265 Z" fill="#2b3f52"/>
+        <path d="M170,265 L252,148 L332,265 Z" fill="#233647" opacity="0.85"/>
+        <path d="M116,182 L135,118 L156,184 L145,180 L135,142 L124,182 Z" fill="#e3ecf3"/>
+    </g>
+
+    <!-- scattered trees, kept clear of the road's own footprint -->
+    <g fill="#173a22">
+        <rect x="742" y="758" width="8" height="26" fill="#3a2413"/>
+        <circle cx="746" cy="746" r="22"/>
+        <circle cx="730" cy="756" r="15"/>
+        <circle cx="762" cy="756" r="15"/>
+    </g>
+    <g fill="#1a4227">
+        <rect x="866" y="700" width="7" height="24" fill="#3a2413"/>
+        <circle cx="869" cy="688" r="19"/>
+        <circle cx="856" cy="698" r="13"/>
+        <circle cx="882" cy="698" r="13"/>
+    </g>
+    <g fill="#153a20">
+        <rect x="640" y="905" width="8" height="26" fill="#3a2413"/>
+        <circle cx="644" cy="892" r="20"/>
+        <circle cx="629" cy="902" r="14"/>
+        <circle cx="659" cy="902" r="14"/>
+    </g>
+
+    <!-- flower dots near the road's lower stretch -->
+    <g>
+        <circle cx="452" cy="918" r="5" fill="#ff9ecb"/>
+        <circle cx="468" cy="928" r="4" fill="#ffd166"/>
+        <circle cx="438" cy="930" r="4" fill="#ff9ecb"/>
+        <circle cx="900" cy="452" r="5" fill="#ffd166"/>
+        <circle cx="915" cy="440" r="4" fill="#ff9ecb"/>
+    </g>
+
+    <!-- a couple of small bees for personality -->
+    <g fill="#241407">
+        <ellipse cx="230" cy="742" rx="7" ry="5" fill="#f4c33c" stroke="#241407" stroke-width="1.5"/>
+        <ellipse cx="560" cy="415" rx="6" ry="4.5" fill="#f4c33c" stroke="#241407" stroke-width="1.5"/>
+    </g>
+
+    <!-- hive citadel goal structure, top-right, near the finish -->
+    <g>
+        <rect x="842" y="58" width="72" height="92" rx="10" fill="#3a2413"/>
+        <polygon points="842,58 878,16 914,58" fill="#e0b463"/>
+        <circle cx="878" cy="106" r="15" fill="#241407"/>
+        <circle cx="878" cy="106" r="15" fill="none" stroke="#e0b463" stroke-width="2.5"/>
+        <rect x="855" y="76" width="10" height="14" rx="2" fill="#241407" opacity="0.8"/>
+        <rect x="891" y="76" width="10" height="14" rx="2" fill="#241407" opacity="0.8"/>
+    </g>
+
+    <!-- THE ROAD - winding from the bottom-left corner to the citadel at
+         top-right. Drawn twice (dark base, gold fill) for an outlined look;
+         map.js only ever reads the second (gold) path's geometry. -->
+    <path d="M 130,870 C 280,760 180,560 340,500 C 480,450 420,300 580,280 C 700,265 680,150 870,130"
+          fill="none" stroke="#2a1a0d" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="map-road-path"
+          d="M 130,870 C 280,760 180,560 340,500 C 480,450 420,300 580,280 C 700,265 680,150 870,130"
+          fill="none" stroke="url(#roadGrad)" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

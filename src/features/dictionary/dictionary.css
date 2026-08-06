@@ -1,0 +1,131 @@
+.dictionary-container {
+    width: 100%;
+    max-width: 640px;
+    margin: 20px auto 100px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+/* --- Single continuous panel - the add-form and the term list live in
+   the SAME .panel, separated only by the h3 title-bar divider (see
+   global.css's ".panel h3" rule), same convention Create Daily now uses. --- */
+.form-label {
+    display: block;
+    color: var(--gold-start);
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin: 14px 0 6px;
+}
+
+.form-label:first-of-type {
+    margin-top: 0;
+}
+
+.dictionary-text-input,
+.dictionary-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: #eee;
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.dictionary-text-input:focus,
+.dictionary-textarea:focus {
+    outline: none;
+    border-color: var(--gold-start);
+}
+
+.dictionary-textarea {
+    min-height: 70px;
+    resize: vertical;
+}
+
+.dictionary-add-btn {
+    margin-top: 16px;
+    width: 100%;
+}
+
+.dictionary-list-heading {
+    margin-top: 30px !important;
+}
+
+.dictionary-empty-state {
+    color: #888;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.dictionary-category-group {
+    margin-bottom: 20px;
+}
+
+.dictionary-category-heading {
+    color: var(--crimson);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 10px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+}
+
+.dictionary-term-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    background: #151515;
+    border: 1px solid #333;
+    border-left: 3px solid var(--gold-start);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+}
+
+.dictionary-term-name {
+    color: var(--gold-start);
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.dictionary-term-definition {
+    margin: 4px 0 0;
+    color: #bbb;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.dictionary-term-remove {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-size: 0.9rem;
+    padding: 2px 4px;
+    color: #888;
+}
+
+.dictionary-term-remove:hover {
+    color: var(--crimson);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Briefly flashed on a term row when arriving here via a Quest's "Related
+   Terms" link (?term=<id>) - see highlightTermFromURL() in dictionary.js -
+   so the term you followed a link for is obvious, not just scrolled to. */
+.dictionary-term-row--highlight {
+    border-color: var(--gold-start);
+    box-shadow: 0 0 14px var(--gold-glow);
+    animation: dictionary-term-highlight-fade 2s ease-out forwards;
+}
+
+@keyframes dictionary-term-highlight-fade {
+    0% { background: #2a2205; }
+    100% { background: #151515; }
+}

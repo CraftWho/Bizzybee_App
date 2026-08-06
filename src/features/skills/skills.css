@@ -1,0 +1,218 @@
+.skills-container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* #skill-tree is a .panel (see skills.html) so the whole diagram - every
+   node label included - sits on a solid backdrop instead of directly on
+   the page's busy hex-grid background (see global.css's .page-header-panel
+   comment for why: text floating on that pattern with nothing behind it
+   is hard to read no matter how good its own text-shadow is). Still needs
+   its own overflow-x for when the tree is wider than the panel on a small
+   screen - .panel itself doesn't clip/scroll on its own. */
+#skill-tree {
+    overflow-x: auto;
+}
+
+/* === Top-down skill tree wrapper === */
+.tree {
+    text-align: center;
+    padding: 0;
+    margin: 40px auto 20px;
+    list-style: none;
+}
+
+.tree ul {
+    padding-top: 20px;
+    position: relative;
+    transition: all 0.5s;
+    display: flex;
+    justify-content: center;
+    padding-left: 0;
+    margin: 0;
+}
+
+.tree li {
+    text-align: center;
+    list-style-type: none;
+    position: relative;
+    padding: 20px 10px 0 10px;
+    transition: all 0.5s;
+    flex: 1;
+}
+
+/* === THE NODES (orbs) === */
+.skill-node {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid var(--gold-start);
+    background-color: var(--obsidian);
+    background-image: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    padding: 0;
+    margin: 0 auto;
+    box-shadow: 0 0 15px var(--gold-glow);
+    transition: all 0.2s ease;
+    z-index: 2;
+    position: relative;
+}
+
+.skill-node:hover {
+    transform: scale(1.1);
+    background-color: #8b0000;
+    box-shadow: 0 0 25px rgba(255, 204, 0, 0.8);
+    cursor: pointer;
+}
+
+.skill-node.locked {
+    border-color: #555;
+    filter: grayscale(100%);
+    box-shadow: none;
+    opacity: 0.6;
+}
+
+.skill-node.root-node {
+    width: 80px;
+    height: 80px;
+    border-color: var(--crimson);
+    font-size: 2rem;
+}
+
+.node-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--gold-start);
+    font-weight: bold;
+    text-shadow: 1px 1px 2px #000;
+    letter-spacing: 0.5px;
+}
+
+/* === CONNECTOR LINES ===
+   Every li owns two pseudo-elements: ::before draws its LEFT half of the
+   horizontal bar above it (toward the previous sibling), ::after draws its
+   RIGHT half of that same bar PLUS the vertical stem dropping into its own
+   node. first-child has no left neighbor (its ::before is zeroed) and
+   last-child has no right neighbor (its ::after loses only the horizontal
+   half, keeping its own vertical stem). */
+.tree ul::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    border-left: 2px solid var(--gold-start);
+    width: 0;
+    height: 20px;
+    z-index: 1;
+}
+
+.tree li::before,
+.tree li::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 50%;
+    width: 50%;
+    height: 20px;
+    border-top: 2px solid var(--gold-start);
+    z-index: 1;
+}
+
+.tree li::after {
+    right: auto;
+    left: 50%;
+    border-left: 2px solid var(--gold-start);
+}
+
+.tree li:first-child::before {
+    border: 0 none;
+}
+
+.tree li:last-child::after {
+    border-top: none;
+}
+
+.tree > ul::before {
+    display: none;
+}
+
+.tree > ul > li::before,
+.tree > ul > li::after {
+    border: 0 none;
+}
+
+/* === HOVER HIGHLIGHT ===
+   The goal is: hovering a node lights the path FROM THE ROOT DOWN TO that
+   node, and stops exactly there - never past a sibling, never past the
+   node itself into its own children. Two rules, both self/ancestor-only:
+
+   1. `.tree li:hover::before/::after` - :hover naturally applies not just
+      to the exact li under the cursor but to every ANCESTOR li too (an
+      ancestor's box contains the descendant, so the pointer is still
+      "over" it). So this one rule alone lights every li ON THE PATH from
+      the hovered node up to the root: the hovered node's own half(s) +
+      stem, AND each ancestor's own half + stem along the way. Edge nodes
+      (first/last child) only have one live pseudo-element, so their half
+      never bleeds into a sibling's - that half belongs to a different
+      element this selector never touches.
+
+   2. `.tree ul:has(li:hover)::before` - the vertical "drop" lines living
+      on the <ul> wrappers (not the <li>s) aren't reached by rule 1 at all,
+      so they need their own rule. :has() matches at any depth, so every
+      ancestor ul's drop line lights too, completing the spine all the way
+      to the root regardless of how deep the hovered node is.
+
+   Earlier version had a THIRD rule here (`li:hover > ul::before`) meant to
+   also light the line going down from a hovered node into ITS OWN
+   children, as a bonus "there's more below" cue. Removed - it made the
+   highlight visibly overshoot past the hovered node before stopping (e.g.
+   hovering Modular Repo Scaffolding relit the segment leading toward
+   GitHub Pages Deployment below it), which read as broken rather than
+   helpful. The path should terminate exactly at the node you're pointing
+   at. */
+.tree li:hover::before,
+.tree li:hover::after {
+    border-color: var(--crimson);
+}
+
+.tree ul:has(li:hover)::before {
+    border-left-color: var(--crimson);
+}
+
+/* === SKILL INFO PANEL === */
+#skill-info {
+    text-align: left;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+#skill-info h3 {
+    text-align: center;
+}
+
+#skill-description {
+    color: #ccc;
+    line-height: 1.6;
+}
+
+#skill-action {
+    margin-top: 14px;
+    text-align: center;
+}
+
+.skill-unlock-btn {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+}
+
+@media (max-width: 520px) {
+    .skill-node { width: 46px; height: 46px; font-size: 1.15rem; }
+    .skill-node.root-node { width: 64px; height: 64px; font-size: 1.6rem; }
+    .node-label { font-size: 0.7rem; }
+}

@@ -11,19 +11,21 @@
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/wip-page/wip-page.css">
+    <link rel="stylesheet" href="./plugin-hub.css">
 </head>
 <body>
 
-    <main class="wip-container">
-        <div class="wip-icon">🧩</div>
-        <h2 class="wip-title">Plugin Hub</h2>
-        <span class="wip-badge">🚧 Work in Progress</span>
-        <p class="wip-description">
-            Download, manage, and update optional expansions (Calendar, Habits, and whatever
-            comes next) without touching the base app. Nothing installable yet - check back soon.
-        </p>
-        <a href="../../../index.html" class="wip-back-link">← Back to Home</a>
+    <main class="plugin-hub-container">
+
+        <div class="panel page-header-panel">
+            <h2 class="page-title">🧩 <span class="gold-gradient-text">PLUGIN HUB</span></h2>
+            <p class="page-subtitle">Optional expansions you can switch on without touching the base app. Nothing here affects your quests, dailies, or colony unless you turn it on.</p>
+        </div>
+
+        <section class="panel">
+            <div class="plugin-grid" id="plugin-grid"></div>
+        </section>
+
     </main>
 
     <script src="../../core/db.js"></script>
@@ -32,6 +34,7 @@
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./plugin-hub.js"></script>

@@ -1,0 +1,124 @@
+/* --- ISOLATED LOGIN STYLES ---
+   Relocated from global.css §13 during the modularity audit pass - these
+   selectors (.login-body/.login-container/.hive-core-bg/.login-card/
+   .subtitle/.auth-form/.input-group-auth/#auth-submit-btn/.auth-footer/
+   .btn-link) are only ever used by login.html, so they belong here rather
+   than in sitewide core CSS. */
+
+.login-body {
+    justify-content: center;
+    overflow: hidden;
+}
+
+.login-container {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+}
+
+.hive-core-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    z-index: -1;
+}
+
+.login-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--gold-start);
+    border-top: 3px solid var(--crimson);
+    border-radius: 8px;
+    padding: 40px 30px;
+    box-shadow: 0 0 25px var(--gold-glow), 0 0 35px rgba(220, 20, 60, 0.3);
+    backdrop-filter: blur(10px);
+    text-align: center;
+    width: 100%;
+}
+
+.subtitle {
+    color: #aaaaaa;
+    font-size: 0.9rem;
+    margin-bottom: 30px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-group-auth {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 8px;
+}
+
+.input-group-auth label {
+    color: var(--gold-start);
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.input-group-auth input {
+    background: #ffffff;
+    color: var(--obsidian);
+    font-weight: 900;
+    padding: 12px;
+    border: 3px solid transparent;
+    border-image: linear-gradient(to right, var(--gold-start), var(--gold-end)) 1;
+    font-family: var(--font-main);
+    transition: all 0.3s ease;
+}
+
+.input-group-auth input:focus {
+    outline: none;
+    box-shadow: 0 0 15px var(--gold-start);
+}
+
+#auth-submit-btn {
+    margin-top: 10px;
+    width: 100%;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.auth-footer {
+    margin-top: 25px;
+    font-size: 0.85rem;
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-link {
+    display: inline-block;
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-family: inherit;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.btn-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px var(--gold-glow);
+}

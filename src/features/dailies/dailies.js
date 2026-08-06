@@ -14,40 +14,40 @@ function escapeAttr(str) {
         .replace(/>/g, '&gt;');
 }
 
-// Same anchors as quests.js's DIFFICULTY_DP_SUGGESTIONS - duplicated rather
-// than shared, matching this codebase's existing convention of each feature
-// owning its own small helpers (see escapeHTML above) instead of a shared
-// utility file for a few lines of logic.
-const DIFFICULTY_DP_SUGGESTIONS = { Easy: 20, Medium: 60, Hard: 120 };
-
-function difficultySelectHTML(selected) {
-    const options = ['', 'Easy', 'Medium', 'Hard'].map(level => {
-        const label = level || 'No difficulty';
-        return `<option value="${level}"${level === (selected || '') ? ' selected' : ''}>${label}</option>`;
-    }).join('');
-    return `<select class="quest-task-form-difficulty">${options}</select>`;
+function checklistProgressHTML(checklist) {
+    if (!checklist || checklist.length === 0) return '';
+    const done = checklist.filter(item => item.done).length;
+    return `<small class="quest-task-checklist-badge">✅ ${done}/${checklist.length}</small>`;
 }
 
-function wireDifficultyAutoFill(form) {
-    const select = form.querySelector('.quest-task-form-difficulty');
-    const dpInput = form.querySelector('.quest-task-form-dp');
-    select.addEventListener('change', () => {
-        if (DIFFICULTY_DP_SUGGESTIONS[select.value] !== undefined) {
-            dpInput.value = DIFFICULTY_DP_SUGGESTIONS[select.value];
-        }
-    });
+function tagsHTML(tags) {
+    if (!tags || tags.length === 0) return '';
+    return `<span class="quest-task-tags">${tags.map(tag => `<span class="quest-task-tag">${escapeHTML(tag)}</span>`).join('')}</span>`;
 }
 
+// Maps this page's difficulty vocabulary onto the shared StatusDot palette
+// (src/core/status-dot/) - same mapping quests.js uses for its own task
+// difficulty badge, so "hard" reads as the same red dot everywhere.
+const DIFFICULTY_DOT_COLOR = { easy: 'green', medium: 'yellow', hard: 'red' };
+
+// Adding/editing now happens on its own full page (create-daily.html) -
+// see openAddDailyForm/renderDailyEditForm's removal below - so this list
+// just renders + toggles + removes, plus surfaces the extra info that page
+// collects (checklist progress, tags, and whether today is even a
+// scheduled day for a given daily per its own repeats settings).
 function renderDailyTasks() {
     const list = document.getElementById('daily-task-list');
     const tasks = Vault.getDailyTasks();
 
     list.innerHTML = tasks.length > 0
         ? tasks.map(task => `
-            <li class="quest-task-item${task.completedToday ? ' quest-task-item--done' : ''}" data-daily-id="${task.id}">
+            <li class="quest-task-item${task.completedToday ? ' quest-task-item--done' : ''}${task.dueToday === false ? ' quest-task-item--not-due' : ''}" data-daily-id="${task.id}">
                 <input type="checkbox" data-role="toggle" ${task.completedToday ? 'checked' : ''}>
                 <span class="quest-task-label">${escapeHTML(task.label)}</span>
-                ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${escapeHTML(task.difficulty)}</small>` : ''}
+                ${task.dueToday === false ? '<small class="quest-task-not-due-badge">Not scheduled today</small>' : ''}
+                ${checklistProgressHTML(task.checklist)}
+                ${tagsHTML(task.tags)}
+                ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${StatusDot.html(DIFFICULTY_DOT_COLOR[task.difficulty.toLowerCase()] || 'gray')}${escapeHTML(task.difficulty)}</small>` : ''}
                 <small class="quest-task-dp">+${task.dp} DP</small>
                 <button class="quest-task-icon-btn" data-role="edit" aria-label="Edit daily">✏️</button>
                 <button class="quest-task-icon-btn quest-task-icon-btn--remove" data-role="remove" aria-label="Remove daily">🗑️</button>
@@ -71,7 +71,7 @@ function renderDailyTasks() {
         });
 
         row.querySelector('[data-role="edit"]').addEventListener('click', () => {
-            renderDailyEditForm(row, task);
+            window.location.href = `./create-daily.html?id=${encodeURIComponent(task.id)}`;
         });
 
         row.querySelector('[data-role="remove"]').addEventListener('click', () => {
@@ -79,62 +79,6 @@ function renderDailyTasks() {
             if (Vault.removeDailyTask(task.id)) renderDailyTasks();
         });
     });
-}
-
-function renderDailyEditForm(row, task) {
-    row.innerHTML = `
-        <input type="text" class="quest-task-form-label" value="${escapeAttr(task.label)}">
-        ${difficultySelectHTML(task.difficulty)}
-        <input type="number" class="quest-task-form-dp" value="${task.dp}" min="0">
-        <button class="quest-task-form-save">Save</button>
-        <button class="quest-task-form-cancel">Cancel</button>
-    `;
-    wireDifficultyAutoFill(row);
-
-    row.querySelector('.quest-task-form-save').addEventListener('click', () => {
-        const label = row.querySelector('.quest-task-form-label').value.trim();
-        const dp = row.querySelector('.quest-task-form-dp').value;
-        const difficulty = row.querySelector('.quest-task-form-difficulty').value;
-        if (!label) return;
-
-        if (Vault.updateDailyTask(task.id, { label, dp, difficulty })) renderDailyTasks();
-    });
-
-    row.querySelector('.quest-task-form-cancel').addEventListener('click', () => renderDailyTasks());
-}
-
-// Triggered from the honeycomb "➕ Add Daily" action (see the HiveMind
-// action registered below) rather than an on-page button, per redacted's
-// request - prepends the add form directly into the list.
-function openAddDailyForm() {
-    const list = document.getElementById('daily-task-list');
-    if (list.querySelector('.quest-task-form')) return;
-
-    list.insertAdjacentHTML('afterbegin', `
-        <li class="quest-task-form">
-            <input type="text" class="quest-task-form-label" placeholder="Daily task name">
-            ${difficultySelectHTML(null)}
-            <input type="number" class="quest-task-form-dp" placeholder="DP" min="0">
-            <button class="quest-task-form-save">Save</button>
-            <button class="quest-task-form-cancel">Cancel</button>
-        </li>
-    `);
-
-    const form = list.querySelector('.quest-task-form');
-    wireDifficultyAutoFill(form);
-
-    form.querySelector('.quest-task-form-save').addEventListener('click', () => {
-        const label = form.querySelector('.quest-task-form-label').value.trim();
-        const dp = form.querySelector('.quest-task-form-dp').value;
-        const difficulty = form.querySelector('.quest-task-form-difficulty').value;
-        if (!label) return;
-
-        Vault.addDailyTask({ label, dp, difficulty });
-        renderDailyTasks();
-        Toast.show(`☀️ New daily added: ${label}`, 'positive');
-    });
-
-    form.querySelector('.quest-task-form-cancel').addEventListener('click', () => form.remove());
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -145,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         {
             icon: '➕',
             label: 'Add Daily',
-            onClick: openAddDailyForm
+            onClick: () => { window.location.href = './create-daily.html'; }
         },
         ...baseHiveMindActions()
     ]);

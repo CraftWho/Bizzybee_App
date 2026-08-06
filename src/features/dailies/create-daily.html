@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☀️ Create Daily</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./create-daily.css">
+</head>
+<body>
+
+    <main class="create-daily-container">
+        <div class="panel page-header-panel">
+            <h2 class="page-title" id="create-daily-heading">☀️ <span class="gold-gradient-text">CREATE DAILY</span></h2>
+            <p class="page-subtitle" id="create-daily-subtitle">Set it up once - title, checklist, difficulty, schedule, reminders, tags.</p>
+        </div>
+
+        <!-- One continuous panel - every section below is separated only by
+             its own crimson-accented <h3> title bar (see global.css's
+             ".panel h3" rule), same convention Dictionary uses. No more
+             separate boxed .panels per section. -->
+        <section class="panel create-daily-panel">
+            <h3>📝 Task Details</h3>
+            <label class="form-label" for="daily-title-input">Task Title</label>
+            <input type="text" id="daily-title-input" class="daily-text-input" placeholder="e.g. Morning stretch">
+
+            <label class="form-label" for="daily-notes-input">Notes</label>
+            <textarea id="daily-notes-input" class="daily-notes-input" placeholder="Optional details..."></textarea>
+
+            <h3 class="daily-section-heading">✅ Checklist</h3>
+            <div class="daily-checklist" id="daily-checklist"></div>
+
+            <h3 class="daily-section-heading">⭐ Difficulty &amp; DP</h3>
+            <div class="daily-difficulty-grid" id="daily-difficulty-grid"></div>
+
+            <div class="daily-dp-row">
+                <div class="daily-dp-display">
+                    <span class="form-label">DP Reward</span>
+                    <span class="daily-dp-value" id="daily-dp-value">20</span>
+                </div>
+                <button type="button" id="daily-ask-eevee-btn" class="daily-ask-eevee-btn">🐝 Ask Eevee</button>
+            </div>
+            <p class="daily-dp-note">Defaults to this tier's baseline DP. Ask Eevee to judge it from your title, notes, and difficulty instead.</p>
+
+            <h3 class="daily-section-heading">📅 Scheduling</h3>
+            <label class="form-label" for="daily-start-date">Start Date</label>
+            <input type="date" id="daily-start-date" class="daily-text-input">
+
+            <div class="daily-schedule-row">
+                <div class="daily-schedule-field">
+                    <label class="form-label" for="daily-repeats-select">Repeats</label>
+                    <select id="daily-repeats-select" class="daily-text-input">
+                        <option value="daily">Daily</option>
+                        <option value="weekly" selected>Weekly</option>
+                    </select>
+                </div>
+                <div class="daily-schedule-field" id="daily-every-wrap">
+                    <label class="form-label" for="daily-every-input">Every</label>
+                    <div class="daily-every-row">
+                        <input type="number" id="daily-every-input" class="daily-text-input" min="1" value="1">
+                        <span class="daily-every-unit">Weeks</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-days-row" id="daily-days-row"></div>
+            <p class="daily-schedule-summary" id="daily-schedule-summary"></p>
+
+            <h3 class="daily-section-heading">🔔 Reminders</h3>
+            <div class="daily-reminders-list" id="daily-reminders-list"></div>
+
+            <div class="clock-wheel-widget">
+                <div class="clock-wheel" id="daily-clock-wheel" data-mode="hour">
+                    <div class="clock-wheel-hand" id="daily-clock-hand"></div>
+                    <div class="clock-wheel-center-dot"></div>
+                    <div class="clock-wheel-face" id="daily-clock-face"></div>
+                </div>
+                <div class="clock-wheel-controls">
+                    <span class="clock-wheel-readout" id="daily-clock-readout">12:00 AM</span>
+                    <div class="clock-wheel-period-toggle">
+                        <button type="button" class="clock-wheel-period-btn clock-wheel-period-btn--selected" data-period="AM">AM</button>
+                        <button type="button" class="clock-wheel-period-btn" data-period="PM">PM</button>
+                    </div>
+                    <button type="button" id="daily-add-reminder-btn" class="daily-add-reminder-btn">+ Add reminder</button>
+                </div>
+            </div>
+            <p class="daily-reminder-note">Fires a real browser notification, but only while a Bizzybee tab is open somewhere.</p>
+
+            <h3 class="daily-section-heading">🏷️ Tags</h3>
+            <div class="daily-tags-list" id="daily-tags-list"></div>
+            <p class="daily-tags-note">Automatic - detected from your title &amp; notes against Dictionary terms, existing Daily tags, and Quest tasks. Click × to dismiss one.</p>
+        </section>
+
+        <div class="daily-form-actions">
+            <button type="button" id="daily-cancel-btn" class="daily-cancel-btn">Cancel</button>
+            <button type="button" id="daily-save-btn" class="daily-save-btn">💾 Create Daily</button>
+        </div>
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./create-daily.js"></script>
+</body>
+</html>

@@ -34,18 +34,6 @@
     text-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
 }
 
-.skill-container .skill-row {
-    margin-bottom: 20px;
-}
-
-.skill-container .skill-row:last-child {
-    margin-bottom: 0;
-}
-
-.skill-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    font-family: var(--font-main);
-    color: #fff;
-}
+/* Skill Mastery's bars/badges/shake/Level Up button/celebration modal all
+   now come from the shared src/core/level-bar/level-bar.css - nothing
+   skill-specific left to style here. */

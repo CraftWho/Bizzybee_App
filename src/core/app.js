@@ -25,7 +25,9 @@ const EXTRA_PAGE_META = {
     skills: { icon: '🌿', label: 'Skills' },
     dictionary: { icon: '📖', label: 'Dictionary' },
     profile: { icon: '🧘🏾', label: 'Profile' },
-    inventory: { icon: '🎒', label: 'Inventory' }
+    inventory: { icon: '🎒', label: 'Inventory' },
+    calendar: { icon: '📅', label: 'Calendar' },
+    'create-daily': { icon: '☀️', label: 'Daily' }
 };
 
 class CodexSystem {
@@ -42,6 +44,7 @@ class CodexSystem {
 
         if (!isLoginPage) {
             this.injectHeader();
+            this.injectBackButton();
         }
 
         this.injectFooter();
@@ -63,6 +66,8 @@ class CodexSystem {
         if (path.includes('map.html')) return 'map';
         if (path.includes('hive-archive.html')) return 'hive-archive';
         if (path.includes('dailies.html')) return 'dailies';
+        if (path.includes('create-daily.html')) return 'create-daily';
+        if (path.includes('calendar.html')) return 'calendar';
         return 'index';
     }
 
@@ -70,11 +75,17 @@ class CodexSystem {
         // Determine the correct relative path prefixes based on the current page location
         const currentPath = window.location.pathname;
 
+        // Both src/features/*/ and src/plugins/*/ sit at the same depth
+        // (two levels under src/) - a plugin page like calendar.html needs
+        // the exact same prefix math a feature page does, just checked
+        // against either folder name.
+        const isNestedPage = currentPath.includes('features') || currentPath.includes('plugins');
+
         // linkPrefix handles hopping between the different feature folders
-        const linkPrefix = currentPath.includes('features') ? '..' : './src/features';
+        const linkPrefix = isNestedPage ? '..' : './src/features';
 
         // rootPrefix handles jumping all the way back to the main project folder
-        const rootPrefix = currentPath.includes('features') ? '../../..' : '.';
+        const rootPrefix = isNestedPage ? '../../..' : '.';
 
         const hrefFor = (key) => key === 'index'
             ? `${rootPrefix}/index.html`
@@ -112,6 +123,44 @@ class CodexSystem {
 
         // Inject it at the very top of the body
         document.body.insertBefore(header, document.body.firstChild);
+    }
+
+    // A real "go back" button - lives as its own floating hexagon next to
+    // the Hive Mind FAB (bottom of the screen) rather than in the header,
+    // so it reads as a peer control to that FAB instead of another header
+    // nav item. Present on every page this same header/footer pair is
+    // (everywhere except login.html) - the whole point is there's no dead
+    // end anywhere, no matter how you got there (header nav, Home's app
+    // grid, the Hive Mind FAB, a modal's own link, etc.). Prefers actual
+    // browser history so it lands wherever you really came from; only
+    // falls back to Home if there's nothing to go back to (e.g. the very
+    // first page opened this session, or history was cleared).
+    injectBackButton() {
+        const btn = document.createElement('button');
+        btn.className = 'back-fab-btn';
+        btn.title = 'Go back';
+        btn.setAttribute('aria-label', 'Go back');
+        // Wrapped in its own span (z-index above the ::before ring layer
+        // in global.css) so the arrow reliably paints on top of the
+        // hexagon's inner obsidian fill rather than depending on default
+        // stacking order between a text node and an absolutely-positioned
+        // pseudo-element.
+        btn.innerHTML = '<span class="back-fab-btn-icon">←</span>';
+
+        btn.addEventListener('click', () => {
+            if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            // Same nested-page check app.js/db.js/llm-engine.js all share
+            // (src/features/*/ and src/plugins/*/ sit at the same depth).
+            const currentPath = window.location.pathname;
+            const isNestedPage = currentPath.includes('features') || currentPath.includes('plugins');
+            const rootPrefix = isNestedPage ? '../../..' : '.';
+            window.location.href = `${rootPrefix}/index.html`;
+        });
+
+        document.body.appendChild(btn);
     }
 
     injectFooter() {

@@ -16,16 +16,27 @@
 <body>
 
     <main class="map-container">
-        <h2 class="map-title">🗺️ <span class="gold-gradient-text">YOUR ROADMAP</span></h2>
-        <p class="map-subtitle">From your first step to the finish line — every stop is a real campaign.</p>
-
-        <div class="map-path-wrap">
-            <div class="map-path" id="map-path"></div>
+        <div class="panel page-header-panel">
+            <h2 class="page-title">🗺️ <span class="gold-gradient-text">YOUR ROADMAP</span></h2>
+            <p class="page-subtitle">From your first step to the finish line — every stop is a real campaign.</p>
         </div>
 
-        <div class="map-legend">
-            <span>🏅 Completed</span>
-            <span>📍 In Progress</span>
+        <div class="map-frame" id="map-frame">
+            <!-- The actual picture - a real, standalone SVG asset file (see
+                 ./assets/map-background.svg), linked in via <object> rather
+                 than <img> so map.js can still reach inside it and read the
+                 baked-in road path's geometry once it loads. -->
+            <object id="map-picture" class="map-picture" type="image/svg+xml" data="./assets/map-background.svg" aria-label="Illustrated roadmap background"></object>
+
+            <div class="map-markers" id="map-markers"></div>
+
+            <!-- Bottom-right corner controls: the key toggle sits above the
+                 compass, both fixed to the frame rather than the road's own
+                 coordinate system. -->
+            <div class="map-corner-controls">
+                <button class="map-key-btn" id="map-key-btn" title="Show map key" aria-label="Show map key">🗝️</button>
+                <div class="map-compass" aria-hidden="true" title="Compass">🧭</div>
+            </div>
         </div>
 
         <div class="map-footer-link">
@@ -39,6 +50,7 @@
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./map.js"></script>

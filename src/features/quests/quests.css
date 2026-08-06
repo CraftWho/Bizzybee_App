@@ -417,3 +417,197 @@
     box-shadow: none;
     transform: none;
 }
+
+/* --- Related Terms (Dictionary deep-link, see db.js's getQuestRelatedTerms) ---
+   Collapsed by default - a single toggle button, then a small linked-term
+   list that only appears once opened. Deliberately NOT full definitions
+   inline (that's what got too long on the old Codex tracker's per-quest
+   glossary) - each term just links out to the real Dictionary entry. */
+.quest-related-terms-wrap {
+    margin-top: 8px;
+}
+
+.quest-related-terms-toggle {
+    background: transparent;
+    border: 1px dashed var(--gold-dim);
+    color: var(--gold-start);
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    box-shadow: none;
+}
+
+.quest-related-terms-toggle:hover {
+    border-color: var(--gold-start);
+    box-shadow: none;
+    transform: none;
+}
+
+.quest-related-terms-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.quest-related-term-link {
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    color: var(--gold-start);
+    text-decoration: none;
+}
+
+.quest-related-term-link:hover {
+    border-color: var(--gold-start);
+    color: #fff;
+}
+
+/* --- Ghost Logs (Interactive Intel) ---
+   Same task-list-row visual language as .quest-task-item, plus a live
+   StatusDot (src/core/status-dot/) and a status <select> instead of a
+   checkbox, since a Ghost Log can sit at partial credit. */
+.quest-ghost-log-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+}
+
+.quest-ghost-log-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px dashed #333;
+}
+
+.quest-ghost-log-item:first-child {
+    border-top: none;
+}
+
+.quest-ghost-log-name {
+    flex: 1;
+    color: #eee;
+}
+
+.quest-ghost-log-status-select {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+}
+
+.quest-ghost-log-empty {
+    padding: 10px 0;
+}
+
+.quest-ghost-log-add-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    background: transparent;
+    color: var(--gold-start);
+    border: 2px dashed var(--gold-dim);
+    padding: 8px;
+    font-size: 0.85rem;
+    box-shadow: none;
+}
+
+.quest-ghost-log-add-btn:hover {
+    border-color: var(--gold-start);
+    box-shadow: none;
+    transform: none;
+}
+
+/* --- Side Quests (back-linked, see db.js's getSideQuestsFor/getParentQuestFor) --- */
+.quest-side-quest-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.quest-side-quest-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px dashed #333;
+}
+
+.quest-side-quest-row:first-child {
+    border-top: none;
+}
+
+.quest-side-quest-link {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: var(--gold-start);
+    text-decoration: underline;
+    padding: 0;
+    font-size: 0.95rem;
+}
+
+.quest-side-quest-link:hover {
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- Codex Unlocks (see db.js's "5o" section - can wire into the Skill Tree) --- */
+.quest-codex-unlocks-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+}
+
+.quest-codex-unlock-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px dashed #333;
+}
+
+.quest-codex-unlock-item:first-child {
+    border-top: none;
+}
+
+.quest-codex-unlock-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.quest-codex-unlock-main strong {
+    color: var(--gold-start);
+}
+
+.quest-codex-unlock-earned {
+    color: #4caf50;
+    white-space: nowrap;
+}
+
+.quest-codex-unlock-claim-btn {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    font-weight: 800;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* --- Developer Version badge (Patch Notes) - only ever present when
+   quest.patchNotes exists, which only ever happens in personal data, never
+   the generic base app (see db.js/ROADMAP.md). Purely a labeling cue, not
+   a gate - the section already only renders when the data is there. --- */
+.quest-dev-version-badge {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #999;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 2px 10px;
+    letter-spacing: 0.3px;
+}

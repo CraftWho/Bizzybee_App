@@ -11,7 +11,7 @@
 
 .bee-card {
     width: 260px;
-    height: 460px;
+    height: 660px;
     perspective: 1200px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -285,6 +285,96 @@
 .bee-card-weakness-mult {
     color: #ccc;
     font-weight: bold;
+}
+
+/* --- TRAITS: granted via applyTraitItem (db.js) - persistent, small
+   pill badges, only rendered when a bee actually has any. --- */
+.bee-card-traits-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    z-index: 1;
+}
+
+.bee-card-trait-badge {
+    background: #1c1c1c;
+    border: 1px solid #555;
+    border-radius: 10px;
+    padding: 2px 7px;
+    font-size: 0.6rem;
+    color: #ddd;
+    white-space: nowrap;
+}
+
+/* --- EVOLVE / APPLY ITEM: only shown in editable mode, only when the
+   bee is eligible AND an item is owned - see evolveBee/applyTraitItem
+   in db.js for the underlying rules. --- */
+.bee-card-item-action {
+    display: flex;
+    gap: 6px;
+    z-index: 1;
+}
+
+.bee-card-evolve-btn,
+.bee-card-apply-trait-btn,
+.bee-card-identity-btn,
+.bee-card-rebirth-btn {
+    flex: 1;
+    padding: 5px 6px;
+    font-size: 0.65rem;
+    background: transparent;
+    border: 1px solid var(--gold-start);
+    color: var(--gold-start);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.bee-card-evolve-btn:hover,
+.bee-card-apply-trait-btn:hover,
+.bee-card-identity-btn:hover,
+.bee-card-rebirth-btn:hover {
+    background: var(--gold-start);
+    color: #000;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Rebirth Stone is the rarest, most dramatic action of all (any bee,
+   straight to Legendary) - gold-on-black glow instead of the plain gold
+   outline the other actions use, to set it apart. */
+.bee-card-rebirth-btn {
+    border-color: #ffd700;
+    color: #ffd700;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.35);
+}
+
+.bee-card-rebirth-btn:hover {
+    background: #ffd700;
+    color: #000;
+}
+
+/* Identity Card is a rarer, more dramatic action than a trait item -
+   pink border to match the Named rarity theme instead of gold. */
+.bee-card-identity-btn {
+    border-color: #ff2d78;
+    color: #ff2d78;
+}
+
+.bee-card-identity-btn:hover {
+    background: #ff2d78;
+    color: #fff;
+}
+
+.bee-card-trait-item-select {
+    flex: 1.4;
+    min-width: 0;
+    background: #0a0a0a;
+    border: 1px solid #444;
+    color: #ccc;
+    font-size: 0.6rem;
+    padding: 4px;
+    border-radius: 4px;
+    font-family: inherit;
 }
 
 /* --- FOOTER: work assignment + obtained date --- */

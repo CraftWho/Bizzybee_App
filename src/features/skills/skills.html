@@ -4,22 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌿 Skills Mastery</title>
-    
+
     <link rel="stylesheet" href="../../core/global.css">
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./skills.css">
 </head>
 <body>
 
-    <main id="skills-root">
-        </main>
+    <main id="skills-root" class="skills-container">
+        <div class="panel page-header-panel">
+            <h2 class="page-title">🌿 <span class="gold-gradient-text">SKILL TREE</span></h2>
+            <p class="page-subtitle">Every branch is a real skill - click a node to inspect it, unlock the next one once its root is mastered.</p>
+        </div>
+
+        <section id="skill-tree" class="panel">
+            <div class="tree" id="skill-tree-tree"></div>
+        </section>
+
+        <section id="skill-info" class="panel">
+            <h3>🧠 Skill Data</h3>
+            <p id="skill-description">Select a node to analyze data.</p>
+            <div id="skill-action"></div>
+        </section>
+    </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./skills.js"></script>
 </body>

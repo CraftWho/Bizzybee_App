@@ -8,30 +8,47 @@
     <link rel="stylesheet" href="../../core/global.css">
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/item-card/item-card.css">
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/wip-page/wip-page.css">
+    <link rel="stylesheet" href="./honey-store.css">
 </head>
 <body>
 
-    <main class="wip-container">
-        <div class="wip-icon">🍯</div>
-        <h2 class="wip-title">Honey Store</h2>
-        <span class="wip-badge">🚧 Work in Progress</span>
-        <p class="wip-description">
-            A future marketplace where you'll be able to spend earned DP on cosmetic items,
-            badges, and hive upgrades. Nothing to buy yet - check back soon.
-        </p>
-        <a href="../../../index.html" class="wip-back-link">← Back to Home</a>
+    <main class="store-container">
+
+        <div class="panel page-header-panel">
+            <h2 class="page-title">🍯 <span class="gold-gradient-text">HONEY STORE</span></h2>
+            <p class="page-subtitle">Spend materials your Collector bees bring back on gear that grants traits - some of it even carries a chance to evolve the bee wearing it.</p>
+        </div>
+
+        <div class="store-wallet-panel panel" id="store-wallet-panel"></div>
+
+        <section class="panel store-identity-panel">
+            <h3>🪪 Named Beast Identity Card</h3>
+            <p class="store-identity-desc" id="store-identity-desc"></p>
+            <div class="store-identity-row" id="store-identity-row"></div>
+        </section>
+
+        <section class="panel">
+            <h3>🎁 Trait Gear</h3>
+            <p class="store-note">Each item grants its bee a themed trait, and gives any Common or Rare bee a shot at jumping straight to Epic. Apply purchased items from a bee's card in the <a href="../inventory/inventory.html">Inventory</a> roster.</p>
+            <div class="item-card-grid" id="store-item-grid"></div>
+        </section>
+
+        <a href="../inventory/inventory.html" class="store-inventory-link">🎒 View Purchased Items in Inventory →</a>
+
     </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/item-card/item-card.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./honey-store.js"></script>

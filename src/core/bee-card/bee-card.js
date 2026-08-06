@@ -144,6 +144,36 @@ const BeeCard = {
         const weakElementKey = bee.element && typeof BEE_ELEMENT_WEAKNESS !== 'undefined' ? BEE_ELEMENT_WEAKNESS[bee.element] : null;
         const weakElementInfo = weakElementKey && typeof BEE_ELEMENTS !== 'undefined' ? BEE_ELEMENTS[weakElementKey] : null;
         const archetype = beeArchetype(bee);
+        const traits = (bee.traits || []).map(key => (typeof BEE_TRAITS !== 'undefined' ? BEE_TRAITS[key] : null)).filter(Boolean);
+
+        // Evolve/apply-item actions are only offered in editable mode, and
+        // only when the bee is actually eligible AND you own the item - see
+        // evolveBee/applyTraitItem/applyStoreItem/evolveToNamed in db.js
+        // for the rules these mirror. Two separate trait-item pools feed
+        // the same select+apply control: legacy drop-only items (Epic+
+        // only, applied via Vault.applyTraitItem) and Honey Store items
+        // (any non-Named rarity, applied via Vault.applyStoreItem) - each
+        // option remembers its own pool via a data-kind attribute so the
+        // click handler knows which Vault method to call.
+        const items = editable && typeof Vault !== 'undefined' ? Vault.getItems() : {};
+        const ownedEvoStones = items['evo-stone'] || 0;
+        const ownedRebirthStones = items['rebirth-stone'] || 0;
+        const legacyTraitItemIds = ['drill-hands', 'nanite-bolt'].filter(id => (items[id] || 0) > 0);
+        const storeTraitItemIds = typeof STORE_ITEM_CATALOG !== 'undefined'
+            ? STORE_ITEM_CATALOG.filter(i => i.kind === 'trait' && (items[i.id] || 0) > 0).map(i => i.id)
+            : [];
+        // Both stones (see evolveBee in db.js) work on any bee that isn't
+        // already Legendary (nothing to gain) or Named (RARITY_ORDER
+        // index -1, tops out beyond either stone's reach).
+        const canEvolveRarity = typeof RARITY_ORDER !== 'undefined'
+            && RARITY_ORDER.indexOf(bee.rarity) !== -1 && bee.rarity !== 'Legendary';
+        const showEvolveAction = editable && canEvolveRarity && ownedEvoStones > 0;
+        const showRebirthAction = editable && canEvolveRarity && ownedRebirthStones > 0;
+        const showLegacyTraitAction = editable && ['Epic', 'Legendary', 'Named'].includes(bee.rarity) && legacyTraitItemIds.length > 0;
+        const showStoreTraitAction = editable && bee.rarity !== 'Named' && storeTraitItemIds.length > 0;
+        const showTraitAction = showLegacyTraitAction || showStoreTraitAction;
+        const ownedIdentityCards = items['identity-card'] || 0;
+        const showIdentityAction = editable && bee.rarity !== 'Named' && !bee.customNamed && ownedIdentityCards > 0;
 
         container.classList.add('bee-card');
         container.innerHTML = `
@@ -174,6 +204,11 @@ const BeeCard = {
                         <span class="bee-card-weakness-mult">×2</span>
                     </div>` : ''}
 
+                    ${traits.length > 0 ? `
+                    <div class="bee-card-traits-row">
+                        ${traits.map(trait => `<span class="bee-card-trait-badge" title="${trait.description}">${trait.icon} ${trait.label}</span>`).join('')}
+                    </div>` : ''}
+
                     <div class="bee-card-footer">
                         ${editable
                             ? BeeCard._classSelectHTML(bee)
@@ -182,6 +217,38 @@ const BeeCard = {
                                 : `<span class="bee-card-role bee-card-role--none">Unassigned</span>`)}
                         <span class="bee-card-obtained">Obtained ${formatBeeObtainedDate(bee.obtainedAt)}</span>
                     </div>
+
+                    ${showEvolveAction ? `
+                    <div class="bee-card-item-action">
+                        <button class="bee-card-evolve-btn">💠 Evolve +1 Tier (${ownedEvoStones})</button>
+                    </div>` : ''}
+
+                    ${showRebirthAction ? `
+                    <div class="bee-card-item-action">
+                        <button class="bee-card-rebirth-btn">🌟 Rebirth to Legendary (${ownedRebirthStones})</button>
+                    </div>` : ''}
+
+                    ${showTraitAction ? `
+                    <div class="bee-card-item-action">
+                        <select class="bee-card-trait-item-select">
+                            ${showLegacyTraitAction ? legacyTraitItemIds.map(id => {
+                                const item = typeof EVOLUTION_ITEM_CATALOG !== 'undefined' ? EVOLUTION_ITEM_CATALOG.find(i => i.id === id) : null;
+                                const label = item ? `${item.icon} ${item.label}` : id;
+                                return `<option value="${id}" data-kind="legacy">${label} (${items[id]})</option>`;
+                            }).join('') : ''}
+                            ${showStoreTraitAction ? storeTraitItemIds.map(id => {
+                                const item = typeof STORE_ITEM_CATALOG !== 'undefined' ? STORE_ITEM_CATALOG.find(i => i.id === id) : null;
+                                const label = item ? `${item.icon} ${item.label}` : id;
+                                return `<option value="${id}" data-kind="store">${label} (${items[id]})</option>`;
+                            }).join('') : ''}
+                        </select>
+                        <button class="bee-card-apply-trait-btn">🔧 Apply</button>
+                    </div>` : ''}
+
+                    ${showIdentityAction ? `
+                    <div class="bee-card-item-action">
+                        <button class="bee-card-identity-btn">🪪 Make Named Beast (${ownedIdentityCards})</button>
+                    </div>` : ''}
 
                     <p class="bee-card-flavor">${archetype.description}</p>
                     <span class="bee-card-flip-hint">↻ tap for stats</span>
@@ -212,7 +279,9 @@ const BeeCard = {
         if (!container.dataset.beeCardBound) {
             container.dataset.beeCardBound = 'true';
             container.addEventListener('click', (event) => {
-                if (event.target.closest('.bee-card-rename-btn') || event.target.closest('.bee-card-class-select')) return;
+                if (event.target.closest(
+                    '.bee-card-rename-btn, .bee-card-class-select, .bee-card-evolve-btn, .bee-card-rebirth-btn, .bee-card-apply-trait-btn, .bee-card-trait-item-select, .bee-card-identity-btn'
+                )) return;
                 container.classList.toggle('is-flipped');
             });
         }
@@ -241,6 +310,95 @@ const BeeCard = {
                     BeeCard.render(container, updated, options);
                     if (onChange) onChange();
                 }
+            });
+        }
+
+        const evolveBtn = container.querySelector('.bee-card-evolve-btn');
+        if (evolveBtn) {
+            evolveBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const result = Vault.evolveBee(bee.id, 'evo-stone');
+                if (!result) return;
+
+                // Guaranteed - the rarity is in finding the stone, not in
+                // this working (see evolveBee in db.js).
+                if (typeof Toast !== 'undefined') {
+                    Toast.show(`💠 ${result.bee.name} evolved up to ${result.newRarity}!`, 'positive');
+                }
+
+                BeeCard.render(container, result.bee, options);
+                if (onChange) onChange();
+            });
+        }
+
+        const rebirthBtn = container.querySelector('.bee-card-rebirth-btn');
+        if (rebirthBtn) {
+            rebirthBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const result = Vault.evolveBee(bee.id, 'rebirth-stone');
+                if (!result) return;
+
+                // Guaranteed - same pattern as the evo-stone above, just a
+                // much rarer item that jumps straight to Legendary instead
+                // of one tier at a time.
+                if (typeof Toast !== 'undefined') {
+                    Toast.show(`🌟 ${result.bee.name} was reborn as a Legendary!`, 'positive');
+                }
+
+                BeeCard.render(container, result.bee, options);
+                if (onChange) onChange();
+            });
+        }
+
+        const applyTraitBtn = container.querySelector('.bee-card-apply-trait-btn');
+        if (applyTraitBtn) {
+            applyTraitBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const select = container.querySelector('.bee-card-trait-item-select');
+                const itemId = select ? select.value : null;
+                if (!itemId) return;
+                const selectedOption = select.options[select.selectedIndex];
+                const kind = selectedOption ? selectedOption.dataset.kind : 'legacy';
+
+                // Legacy drop items (Epic+ only) go through applyTraitItem;
+                // Honey Store items (any non-Named rarity, also roll a
+                // chance to jump straight to Epic) go through
+                // applyStoreItem - see db.js for how the two differ.
+                const result = kind === 'store'
+                    ? Vault.applyStoreItem(bee.id, itemId)
+                    : Vault.applyTraitItem(bee.id, itemId);
+                if (!result) return;
+
+                if (typeof Toast !== 'undefined') {
+                    const traitInfo = result.traitKey && typeof BEE_TRAITS !== 'undefined' ? BEE_TRAITS[result.traitKey] : null;
+                    const messages = [];
+                    if (result.evolved) messages.push(`💠 evolved to Epic`);
+                    messages.push(result.succeeded
+                        ? `gained the ${traitInfo ? traitInfo.label : 'trait'}`
+                        : `no trait this time`);
+                    Toast.show(`🔧 ${result.bee.name}: ${messages.join(' + ')}!`, (result.succeeded || result.evolved) ? 'positive' : 'negative');
+                }
+
+                BeeCard.render(container, result.bee, options);
+                if (onChange) onChange();
+            });
+        }
+
+        const identityBtn = container.querySelector('.bee-card-identity-btn');
+        if (identityBtn) {
+            identityBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const result = Vault.evolveToNamed(bee.id, 'identity-card');
+                if (!result) return;
+
+                // Guaranteed - the risk lives in acquiring the card, not in
+                // this working (same pattern as the evo-stone above).
+                if (typeof Toast !== 'undefined') {
+                    Toast.show(`🪪 ${bee.name} became a Named Beast: ${result.bee.name}!`, 'positive');
+                }
+
+                BeeCard.render(container, result.bee, options);
+                if (onChange) onChange();
             });
         }
     },

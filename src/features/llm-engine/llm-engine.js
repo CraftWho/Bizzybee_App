@@ -204,6 +204,113 @@ The worker bee's stated goal: "${goalText}"
         Vault.logConversation('assistant', `[Generated Quest: ${quest.title}]${quest.queensDecree ? ' ' + quest.queensDecree : ''}`);
 
         return quest;
+    },
+
+    // Daily title/notes + chosen difficulty tier -> a single DP number.
+    // Create Daily no longer takes a manual DP number - this replaces it.
+    // Same spirit as generateQuest's DP guidance, but daily-specific: a
+    // DAILY repeats (every day, or several times a week) rather than
+    // happening once, so anchors sit well below one-off quest tasks - a
+    // small recurring habit should never out-earn substantial quest work
+    // just by repeating often. Throws on failure exactly like generateQuest
+    // (no silent fallback in here) - Create Daily's own DIFFICULTY_TIERS
+    // table already has a sane per-tier default DP to fall back to, so the
+    // caller decides how to handle "Eevee's unreachable" rather than this
+    // method guessing at UI behavior.
+    async assessDailyDP(title, notes, difficulty) {
+        const instructions = `
+Assess Developer Points (DP) for a recurring DAILY habit - NOT a one-off quest task. Respond with JSON only - no commentary, no markdown fences.
+
+Title: "${title}"
+${notes ? `Notes: "${notes}"` : 'Notes: (none given)'}
+Worker bee's chosen difficulty tier: ${difficulty}
+
+Because this repeats regularly (daily, or several times a week) rather than happening once, DP should stay modest - a small recurring habit should never out-earn substantial one-off quest work just by repeating often.
+
+Tier anchors - adjust up or down within roughly +/-40% of the anchor based on how demanding this specific daily's title/notes actually sound, don't just echo the anchor back:
+- Trivial: ~10 DP
+- Easy: ~20 DP
+- Medium: ~60 DP
+- Hard: ~120 DP
+
+Required shape:
+{ "dp": number }
+        `.trim();
+
+        const messages = [
+            { role: 'system', content: buildEeveeSystemPrompt(Vault.getUser().level) },
+            { role: 'user', content: instructions }
+        ];
+
+        const raw = await this._call(messages, { json: true });
+
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            throw new Error("Eevee's response wasn't valid JSON - try again.");
+        }
+
+        const dp = Number(parsed.dp);
+        if (!Number.isFinite(dp) || dp <= 0) {
+            throw new Error("Eevee's response was missing a valid DP value - try again.");
+        }
+
+        // Clamped regardless of what the model returned - keeps a
+        // hallucinated outlier (e.g. 5000) from blowing out the DP economy.
+        return Math.round(Math.min(300, Math.max(1, dp)));
+    },
+
+    // Judges the reward for one Skill Mastery level-up - called from
+    // Vault.levelUpSkill (db.js) with the label of every task that
+    // contributed to this skill since it last leveled up (see
+    // getSkillContributionsSince). Mirrors the original Codex tracker's
+    // "tagging a Quest Log entry applies its DP to the skill bar" mechanic,
+    // just judged by Eevee instead of a flat formula - a level reached
+    // through a handful of routine dailies should feel different from one
+    // reached through a big, hard-fought batch of Quest work.
+    async assessSkillLevelUpReward(category, taskLabels) {
+        const list = (taskLabels || []).filter(Boolean).slice(0, 20);
+
+        const instructions = `
+Judge a level-up reward for the "${category}" skill in the worker bee's Skill Mastery matrix. Respond with JSON only - no commentary, no markdown fences.
+
+Work completed toward this skill since it last leveled up:
+${list.length ? list.map(label => `- ${label}`).join('\n') : '(no individual task record survives - judge generously, assume solid steady work got them here)'}
+
+Decide two things:
+1. "pollen" - a base material reward, an integer from 1 to 15. Routine or light work should land low (1-4), a solid batch of real effort in the middle (5-9), a genuinely large or difficult body of work high (10-15).
+2. "bonusMaterialId" - optionally ONE of "royal-nectar" or "honey-drop" if the work was impressive enough to deserve a rarer bonus on top of the pollen, or null if not. Reserve this for real standout effort - most level-ups should get null here, "royal-nectar" for a clearly strong batch, "honey-drop" only for something exceptional.
+
+Required shape:
+{ "pollen": number, "bonusMaterialId": string or null }
+        `.trim();
+
+        const messages = [
+            { role: 'system', content: buildEeveeSystemPrompt(Vault.getUser().level) },
+            { role: 'user', content: instructions }
+        ];
+
+        const raw = await this._call(messages, { json: true });
+
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            throw new Error("Eevee's response wasn't valid JSON - try again.");
+        }
+
+        const pollen = Number(parsed.pollen);
+        if (!Number.isFinite(pollen) || pollen <= 0) {
+            throw new Error("Eevee's response was missing a valid pollen value - try again.");
+        }
+
+        const allowedBonusIds = ['royal-nectar', 'honey-drop'];
+        const bonusMaterialId = allowedBonusIds.includes(parsed.bonusMaterialId) ? parsed.bonusMaterialId : null;
+
+        // Clamped regardless of what the model returned - same reasoning
+        // as assessDailyDP's clamp above.
+        return { pollen: Math.round(Math.min(15, Math.max(1, pollen))), bonusMaterialId };
     }
 };
 
@@ -230,8 +337,11 @@ const HIVE_MIND_NAV_PAGES = [
 ];
 
 function baseHiveMindActions() {
-    const linkPrefix = window.location.pathname.includes('features') ? '..' : './src/features';
     const currentPath = window.location.pathname;
+    // src/plugins/*/ pages sit at the same depth as src/features/*/ - see
+    // the matching note in app.js/db.js for the other two spots that do
+    // this same path-depth check.
+    const linkPrefix = (currentPath.includes('features') || currentPath.includes('plugins')) ? '..' : './src/features';
 
     const navActions = HIVE_MIND_NAV_PAGES
         .filter(entry => !currentPath.includes(`${entry.page}.html`))

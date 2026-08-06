@@ -29,58 +29,12 @@
     font-size: 1.5rem;
 }
 
-/* --- DP PROGRESS (lives in the same status panel as Name/Level, not its
-   own section) --- */
-.home-dp-progress-wrap {
-    position: relative;
+/* --- CHARACTER LEVEL BAR (lives in the same status panel as Name/Level,
+   not its own section) - the bar/badge/shake/Level Up button/celebration
+   are all the shared src/core/level-bar/level-bar.css now; this is just
+   the spacing for its wrapper. --- */
+.home-level-bar-wrap {
     margin-top: 12px;
-}
-
-/* Matches the hive-progress-fill's existing base styles from global.css -
-   only overriding the transition to be a slow, deliberate fill rather than
-   an instant snap, per the "slow fill animation" request. */
-.home-dp-fill {
-    transition: width 2.2s ease-out;
-}
-
-.home-dp-progress-text {
-    text-align: right;
-    color: #999;
-    font-size: 1rem;
-    margin: 6px 0 0;
-}
-
-/* Anchored at the fill's current end (left: X%, set in JS) - confetti
-   pieces spawn from here so the burst reads as coming from the tip of the
-   bar, not the whole track. */
-.home-confetti-anchor {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-}
-
-.confetti-piece {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 6px;
-    height: 10px;
-    opacity: 1;
-    animation: confetti-burst 1.1s ease-out forwards;
-}
-
-@keyframes confetti-burst {
-    0% {
-        transform: translate(0, 0) rotate(0deg);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
-        opacity: 0;
-    }
 }
 
 /* --- COLLAPSIBLE HOME SECTIONS (Active Quest, Daily Tasks) - collapsed by
@@ -96,7 +50,17 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    width: 100%;
+    /* `<button>` doesn't behave like a plain block box for width:auto -
+       even with display:flex, it shrinks to fit its content instead of
+       filling the available width (unlike a div/h3), so leaving width
+       unset just made the bar too narrow. `width: 100%` alone was also
+       wrong (over-constrained against the -20px margins below, so the
+       browser silently dropped the right margin and the bar fell short
+       of the panel's right edge). Spelling the width out explicitly as
+       "100% of the content area, plus the 40px of padding being
+       cancelled" sidesteps both problems and reliably bleeds flush on
+       BOTH sides. */
+    width: calc(100% + 40px);
     background: #0a0a0a;
     border: none;
     border-bottom: 2px solid var(--crimson);
@@ -130,11 +94,28 @@
     transform: rotate(-90deg);
 }
 
-.home-collapsible--collapsed .home-section-body {
-    display: none;
+/* Smooth expand/collapse via the CSS grid-rows trick (0fr <-> 1fr) rather
+   than a hard display:none snap - the chevron already had its own
+   transition (rotate, above), but the body itself used to just vanish/
+   appear instantly, which read as broken/glitchy next to a part that DID
+   animate. grid-template-rows can transition to/from an intrinsic height
+   without any JS measuring the content's real height; the inner wrapper
+   needs its own overflow:hidden since a 0fr row still technically has
+   content trying to render inside it mid-transition. */
+.home-section-body {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition: grid-template-rows 0.3s ease, opacity 0.25s ease;
 }
 
-.home-section-body {
+.home-collapsible--collapsed .home-section-body {
+    grid-template-rows: 0fr;
+    opacity: 0;
+}
+
+.home-section-body-inner {
+    overflow: hidden;
     margin-top: 18px;
     text-align: center;
 }

@@ -65,6 +65,68 @@ body::before {
     margin-bottom: 30px;
 }
 
+/* Real "go back" control - a floating hexagon that sits next to the Hive
+   Mind FAB (mobile-hive-btn, hive-mind.css) at the bottom of the screen,
+   not in the header, so it reads as a peer control to that FAB rather
+   than a header nav item. Same shape language as the elemental hex badges
+   (bee-card.css) and the same obsidian/gold-glow hover treatment as the
+   FAB itself (brighten-and-grow) - just an arrow, no label. Positioned
+   with a fixed offset from center rather than flexed alongside the FAB
+   since the FAB is built/injected separately by hive-mind.js; the offset
+   math is (35px FAB half-width + 14px gap + 44px own width) = 93px to
+   its left. Present on every page (injected in app.js, everywhere except
+   login.html) - prefers browser history, falls back to Home. */
+/* clip-path clips a plain `border` unevenly at a hexagon's angled
+   vertices (it reads as a clean line on some edges and gets cut off on
+   others, rather than a continuous trace) - a real border can't follow a
+   clip-path shape reliably. The fix is the standard two-layer ring trick
+   instead: the button's own box IS the gold hex (solid fill, no border),
+   and ::before sits inset on top of it as a slightly smaller obsidian
+   hex, so what's actually visible is a clean, continuous gold ring of
+   even thickness all the way around. */
+.back-fab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 30px;
+    left: calc(50% - 93px);
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: var(--gold-start);
+    border: none;
+    cursor: pointer;
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
+    box-shadow: 0 0 15px var(--gold-glow);
+    transition: transform 0.2s ease-in-out, filter 0.2s, box-shadow 0.2s;
+    z-index: 1000;
+}
+
+.back-fab-btn::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: var(--obsidian);
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
+    box-shadow: inset 0 0 10px var(--gold-dim);
+}
+
+.back-fab-btn-icon {
+    position: relative;
+    z-index: 1;
+    color: var(--gold-start);
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+
+.back-fab-btn:hover,
+.back-fab-btn:active {
+    filter: brightness(1.2);
+    transform: scale(1.08);
+    box-shadow: 0 0 25px var(--gold-start);
+}
+
 .header-page-name {
     display: flex;
     align-items: center;
@@ -227,56 +289,12 @@ body::before {
     margin-bottom: 10px;
 }
 
-/* --- 06. PROFILE SPECIFIC STYLES --- */
-.profile-hero {
-    display: flex;
-    gap: 30px;
-    align-items: center;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
-
-.hero-stats {
-    flex: 1;
-    min-width: 200px;
-}
-
-/* Octagon Avatar Shape */
-.octagon-frame {
-    width: 120px; 
-    height: 120px; 
-    background: linear-gradient(to bottom right, var(--gold-start), var(--gold-end));
-    padding: 4px; 
-    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 20px var(--gold-glow);
-}
-
-.octagon-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-    display: block;
-}
-
-.progress-bar {
-    background: var(--obsidian);
-    border: 2px solid var(--gold-start);
-    height: 24px;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 10px;
-}
-
-.progress-bar .fill {
-    background: linear-gradient(to right, var(--gold-start), var(--gold-end));
-    width: 0%; 
-    height: 100%;
-    transition: width 0.4s ease;
-}
+/* --- 06. (removed) --- Profile's real markup moved to .avatar-hex/.stats-grid
+   (profile.css) and the shared LevelBar (src/core/level-bar/) long ago;
+   this section's rules (.profile-hero, .hero-stats, .octagon-frame,
+   .progress-bar/.fill) were dead - confirmed zero references anywhere in
+   src/ - and were removed rather than relocated during the modularity
+   audit pass. */
 
 /* --- 07. FORMS & INPUTS --- */
 .input-group {
@@ -507,121 +525,9 @@ button:hover {
     transition: width 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* --- 13. AUTHENTICATION & LOGIN TERMINAL --- */
-.login-body {
-    justify-content: center; 
-    overflow: hidden; 
-}
-
-.login-container {
-    position: relative;
-    width: 100%;
-    max-width: 450px;
-    display: flex;
-    justify-content: center;
-    z-index: 10;
-}
-
-.hive-core-bg {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 400px;
-    height: 400px;
-    z-index: -1;
-}
-
-.login-card {
-    background: var(--panel-bg);
-    border: 1px solid var(--gold-start);
-    border-top: 3px solid var(--crimson);
-    border-radius: 8px;
-    padding: 40px 30px;
-    box-shadow: 0 0 25px var(--gold-glow), 0 0 35px rgba(220, 20, 60, 0.3);
-    backdrop-filter: blur(10px);
-    text-align: center;
-    width: 100%;
-}
-
-.subtitle {
-    color: #aaaaaa;
-    font-size: 0.9rem;
-    margin-bottom: 30px;
-}
-
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.input-group-auth {
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-    gap: 8px;
-}
-
-.input-group-auth label {
-    color: var(--gold-start);
-    font-size: 0.85rem;
-    font-weight: bold;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-.input-group-auth input {
-    background: #ffffff;
-    color: var(--obsidian);
-    font-weight: 900;
-    padding: 12px;
-    border: 3px solid transparent;
-    border-image: linear-gradient(to right, var(--gold-start), var(--gold-end)) 1;
-    font-family: var(--font-main);
-    transition: all 0.3s ease;
-}
-
-.input-group-auth input:focus {
-    outline: none;
-    box-shadow: 0 0 15px var(--gold-start);
-}
-
-#auth-submit-btn {
-    margin-top: 10px;
-    width: 100%;
-    font-size: 1.1rem;
-    letter-spacing: 1px;
-}
-
-.auth-footer {
-    margin-top: 25px;
-    font-size: 0.85rem;
-    color: #888;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.btn-link {
-    display: inline-block;
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    color: var(--obsidian);
-    text-decoration: none;
-    padding: 12px 20px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-family: inherit;
-    border: none;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-    transition: transform 0.2s, box-shadow 0.2s;
-    width: 100%;
-    text-align: center;
-    box-sizing: border-box;
-}
-
-.btn-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px var(--gold-glow);
-}
+/* --- 13. (removed) --- Login's styles were entirely feature-specific
+   (.login-body/.login-container/.hive-core-bg/.login-card/.subtitle/
+   .auth-form/.input-group-auth/#auth-submit-btn/.auth-footer/.btn-link -
+   confirmed used only by login.html) and moved to login.css, which had
+   been sitting empty this whole time even though login.html already
+   linked it. Moved rather than duplicated during the modularity audit pass.
