@@ -77,9 +77,12 @@
                 <div class="settings-action-info">
                     <strong>Import Full Save</strong>
                     <p>Loads a save file exported from another device. This replaces everything currently in this browser - make sure you actually want to overwrite it first.</p>
-                    <!-- accept needs BOTH the extension and the MIME type - see
-                         the matching note on index.html's load-save-input. -->
-                    <input type="file" id="import-full-save-input" accept=".json,application/json" class="settings-file-input">
+                    <!-- No accept filter, deliberately - see the matching note on
+                         index.html's load-save-input (Samsung Internet collapses
+                         its picker to Photos/Video only when any accept filter is
+                         present; wide open is what actually surfaces "My Files"). -->
+                    <input type="file" id="import-full-save-input" class="settings-file-input">
+                    <p class="settings-file-hint">Picker only offering Photos/Video? Look for a menu icon, "Browse," or "My Files" inside it.</p>
                 </div>
                 <button id="import-full-save-btn">📥 Import</button>
             </div>

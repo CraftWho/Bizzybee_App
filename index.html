@@ -39,12 +39,19 @@
             <div id="load-save-section" class="load-save-section" hidden>
                 <p class="load-save-heading">🐝 Welcome back. This device doesn't have your data yet.</p>
                 <p class="load-save-copy">Import your exported save file to continue (Settings &rarr; Full Save Transfer on your other device).</p>
-                <!-- accept needs BOTH the extension and the MIME type - Android
-                     Chrome's file picker only shows the full Files browser (not
-                     just Photos/Videos) when a file extension is present. -->
-                <input type="file" id="load-save-input" accept=".json,application/json" class="load-save-input">
+                <!-- No accept filter at all, deliberately. accept=".json,application/json"
+                     fixed stock Android Chrome but Samsung Internet still collapsed the
+                     picker down to Photos/Video only with that filter present - its
+                     picker seems to treat ANY accept restriction as "media only" rather
+                     than widening what's shown. Wide open (*/* - the browser default
+                     when accept is absent) is the one setting that reliably surfaces
+                     "My Files"/"Browse" across both. Vault.importFullState() below
+                     still rejects anything that isn't valid save JSON, so a wrong pick
+                     just shows an error instead of doing anything destructive. -->
+                <input type="file" id="load-save-input" class="load-save-input">
                 <button type="button" id="load-save-btn">📥 Load My Save</button>
                 <p id="load-save-status" class="load-save-status" hidden></p>
+                <p class="load-save-hint">Picker only offering Photos/Video? Look for a menu icon, "Browse," or "My Files" inside it - some Android browsers hide the file browser behind that instead of showing it by default.</p>
             </div>
 
             <div class="auth-footer">
