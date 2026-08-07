@@ -77,7 +77,9 @@
                 <div class="settings-action-info">
                     <strong>Import Full Save</strong>
                     <p>Loads a save file exported from another device. This replaces everything currently in this browser - make sure you actually want to overwrite it first.</p>
-                    <input type="file" id="import-full-save-input" accept="application/json" class="settings-file-input">
+                    <!-- accept needs BOTH the extension and the MIME type - see
+                         the matching note on index.html's load-save-input. -->
+                    <input type="file" id="import-full-save-input" accept=".json,application/json" class="settings-file-input">
                 </div>
                 <button id="import-full-save-btn">📥 Import</button>
             </div>

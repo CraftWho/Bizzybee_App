@@ -39,7 +39,10 @@
             <div id="load-save-section" class="load-save-section" hidden>
                 <p class="load-save-heading">🐝 Welcome back. This device doesn't have your data yet.</p>
                 <p class="load-save-copy">Import your exported save file to continue (Settings &rarr; Full Save Transfer on your other device).</p>
-                <input type="file" id="load-save-input" accept="application/json" class="load-save-input">
+                <!-- accept needs BOTH the extension and the MIME type - Android
+                     Chrome's file picker only shows the full Files browser (not
+                     just Photos/Videos) when a file extension is present. -->
+                <input type="file" id="load-save-input" accept=".json,application/json" class="load-save-input">
                 <button type="button" id="load-save-btn">📥 Load My Save</button>
                 <p id="load-save-status" class="load-save-status" hidden></p>
             </div>
