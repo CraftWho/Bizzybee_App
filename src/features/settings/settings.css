@@ -56,6 +56,14 @@
     max-width: 500px;
 }
 
+.settings-file-hint {
+    margin: 6px 0 0;
+    color: #777;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    max-width: 500px;
+}
+
 .settings-btn-danger {
     background: transparent;
     color: var(--danger-red);
