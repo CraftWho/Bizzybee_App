@@ -10,7 +10,7 @@ console.log("/// DASHBOARD PROTOCOLS INITIALIZED ///");
 // The bars themselves (fill/shake/Level Up button/celebration) are the
 // shared LevelBar component (src/core/level-bar/) - this file only maps
 // Vault's skill data into LevelBar's generic Row/Reward shapes. See
-// index.js/profile.js for the character-level bar using that same module.
+// home.js/profile.js for the character-level bar using that same module.
 const SKILL_ICONS = ['🏗️', '🎨', '⚡', '🧠', '🔧', '📐', '🌐', '🛠️', '📊', '🧪'];
 const SKILL_STYLES = [
     { gradient: 'linear-gradient(90deg, var(--gold-end), var(--gold-start))', shadow: '0 0 10px var(--gold-glow)' },

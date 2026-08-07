@@ -1,9 +1,7 @@
 /* --- ISOLATED LOGIN STYLES ---
-   Relocated from global.css §13 during the modularity audit pass - these
-   selectors (.login-body/.login-container/.hive-core-bg/.login-card/
-   .subtitle/.auth-form/.input-group-auth/#auth-submit-btn/.auth-footer/
-   .btn-link) are only ever used by login.html, so they belong here rather
-   than in sitewide core CSS. */
+   index.html IS the login page now (see HANDOFF.md §12 "index/login swap") -
+   this file lives at the project root alongside it, same convention
+   home.css follows for home.html. Only ever used by index.html. */
 
 .login-body {
     justify-content: center;

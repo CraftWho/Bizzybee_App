@@ -3,58 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐝 Bizzybee Terminal</title>
-    
+    <title>🔐 Login - Bizzybee</title>
+
     <link rel="stylesheet" href="./src/core/global.css">
     <link rel="stylesheet" href="./src/core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="./src/core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="./src/core/modal/modal.css">
-    <link rel="stylesheet" href="./src/core/toast/toast.css">
-    <link rel="stylesheet" href="./src/core/level-bar/level-bar.css">
-    <link rel="stylesheet" href="./src/features/llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./login.css">
     <link rel="manifest" href="./manifest.json">
 </head>
-<body>
+<body class="login-body">
 
-    <main class="home-container">
+    <main class="login-container">
+        <div class="hive-core-bg"></div>
 
-        <section class="panel home-status-panel">
-            <div class="home-status-row">
-                <span class="home-status-name" id="home-user-name">—</span>
-                <span class="home-status-level">Level <strong id="home-user-level">—</strong></span>
-            </div>
-            <div class="home-level-bar-wrap" id="home-level-bar"></div>
-        </section>
+        <div class="login-card">
+            <h1 class="gold-gradient-text">Bizzybee Login</h1>
+            <p class="subtitle">Authenticate to access the Hive.</p>
 
-        <section class="panel home-collapsible home-collapsible--collapsed" id="home-active-quest-section">
-            <button class="home-section-toggle" aria-expanded="false">
-                <span class="home-section-chevron">▾</span>
-                <h3>🎯 <span class="gold-gradient-text">ACTIVE QUEST</span></h3>
-            </button>
-            <div class="home-section-body">
-                <div class="home-section-body-inner">
-                    <div id="home-active-quest"></div>
-                    <a href="./src/features/quests/quests.html" class="home-section-link">View All Quests →</a>
+            <form id="login-form" class="auth-form">
+                <div class="input-group-auth">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
                 </div>
-            </div>
-        </section>
 
-        <section class="panel home-collapsible home-collapsible--collapsed" id="home-daily-section">
-            <button class="home-section-toggle" aria-expanded="false">
-                <span class="home-section-chevron">▾</span>
-                <h3>☀️ <span class="gold-gradient-text">DAILY TASKS</span></h3>
-            </button>
-            <div class="home-section-body">
-                <div class="home-section-body-inner">
-                    <ul class="task-list" id="home-daily-task-list"></ul>
-                    <a href="./src/features/dailies/dailies.html" class="home-section-link">View All Dailies →</a>
+                <div class="input-group-auth">
+                    <label for="password">Passcode</label>
+                    <input type="password" id="password" required>
                 </div>
+
+                <p id="login-error" class="login-error" hidden></p>
+
+                <button type="submit" id="auth-submit-btn">Enter Hive</button>
+            </form>
+
+            <div id="load-save-section" class="load-save-section" hidden>
+                <p class="load-save-heading">🐝 Welcome back. This device doesn't have your data yet.</p>
+                <p class="load-save-copy">Import your exported save file to continue (Settings &rarr; Full Save Transfer on your other device).</p>
+                <input type="file" id="load-save-input" accept="application/json" class="load-save-input">
+                <button type="button" id="load-save-btn">📥 Load My Save</button>
+                <p id="load-save-status" class="load-save-status" hidden></p>
             </div>
-        </section>
 
-        <section class="home-app-grid" id="home-app-grid"></section>
-
+            <div class="auth-footer">
+                <p>New Worker Bee?</p>
+                <a href="#" class="btn-link">Request Access</a>
+            </div>
+        </div>
     </main>
 
     <script src="./src/core/db.js"></script>
@@ -62,11 +56,7 @@
     <script src="./src/core/app.js"></script>
     <script src="./src/core/hive-mind/nano-bee.js"></script>
     <script src="./src/core/hive-mind/hive-mind.js"></script>
-    <script src="./src/core/toast/toast.js"></script>
-    <script src="./src/core/reminders/reminders.js"></script>
-    <script src="./src/core/level-bar/level-bar.js"></script>
-    <script src="./src/features/llm-engine/llm-engine.js"></script>
 
-    <script src="./index.js"></script>
+    <script src="./login.js"></script>
 </body>
 </html>
