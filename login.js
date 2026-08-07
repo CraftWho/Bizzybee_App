@@ -44,8 +44,11 @@ function clearError() {
     el.textContent = '';
 }
 
+// This file now lives at the project ROOT (index.html IS the login page -
+// see HANDOFF.md §12 "index/login swap"), so Home is one hop into
+// src/features/ rather than three hops back up to a shared root.
 function goHome() {
-    window.location.href = '../../../index.html';
+    window.location.href = './src/features/home/home.html';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

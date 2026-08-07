@@ -793,7 +793,9 @@ class DatabaseManager {
     // Shared by loadBlueprint() (overwrite) and syncFromBlueprint() (merge).
     async fetchBlueprint() {
         // Pages under src/features/*/ AND src/plugins/*/ are both two
-        // levels deep; the root index.html is not.
+        // levels deep; the root index.html (the login page - see
+        // HANDOFF.md §12) is not, and never calls fetchBlueprint itself,
+        // but Vault.init() runs on every page including this one.
         const path = window.location.pathname;
         const rootPrefix = (path.includes('features') || path.includes('plugins')) ? '../../..' : '.';
 

@@ -171,7 +171,7 @@ const HOME_APP_DESTINATIONS = [
 // Installed plugins (see Plugins.isEnabled/PLUGIN_CATALOG in plugins.js)
 // join the static destinations above dynamically - a plugin only needs
 // its status flipped to 'available' and to be installed from Plugin Hub
-// to show up here, no index.html/index.js changes needed per plugin.
+// to show up here, no home.html/home.js changes needed per plugin.
 // Lives under src/plugins/<id>/<id>.html instead of src/features/, so it
 // gets its own tiny map function rather than reusing HOME_APP_DESTINATIONS'
 // hardcoded features/ path.
@@ -180,6 +180,18 @@ function installedPluginDestinations() {
     return Plugins.getCatalog()
         .filter(entry => Plugins.isEnabled(entry.id))
         .map(entry => ({ key: entry.id, icon: entry.icon, label: entry.label, base: 'plugins' }));
+}
+
+// Home now lives at src/features/home/home.html (moved out of the project
+// root so login.html could take over root index.html - see HANDOFF.md §12
+// "index/login swap"). That makes Home a normal feature page one level
+// away from every OTHER feature folder, but two levels away from a
+// src/plugins/*/ page - hence the branch below instead of the flat
+// './src/...' paths this used when Home WAS the root.
+function hrefForDestination(item) {
+    return item.base === 'plugins'
+        ? `../../plugins/${item.key}/${item.key}.html`
+        : `../${item.key}/${item.key}.html`;
 }
 
 function renderAppGrid() {
@@ -191,7 +203,7 @@ function renderAppGrid() {
     ];
 
     grid.innerHTML = destinations.map(item => `
-        <a class="home-app-icon" href="./src/${item.base}/${item.key}/${item.key}.html">
+        <a class="home-app-icon" href="${hrefForDestination(item)}">
             <span class="home-app-icon-emoji">${item.icon}</span>
             <span class="home-app-icon-label">${item.label}</span>
         </a>
@@ -199,7 +211,7 @@ function renderAppGrid() {
 }
 
 // Active Quest and Daily Tasks start collapsed (see the --collapsed class
-// already in index.html) so the app icon grid isn't buried below them -
+// already in home.html) so the app icon grid isn't buried below them -
 // this just wires the chevron/click toggle, matching quests.js's pattern.
 function setupHomeCollapsibles() {
     document.querySelectorAll('.home-collapsible .home-section-toggle').forEach(toggle => {

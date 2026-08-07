@@ -15,7 +15,7 @@ function materialDisplay(materialId) {
 
 // Same shared, gated LevelBar the Dashboard's Skill Mastery matrix and Home
 // page use (src/core/level-bar/) instead of this page's own static fill
-// bar. Duplicated from index.js rather than factored into a shared helper -
+// bar. Duplicated from home.js rather than factored into a shared helper -
 // this app keeps each feature page self-contained (see dailies.css's own
 // note on the same tradeoff), and it's a small enough block that two
 // copies is simpler than a new cross-page module for it.

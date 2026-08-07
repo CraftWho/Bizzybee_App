@@ -321,10 +321,12 @@ Required shape:
 // hive-mind.js's contract is that each page owns its own action list, this
 // just saves every page from redeclaring the shared ones by hand.
 // Feature pages live two levels deep (src/features/<name>/), so '..' reaches
-// src/features/ from any of them - but this FAB is ALSO wired up on the root
-// index.html (see index.js), where '..' would walk OUTSIDE the project
-// entirely and 404. Mirrors app.js's injectHeader() linkPrefix logic so both
-// places compute the same "am I at the root or two levels deep" path.
+// src/features/ from any of them - this used to matter for the root
+// index.html too (back when Home lived there), but Home moved to
+// src/features/home/home.html during the index/login swap (see
+// HANDOFF.md §12), so every page this FAB appears on is now at that same
+// consistent depth. Mirrors app.js's injectHeader() linkPrefix logic so
+// both places compute the same "am I at src/features or src/plugins" path.
 //
 // Each nav item is filtered out while you're already ON that page - no
 // point offering "Hive Mind" from inside the Hive Mind page itself. HIVE_
@@ -338,10 +340,16 @@ const HIVE_MIND_NAV_PAGES = [
 
 function baseHiveMindActions() {
     const currentPath = window.location.pathname;
-    // src/plugins/*/ pages sit at the same depth as src/features/*/ - see
-    // the matching note in app.js/db.js for the other two spots that do
-    // this same path-depth check.
-    const linkPrefix = (currentPath.includes('features') || currentPath.includes('plugins')) ? '..' : './src/features';
+    // HIVE_MIND_NAV_PAGES entries (colony/gacha/inventory) all live under
+    // src/features/*/ - same bug class as app.js's injectHeader (see the
+    // matching note there and HANDOFF.md §12): a plugin page is at the
+    // same DEPTH as a feature page but a different parent folder, so it
+    // needs an extra '..' to climb out of plugins/ before dropping into
+    // features/. A flat '..' for both was only ever correct from a
+    // features/ page.
+    const isFeaturePage = currentPath.includes('features');
+    const isPluginPage = currentPath.includes('plugins');
+    const linkPrefix = isFeaturePage ? '..' : (isPluginPage ? '../../features' : './src/features');
 
     const navActions = HIVE_MIND_NAV_PAGES
         .filter(entry => !currentPath.includes(`${entry.page}.html`))

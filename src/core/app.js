@@ -2,8 +2,12 @@ console.log("/// BIZZYBEE MOTHERBOARD ONLINE ///");
 
 // Single source of truth for every page reachable from the header nav.
 // key doubles as the folder/file name (e.g. features/dashboard/dashboard.html).
+// 'home' used to be a special-cased 'index' key pointing at the project
+// root - Home moved to src/features/home/home.html so root index.html
+// could become the login page instead (see HANDOFF.md §12 "index/login
+// swap"), so it's now a completely normal entry like every other page here.
 const NAV_ITEMS = [
-    { key: 'index', icon: '🏠', label: 'Home' },
+    { key: 'home', icon: '🏠', label: 'Home' },
     { key: 'dashboard', icon: '👨🏾‍💻', label: 'Dashboard' },
     { key: 'quests', icon: '📜', label: 'Quests' },
     { key: 'dailies', icon: '☀️', label: 'Dailies' },
@@ -12,9 +16,11 @@ const NAV_ITEMS = [
 
 // Pages that exist and need a correct header title/icon, but are reached
 // from the Home screen's app icon grid rather than a header nav link (see
-// index.js's renderAppGrid) - Settings, Skills, Dictionary, and Profile
-// were deliberately pulled from the header nav to declutter it, and the
-// WIP pages (Honey Store, Plugins, The Hive Archive) never had one.
+// home.js's renderAppGrid) - Settings, Skills, Dictionary, and Profile
+// were deliberately pulled from the header nav to declutter it. Honey
+// Store and Plugin Hub are fully built now too (Hive Archive is still the
+// one genuine WIP placeholder of the three) - none of them ever had a
+// header nav link, so they've always lived here regardless.
 const EXTRA_PAGE_META = {
     settings: { icon: '⚙️', label: 'Settings' },
     colony: { icon: '🏰', label: 'Hive Mind' },
@@ -40,9 +46,20 @@ class CodexSystem {
     }
 
     renderGlobalUI() {
-        const isLoginPage = window.location.pathname.includes('login.html');
+        // index.html (the project root) IS the login page now - login.js/
+        // login.css/index.html moved here from src/features/login/ so the
+        // real front door is the actual root, not a redirect target (see
+        // HANDOFF.md §12 "index/login swap"). Every other page lives under
+        // src/features/*/ or src/plugins/*/, so "not nested" reliably means
+        // "this is the root/login page" - same depth check every other
+        // rootPrefix computation in this file (and db.js/llm-engine.js)
+        // already uses, just inverted.
+        const path = window.location.pathname;
+        const isNestedPage = path.includes('features') || path.includes('plugins');
+        const isLoginPage = !isNestedPage;
+        const rootPrefix = isNestedPage ? '../../..' : '.';
 
-        // Login gate: every page except login.html itself requires the
+        // Login gate: every page except index.html itself requires the
         // 'bizzybee_session' flag (set by login.js on a successful demo or
         // personal login). This is a client-side-only check on a static
         // site - it keeps casual visitors on the front door, it isn't real
@@ -50,9 +67,7 @@ class CodexSystem {
         // a URL). Real protection would need an actual backend, which this
         // app deliberately doesn't have yet.
         if (!isLoginPage && !localStorage.getItem('bizzybee_session')) {
-            const path = window.location.pathname;
-            const rootPrefix = (path.includes('features') || path.includes('plugins')) ? '../../..' : '.';
-            window.location.href = `${rootPrefix}/src/features/login/login.html`;
+            window.location.href = `${rootPrefix}/index.html`;
             return;
         }
 
@@ -66,6 +81,7 @@ class CodexSystem {
 
     getCurrentPageKey() {
         const path = window.location.pathname;
+        if (path.includes('home.html')) return 'home';
         if (path.includes('dashboard.html')) return 'dashboard';
         if (path.includes('quests.html')) return 'quests';
         if (path.includes('skills.html')) return 'skills';
@@ -82,28 +98,28 @@ class CodexSystem {
         if (path.includes('dailies.html')) return 'dailies';
         if (path.includes('create-daily.html')) return 'create-daily';
         if (path.includes('calendar.html')) return 'calendar';
-        return 'index';
+        return 'home';
     }
 
     injectHeader() {
         // Determine the correct relative path prefixes based on the current page location
         const currentPath = window.location.pathname;
 
-        // Both src/features/*/ and src/plugins/*/ sit at the same depth
-        // (two levels under src/) - a plugin page like calendar.html needs
-        // the exact same prefix math a feature page does, just checked
-        // against either folder name.
-        const isNestedPage = currentPath.includes('features') || currentPath.includes('plugins');
+        // NAV_ITEMS entries all live under src/features/*/ - a plugin page
+        // is at the SAME depth (two levels under src/) but a DIFFERENT
+        // parent folder, so reaching a feature page from one needs an
+        // extra '..' to climb out of plugins/ first before dropping into
+        // features/. Bug found + fixed during the index/login swap (see
+        // HANDOFF.md §12): this used to collapse both cases to a single
+        // '..', which is only correct from a features/ page - from a
+        // plugins/ page it resolved one level short and 404'd.
+        const isFeaturePage = currentPath.includes('features');
+        const isPluginPage = currentPath.includes('plugins');
+        const linkPrefix = isFeaturePage ? '..' : (isPluginPage ? '../../features' : './src/features');
 
-        // linkPrefix handles hopping between the different feature folders
-        const linkPrefix = isNestedPage ? '..' : './src/features';
-
-        // rootPrefix handles jumping all the way back to the main project folder
-        const rootPrefix = isNestedPage ? '../../..' : '.';
-
-        const hrefFor = (key) => key === 'index'
-            ? `${rootPrefix}/index.html`
-            : `${linkPrefix}/${key}/${key}.html`;
+        // 'home' is now a completely normal entry (src/features/home/) - no
+        // more special-cased root path, see the NAV_ITEMS comment above.
+        const hrefFor = (key) => `${linkPrefix}/${key}/${key}.html`;
 
         const currentKey = this.getCurrentPageKey();
         // Settings and every WIP page live outside NAV_ITEMS now (reached via
@@ -143,12 +159,12 @@ class CodexSystem {
     // the Hive Mind FAB (bottom of the screen) rather than in the header,
     // so it reads as a peer control to that FAB instead of another header
     // nav item. Present on every page this same header/footer pair is
-    // (everywhere except login.html) - the whole point is there's no dead
-    // end anywhere, no matter how you got there (header nav, Home's app
-    // grid, the Hive Mind FAB, a modal's own link, etc.). Prefers actual
-    // browser history so it lands wherever you really came from; only
-    // falls back to Home if there's nothing to go back to (e.g. the very
-    // first page opened this session, or history was cleared).
+    // (everywhere except the root index.html/login page) - the whole point
+    // is there's no dead end anywhere, no matter how you got there (header
+    // nav, Home's app grid, the Hive Mind FAB, a modal's own link, etc.).
+    // Prefers actual browser history so it lands wherever you really came
+    // from; only falls back to Home if there's nothing to go back to (e.g.
+    // the very first page opened this session, or history was cleared).
     injectBackButton() {
         const btn = document.createElement('button');
         btn.className = 'back-fab-btn';
@@ -168,10 +184,15 @@ class CodexSystem {
             }
             // Same nested-page check app.js/db.js/llm-engine.js all share
             // (src/features/*/ and src/plugins/*/ sit at the same depth).
+            // Falls back to home.html now, NOT index.html - index.html is
+            // the login page (see NAV_ITEMS comment above), landing a
+            // logged-in user back there would just bounce them straight
+            // through to Home anyway (see login.js), but going there
+            // directly is more honest about where "back" actually means.
             const currentPath = window.location.pathname;
             const isNestedPage = currentPath.includes('features') || currentPath.includes('plugins');
             const rootPrefix = isNestedPage ? '../../..' : '.';
-            window.location.href = `${rootPrefix}/index.html`;
+            window.location.href = `${rootPrefix}/src/features/home/home.html`;
         });
 
         document.body.appendChild(btn);
