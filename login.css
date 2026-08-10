@@ -126,6 +126,13 @@
     margin-bottom: 12px;
 }
 
+.load-save-password-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 12px;
+}
+
 #load-save-btn {
     width: 100%;
 }

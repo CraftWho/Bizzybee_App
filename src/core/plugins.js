@@ -41,14 +41,36 @@ const PLUGIN_CATALOG = [
         icon: '🎓',
         label: 'Study',
         status: 'available',
-        description: 'Track study sessions, courses, and learning goals alongside your quests - a dedicated space for the parts of leveling up that aren\'t code.'
+        description: 'Track study sessions, courses, and learning goals alongside your quests - a dedicated space for the parts of leveling up that aren\'t code.',
+        // Extra Settings > Personal Information fields this plugin asks for
+        // once it's enabled (see db.js's getPluginPersonalInfo/
+        // setPluginPersonalInfo and settings.js's dynamic rendering) - the
+        // first real example of a plugin contributing its own fields on top
+        // of the core name/address/age/height set, so Study can actually
+        // work around your real schedule instead of guessing.
+        personalInfoFields: [
+            { key: 'dailyAvailability', label: 'Daily study availability', type: 'text', placeholder: 'e.g. Weekdays 7-9pm, weekends flexible' },
+            { key: 'weeklyGoalHours', label: 'Weekly study goal (hours)', type: 'number', placeholder: 'e.g. 10' },
+            { key: 'preferredTimes', label: 'Preferred study times', type: 'text', placeholder: 'e.g. Mornings, before work' }
+        ]
     },
     {
         id: 'fitness',
         icon: '💪',
         label: 'Fitness & Health',
         status: 'coming-soon',
-        description: 'Log workouts and general health metrics next to your quests - reps, sets, vitals, whatever you want tracked.'
+        description: 'Log workouts and general health metrics next to your quests - reps, sets, vitals, whatever you want tracked.',
+        // Defined ahead of the plugin itself going 'available' - costs
+        // nothing (Settings only renders a plugin's section once it's both
+        // available AND enabled - see Plugins.isEnabled), and documents the
+        // intended shape now while it's fresh: this is the "fitness asks
+        // fastest time and availability" example from the personal-info
+        // design discussion.
+        personalInfoFields: [
+            { key: 'availability', label: 'Weekly availability for workouts', type: 'text', placeholder: 'e.g. Mon/Wed/Fri mornings' },
+            { key: 'fastestMile', label: 'Fastest mile/run time', type: 'text', placeholder: 'e.g. 7:45' },
+            { key: 'fitnessGoal', label: 'Primary fitness goal', type: 'text', placeholder: 'e.g. Build strength, lose weight, endurance' }
+        ]
     },
     {
         id: 'diet',
