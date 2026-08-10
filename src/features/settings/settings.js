@@ -16,6 +16,69 @@ function downloadFile(content, filename, mimeType) {
     URL.revokeObjectURL(url);
 }
 
+// --- Profile photo (moved here from profile.js - the Profile page itself
+// is read-only now, all editing happens under Settings > Profile). Same
+// "self-contained feature page" duplication tradeoff profile.js's own
+// characterLevelBarToRows comment documents elsewhere in this app - simpler
+// to keep one small copy of the preview-resolution logic here than build a
+// shared cross-page module for it.
+
+// Reads the picked file, draws it onto an offscreen canvas capped at
+// maxDim on its longest edge, and re-exports as a JPEG data URL - keeps a
+// phone-camera-sized photo (often several MB) from bloating localStorage
+// or a Full Save export file. Typical result: well under 200KB, against a
+// localStorage quota that's usually 5-10MB.
+function downscaleImageFile(file, maxDim = 640, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > maxDim || height > maxDim) {
+                    if (width >= height) {
+                        height = Math.round(height * (maxDim / width));
+                        width = maxDim;
+                    } else {
+                        width = Math.round(width * (maxDim / height));
+                        height = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => reject(new Error('not-an-image'));
+            img.src = reader.result;
+        };
+        reader.onerror = () => reject(new Error('read-failed'));
+        reader.readAsDataURL(file);
+    });
+}
+
+// Same priority order Profile's old applyAvatarImage used: a Vault-stored
+// custom photo first, then the gitignored static me.jpg convention, then
+// the generic placeholder. Only touches this page's small preview thumbnail
+// and the icon-only remove control's visibility.
+function applySettingsAvatarPreview() {
+    const img = document.getElementById('settings-avatar-preview');
+    const removeBtn = document.getElementById('settings-avatar-remove-btn');
+    const customPhoto = Vault.getProfilePhoto();
+
+    if (customPhoto) {
+        img.onerror = null;
+        img.src = customPhoto;
+        removeBtn.hidden = false;
+        return;
+    }
+
+    removeBtn.hidden = true;
+    img.onerror = () => { img.onerror = null; img.src = '../../assets/images/avatar-placeholder.svg'; };
+    img.src = '../../assets/images/me.jpg';
+}
+
 // Builds one plugin's Personal Information sub-section straight from its
 // PLUGIN_CATALOG entry's `personalInfoFields` (see plugins.js) - only ever
 // called for plugins that are BOTH available AND currently enabled
@@ -88,6 +151,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
     HiveMind.setActions(baseHiveMindActions());
+
+    applySettingsAvatarPreview();
+
+    document.getElementById('settings-avatar-edit-btn').addEventListener('click', () => {
+        document.getElementById('settings-avatar-input').click();
+    });
+
+    document.getElementById('settings-avatar-input').addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            Toast.show("That doesn't look like an image file.", 'negative');
+            event.target.value = '';
+            return;
+        }
+
+        try {
+            const dataUrl = await downscaleImageFile(file);
+            Vault.setProfilePhoto(dataUrl);
+            applySettingsAvatarPreview();
+            Toast.show('🖼️ Photo updated.', 'positive');
+        } catch (error) {
+            Toast.show('Could not process that image.', 'negative');
+        } finally {
+            event.target.value = '';
+        }
+    });
+
+    document.getElementById('settings-avatar-remove-btn').addEventListener('click', () => {
+        if (!confirm('Remove your custom photo? This falls back to the default avatar.')) return;
+        Vault.clearProfilePhoto();
+        applySettingsAvatarPreview();
+        Toast.show('Photo removed.', 'negative');
+    });
 
     loadPersonalInfoForm();
     document.getElementById('save-personal-info-btn').addEventListener('click', savePersonalInfoForm);

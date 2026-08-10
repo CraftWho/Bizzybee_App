@@ -59,59 +59,21 @@ function formatCharacterLevelReward(reward) {
 // actually travel with a Full Save export/import) - then the old static-
 // file convention (src/assets/images/me.jpg, gitignored, real photo on
 // your own machine only) - then the generic placeholder if neither exists.
-// Handled entirely in JS now (not an inline onerror= attribute) so this
-// same logic can be re-run cleanly after an upload or a Remove Photo click,
-// without fighting over whether the inline handler already fired once.
+// Read-only display logic only - actually CHANGING the photo now lives
+// entirely in Settings > Profile (settings.js), not here. Profile page
+// itself has no edit control at all anymore; it just shows whatever's set.
 function applyAvatarImage() {
     const img = document.getElementById('profile-avatar-img');
-    const removeBtn = document.getElementById('avatar-remove-btn');
     const customPhoto = Vault.getProfilePhoto();
 
     if (customPhoto) {
         img.onerror = null;
         img.src = customPhoto;
-        removeBtn.hidden = false;
         return;
     }
 
-    removeBtn.hidden = true;
     img.onerror = () => { img.onerror = null; img.src = '../../assets/images/avatar-placeholder.svg'; };
     img.src = '../../assets/images/me.jpg';
-}
-
-// Reads the picked file, draws it onto an offscreen canvas capped at
-// maxDim on its longest edge, and re-exports as a JPEG data URL. This is
-// what keeps a phone-camera-sized photo (often several MB) from bloating
-// localStorage or a Full Save export file - a typical result here lands
-// well under 200KB, against a localStorage quota that's usually 5-10MB.
-function downscaleImageFile(file, maxDim = 640, quality = 0.82) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const img = new Image();
-            img.onload = () => {
-                let { width, height } = img;
-                if (width > maxDim || height > maxDim) {
-                    if (width >= height) {
-                        height = Math.round(height * (maxDim / width));
-                        width = maxDim;
-                    } else {
-                        width = Math.round(width * (maxDim / height));
-                        height = maxDim;
-                    }
-                }
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.onerror = () => reject(new Error('not-an-image'));
-            img.src = reader.result;
-        };
-        reader.onerror = () => reject(new Error('read-failed'));
-        reader.readAsDataURL(file);
-    });
 }
 
 function renderCharacterLevelBar() {
@@ -143,68 +105,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('user-dp').textContent = user.totalDP.toLocaleString();
 
     applyAvatarImage();
-
-    // Edit button no longer opens the file picker directly - it opens this
-    // small menu instead, so Change/Remove are both reachable from one
-    // control rather than a permanently-visible separate "Remove photo"
-    // link cluttering the card. Only "Change Photo" (below) ever triggers
-    // the actual hidden file input.
-    const editBtn = document.getElementById('avatar-edit-btn');
-    const editMenu = document.getElementById('avatar-edit-menu');
-    const editWrap = document.getElementById('avatar-edit-btn').closest('.avatar-edit-wrap');
-
-    function closeAvatarMenu() { editMenu.hidden = true; }
-    function toggleAvatarMenu() { editMenu.hidden = !editMenu.hidden; }
-
-    editBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        toggleAvatarMenu();
-    });
-
-    // Outside click / Escape closes the menu - standard popover behavior,
-    // needed since this is a plain absolutely-positioned div, not a native
-    // <dialog> or <details> element.
-    document.addEventListener('click', (event) => {
-        if (!editMenu.hidden && !editWrap.contains(event.target)) closeAvatarMenu();
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeAvatarMenu();
-    });
-
-    document.getElementById('avatar-change-btn').addEventListener('click', () => {
-        closeAvatarMenu();
-        document.getElementById('profile-photo-input').click();
-    });
-
-    document.getElementById('profile-photo-input').addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        if (!file.type.startsWith('image/')) {
-            Toast.show("That doesn't look like an image file.", 'negative');
-            event.target.value = '';
-            return;
-        }
-
-        try {
-            const dataUrl = await downscaleImageFile(file);
-            Vault.setProfilePhoto(dataUrl);
-            applyAvatarImage();
-            Toast.show("🖼️ Photo updated - it'll travel with your Full Save export now.", 'positive');
-        } catch (error) {
-            Toast.show('Could not process that image.', 'negative');
-        } finally {
-            event.target.value = '';
-        }
-    });
-
-    document.getElementById('avatar-remove-btn').addEventListener('click', () => {
-        closeAvatarMenu();
-        if (!confirm("Remove your custom photo? This falls back to the default avatar.")) return;
-        Vault.clearProfilePhoto();
-        applyAvatarImage();
-        Toast.show('Photo removed.', 'negative');
-    });
 
     renderCharacterLevelBar();
 
