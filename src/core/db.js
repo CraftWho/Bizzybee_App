@@ -2642,6 +2642,35 @@ class DatabaseManager {
         return { ok: true };
     }
 
+    // 7b. Logic: Profile photo. Unlike everything else on Profile, the
+    // avatar used to be a static file (src/assets/images/me.jpg, gitignored -
+    // see profile.html's old onerror-to-placeholder chain) rather than
+    // anything stored in the Vault. That's exactly why it never traveled
+    // with exportFullState()/importFullState() above - it was never part of
+    // "your data" to begin with, just a file sitting next to the code on
+    // whichever device happened to have it. Storing it here instead (as a
+    // base64 data URL, produced by profile.js's client-side downscale
+    // before it ever reaches this method) makes it genuinely part of your
+    // save, so it now travels automatically with every future export/
+    // import - no special-casing needed in exportFullState/importFullState
+    // themselves, it's just another field on this.state.
+    getProfilePhoto() {
+        return this.state && this.state.profilePhoto ? this.state.profilePhoto : null;
+    }
+
+    setProfilePhoto(dataUrl) {
+        if (!this.state) return null;
+        this.state.profilePhoto = dataUrl;
+        this.save();
+        return dataUrl;
+    }
+
+    clearProfilePhoto() {
+        if (!this.state) return;
+        this.state.profilePhoto = null;
+        this.save();
+    }
+
     // 6. Logic: Privacy Preference Write
     setStorageMode(mode) {
         if (!this.state) return;
