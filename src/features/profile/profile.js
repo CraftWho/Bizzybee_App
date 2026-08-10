@@ -54,6 +54,66 @@ function formatCharacterLevelReward(reward) {
     return { title: `Character reached Level ${reward.newLevel}!`, lines };
 }
 
+// Resolves the avatar image, in priority order: a custom photo stored in
+// the Vault (see db.js's getProfilePhoto - this is what makes the photo
+// actually travel with a Full Save export/import) - then the old static-
+// file convention (src/assets/images/me.jpg, gitignored, real photo on
+// your own machine only) - then the generic placeholder if neither exists.
+// Handled entirely in JS now (not an inline onerror= attribute) so this
+// same logic can be re-run cleanly after an upload or a Remove Photo click,
+// without fighting over whether the inline handler already fired once.
+function applyAvatarImage() {
+    const img = document.getElementById('profile-avatar-img');
+    const removeBtn = document.getElementById('profile-photo-remove-btn');
+    const customPhoto = Vault.getProfilePhoto();
+
+    if (customPhoto) {
+        img.onerror = null;
+        img.src = customPhoto;
+        removeBtn.hidden = false;
+        return;
+    }
+
+    removeBtn.hidden = true;
+    img.onerror = () => { img.onerror = null; img.src = '../../assets/images/avatar-placeholder.svg'; };
+    img.src = '../../assets/images/me.jpg';
+}
+
+// Reads the picked file, draws it onto an offscreen canvas capped at
+// maxDim on its longest edge, and re-exports as a JPEG data URL. This is
+// what keeps a phone-camera-sized photo (often several MB) from bloating
+// localStorage or a Full Save export file - a typical result here lands
+// well under 200KB, against a localStorage quota that's usually 5-10MB.
+function downscaleImageFile(file, maxDim = 640, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > maxDim || height > maxDim) {
+                    if (width >= height) {
+                        height = Math.round(height * (maxDim / width));
+                        width = maxDim;
+                    } else {
+                        width = Math.round(width * (maxDim / height));
+                        height = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => reject(new Error('not-an-image'));
+            img.src = reader.result;
+        };
+        reader.onerror = () => reject(new Error('read-failed'));
+        reader.readAsDataURL(file);
+    });
+}
+
 function renderCharacterLevelBar() {
     const container = document.getElementById('profile-level-bar');
     if (!container) return;
@@ -81,6 +141,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('user-level').textContent = user.level;
     document.getElementById('user-title').textContent = user.title;
     document.getElementById('user-dp').textContent = user.totalDP.toLocaleString();
+
+    applyAvatarImage();
+
+    document.getElementById('profile-photo-input').addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            Toast.show("That doesn't look like an image file.", 'negative');
+            event.target.value = '';
+            return;
+        }
+
+        try {
+            const dataUrl = await downscaleImageFile(file);
+            Vault.setProfilePhoto(dataUrl);
+            applyAvatarImage();
+            Toast.show("🖼️ Photo updated - it'll travel with your Full Save export now.", 'positive');
+        } catch (error) {
+            Toast.show('Could not process that image.', 'negative');
+        } finally {
+            event.target.value = '';
+        }
+    });
+
+    document.getElementById('profile-photo-remove-btn').addEventListener('click', () => {
+        if (!confirm("Remove your custom photo? This falls back to the default avatar.")) return;
+        Vault.clearProfilePhoto();
+        applyAvatarImage();
+        Toast.show('Photo removed.', 'negative');
+    });
 
     renderCharacterLevelBar();
 
