@@ -64,7 +64,7 @@ function formatCharacterLevelReward(reward) {
 // without fighting over whether the inline handler already fired once.
 function applyAvatarImage() {
     const img = document.getElementById('profile-avatar-img');
-    const removeBtn = document.getElementById('profile-photo-remove-btn');
+    const removeBtn = document.getElementById('avatar-remove-btn');
     const customPhoto = Vault.getProfilePhoto();
 
     if (customPhoto) {
@@ -144,6 +144,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     applyAvatarImage();
 
+    // Edit button no longer opens the file picker directly - it opens this
+    // small menu instead, so Change/Remove are both reachable from one
+    // control rather than a permanently-visible separate "Remove photo"
+    // link cluttering the card. Only "Change Photo" (below) ever triggers
+    // the actual hidden file input.
+    const editBtn = document.getElementById('avatar-edit-btn');
+    const editMenu = document.getElementById('avatar-edit-menu');
+    const editWrap = document.getElementById('avatar-edit-btn').closest('.avatar-edit-wrap');
+
+    function closeAvatarMenu() { editMenu.hidden = true; }
+    function toggleAvatarMenu() { editMenu.hidden = !editMenu.hidden; }
+
+    editBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleAvatarMenu();
+    });
+
+    // Outside click / Escape closes the menu - standard popover behavior,
+    // needed since this is a plain absolutely-positioned div, not a native
+    // <dialog> or <details> element.
+    document.addEventListener('click', (event) => {
+        if (!editMenu.hidden && !editWrap.contains(event.target)) closeAvatarMenu();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeAvatarMenu();
+    });
+
+    document.getElementById('avatar-change-btn').addEventListener('click', () => {
+        closeAvatarMenu();
+        document.getElementById('profile-photo-input').click();
+    });
+
     document.getElementById('profile-photo-input').addEventListener('change', async (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -166,7 +198,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('profile-photo-remove-btn').addEventListener('click', () => {
+    document.getElementById('avatar-remove-btn').addEventListener('click', () => {
+        closeAvatarMenu();
         if (!confirm("Remove your custom photo? This falls back to the default avatar.")) return;
         Vault.clearProfilePhoto();
         applyAvatarImage();

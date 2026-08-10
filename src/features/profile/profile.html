@@ -23,9 +23,15 @@
                 <div class="avatar-hex">
                     <img src="../../assets/images/me.jpg" alt="Operative Avatar" class="profile-pic" id="profile-avatar-img">
                 </div>
-                <label for="profile-photo-input" class="avatar-edit-btn" title="Change photo">📷</label>
+
+                <div class="avatar-edit-wrap">
+                    <button type="button" id="avatar-edit-btn" class="avatar-edit-hex" title="Edit photo">📷</button>
+                    <div class="avatar-edit-menu" id="avatar-edit-menu" hidden>
+                        <button type="button" id="avatar-change-btn" class="avatar-menu-item">📷 Change Photo</button>
+                        <button type="button" id="avatar-remove-btn" class="avatar-menu-item avatar-menu-item-danger" hidden>🗑️ Remove Photo</button>
+                    </div>
+                </div>
                 <input type="file" id="profile-photo-input" accept="image/*" class="avatar-photo-input" hidden>
-                <button type="button" id="profile-photo-remove-btn" class="avatar-remove-link" hidden>Remove photo</button>
             </div>
 
             <div class="stats-grid">

@@ -49,6 +49,7 @@
                      still rejects anything that isn't valid save JSON, so a wrong pick
                      just shows an error instead of doing anything destructive. -->
                 <input type="file" id="load-save-input" class="load-save-input">
+                <input type="password" id="load-save-password" class="load-save-password-input" placeholder="Password (only if this save was encrypted)" autocomplete="current-password">
                 <button type="button" id="load-save-btn">📥 Load My Save</button>
                 <p id="load-save-status" class="load-save-status" hidden></p>
                 <p class="load-save-hint">Picker only offering Photos/Video? Look for a menu icon, "Browse," or "My Files" inside it - some Android browsers hide the file browser behind that instead of showing it by default.</p>
@@ -63,6 +64,7 @@
 
     <script src="./src/core/db.js"></script>
     <script src="./src/core/plugins.js"></script>
+    <script src="./src/core/crypto-lite.js"></script>
     <script src="./src/core/app.js"></script>
     <script src="./src/core/hive-mind/nano-bee.js"></script>
     <script src="./src/core/hive-mind/hive-mind.js"></script>

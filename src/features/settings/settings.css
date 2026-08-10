@@ -64,6 +64,67 @@
     max-width: 500px;
 }
 
+.settings-password-label {
+    display: block;
+    margin-top: 12px;
+    color: var(--gold-start);
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.settings-password-input {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin-top: 6px;
+    box-sizing: border-box;
+}
+
+/* --- Personal Information --- */
+.personal-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.personal-info-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.personal-info-field span {
+    color: var(--gold-start);
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.personal-info-field input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.personal-info-plugin-block {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed #333;
+}
+
+.personal-info-plugin-block h4 {
+    margin: 0 0 12px;
+    color: #ccc;
+    font-size: 0.95rem;
+}
+
+.personal-info-save-row {
+    margin-top: 15px;
+}
+
 .settings-btn-danger {
     background: transparent;
     color: var(--danger-red);

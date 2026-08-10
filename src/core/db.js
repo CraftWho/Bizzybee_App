@@ -786,6 +786,19 @@ class DatabaseManager {
             this.state.studyQueue = [];
             this.save();
         }
+        // Backfills state.personalInfo (core fields: name/address/age/
+        // height) and state.personalInfoExtra (per-plugin dynamic fields,
+        // see getPluginPersonalInfo below) onto any save from before the
+        // Settings "Personal Information" section existed - no-ops once
+        // both are there. Same reasoning as every other backfill above.
+        if (!this.state.personalInfo) {
+            this.state.personalInfo = {};
+            this.save();
+        }
+        if (!this.state.personalInfoExtra) {
+            this.state.personalInfoExtra = {};
+            this.save();
+        }
         return this.state;
     }
 
@@ -2669,6 +2682,53 @@ class DatabaseManager {
         if (!this.state) return;
         this.state.profilePhoto = null;
         this.save();
+    }
+
+    // 7c. Logic: Personal Information. Two tiers, matching how plugins.js's
+    // PLUGIN_CATALOG already splits "core app" from "optional expansion":
+    //
+    // - state.personalInfo: the small, always-present core set (name,
+    //   address, age, height) every install asks for, regardless of which
+    //   plugins are on.
+    // - state.personalInfoExtra: keyed by plugin id, holds whatever EXTRA
+    //   fields that specific plugin needs to actually be useful (e.g. Study
+    //   wants your daily availability so it can help you schedule sessions
+    //   around it; a future Fitness plugin will want fastest-mile time and
+    //   training availability instead). A plugin declares its own fields as
+    //   a `personalInfoFields` array on its PLUGIN_CATALOG entry (see
+    //   plugins.js) - Settings reads that catalog directly and only renders
+    //   a plugin's section once the plugin is actually enabled, so this
+    //   grows organically as plugins go from 'coming-soon' to 'available'
+    //   rather than needing a hardcoded field list here.
+    getPersonalInfo() {
+        return this.state ? (this.state.personalInfo || {}) : {};
+    }
+
+    // Shallow-merges `partial` onto the existing object rather than
+    // replacing it wholesale, so Settings can save just the core fields
+    // without needing to know about (or accidentally wipe) anything else
+    // that might get added to this same object later.
+    setPersonalInfo(partial) {
+        if (!this.state) return null;
+        this.state.personalInfo = { ...(this.state.personalInfo || {}), ...(partial || {}) };
+        this.save();
+        return this.state.personalInfo;
+    }
+
+    getPluginPersonalInfo(pluginId) {
+        if (!this.state || !this.state.personalInfoExtra) return {};
+        return this.state.personalInfoExtra[pluginId] || {};
+    }
+
+    setPluginPersonalInfo(pluginId, partial) {
+        if (!this.state) return null;
+        if (!this.state.personalInfoExtra) this.state.personalInfoExtra = {};
+        this.state.personalInfoExtra[pluginId] = {
+            ...(this.state.personalInfoExtra[pluginId] || {}),
+            ...(partial || {})
+        };
+        this.save();
+        return this.state.personalInfoExtra[pluginId];
     }
 
     // 6. Logic: Privacy Preference Write

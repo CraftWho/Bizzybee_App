@@ -304,7 +304,8 @@ body::before {
 }
 
 input[type="text"],
-input[type="number"] {
+input[type="number"],
+input[type="password"] {
     flex: 1;
     background: var(--obsidian);
     border: 1px solid var(--gold-dim);
@@ -315,7 +316,8 @@ input[type="number"] {
 }
 
 input[type="text"]:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="password"]:focus {
     outline: none;
     border-color: var(--gold-start);
     box-shadow: 0 0 8px var(--gold-glow);

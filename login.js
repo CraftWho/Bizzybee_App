@@ -113,8 +113,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         status.textContent = 'Loading...';
         const reader = new FileReader();
-        reader.onload = () => {
-            const result = Vault.importFullState(reader.result);
+        reader.onload = async () => {
+            let plainText = reader.result;
+
+            if (CryptoLite.isEncryptedEnvelope(plainText)) {
+                const password = document.getElementById('load-save-password').value;
+                if (!password) {
+                    status.textContent = '⚠️ This save is encrypted - enter its password above first.';
+                    return;
+                }
+                try {
+                    plainText = await CryptoLite.decrypt(plainText, password);
+                } catch (error) {
+                    status.textContent = '⚠️ Wrong password, or the file is corrupted.';
+                    return;
+                }
+            }
+
+            const result = Vault.importFullState(plainText);
             if (!result.ok) {
                 status.textContent = `⚠️ ${result.error}`;
                 return;
