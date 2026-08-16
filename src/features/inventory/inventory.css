@@ -65,16 +65,278 @@
     margin: 8px 0 15px;
 }
 
-/* --- BEE ROSTER MODAL --- */
+/* --- BEE ROSTER MODAL/PICKER ---
+   Search + filter + Grid/Cover Flow toggle over a compact, real-5:7-ratio
+   tile grid (sizing math lives in the .inventory-roster-tile-grid media
+   queries below - roughly 4+ tiles visible at a phone width, 8+ at a
+   desktop width, "or more" beyond that as auto-fill adds columns).
+   Tapping a tile opens the actual, editable BeeCard (bee-card.css/.js) at
+   a readable size - see .inventory-roster-expanded-overlay further down. */
 .inventory-roster-modal {
     height: auto;
     max-height: 85vh;
-    /* Wide enough for a couple of trading-card-sized bee cards per row -
-       card sizing/flip itself lives in bee-card.css (.bee-card-grid,
-       applied alongside .inventory-roster-grid in inventory.js). */
-    max-width: 720px;
+    /* Wider than the base .modal-box default (1100px, see modal.css) -
+       this view needs real room for 8+ compact tiles per row on desktop. */
+    max-width: 1360px;
 }
 
-.inventory-roster-grid {
+/* The bare `hidden` attribute only hides an element via the browser's own
+   built-in `[hidden] { display: none }` rule, which sits in a LOWER-
+   priority cascade tier (user-agent origin) than anything in THIS file -
+   any of our own class rules below that sets `display` (flex/grid) on the
+   same element quietly wins over `hidden`, even though it looks like
+   `hidden` should always take priority. Every element this file toggles
+   via `.hidden = true/false` in inventory.js needs its own explicit
+   override here, or it silently never disappears - most importantly
+   .inventory-roster-expanded-overlay, whose invisible-but-still-full-
+   screen-and-still-clickable box would otherwise sit on top of the whole
+   page, swallowing every click underneath it. Class + attribute together
+   outrank the plain class rule on specificity alone, no !important
+   needed. (.inventory-roster-no-results and .inventory-roster-coverflow-
+   wrap don't set their own `display`, so `hidden` already works
+   correctly on those without an entry here - included anyway so this
+   list stays a complete, obvious reference if either one ever gains a
+   `display` rule later.) */
+.inventory-roster-tile-grid[hidden],
+.inventory-roster-coverflow-wrap[hidden],
+.inventory-roster-expanded-overlay[hidden] {
+    display: none;
+}
+
+.inventory-roster-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.inventory-roster-search-input,
+.inventory-roster-filter-select {
+    background: #0a0a0a;
+    border: 1px solid #444;
+    color: #eee;
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    border-radius: 5px;
+}
+
+.inventory-roster-search-input {
+    flex: 1 1 200px;
+    min-width: 160px;
+}
+
+.inventory-roster-filter-select {
+    flex: 0 1 auto;
+}
+
+.inventory-roster-result-count {
+    margin-left: auto;
+    color: #888;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.inventory-roster-view-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.inventory-roster-view-btn {
+    background: #151515;
+    border: 1px solid #333;
+    border-top: 2px solid #333;
+    color: #ccc;
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 8px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.inventory-roster-view-btn.is-active {
+    border-top-color: var(--gold-start);
+    color: var(--gold-start);
+}
+
+.inventory-roster-no-results {
+    color: #888;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 30px 10px;
+}
+
+/* --- GRID MODE: responsive compact tiles, real 5:7 card ratio (see
+   bee-card.css for the same ratio on the full card). Column width steps
+   up at wider viewports so tiles stay readable instead of exploding into
+   dozens of tiny columns on a big screen - roughly 4+ across on a phone,
+   8+ on a desktop-width window, "or more" past that as space allows
+   (auto-fill adds columns on its own once there's room for another). --- */
+.inventory-roster-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    gap: 10px;
+}
+
+@media (min-width: 640px) {
+    .inventory-roster-tile-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 14px; }
+}
+
+@media (min-width: 1000px) {
+    .inventory-roster-tile-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 16px; }
+}
+
+/* The tile itself is now just an unstyled, clipped frame - all the actual
+   visuals (border, glow, art, badges, text) come from the real BeeCard
+   rendered inside it at full size and scaled down, see
+   .inventory-roster-tile-scale below. This is what makes a tile identical
+   to the expanded card instead of a separate, hand-built lookalike. */
+.inventory-roster-tile {
+    position: relative;
+    aspect-ratio: 5 / 7;
+    overflow: hidden;
+    border-radius: 14px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.inventory-roster-tile:hover,
+.inventory-roster-tile:focus-visible {
+    transform: translateY(-3px);
+    filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--tile-color, #555) 55%, transparent));
+}
+
+/* BeeCard is natively a fixed 260px wide, height-from-content component
+   (see bee-card.css) - too big for a grid tile. Rather than re-deriving
+   every one of its font-sizes/paddings/badge-sizes at a smaller scale
+   (which would need constant re-tuning to stay "identical" as the real
+   card evolves), this renders the genuine full-size card into a
+   260px-wide box, positioned absolute (out of flow, so its native size
+   doesn't force the tile to grow), then shrinks the whole thing with
+   transform: scale() - one number, kept in sync with the tile's actual
+   rendered width by updateTileScale() in inventory.js. Cards taller than
+   the assumed 5:7 ratio (e.g. one with a trait badge row) get clipped by
+   the tile's own overflow:hidden rather than stretching the grid row -
+   same as a real card binder keeping every pocket the same size. */
+.inventory-roster-tile-scale {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 260px;
+    transform: scale(var(--tile-scale, 0.3));
+    transform-origin: top left;
+    /* The tile button owns the click (opens the expanded card) - this
+       stops the mini card's own click-to-flip listener (bee-card.js) from
+       ever firing, since there's no room to show a flipped face here. */
+    pointer-events: none;
+}
+
+/* --- COVER FLOW MODE: horizontal scroll-snap strip, the iPod-style
+   browsing animation - the centered tile scales up/faces forward while
+   neighbors shrink, tilt away, and fade based on distance from center.
+   Physics-lite: native scroll + scroll-snap for the momentum/snap feel
+   (no JS drag simulation needed), a scroll listener just applies scale/
+   rotate/opacity per tile - see updateCoverflowTransforms() in
+   inventory.js. --- */
+.inventory-roster-coverflow-wrap {
+    width: 100%;
+}
+
+.inventory-roster-coverflow-track {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-block: 30px;
+    scrollbar-width: none;
+}
+
+.inventory-roster-coverflow-track::-webkit-scrollbar {
+    display: none;
+}
+
+.inventory-roster-coverflow-track .inventory-roster-tile {
+    flex-shrink: 0;
+    width: clamp(110px, 24vw, 165px);
+    scroll-snap-align: center;
+    will-change: transform, opacity;
+}
+
+.inventory-roster-coverflow-track .inventory-roster-tile.is-centered {
+    filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--tile-color, #555) 65%, transparent));
+}
+
+.inventory-roster-coverflow-hint {
+    text-align: center;
+    color: #666;
+    font-size: 0.72rem;
+    margin: 4px 0 0;
+}
+
+/* --- EXPANDED OVERLAY: tap any tile (grid or cover flow) to open it at a
+   readable size - the actual, editable BeeCard component. Sits above the
+   roster modal itself (higher z-index than modal.css's .modal-overlay,
+   which is 2000). Swipe or tap again to flip (tap works for free - see
+   BeeCard.render()'s own flip listener; swipe is added in
+   setupSwipeToFlip(), inventory.js). --- */
+.inventory-roster-expanded-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    gap: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* [hidden] override for this selector lives in the consolidated block
+   right after .inventory-roster-modal above, alongside every other
+   element this file toggles via `.hidden` - see the comment there. */
+
+.inventory-roster-expanded-overlay.is-open {
+    opacity: 1;
+}
+
+.inventory-roster-expanded-card-host {
+    width: min(78vw, 300px);
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+
+.inventory-roster-expanded-overlay.is-open .inventory-roster-expanded-card-host {
+    transform: scale(1);
+}
+
+.inventory-roster-expanded-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #151515;
+    border: 1px solid var(--gold-start);
+    color: var(--gold-start);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.inventory-roster-expanded-hint {
+    color: #777;
+    font-size: 0.72rem;
+    letter-spacing: 0.4px;
 }

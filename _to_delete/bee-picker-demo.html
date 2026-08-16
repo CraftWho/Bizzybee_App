@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Bee Picker - DEMO</title>
+
+    <!-- DEMO / TEST PAGE - intentionally NOT linked from anywhere in the
+         real app (no header/footer chrome, no login gate, no nav entry).
+         Nothing in Inventory or Gacha has been touched to build this -
+         it's a standalone sandbox for redacted to review the browsing-grid
+         sizing, search/filter, and the iPod-style scroll/select animation
+         before any of it is wired into the live pages. See the comment
+         block at the top of bee-picker-demo.js for what's demoed and
+         what's still a placeholder. -->
+
+    <link rel="stylesheet" href="./src/core/global.css">
+    <link rel="stylesheet" href="./src/core/bee-card/bee-card.css">
+    <link rel="stylesheet" href="./src/core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="./bee-picker-demo.css">
+</head>
+<body class="picker-demo-body">
+
+    <div class="picker-demo-banner">
+        🧪 DEMO / TEST PAGE — not part of the live app, nothing here is wired into Inventory or Gacha yet.
+    </div>
+
+    <main class="picker-demo-container">
+        <h1 class="picker-demo-title gold-gradient-text">🐝 Bee Picker</h1>
+        <p class="picker-demo-subtitle">Browsing/selection concept - real card ratio, search + filter, two scroll modes to compare.</p>
+
+        <div class="picker-controls" id="picker-controls">
+            <input type="search" id="picker-search" class="picker-search-input" placeholder="🔍 Search by name…">
+            <select id="picker-filter-rarity" class="picker-filter-select">
+                <option value="">All Rarities</option>
+            </select>
+            <select id="picker-filter-element" class="picker-filter-select">
+                <option value="">All Elements</option>
+            </select>
+            <select id="picker-filter-class" class="picker-filter-select">
+                <option value="">All Work</option>
+            </select>
+            <span class="picker-result-count" id="picker-result-count">0 of 0</span>
+        </div>
+
+        <div class="picker-view-toggle" id="picker-view-toggle">
+            <button type="button" class="picker-view-btn is-active" id="picker-view-grid-btn">▦ Grid</button>
+            <button type="button" class="picker-view-btn" id="picker-view-coverflow-btn">🎞️ Cover Flow (iPod-style)</button>
+        </div>
+
+        <p class="picker-empty-state" id="picker-empty-state" hidden>
+            No bees in your colony yet - visit the Pollination Chamber first, then reload this page.
+        </p>
+
+        <div class="picker-tile-grid" id="picker-grid"></div>
+
+        <div class="picker-coverflow-wrap" id="picker-coverflow-wrap" hidden>
+            <div class="picker-coverflow-track" id="picker-coverflow-track"></div>
+            <p class="picker-coverflow-hint">↔ scroll or swipe - the centered bee comes into focus. Tap any bee to open it.</p>
+        </div>
+    </main>
+
+    <div class="picker-expanded-overlay" id="picker-expanded-overlay" hidden>
+        <button class="picker-expanded-close" id="picker-expanded-close" aria-label="Close">✕</button>
+        <div class="picker-expanded-card-host" id="picker-expanded-card-host"></div>
+        <p class="picker-expanded-hint">tap the card, or swipe it, to flip</p>
+    </div>
+
+    <script src="./src/core/db.js"></script>
+    <script src="./src/core/crypto-lite.js"></script>
+    <script src="./src/core/auth.js"></script>
+    <script src="./src/core/hive-mind/nano-bee.js"></script>
+    <script src="./src/core/bee-card/bee-card.js"></script>
+    <script src="./bee-picker-demo.js"></script>
+</body>
+</html>

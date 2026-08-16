@@ -131,7 +131,6 @@ const BeeCard = {
         const { editable = false, onChange } = options;
 
         const color = beeCardColor(bee.rarity);
-        const stats = bee.stats || { level: 1, hp: 0, offense: 0, defense: 0, speed: 0, power: 0 };
         const weight = typeof bee.weight === 'number' ? bee.weight.toFixed(1) : '?';
         const dexNo = String(bee.dexNumber || 1).padStart(3, '0');
         const themeKey = (bee.rarity || 'common').toLowerCase();
@@ -254,15 +253,8 @@ const BeeCard = {
                     <span class="bee-card-flip-hint">↻ tap for stats</span>
                 </div>
                 <div class="bee-card-face bee-card-back" style="border-color:${color};">
-                    <h4 class="bee-card-back-title" style="color:${color};">⚔️ STATS</h4>
-                    <ul class="bee-card-stat-list">
-                        <li><span>Level</span><strong>${stats.level}</strong></li>
-                        <li><span>❤️ HP</span><strong>${stats.hp}</strong></li>
-                        <li><span>⚔️ Offense</span><strong>${stats.offense}</strong></li>
-                        <li><span>🛡️ Defense</span><strong>${stats.defense}</strong></li>
-                        <li><span>💨 Speed</span><strong>${stats.speed}</strong></li>
-                        <li><span>💥 Power</span><strong>${stats.power}</strong></li>
-                    </ul>
+                    <div class="bee-card-back-emblem" style="border-color:${color}; box-shadow: 0 0 16px ${color}88;">🐝</div>
+                    <span class="bee-card-back-wordmark">BIZZYBEE</span>
                     <span class="bee-card-flip-hint">↻ tap to flip back</span>
                 </div>
             </div>

@@ -31,7 +31,10 @@ const EXTRA_PAGE_META = {
     skills: { icon: '🌿', label: 'Skills' },
     dictionary: { icon: '📖', label: 'Dictionary' },
     profile: { icon: '🧘🏾', label: 'Profile' },
+    'account-info': { icon: '🔐', label: 'Account Info' },
+    'account-security': { icon: '🔐', label: 'Account Security' },
     inventory: { icon: '🎒', label: 'Inventory' },
+    keeperdex: { icon: '📘', label: 'KeeperDex' },
     calendar: { icon: '📅', label: 'Calendar' },
     'create-daily': { icon: '☀️', label: 'Daily' }
 };
@@ -87,7 +90,10 @@ class CodexSystem {
         if (path.includes('skills.html')) return 'skills';
         if (path.includes('dictionary.html')) return 'dictionary';
         if (path.includes('profile.html')) return 'profile';
+        if (path.includes('account-info.html')) return 'account-info';
+        if (path.includes('account-security.html')) return 'account-security';
         if (path.includes('inventory.html')) return 'inventory';
+        if (path.includes('keeperdex.html')) return 'keeperdex';
         if (path.includes('settings.html')) return 'settings';
         if (path.includes('colony.html')) return 'colony';
         if (path.includes('gacha.html')) return 'gacha';
