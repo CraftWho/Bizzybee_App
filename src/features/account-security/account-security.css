@@ -1,0 +1,73 @@
+/* --- ISOLATED ACCOUNT SECURITY STYLES ---
+   Self-contained, same convention every other feature page follows. The
+   .pin-field-group/.pin-input pair is intentionally identical to
+   account-info.css's own copy - both pages present the same "6-digit PIN"
+   input shape, and this app duplicates small, page-local styling like this
+   rather than sharing a cross-page module for it (see account-info.js's
+   sanitizePinInput comment for the same reasoning applied to JS). */
+
+.account-security-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.account-security-title {
+    text-align: center;
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.account-security-intro {
+    color: #ccc;
+    line-height: 1.6;
+    margin: 0 0 15px;
+}
+
+.account-security-intro a {
+    color: var(--gold-start);
+}
+
+.pin-status-line {
+    margin: 0;
+    color: #ddd;
+}
+
+.pin-status-line strong {
+    color: var(--gold-start);
+}
+
+.account-security-error {
+    margin: 0 0 12px;
+    color: var(--danger-red, #ff4444);
+    font-size: 0.85rem;
+}
+
+.pin-field-group {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.pin-field-group label {
+    color: var(--gold-start);
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.pin-input {
+    max-width: 200px;
+    font-size: 1.4rem;
+    letter-spacing: 0.5rem;
+    text-align: center;
+}

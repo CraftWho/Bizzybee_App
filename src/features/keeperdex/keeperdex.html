@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📘 KeeperDex</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/keeperdex-card/keeperdex-card.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./keeperdex.css">
+</head>
+<body>
+
+    <main class="keeperdex-container">
+
+        <div class="panel page-header-panel">
+            <h2 class="page-title">📘 <span class="gold-gradient-text">KEEPERDEX</span></h2>
+            <p class="page-subtitle">Every rarity and element the hive can produce, Pokedex-style. Obtain a matching bee to reveal its entry.</p>
+        </div>
+
+        <div class="keeperdex-progress">
+            <span class="keeperdex-progress-text" id="keeperdex-progress-text"></span>
+            <div class="keeperdex-progress-bar">
+                <div class="keeperdex-progress-fill" id="keeperdex-progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="bee-card-grid" id="keeperdex-grid"></div>
+
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/bee-card/bee-card.js"></script>
+    <script src="../../core/keeperdex-card/keeperdex-card.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./keeperdex.js"></script>
+</body>
+</html>

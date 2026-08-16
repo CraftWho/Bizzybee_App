@@ -612,6 +612,84 @@ const BEE_ELEMENT_WEAKNESS = {
     wind: 'fire'
 };
 
+// --- KEEPERDEX ---------------------------------------------------------
+// A pure reference/collection-tracker catalog for the KeeperDex page
+// (src/features/keeperdex/) - NOT a live bee. Every individual bee is
+// otherwise randomly rolled (rarity, element, stats, weight - see
+// rollBeeRarity/rollBeeElement/rollBeeStats/rollBeeWeight above) with no
+// fixed identity to browse, so there's no real "species list" the way a
+// real Pokedex has exactly 1010. Rarity x Element is the closest thing
+// this game has to one: 5 rarities x 4 elements = 20 fixed entries, each
+// with a real color theme (rarity) and a real weakness (element,
+// BEE_ELEMENT_WEAKNESS above) so every field on the card has genuine
+// data behind it instead of being invented per entry.
+//
+// skills are flavor-only (no gameplay effect, nothing reads these) -
+// name/power modeled after a real trading card's move list. 2 per
+// element for every rarity, plus a 3rd rarity-flavored "signature" move
+// on Epic/Legendary/Named so the higher tiers read as a genuine step up
+// on the card itself, not just a different border color.
+const KEEPERDEX_ELEMENT_SKILLS = {
+    fire: [{ name: 'Ember Sting', power: 10 }, { name: 'Wax Melt', power: 20 }],
+    water: [{ name: 'Dew Drop', power: 10 }, { name: 'Cool Mist', power: 20 }],
+    earth: [{ name: 'Root Bind', power: 10 }, { name: 'Pollen Dust', power: 20 }],
+    wind: [{ name: 'Gale Buzz', power: 10 }, { name: 'Tailwind', power: 20 }]
+};
+
+const KEEPERDEX_RARITY_SIGNATURE_SKILL = {
+    Epic: { name: 'Overdrive Buzz', power: 35 },
+    Legendary: { name: 'Radiant Sting', power: 50 },
+    Named: { name: 'Unbound Fury', power: 65 }
+};
+
+// Reused verbatim from BEE_ARCHETYPES' element-based entries (bee-card.js)
+// so the flavor text reads identically wherever a fire/water/earth/wind
+// bee shows up, whether that's an owned bee's own card or its dex entry.
+const KEEPERDEX_ELEMENT_FLAVOR = {
+    fire: { title: 'Pyron', description: "A bee pyromaniac, helplessly drawn to heat and sparks it really shouldn't touch." },
+    water: { title: 'Dewzzer', description: 'Never far from morning dew - calm, cool, and quick to slip away.' },
+    earth: { title: 'Loambuzz', description: 'Thick-shelled and grounded, most at home nose-deep in soil.' },
+    wind: { title: 'Gustwing', description: 'Rides every gust like it was born mid-flight, never quite landing.' }
+};
+
+// Fixed order/numbering: rarity-major (BEE_RARITIES' own order), element
+// minor (BEE_ELEMENTS' own order) - 001-004 Common, 005-008 Rare, 009-012
+// Epic, 013-016 Legendary, 017-020 Named. dexNumber is this array's own
+// index+1, permanently fixed by position - unrelated to bee.dexNumber
+// elsewhere, which is per-owned-bee collection order, not a species id.
+const KEEPERDEX_ENTRIES = (() => {
+    const entries = [];
+    BEE_RARITIES.forEach(rarityInfo => {
+        BEE_ELEMENT_KEYS.forEach(element => {
+            const flavor = KEEPERDEX_ELEMENT_FLAVOR[element];
+            const skills = [...KEEPERDEX_ELEMENT_SKILLS[element]];
+            const signature = KEEPERDEX_RARITY_SIGNATURE_SKILL[rarityInfo.rarity];
+            if (signature) skills.push(signature);
+
+            entries.push({
+                dexNumber: entries.length + 1,
+                rarity: rarityInfo.rarity,
+                element,
+                name: `${rarityInfo.rarity} ${BEE_ELEMENTS[element].label} Bee`,
+                species: flavor.title,
+                description: flavor.description,
+                skills
+            });
+        });
+    });
+    return entries;
+})();
+
+// An entry counts as obtained the moment you've ever owned a bee matching
+// its exact rarity+element pair - "ever owned," not "currently own,"
+// since Refine/combine can consume a bee later without that un-revealing
+// an entry you already saw. Kept here, next to the catalog it reads
+// against, same "catalog = meaning, Vault state = your progress" split as
+// everything else in this file.
+function isKeeperDexEntryObtained(entry, bees) {
+    return bees.some(bee => bee.rarity === entry.rarity && bee.element === entry.element);
+}
+
 // Date.now() alone isn't collision-safe for bee ids - _syncLevelUpBees can
 // award several bees in one tight synchronous loop (catching a save file
 // up several levels at once), which can land multiple awardBee() calls in
@@ -784,19 +862,6 @@ class DatabaseManager {
         // dictionary backfill above.
         if (!this.state.studyQueue) {
             this.state.studyQueue = [];
-            this.save();
-        }
-        // Backfills state.personalInfo (core fields: name/address/age/
-        // height) and state.personalInfoExtra (per-plugin dynamic fields,
-        // see getPluginPersonalInfo below) onto any save from before the
-        // Settings "Personal Information" section existed - no-ops once
-        // both are there. Same reasoning as every other backfill above.
-        if (!this.state.personalInfo) {
-            this.state.personalInfo = {};
-            this.save();
-        }
-        if (!this.state.personalInfoExtra) {
-            this.state.personalInfoExtra = {};
             this.save();
         }
         return this.state;
@@ -2684,51 +2749,130 @@ class DatabaseManager {
         this.save();
     }
 
-    // 7c. Logic: Personal Information. Two tiers, matching how plugins.js's
-    // PLUGIN_CATALOG already splits "core app" from "optional expansion":
+    // 7c. Logic: Personal Information - genuinely ENCRYPTED at rest, not
+    // just gated behind a UI lock screen. state.personalInfoEncrypted is a
+    // single CryptoLite (AES-GCM) envelope string keyed by your own
+    // 6-digit account PIN (see the Account PIN section below) - the exact
+    // same PIN that gates src/features/account-info/, the only page that
+    // ever reads or writes this. Even someone who gets your exported save
+    // file, or opens localStorage directly, can't read your name/address/
+    // etc. without that PIN - this is real encryption, not obfuscation
+    // (same honest framing login.js's own passcode-hash comment uses).
+    // Every method below still just takes a generic `passcode` string
+    // parameter and hands it straight to CryptoLite - it doesn't care
+    // whether that string happens to be 6 digits or something else, so
+    // nothing here needed to change when the account-info lock screen
+    // itself switched from a typed passcode to a PIN.
     //
-    // - state.personalInfo: the small, always-present core set (name,
-    //   address, age, height) every install asks for, regardless of which
-    //   plugins are on.
-    // - state.personalInfoExtra: keyed by plugin id, holds whatever EXTRA
-    //   fields that specific plugin needs to actually be useful (e.g. Study
-    //   wants your daily availability so it can help you schedule sessions
-    //   around it; a future Fitness plugin will want fastest-mile time and
-    //   training availability instead). A plugin declares its own fields as
-    //   a `personalInfoFields` array on its PLUGIN_CATALOG entry (see
-    //   plugins.js) - Settings reads that catalog directly and only renders
-    //   a plugin's section once the plugin is actually enabled, so this
-    //   grows organically as plugins go from 'coming-soon' to 'available'
-    //   rather than needing a hardcoded field list here.
-    getPersonalInfo() {
-        return this.state ? (this.state.personalInfo || {}) : {};
+    // A prior version of this feature (state.personalInfo, plain, no
+    // passcode) shipped for one session and was superseded before it was
+    // ever actually used - no migration path from it, deliberately: it was
+    // never populated with anything real.
+    //
+    // The profile PHOTO deliberately stays unencrypted (getProfilePhoto/
+    // setProfilePhoto above, state.profilePhoto) - Profile page shows it on
+    // every visit with no unlock step, which only works if it's plaintext.
+    // The fields below (name/address/availability/etc.) are the genuinely
+    // sensitive ones worth gating.
+    //
+    // Deliberately flat/unstructured for now - alias is the only field the
+    // account-info UI treats as required; everything else (firstName,
+    // lastName, availability, height, weight, bmi, work, address) is
+    // optional and shown together on one page. The longer-term plan is for
+    // fields like height/weight/work/address to only appear once a
+    // matching plugin is installed (see plugins.js's `personalInfoFields`
+    // catalog entries, reserved but not wired up yet) - not built now,
+    // per an explicit "put them all together for now" call.
+    hasPersonalInfo() {
+        return !!(this.state && this.state.personalInfoEncrypted);
     }
 
-    // Shallow-merges `partial` onto the existing object rather than
-    // replacing it wholesale, so Settings can save just the core fields
-    // without needing to know about (or accidentally wipe) anything else
-    // that might get added to this same object later.
-    setPersonalInfo(partial) {
+    // Returns {} if nothing has ever been saved (no passcode needed for
+    // that no-op case). Otherwise decrypts with `passcode` - throws
+    // (propagated straight from CryptoLite.decrypt) on a wrong passcode or
+    // a corrupted envelope; the caller (account-info.js) is responsible for
+    // catching that and showing a real error rather than crashing.
+    async getPersonalInfo(passcode) {
+        if (!this.state || !this.state.personalInfoEncrypted) return {};
+        const json = await CryptoLite.decrypt(this.state.personalInfoEncrypted, passcode);
+        return JSON.parse(json);
+    }
+
+    // Always a wholesale replace, not a merge - account-info.js's Save
+    // button submits the entire form every time (it's a single page, not
+    // partial widgets), so there's no partial-update case to preserve here
+    // unlike the old plain version's shallow-merge.
+    async setPersonalInfo(data, passcode) {
         if (!this.state) return null;
-        this.state.personalInfo = { ...(this.state.personalInfo || {}), ...(partial || {}) };
+        this.state.personalInfoEncrypted = await CryptoLite.encrypt(JSON.stringify(data || {}), passcode);
         this.save();
-        return this.state.personalInfo;
+        return data;
     }
 
-    getPluginPersonalInfo(pluginId) {
-        if (!this.state || !this.state.personalInfoExtra) return {};
-        return this.state.personalInfoExtra[pluginId] || {};
+    // No passcode required to clear - matches Reset Local Data's own
+    // "destructive action, caller confirms first" convention; account-info
+    // page is already behind the lock screen by the time this is reachable.
+    clearPersonalInfo() {
+        if (!this.state) return;
+        this.state.personalInfoEncrypted = null;
+        this.save();
     }
 
-    setPluginPersonalInfo(pluginId, partial) {
+    // 7d. Logic: Account PIN. A user-CREATED 6-digit numeric PIN, hashed
+    // (SHA-256 via Auth.sha256Hex - src/core/auth.js, loaded on every page
+    // that calls these - reused rather than duplicated) and stored as
+    // state.accountPinHash. This is NOT the same thing as login.js's
+    // PERSONAL_PASSWORD_HASH (a fixed constant baked into source, gating
+    // the app itself) - the PIN is per-save-file, created by the user the
+    // FIRST time they visit Account Info (src/features/account-info/), and
+    // travels with a Full Save export/import like any other Vault field,
+    // same as everything else in this file.
+    //
+    // The raw PIN (never the hash - a hash can't be used as an encryption
+    // key) is also what actually gets passed as `passcode` to
+    // getPersonalInfo/setPersonalInfo above - so "wrong PIN" and "can't
+    // decrypt your personal info" are structurally the same failure, not
+    // two independent checks that could ever drift out of sync with each
+    // other. Format validation (exactly 6 digits, numeric only) is a UI
+    // concern, deliberately NOT enforced here - account-info.js/
+    // account-security.js validate before ever calling setAccountPin, same
+    // "core stores state, features own meaning" split used everywhere else
+    // in this file.
+    hasAccountPin() {
+        return !!(this.state && this.state.accountPinHash);
+    }
+
+    async setAccountPin(pin) {
         if (!this.state) return null;
-        if (!this.state.personalInfoExtra) this.state.personalInfoExtra = {};
-        this.state.personalInfoExtra[pluginId] = {
-            ...(this.state.personalInfoExtra[pluginId] || {}),
-            ...(partial || {})
-        };
+        this.state.accountPinHash = await Auth.sha256Hex(pin);
         this.save();
-        return this.state.personalInfoExtra[pluginId];
+        return true;
+    }
+
+    async verifyAccountPin(pin) {
+        if (!this.state || !this.state.accountPinHash) return false;
+        const hash = await Auth.sha256Hex(pin);
+        return hash === this.state.accountPinHash;
+    }
+
+    // 7e. Logic: Habitica import dedupe tracking (src/features/account-info/'s
+    // "Habitica Import" panel, src/core/habitica-api.js). A flat list of
+    // "<type>:<habiticaTaskId>" strings already pulled in - Habitica's own
+    // task _id is a stable UUID, so this is enough to guarantee re-running
+    // Import never creates duplicate Dailies or Quest tasks for the same
+    // Habitica task, without needing to touch addTask/addDailyTask's own id
+    // scheme at all. Local app state, not blueprint content - same
+    // reasoning as state.plugins/state.calendarEvents.
+    getHabiticaImportedIds() {
+        return this.state ? (this.state.habiticaImportedIds || []) : [];
+    }
+
+    markHabiticaImported(ids) {
+        if (!this.state) return;
+        const existing = new Set(this.state.habiticaImportedIds || []);
+        (ids || []).forEach(id => existing.add(id));
+        this.state.habiticaImportedIds = Array.from(existing);
+        this.save();
     }
 
     // 6. Logic: Privacy Preference Write

@@ -1,0 +1,293 @@
+/* ==========================================================================
+   BEE PICKER - DEMO ONLY
+   Styles for bee-picker-demo.html. Deliberately kept in its own file
+   rather than touching inventory.css/gacha.css - nothing here affects the
+   live app until Leo signs off and it gets folded into a real page.
+   ========================================================================== */
+
+/* The bare `hidden` attribute only hides an element via the browser's
+   own built-in `[hidden] { display: none }` rule, which sits in a LOWER-
+   priority cascade tier (user-agent origin) than anything in this file -
+   any of our own class rules below that sets `display` (flex/grid) on
+   the same element quietly wins over `hidden`, even though it looks like
+   `hidden` should always take priority. Every element this page toggles
+   via `.hidden = true/false` in bee-picker-demo.js needs its own
+   explicit override here so it actually disappears. This was the bug
+   behind "I can't select the iPod style": #picker-expanded-overlay
+   (display:flex below) never actually went away when `hidden` was set,
+   so its invisible (opacity:0) but still full-screen, still-clickable
+   box sat on top of the whole page from the start, swallowing every
+   click underneath it - including the view-toggle buttons. Class +
+   attribute together outrank the plain class rule on specificity alone,
+   no !important needed. */
+.picker-tile-grid[hidden],
+.picker-controls[hidden],
+.picker-view-toggle[hidden],
+.picker-coverflow-wrap[hidden],
+.picker-expanded-overlay[hidden] {
+    display: none;
+}
+
+.picker-demo-banner {
+    width: 100%;
+    box-sizing: border-box;
+    background: repeating-linear-gradient(135deg, #3a2a00, #3a2a00 12px, #221800 12px, #221800 24px);
+    border-bottom: 2px solid var(--gold-start);
+    color: var(--gold-start);
+    text-align: center;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 0.3px;
+}
+
+.picker-demo-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 25px 20px 80px;
+    box-sizing: border-box;
+}
+
+.picker-demo-title {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+}
+
+.picker-demo-subtitle {
+    margin: 0 0 20px;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+/* --- CONTROLS: search + filters + result count --- */
+.picker-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.picker-search-input,
+.picker-filter-select {
+    background: #0a0a0a;
+    border: 1px solid #444;
+    color: #eee;
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    border-radius: 5px;
+}
+
+.picker-search-input {
+    flex: 1 1 200px;
+    min-width: 160px;
+}
+
+.picker-filter-select {
+    flex: 0 1 auto;
+}
+
+.picker-result-count {
+    margin-left: auto;
+    color: #888;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+/* --- VIEW TOGGLE --- */
+.picker-view-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.picker-view-btn {
+    background: #151515;
+    border: 1px solid #333;
+    border-top: 2px solid #333;
+    color: #ccc;
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 8px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.picker-view-btn.is-active {
+    border-top-color: var(--gold-start);
+    color: var(--gold-start);
+}
+
+.picker-empty-state,
+.picker-empty {
+    color: #888;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 30px 10px;
+}
+
+/* --- GRID MODE: responsive compact tiles, real 5:7 card ratio.
+   Column-width steps up at wider viewports so tiles stay comfortably
+   readable rather than exploding into dozens of tiny columns on a big
+   screen - roughly 4+ across on a phone, 8+ on a desktop-width window,
+   "or more" past that as space allows (auto-fill adds columns on its
+   own once there's room for another one). --- */
+.picker-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    gap: 10px;
+}
+
+@media (min-width: 640px) {
+    .picker-tile-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 14px; }
+}
+
+@media (min-width: 1000px) {
+    .picker-tile-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 16px; }
+}
+
+.picker-tile {
+    aspect-ratio: 5 / 7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: linear-gradient(160deg, #1c1c1c 0%, #101010 100%);
+    border: 2px solid var(--tile-color, #555);
+    border-radius: 10px;
+    padding: 8px 6px;
+    cursor: pointer;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--tile-color, #555) 35%, transparent);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.picker-tile:hover,
+.picker-tile:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--tile-color, #555) 55%, transparent);
+}
+
+.picker-tile-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 0;
+}
+
+.picker-tile-icon {
+    display: block;
+}
+
+.picker-tile-name {
+    width: 100%;
+    color: #ddd;
+    font-size: 0.62rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- COVER FLOW MODE: horizontal scroll-snap strip, the centered tile
+   scales up/faces forward while neighbors shrink, tilt away, and fade -
+   the iPod-style browsing interaction. Physics-lite: native scroll +
+   scroll-snap for the momentum/snap feel (no JS drag simulation needed),
+   a scroll listener just applies scale/rotate/opacity per tile based on
+   distance from center - see updateCoverflowTransforms() in
+   bee-picker-demo.js. --- */
+.picker-coverflow-wrap {
+    width: 100%;
+}
+
+.picker-coverflow-track {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-block: 30px;
+    scrollbar-width: none;
+}
+
+.picker-coverflow-track::-webkit-scrollbar {
+    display: none;
+}
+
+.picker-coverflow-track .picker-tile {
+    flex-shrink: 0;
+    width: clamp(110px, 24vw, 165px);
+    scroll-snap-align: center;
+    will-change: transform, opacity;
+}
+
+.picker-coverflow-track .picker-tile.is-centered {
+    box-shadow: 0 6px 22px color-mix(in srgb, var(--tile-color, #555) 65%, transparent);
+}
+
+.picker-coverflow-hint {
+    text-align: center;
+    color: #666;
+    font-size: 0.72rem;
+    margin: 4px 0 0;
+}
+
+/* --- EXPANDED OVERLAY: tap any tile (grid or cover flow) to open it at
+   a readable size - the actual BeeCard component, full flip/stats intact.
+   Swipe or tap again to flip (see setupSwipeToFlip() in the JS - tap
+   already works for free since BeeCard.render() wires its own flip
+   listener). --- */
+.picker-expanded-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.picker-expanded-overlay.is-open {
+    opacity: 1;
+}
+
+.picker-expanded-card-host {
+    width: min(78vw, 300px);
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+
+.picker-expanded-overlay.is-open .picker-expanded-card-host {
+    transform: scale(1);
+}
+
+.picker-expanded-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #151515;
+    border: 1px solid var(--gold-start);
+    color: var(--gold-start);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.picker-expanded-hint {
+    color: #777;
+    font-size: 0.72rem;
+    letter-spacing: 0.4px;
+}

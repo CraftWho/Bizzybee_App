@@ -20,6 +20,32 @@
         <h2 class="settings-title">⚙️ <span class="gold-gradient-text">SETTINGS</span></h2>
 
         <section class="panel">
+            <h3>👤 Account</h3>
+            <p class="settings-intro">Your photo and personal information - kept off this page entirely, on their own locked and encrypted screen, so it isn't just sitting here for anyone using this device to see.</p>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Account Info</strong>
+                    <p>Photo, alias, and optional personal details. Locked behind your PIN and encrypted at rest.</p>
+                </div>
+                <a href="../account-info/account-info.html" class="settings-nav-link">🔐 Open</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h3>🔐 Account Security</h3>
+            <p class="settings-intro">Create or change the 6-digit PIN that locks Account Info.</p>
+
+            <div class="settings-action-row">
+                <div class="settings-action-info">
+                    <strong>Manage PIN</strong>
+                    <p>Set a PIN for the first time, or change an existing one.</p>
+                </div>
+                <a href="../account-security/account-security.html" class="settings-nav-link">🔐 Open</a>
+            </div>
+        </section>
+
+        <section class="panel">
             <h3>🐝 Eevee</h3>
             <p class="settings-intro">Talk to Eevee from the honeycomb button anywhere in the app. Here, you can export what she's picked up so far. See ROADMAP.md's "Two-track plan" for what these exports are actually for.</p>
 
@@ -58,61 +84,6 @@
                     <p>Wipes everything and reloads fresh from the blueprint. This cannot be undone - all progress will be lost.</p>
                 </div>
                 <button id="reset-data-btn" class="settings-btn-danger">⚠️ Reset</button>
-            </div>
-        </section>
-
-        <section class="panel">
-            <h3>👤 Profile</h3>
-            <p class="settings-intro">Manage what shows on your Profile page.</p>
-
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Profile Photo</strong>
-                    <p>Uploads are resized automatically and stored in your Vault, so it travels with your Full Save export.</p>
-                    <div class="settings-avatar-preview-row">
-                        <div class="settings-avatar-preview-hex">
-                            <img id="settings-avatar-preview" src="../../assets/images/me.jpg" alt="Profile photo preview">
-                        </div>
-                        <button type="button" id="settings-avatar-remove-btn" class="settings-icon-btn" title="Remove photo" hidden>🗑️</button>
-                    </div>
-                </div>
-                <button id="settings-avatar-edit-btn">✏️ Edit</button>
-            </div>
-
-            <input type="file" id="settings-avatar-input" accept="image/*" hidden>
-        </section>
-
-        <section class="panel">
-            <h3>🧬 Personal Information</h3>
-            <p class="settings-intro">A small core set every install asks for, plus fields specific plugins add once you turn them on - Study asks about your study schedule so it can work around it; a future Fitness plugin will ask about training availability and pace instead. Nothing here is required.</p>
-
-            <div class="personal-info-grid" id="personal-info-core">
-                <label class="personal-info-field">
-                    <span>Full Name</span>
-                    <input type="text" id="pi-fullName" placeholder="Your real name">
-                </label>
-                <label class="personal-info-field">
-                    <span>Address</span>
-                    <input type="text" id="pi-address" placeholder="Street, City, State">
-                </label>
-                <label class="personal-info-field">
-                    <span>Age</span>
-                    <input type="number" id="pi-age" min="0" placeholder="e.g. 28">
-                </label>
-                <label class="personal-info-field">
-                    <span>Height</span>
-                    <input type="text" id="pi-height" placeholder="e.g. 5'10&quot;">
-                </label>
-            </div>
-
-            <div id="personal-info-plugin-sections"></div>
-
-            <div class="settings-action-row personal-info-save-row">
-                <div class="settings-action-info">
-                    <strong>Save Personal Information</strong>
-                    <p>Stored locally in your Vault - travels with Full Save export/import like everything else.</p>
-                </div>
-                <button id="save-personal-info-btn">💾 Save</button>
             </div>
         </section>
 

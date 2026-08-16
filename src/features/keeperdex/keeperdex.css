@@ -1,0 +1,44 @@
+/* --- LAYOUT --- */
+.keeperdex-container {
+    width: 100%;
+    max-width: 1360px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+/* --- COMPLETION PROGRESS --- */
+.keeperdex-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.keeperdex-progress-text {
+    color: #999;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.keeperdex-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #151515;
+    border: 1px solid #333;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.keeperdex-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--gold-start);
+    transition: width 0.4s ease;
+}
+
+/* Card layout itself reuses .bee-card-grid (bee-card.css) - a plain
+   flex-wrap of fixed-260px cards, same as the Gacha collection and the
+   old Inventory roster grid both already use. No need for a second grid
+   system here: KeeperDex is a fixed, small (20-entry) catalog meant to
+   be browsed at full card size, not a dense scrollable list. */

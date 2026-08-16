@@ -82,97 +82,27 @@
     box-sizing: border-box;
 }
 
-/* --- Profile photo preview (editing itself happens here, in Settings -
-   the Profile page itself has no edit control at all, just a read-only
-   display - see profile.js's applyAvatarImage). --- */
-.settings-avatar-preview-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.settings-avatar-preview-hex {
-    width: 56px;
-    height: 56px;
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    background: var(--gold-start);
-    padding: 2px;
-    flex-shrink: 0;
-}
-
-.settings-avatar-preview-hex img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    display: block;
-}
-
-/* Icon-only, no label text at all - the "Remove photo" wording kept
-   showing up as clutter on the Profile page in an earlier pass, so this
-   control is deliberately just the icon + a title tooltip, not a word. */
-.settings-icon-btn {
-    background: transparent;
-    border: 1px solid #444;
-    box-shadow: none;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    font-size: 1rem;
-    line-height: 1;
+/* Styled to match every real <button> in this app (same gradient/hover as
+   global.css's `button` rule) even though this is an <a> - it navigates to
+   its own page (src/features/account-info/) rather than doing anything
+   in-place, so a real link is the more honest element, just button-shaped. */
+.settings-nav-link {
+    display: inline-block;
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    text-decoration: none;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
     cursor: pointer;
-    flex-shrink: 0;
-}
-
-.settings-icon-btn:hover {
-    border-color: var(--crimson, #dc143c);
-    background: rgba(220, 20, 60, 0.12);
-    transform: none;
-    box-shadow: none;
-}
-
-/* --- Personal Information --- */
-.personal-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 14px;
-    margin-bottom: 10px;
-}
-
-.personal-info-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.personal-info-field span {
-    color: var(--gold-start);
-    font-size: 0.78rem;
     font-weight: bold;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    white-space: nowrap;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.personal-info-field input {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.personal-info-plugin-block {
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1px dashed #333;
-}
-
-.personal-info-plugin-block h4 {
-    margin: 0 0 12px;
-    color: #ccc;
-    font-size: 0.95rem;
-}
-
-.personal-info-save-row {
-    margin-top: 15px;
+.settings-nav-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px var(--gold-glow);
 }
 
 .settings-btn-danger {

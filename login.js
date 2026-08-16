@@ -11,26 +11,16 @@ console.log("/// AUTH TERMINAL ONLINE ///");
 // DEMO_CREDENTIALS: shown pre-filled in the form. Any visitor just clicks
 // Enter Hive - they land in the generic starter Hive (data.json content).
 //
-// PERSONAL_PASSWORD_HASH: a SHA-256 hex digest, not a plaintext password -
-// a plain "view source" doesn't hand someone the real passcode, though it's
-// still crackable offline by anyone motivated enough. To change your
-// passcode: open a browser console anywhere and run
-//   crypto.subtle.digest('SHA-256', new TextEncoder().encode('your-new-passcode'))
-//     .then(buf => console.log(Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('')))
-// then paste the result in below.
+// The actual passcode hash + digest helper now live in src/core/auth.js
+// (the `Auth` object, loaded before this file) - factored out so
+// src/features/account-info/'s own lock screen can check the SAME passcode
+// without a second, easy-to-drift copy of the hash.
 const DEMO_CREDENTIALS = {
     email: 'guest@bizzybee.hive',
     password: 'worker-bee'
 };
 
 const PERSONAL_EMAIL = 'craft@bizzybee.hive';
-const PERSONAL_PASSWORD_HASH = '11ada1226bd5231a3b45a5f5132bd27f989daea4eaab2d8fee809012133f3ea7';
-// (default passcode is "hivekeeper" - change it, see instructions above)
-
-async function sha256Hex(text) {
-    const buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 function showError(message) {
     const el = document.getElementById('login-error');
@@ -81,8 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (email === PERSONAL_EMAIL) {
-            const hash = await sha256Hex(password);
-            if (hash === PERSONAL_PASSWORD_HASH) {
+            if (await Auth.checkPersonalPasscode(password)) {
                 if (Vault.getBlueprintSource() === 'personal') {
                     // This device already has the real data (e.g. your own
                     // dev machine, or a phone that's already imported a save).

@@ -42,12 +42,17 @@ const PLUGIN_CATALOG = [
         label: 'Study',
         status: 'available',
         description: 'Track study sessions, courses, and learning goals alongside your quests - a dedicated space for the parts of leveling up that aren\'t code.',
-        // Extra Settings > Personal Information fields this plugin asks for
-        // once it's enabled (see db.js's getPluginPersonalInfo/
-        // setPluginPersonalInfo and settings.js's dynamic rendering) - the
-        // first real example of a plugin contributing its own fields on top
-        // of the core name/address/age/height set, so Study can actually
-        // work around your real schedule instead of guessing.
+        // RESERVED, not wired up yet. Original plan: a plugin's own extra
+        // Personal Information fields, read by a dedicated Settings section
+        // once the plugin is enabled. That whole mechanism (and the plain,
+        // unencrypted state.personalInfo/personalInfoExtra it depended on)
+        // was superseded before ever shipping - Personal Information is now
+        // a single flat, ENCRYPTED page (src/features/account-info/,
+        // db.js's getPersonalInfo/setPersonalInfo) with everything shown
+        // together, per an explicit "put them all together for now" call.
+        // Left here as a record of the intended direction - a future pass
+        // can revive per-plugin field gating by actually reading this
+        // array from account-info.js once that's worth building.
         personalInfoFields: [
             { key: 'dailyAvailability', label: 'Daily study availability', type: 'text', placeholder: 'e.g. Weekdays 7-9pm, weekends flexible' },
             { key: 'weeklyGoalHours', label: 'Weekly study goal (hours)', type: 'number', placeholder: 'e.g. 10' },
@@ -60,12 +65,9 @@ const PLUGIN_CATALOG = [
         label: 'Fitness & Health',
         status: 'coming-soon',
         description: 'Log workouts and general health metrics next to your quests - reps, sets, vitals, whatever you want tracked.',
-        // Defined ahead of the plugin itself going 'available' - costs
-        // nothing (Settings only renders a plugin's section once it's both
-        // available AND enabled - see Plugins.isEnabled), and documents the
-        // intended shape now while it's fresh: this is the "fitness asks
-        // fastest time and availability" example from the personal-info
-        // design discussion.
+        // RESERVED, not wired up yet - see the matching note on the Study
+        // entry above. Height/weight/work/address-style fields now just
+        // live directly on the flat account-info page for the time being.
         personalInfoFields: [
             { key: 'availability', label: 'Weekly availability for workouts', type: 'text', placeholder: 'e.g. Mon/Wed/Fri mornings' },
             { key: 'fastestMile', label: 'Fastest mile/run time', type: 'text', placeholder: 'e.g. 7:45' },

@@ -1,0 +1,194 @@
+/* --- ISOLATED ACCOUNT INFO STYLES ---
+   Self-contained, same convention every other feature page follows - the
+   settings-action-row/settings-action-info pattern here is duplicated from
+   settings.css rather than shared, since this page no longer loads
+   settings.css at all (moved out of Settings entirely - see HANDOFF.md). */
+
+.account-info-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.account-info-title {
+    text-align: center;
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.account-info-intro {
+    color: #ccc;
+    line-height: 1.6;
+    margin: 0 0 20px;
+}
+
+/* --- PIN screens (create + enter) --- */
+.pin-field-group {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.pin-field-group label {
+    color: var(--gold-start);
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Wide letter-spacing + centered + monospace-ish sizing makes a 6-digit PIN
+   read like distinct digits rather than a normal cramped password field -
+   a small touch, but it's the difference between "obviously a PIN input"
+   and "just another text box." maxlength="6" on the input itself is the
+   real length limit; inputmode="numeric" + a per-keystroke JS strip (see
+   account-info.js's sanitizePinInput) keep it digits-only even on desktop
+   keyboards that ignore inputmode/pattern while typing. */
+.pin-input {
+    max-width: 200px;
+    font-size: 1.4rem;
+    letter-spacing: 0.5rem;
+    text-align: center;
+}
+
+.account-info-error {
+    margin: 0 0 12px;
+    color: var(--danger-red, #ff4444);
+    font-size: 0.85rem;
+}
+
+.account-info-status {
+    margin: 0 0 12px;
+    color: var(--gold-start);
+    font-size: 0.85rem;
+}
+
+/* --- Action rows (Photo panel, Save row) - same shape as Settings' own
+   convention, duplicated here since this page is self-contained. --- */
+.settings-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px 0;
+    border-top: 1px dashed #333;
+}
+
+.settings-action-row:first-of-type {
+    border-top: none;
+}
+
+.settings-action-info strong {
+    display: block;
+    color: var(--gold-start);
+    margin-bottom: 4px;
+}
+
+.settings-action-info p {
+    margin: 0;
+    max-width: 500px;
+    color: #999;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.account-info-save-row {
+    margin-top: 15px;
+}
+
+/* --- Photo preview --- */
+.settings-avatar-preview-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-avatar-preview-hex {
+    width: 56px;
+    height: 56px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: var(--gold-start);
+    padding: 2px;
+    flex-shrink: 0;
+}
+
+.settings-avatar-preview-hex img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: block;
+}
+
+/* Icon-only, no label text at all - a "Remove photo" word link was tried
+   and explicitly rejected on the old Profile-page version of this control
+   (see HANDOFF.md) - this is just the icon + a title tooltip. */
+.settings-icon-btn {
+    background: transparent;
+    border: 1px solid #444;
+    box-shadow: none;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.settings-icon-btn:hover {
+    border-color: var(--crimson, #dc143c);
+    background: rgba(220, 20, 60, 0.12);
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- Personal Information fields --- */
+.personal-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.personal-info-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.personal-info-field-wide {
+    grid-column: 1 / -1;
+}
+
+.personal-info-field span {
+    color: var(--gold-start);
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.personal-info-field input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.required-mark {
+    color: var(--crimson, #dc143c);
+}
+
+@media (max-width: 600px) {
+    .settings-action-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

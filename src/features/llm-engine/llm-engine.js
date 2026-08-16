@@ -335,7 +335,8 @@ Required shape:
 const HIVE_MIND_NAV_PAGES = [
     { page: 'colony', icon: '🏰', label: 'Hive Mind' },
     { page: 'gacha', icon: '🌼', label: 'Pollination Chamber' },
-    { page: 'inventory', icon: '🎒', label: 'Inventory' }
+    { page: 'inventory', icon: '🎒', label: 'Inventory' },
+    { page: 'keeperdex', icon: '📘', label: 'KeeperDex' }
 ];
 
 function baseHiveMindActions() {

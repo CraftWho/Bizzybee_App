@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Account Security</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./account-security.css">
+</head>
+<body>
+
+    <main class="account-security-container">
+
+        <h2 class="account-security-title">🔐 <span class="gold-gradient-text">ACCOUNT SECURITY</span></h2>
+
+        <section class="panel">
+            <h3>🔢 PIN Status</h3>
+            <p class="account-security-intro">Your PIN locks <a href="../account-info/account-info.html">Account Info</a> and is the encryption key for anything saved there - there's no separate password to manage, just this one PIN.</p>
+            <p class="pin-status-line"><strong>Status:</strong> <span id="pin-status-text">Checking...</span></p>
+        </section>
+
+        <!-- Shown only when no PIN exists yet - first-time setup, same form
+             shape as account-info.html's own create screen. Creating it
+             here works identically to creating it there; whichever page
+             you happen to visit first is fine. -->
+        <section class="panel" id="pin-create-section" hidden>
+            <h3>Create a PIN</h3>
+            <p class="account-security-intro">Set a 6-digit PIN, numbers only. There's no recovery if you forget it, so pick one you'll remember.</p>
+
+            <div class="pin-field-group">
+                <label for="create-pin-new">New PIN</label>
+                <input type="password" id="create-pin-new" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+            </div>
+            <div class="pin-field-group">
+                <label for="create-pin-confirm">Confirm PIN</label>
+                <input type="password" id="create-pin-confirm" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+            </div>
+
+            <p id="pin-create-error" class="account-security-error" hidden></p>
+            <button id="create-pin-btn">Create PIN</button>
+        </section>
+
+        <!-- Shown only when a PIN already exists - requires the CURRENT PIN
+             before accepting a new one, since the PIN is also the
+             encryption key for anything already saved on Account Info
+             (see account-security.js's changePin - it decrypts with the
+             old PIN and re-encrypts under the new one, so existing data
+             isn't stranded). -->
+        <section class="panel" id="pin-change-section" hidden>
+            <h3>Change PIN</h3>
+            <p class="account-security-intro">Changing your PIN re-encrypts any saved personal information under the new one - nothing is lost.</p>
+
+            <div class="pin-field-group">
+                <label for="change-pin-current">Current PIN</label>
+                <input type="password" id="change-pin-current" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+            </div>
+            <div class="pin-field-group">
+                <label for="change-pin-new">New PIN</label>
+                <input type="password" id="change-pin-new" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+            </div>
+            <div class="pin-field-group">
+                <label for="change-pin-confirm">Confirm New PIN</label>
+                <input type="password" id="change-pin-confirm" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+            </div>
+
+            <p id="pin-change-error" class="account-security-error" hidden></p>
+            <button id="change-pin-btn">Change PIN</button>
+        </section>
+
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/crypto-lite.js"></script>
+    <script src="../../core/auth.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./account-security.js"></script>
+</body>
+</html>
