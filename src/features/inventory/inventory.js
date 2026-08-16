@@ -61,6 +61,88 @@ function renderStoreItemsGrid() {
 }
 
 // ==========================================================================
+// COVER FLOW SOUND
+// Synthesized in-browser via Web Audio - deliberately NOT a downloaded/
+// bundled audio clip (avoids any licensing question entirely). A short
+// filtered noise burst + a quick descending tone for the per-card "flip"
+// tick, and a two-tone chime for entering/leaving Jump-to-Letter mode.
+// Module-scope (not per modal-open) so the AudioContext and the on/off
+// preference both persist across repeated roster-modal opens.
+// ==========================================================================
+const COVERFLOW_SOUND_KEY = 'bizzybee_coverflow_sound';
+let coverflowSoundOn = localStorage.getItem(COVERFLOW_SOUND_KEY) !== 'off';
+let coverflowAudioCtx = null;
+
+function getCoverflowAudioCtx() {
+    if (!coverflowAudioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        coverflowAudioCtx = new Ctx();
+    }
+    if (coverflowAudioCtx.state === 'suspended') coverflowAudioCtx.resume();
+    return coverflowAudioCtx;
+}
+
+function playCoverflowFlipSound() {
+    if (!coverflowSoundOn) return;
+    const ctx = getCoverflowAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const bufferSize = Math.floor(ctx.sampleRate * 0.03);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 2200;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.22, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+    noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.05);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(950, now);
+    osc.frequency.exponentialRampToValueAtTime(280, now + 0.055);
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.12, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    osc.connect(oscGain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.06);
+}
+
+function playCoverflowModeSound(rising) {
+    if (!coverflowSoundOn) return;
+    const ctx = getCoverflowAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    if (rising) {
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampToValueAtTime(1400, now + 0.18);
+    } else {
+        osc.frequency.setValueAtTime(1300, now);
+        osc.frequency.exponentialRampToValueAtTime(420, now + 0.15);
+    }
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.14, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.23);
+}
+
+// ==========================================================================
 // BEE ROSTER PICKER
 // Replaces the old plain flex-wrapped BeeCard grid with a real browsing
 // picker: search + rarity/element/work filters, a compact-tile Grid view
@@ -97,6 +179,7 @@ function rosterPickerMarkup() {
         <div class="inventory-roster-view-toggle">
             <button type="button" class="inventory-roster-view-btn is-active" id="inventory-roster-view-grid-btn">▦ Grid</button>
             <button type="button" class="inventory-roster-view-btn" id="inventory-roster-view-coverflow-btn">🎞️ Cover Flow</button>
+            <button type="button" class="inventory-roster-sound-btn" id="inventory-roster-sound-btn" title="Toggle Cover Flow sound" hidden>🔊</button>
         </div>
 
         <p class="inventory-roster-no-results" id="inventory-roster-no-results" hidden>No bees match your search/filters.</p>
@@ -105,7 +188,20 @@ function rosterPickerMarkup() {
 
         <div class="inventory-roster-coverflow-wrap" id="inventory-roster-coverflow-wrap" hidden>
             <div class="inventory-roster-coverflow-track" id="inventory-roster-coverflow-track"></div>
-            <p class="inventory-roster-coverflow-hint">↔ scroll or swipe - tap any bee to open it</p>
+
+            <div class="inventory-letter-jump" id="inventory-letter-jump">
+                <div class="inventory-letter-jump-current" id="inventory-letter-jump-current">A</div>
+                <div class="inventory-letter-jump-strip" id="inventory-letter-jump-strip"></div>
+                <p class="inventory-letter-jump-hint">keep scrolling to change letters — pause to land</p>
+            </div>
+
+            <div class="inventory-coverflow-info" id="inventory-coverflow-info">
+                <div class="inventory-coverflow-info-name" id="inventory-coverflow-info-name"></div>
+                <div class="inventory-coverflow-info-sub" id="inventory-coverflow-info-sub"></div>
+                <div class="inventory-coverflow-info-weakness" id="inventory-coverflow-info-weakness"></div>
+            </div>
+
+            <p class="inventory-roster-coverflow-hint">Scroll (or drag/swipe) to browse - keep scrolling fast to jump by letter - tap the centered bee to open it</p>
         </div>
     `;
 }
@@ -148,7 +244,6 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
     let allBees = initialBees;
     let filteredBees = allBees.slice();
     let viewMode = 'grid';
-    let coverflowRaf = null;
 
     const els = {
         search: overlay.querySelector('#inventory-roster-search'),
@@ -162,6 +257,14 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         coverflowTrack: overlay.querySelector('#inventory-roster-coverflow-track'),
         viewGridBtn: overlay.querySelector('#inventory-roster-view-grid-btn'),
         viewCoverflowBtn: overlay.querySelector('#inventory-roster-view-coverflow-btn'),
+        soundBtn: overlay.querySelector('#inventory-roster-sound-btn'),
+        letterJump: overlay.querySelector('#inventory-letter-jump'),
+        letterCurrent: overlay.querySelector('#inventory-letter-jump-current'),
+        letterStrip: overlay.querySelector('#inventory-letter-jump-strip'),
+        coverflowInfo: overlay.querySelector('#inventory-coverflow-info'),
+        coverflowInfoName: overlay.querySelector('#inventory-coverflow-info-name'),
+        coverflowInfoSub: overlay.querySelector('#inventory-coverflow-info-sub'),
+        coverflowInfoWeakness: overlay.querySelector('#inventory-coverflow-info-weakness'),
         countBadge: overlay.querySelector('#inventory-roster-count-badge')
     };
 
@@ -214,6 +317,67 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         return btn;
     }
 
+    // Cover Flow's tile - deliberately art-only, no name/text printed on
+    // it (that only shows once below, in .inventory-coverflow-info, for
+    // whichever bee is centered - matches the iPod-style reference this
+    // was redesigned from). Still not a hand-built lookalike: it reuses
+    // the REAL card's own art classes straight from bee-card.css
+    // (bee-card-art-frame--<rarity>, bee-card-element-hex, bee-card-class-
+    // badge) and the actual NanoBee sprite for its art, same "one source
+    // of truth per bee" rule createTile() above already follows - just a
+    // different (smaller, art-only) shape of tile.
+    //
+    // Position/rotation/scale are NOT set here - renderCoverflowFrame()
+    // drives every tile's transform every frame from coverflowIndex, this
+    // just builds the static element once per rebuild.
+    function createCoverTile(bee) {
+        const color = beeCardColor(bee.rarity);
+        const themeKey = (bee.rarity || 'common').toLowerCase();
+        const elementInfo = bee.element && BEE_ELEMENTS[bee.element] ? BEE_ELEMENTS[bee.element] : null;
+        const classInfo = bee.class && BEE_CLASSES[bee.class] ? BEE_CLASSES[bee.class] : null;
+
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = `inventory-cover-tile bee-card-art-frame bee-card-art-frame--${themeKey}`;
+        tile.dataset.beeId = bee.id;
+        tile.title = `${bee.name} (${bee.rarity})`;
+        tile.style.setProperty('--tile-color', color);
+        // Inline style always wins over bee-card.css's .bee-card-art-frame
+        // border shorthand, regardless of cascade order - same trick
+        // bee-card.js itself uses for the real card's border color.
+        tile.style.borderColor = color;
+
+        if (elementInfo) {
+            const hex = document.createElement('span');
+            hex.className = 'bee-card-element-hex';
+            hex.title = elementInfo.label;
+            hex.textContent = elementInfo.emoji;
+            tile.appendChild(hex);
+        }
+
+        const iconHost = document.createElement('div');
+        iconHost.className = 'inventory-cover-tile-icon-host';
+        tile.appendChild(iconHost);
+        NanoBee.render(iconHost, 'card', { color, hideCore: true, noFlight: true });
+
+        if (classInfo) {
+            const badge = document.createElement('span');
+            badge.className = 'bee-card-class-badge';
+            badge.title = classInfo.label;
+            badge.textContent = classInfo.icon;
+            tile.appendChild(badge);
+        }
+
+        tile.addEventListener('click', () => {
+            // A drag/swipe that ends back over the tile still fires a
+            // native click - swallow it so scrubbing through the deck
+            // doesn't accidentally pop the expanded card open.
+            if (coverflowDidDrag) return;
+            openExpanded(bee);
+        });
+        return tile;
+    }
+
     // Grid and Cover Flow render their tiles at different real widths (see
     // the responsive breakpoints / clamp() in inventory.css) - rather than
     // duplicating that sizing math here, this just measures whatever tile
@@ -225,9 +389,6 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
     function updateTileScale() {
         const gridTile = els.grid.querySelector('.inventory-roster-tile');
         if (gridTile) els.grid.style.setProperty('--tile-scale', gridTile.offsetWidth / 260);
-
-        const cfTile = els.coverflowTrack.querySelector('.inventory-roster-tile');
-        if (cfTile) els.coverflowTrack.style.setProperty('--tile-scale', cfTile.offsetWidth / 260);
     }
 
     function renderGrid() {
@@ -237,29 +398,167 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         requestAnimationFrame(updateTileScale);
     }
 
+    // ----------------------------------------------------------------
+    // COVER FLOW: index-driven, not scroll-driven. coverflowIndex is the
+    // ONLY source of truth for where the deck is - wheel/drag/touch/letter
+    // -jump all just change that one number and call renderCoverflowFrame().
+    // No native scrollLeft/scrollTo anywhere, which is what makes wheel
+    // stepping reliable (the earlier native-scroll + scroll-snap + rAF-
+    // sampled-geometry version could desync under fast input).
+    // ----------------------------------------------------------------
+    let coverflowTiles = [];
+    let coverflowLetters = [];
+    let coverflowIndex = 0;
+    let coverflowSpacing = 82;
+    let lastCenteredBeeId = null;
+    let coverflowDidDrag = false;
+
+    function measureCoverflowSpacing() {
+        const first = coverflowTiles[0];
+        if (first) coverflowSpacing = first.offsetWidth * 0.62;
+    }
+
+    // Applies every tile's transform for a given (possibly fractional,
+    // mid-drag) index position, and refreshes the below-strip info block
+    // for whichever card is currently closest to center.
+    function renderCoverflowFrame(idxFloat) {
+        if (coverflowTiles.length === 0) return;
+        const clampedFloat = Math.max(0, Math.min(coverflowTiles.length - 1, idxFloat));
+        const closestIndex = Math.max(0, Math.min(coverflowTiles.length - 1, Math.round(clampedFloat)));
+
+        coverflowTiles.forEach((tile, i) => {
+            const d = i - clampedFloat;
+            const absD = Math.abs(d);
+            const norm = Math.max(-1, Math.min(1, d / 2.2));
+            const absNorm = Math.abs(norm);
+            const scale = 1 - absNorm * 0.16;
+            const rotateY = norm * -65;
+            const translateZ = -absNorm * 70;
+            const translateX = d * coverflowSpacing;
+            const fade = Math.max(0, 1 - absD / 5.5);
+
+            tile.style.transform = `translate(-50%, -50%) translateX(${translateX}px) perspective(700px) rotateY(${rotateY}deg) scale(${scale}) translateZ(${translateZ}px)`;
+            tile.style.opacity = String(fade * (1 - absNorm * 0.15));
+            tile.style.zIndex = String(100 - Math.round(absD * 10));
+        });
+
+        const bee = filteredBees[closestIndex];
+        if (!bee) return;
+
+        if (bee.id !== lastCenteredBeeId) {
+            if (lastCenteredBeeId !== null) playCoverflowFlipSound();
+            lastCenteredBeeId = bee.id;
+        }
+
+        const elementInfo = bee.element && BEE_ELEMENTS[bee.element] ? BEE_ELEMENTS[bee.element] : null;
+        const weakKey = bee.element ? BEE_ELEMENT_WEAKNESS[bee.element] : null;
+        const weakInfo = weakKey && BEE_ELEMENTS[weakKey] ? BEE_ELEMENTS[weakKey] : null;
+
+        els.coverflowInfoName.textContent = bee.name;
+        els.coverflowInfoName.style.color = beeCardColor(bee.rarity);
+        els.coverflowInfoSub.textContent = elementInfo ? `${bee.rarity} · ${elementInfo.label}` : bee.rarity;
+        if (weakInfo) {
+            els.coverflowInfoWeakness.innerHTML = `Weakness <span>${weakInfo.emoji}</span> ×2`;
+            els.coverflowInfoWeakness.style.display = 'inline-flex';
+        } else {
+            els.coverflowInfoWeakness.style.display = 'none';
+        }
+    }
+
+    function setCoverflowIndex(newIndex) {
+        if (coverflowTiles.length === 0) return;
+        coverflowIndex = Math.max(0, Math.min(coverflowTiles.length - 1, newIndex));
+        renderCoverflowFrame(coverflowIndex);
+    }
+
+    // --- JUMP-TO-LETTER MODE ---
+    let coverflowLetterMode = false;
+    let coverflowLetterCursor = 0;
+    let coverflowLetterAccum = 0;
+    let coverflowLetterExitTimer = null;
+    const LETTER_STEP = 130;
+
+    function updateLetterOverlay() {
+        const letter = coverflowLetters[coverflowLetterCursor];
+        els.letterCurrent.textContent = letter || '';
+        Array.from(els.letterStrip.children).forEach((c, i) => c.classList.toggle('is-current', i === coverflowLetterCursor));
+    }
+    function jumpToLetter(letter) {
+        const idx = filteredBees.findIndex(b => (b.name[0] || '?').toUpperCase() === letter);
+        if (idx !== -1) setCoverflowIndex(idx);
+    }
+    function handleLetterScroll(delta) {
+        coverflowLetterAccum += delta;
+        let moved = false;
+        while (Math.abs(coverflowLetterAccum) >= LETTER_STEP) {
+            const step = coverflowLetterAccum > 0 ? 1 : -1;
+            coverflowLetterAccum -= step * LETTER_STEP;
+            const next = coverflowLetterCursor + step;
+            if (next >= 0 && next < coverflowLetters.length) {
+                coverflowLetterCursor = next;
+                moved = true;
+            }
+        }
+        if (moved) {
+            updateLetterOverlay();
+            jumpToLetter(coverflowLetters[coverflowLetterCursor]);
+        }
+    }
+    function enterLetterMode() {
+        if (coverflowLetterMode || coverflowLetters.length <= 1) return;
+        coverflowLetterMode = true;
+        coverflowWheelAccum = 0;
+        coverflowLetterAccum = 0;
+        const currentBee = filteredBees[coverflowIndex];
+        coverflowLetterCursor = Math.max(0, coverflowLetters.indexOf((currentBee.name[0] || '?').toUpperCase()));
+        els.letterJump.classList.add('is-active');
+        updateLetterOverlay();
+        playCoverflowModeSound(true);
+    }
+    function exitLetterMode(silent) {
+        const wasActive = coverflowLetterMode;
+        coverflowLetterMode = false;
+        coverflowFastStreakStart = null;
+        coverflowWheelAccum = 0;
+        els.letterJump.classList.remove('is-active');
+        if (wasActive && !silent) playCoverflowModeSound(false);
+    }
+    function scheduleLetterExit() {
+        clearTimeout(coverflowLetterExitTimer);
+        coverflowLetterExitTimer = setTimeout(() => exitLetterMode(false), 700);
+    }
+
     function renderCoverflow() {
         els.coverflowTrack.innerHTML = '';
-        els.coverflowTrack.style.paddingLeft = '0px';
-        els.coverflowTrack.style.paddingRight = '0px';
         els.noResults.hidden = filteredBees.length !== 0;
-        if (filteredBees.length === 0) return;
+        exitLetterMode(true);
+        coverflowTiles = [];
+        lastCenteredBeeId = null;
 
-        filteredBees.forEach(bee => els.coverflowTrack.appendChild(createTile(bee)));
+        if (filteredBees.length === 0) {
+            els.coverflowInfoName.textContent = '';
+            els.coverflowInfoSub.textContent = '';
+            els.coverflowInfoWeakness.textContent = '';
+            els.letterStrip.innerHTML = '';
+            coverflowLetters = [];
+            return;
+        }
 
-        // Pad both ends so the first/last real tile can still reach dead
-        // center - otherwise only tiles in the "middle" of the list could
-        // ever be the focused one.
-        requestAnimationFrame(() => {
-            updateTileScale();
-            const firstTile = els.coverflowTrack.querySelector('.inventory-roster-tile');
-            if (els.coverflowWrap && firstTile) {
-                const pad = Math.max(0, (els.coverflowWrap.clientWidth - firstTile.offsetWidth) / 2);
-                els.coverflowTrack.style.paddingLeft = `${pad}px`;
-                els.coverflowTrack.style.paddingRight = `${pad}px`;
-                els.coverflowTrack.scrollLeft = 0;
-            }
-            updateCoverflowTransforms();
+        filteredBees.forEach(bee => els.coverflowTrack.appendChild(createCoverTile(bee)));
+        coverflowTiles = Array.from(els.coverflowTrack.children);
+        measureCoverflowSpacing();
+
+        coverflowLetters = Array.from(new Set(filteredBees.map(b => (b.name[0] || '?').toUpperCase()))).sort();
+        els.letterStrip.innerHTML = '';
+        coverflowLetters.forEach(letter => {
+            const chip = document.createElement('span');
+            chip.className = 'inventory-letter-jump-chip';
+            chip.textContent = letter;
+            els.letterStrip.appendChild(chip);
         });
+
+        coverflowIndex = 0;
+        renderCoverflowFrame(coverflowIndex);
     }
 
     function renderCurrentView() {
@@ -267,44 +566,104 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         else renderCoverflow();
     }
 
-    // rAF-throttled so this doesn't run more than once per frame while
-    // the user is actively scrolling/swiping.
-    function onCoverflowScroll() {
-        if (coverflowRaf) return;
-        coverflowRaf = requestAnimationFrame(() => {
-            coverflowRaf = null;
-            updateCoverflowTransforms();
-        });
+    // --- DESKTOP MOUSE WHEEL --- one notch = one card. Faster consecutive
+    // ticks multiply the effective delta so a quick flick eats through more
+    // cards than a slow deliberate turn. ~1s of sustained fast ticking
+    // flips into Jump-to-Letter mode.
+    let coverflowWheelAccum = 0;
+    let coverflowLastWheelTime = 0;
+    let coverflowFastStreakStart = null;
+    const WHEEL_STEP = 100;
+    const FAST_TICK_MS = 90;
+    const FAST_STREAK_MS = 1000;
+
+    function onCoverflowWheel(e) {
+        if (viewMode !== 'coverflow' || coverflowTiles.length === 0) return;
+        e.preventDefault();
+        getCoverflowAudioCtx();
+
+        const now = performance.now();
+        const dt = coverflowLastWheelTime ? now - coverflowLastWheelTime : Infinity;
+        coverflowLastWheelTime = now;
+        const rawDelta = e.deltaY + e.deltaX;
+        if (rawDelta === 0) return;
+
+        if (coverflowLetterMode) {
+            handleLetterScroll(rawDelta);
+            scheduleLetterExit();
+            return;
+        }
+
+        const speedMultiplier = dt < 45 ? 3 : dt < 90 ? 1.8 : 1;
+        coverflowWheelAccum += rawDelta * speedMultiplier;
+
+        while (Math.abs(coverflowWheelAccum) >= WHEEL_STEP) {
+            const step = coverflowWheelAccum > 0 ? 1 : -1;
+            coverflowWheelAccum -= step * WHEEL_STEP;
+            setCoverflowIndex(coverflowIndex + step);
+        }
+
+        if (dt < FAST_TICK_MS) {
+            if (coverflowFastStreakStart === null) coverflowFastStreakStart = now;
+            if (now - coverflowFastStreakStart >= FAST_STREAK_MS) enterLetterMode();
+        } else {
+            coverflowFastStreakStart = null;
+        }
     }
 
-    // The actual "iPod" feel: each tile's scale/rotation/opacity is a
-    // function of how far its center sits from the track's visible
-    // center, normalized to -1..1 (edge of the wrap) - centered = full
-    // size, facing forward, opaque; toward either edge = smaller, tilted
-    // away (a cheap perspective/rotateY fake-3D "cover flow" lean), and
-    // fading out.
-    function updateCoverflowTransforms() {
-        if (!els.coverflowWrap || !els.coverflowTrack) return;
-        const wrapRect = els.coverflowWrap.getBoundingClientRect();
-        const centerX = wrapRect.left + wrapRect.width / 2;
+    // --- MOUSE DRAG / TOUCH SWIPE: direct 1:1 follow while active (CSS
+    // transition disabled via .is-dragging, see inventory.css), snaps to
+    // the nearest card on release. Shared by mouse and touch so the two
+    // interactions can't drift apart. ---
+    let coverflowDragging = false;
+    let coverflowDragStartX = 0;
+    let coverflowDragStartIndex = 0;
+    let coverflowLiveDragIndex = 0;
 
-        Array.from(els.coverflowTrack.children).forEach(tile => {
-            if (!tile.classList || !tile.classList.contains('inventory-roster-tile')) return;
-            const r = tile.getBoundingClientRect();
-            const tileCenter = r.left + r.width / 2;
-            const dist = tileCenter - centerX;
-            const norm = Math.max(-1, Math.min(1, dist / (wrapRect.width / 2)));
-            const absNorm = Math.min(Math.abs(norm), 1);
+    function coverflowDragStart(clientX) {
+        if (coverflowTiles.length === 0) return;
+        coverflowDragging = true;
+        coverflowDidDrag = false;
+        els.coverflowWrap.classList.add('is-dragging');
+        coverflowDragStartX = clientX;
+        coverflowDragStartIndex = coverflowIndex;
+        coverflowLiveDragIndex = coverflowIndex;
+        getCoverflowAudioCtx();
+    }
+    function coverflowDragMove(clientX) {
+        if (!coverflowDragging) return;
+        const deltaPx = clientX - coverflowDragStartX;
+        if (Math.abs(deltaPx) > 6) coverflowDidDrag = true;
+        coverflowLiveDragIndex = Math.max(0, Math.min(coverflowTiles.length - 1, coverflowDragStartIndex - deltaPx / coverflowSpacing));
+        renderCoverflowFrame(coverflowLiveDragIndex);
+    }
+    function coverflowDragEnd() {
+        if (!coverflowDragging) return;
+        coverflowDragging = false;
+        els.coverflowWrap.classList.remove('is-dragging');
+        setCoverflowIndex(Math.round(coverflowLiveDragIndex));
+    }
 
-            const scale = 1 - absNorm * 0.35;
-            const rotateY = norm * -35;
-            const translateZ = -absNorm * 60;
+    function onCoverflowMouseDown(e) {
+        if (viewMode !== 'coverflow') return;
+        coverflowDragStart(e.clientX);
+    }
+    function onWindowMouseMove(e) { coverflowDragMove(e.clientX); }
+    function onWindowMouseUp() { coverflowDragEnd(); }
 
-            tile.style.transform = `perspective(700px) rotateY(${rotateY}deg) scale(${scale}) translateZ(${translateZ}px)`;
-            tile.style.opacity = String(1 - absNorm * 0.55);
-            tile.style.zIndex = String(100 - Math.round(absNorm * 100));
-            tile.classList.toggle('is-centered', absNorm < 0.12);
-        });
+    function onCoverflowTouchStart(e) {
+        if (viewMode !== 'coverflow' || !e.touches[0]) return;
+        coverflowDragStart(e.touches[0].clientX);
+    }
+    function onWindowTouchMove(e) {
+        if (!coverflowDragging || !e.touches[0]) return;
+        coverflowDragMove(e.touches[0].clientX);
+    }
+    function onWindowTouchEnd() { coverflowDragEnd(); }
+
+    function refreshSoundBtn() {
+        els.soundBtn.textContent = coverflowSoundOn ? '🔊' : '🔇';
+        els.soundBtn.classList.toggle('is-off', !coverflowSoundOn);
     }
 
     function setViewMode(mode) {
@@ -313,6 +672,8 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         els.viewCoverflowBtn.classList.toggle('is-active', mode === 'coverflow');
         els.grid.hidden = mode !== 'grid';
         els.coverflowWrap.hidden = mode !== 'coverflow';
+        els.soundBtn.hidden = mode !== 'coverflow';
+        if (mode !== 'coverflow') exitLetterMode(true);
         renderCurrentView();
     }
 
@@ -381,12 +742,39 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
 
     els.viewGridBtn.addEventListener('click', () => setViewMode('grid'));
     els.viewCoverflowBtn.addEventListener('click', () => setViewMode('coverflow'));
-    els.coverflowTrack.addEventListener('scroll', onCoverflowScroll, { passive: true });
 
-    // Tile width (and so the --tile-scale every mini card is sized off of)
-    // changes with the viewport - rAF-throttled the same way the scroll
-    // listener above is, so a resize-drag doesn't recompute more than once
-    // a frame. Bound to `window`, which outlives this modal, so it MUST be
+    els.soundBtn.addEventListener('click', () => {
+        coverflowSoundOn = !coverflowSoundOn;
+        localStorage.setItem(COVERFLOW_SOUND_KEY, coverflowSoundOn ? 'on' : 'off');
+        refreshSoundBtn();
+        if (coverflowSoundOn) getCoverflowAudioCtx();
+    });
+    refreshSoundBtn();
+
+    els.coverflowInfo.addEventListener('click', () => {
+        const bee = filteredBees[coverflowIndex];
+        if (bee) openExpanded(bee);
+    });
+
+    // Wheel/drag/touch all live on the wrap (not just the track) so the
+    // hit area includes the Jump-to-Letter overlay and any breathing room
+    // around the deck. Drag/touch release listeners are bound to `window`
+    // (same reasoning as the resize listener below - a mouseup/touchend
+    // that lands outside the wrap must still end the drag), so they MUST
+    // be torn down in destroy() too or repeated modal opens stack up
+    // duplicate listeners.
+    els.coverflowWrap.addEventListener('wheel', onCoverflowWheel, { passive: false });
+    els.coverflowWrap.addEventListener('mousedown', onCoverflowMouseDown);
+    window.addEventListener('mousemove', onWindowMouseMove);
+    window.addEventListener('mouseup', onWindowMouseUp);
+    els.coverflowWrap.addEventListener('touchstart', onCoverflowTouchStart, { passive: true });
+    window.addEventListener('touchmove', onWindowTouchMove, { passive: true });
+    window.addEventListener('touchend', onWindowTouchEnd);
+
+    // Tile width (and so the --tile-scale every mini card is sized off of,
+    // plus Cover Flow's card-to-card spacing) changes with the viewport -
+    // rAF-throttled so a resize-drag doesn't recompute more than once a
+    // frame. Bound to `window`, which outlives this modal, so it MUST be
     // torn down on close (see destroy() below) or repeated opens would
     // stack up duplicate listeners.
     let resizeRaf = null;
@@ -395,7 +783,10 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         resizeRaf = requestAnimationFrame(() => {
             resizeRaf = null;
             updateTileScale();
-            if (viewMode === 'coverflow') updateCoverflowTransforms();
+            if (viewMode === 'coverflow') {
+                measureCoverflowSpacing();
+                renderCoverflowFrame(coverflowIndex);
+            }
         });
     }
     window.addEventListener('resize', onWindowResize);
@@ -405,6 +796,11 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
     return {
         destroy() {
             window.removeEventListener('resize', onWindowResize);
+            window.removeEventListener('mousemove', onWindowMouseMove);
+            window.removeEventListener('mouseup', onWindowMouseUp);
+            window.removeEventListener('touchmove', onWindowTouchMove);
+            window.removeEventListener('touchend', onWindowTouchEnd);
+            clearTimeout(coverflowLetterExitTimer);
         }
     };
 }
