@@ -80,13 +80,20 @@
         linear-gradient(160deg, #1c1c1c 0%, #101010 55%, #1a1a1a 100%);
 }
 
-/* Subtle holo shimmer sweep across the whole card, Pokemon-card-ish. */
+/* Subtle holo shimmer sweep across the whole card, Pokemon-card-ish.
+   alternate + ease-in-out is what makes this read as one continuous,
+   never-ending sweep instead of a loop that "restarts" - plain `infinite`
+   alone only plays 0%->100% and then jumps straight back to 0% at the
+   top of every cycle (no reverse leg defined), which is the snap/restart
+   this used to show every 5s. Alternating plays that same path backward
+   on every other cycle, so the motion just keeps reversing smoothly
+   forever with no jump anywhere in the loop. */
 .bee-card-face::before {
     content: "";
     position: absolute;
     inset: -60%;
     background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.06) 50%, transparent 65%);
-    animation: bee-card-shine 5s infinite;
+    animation: bee-card-shine 5s ease-in-out infinite alternate;
     pointer-events: none;
     z-index: 2;
 }
