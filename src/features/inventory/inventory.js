@@ -178,7 +178,14 @@ function rosterPickerMarkup() {
 
         <div class="inventory-roster-view-toggle">
             <button type="button" class="inventory-roster-view-btn is-active" id="inventory-roster-view-grid-btn">▦ Grid</button>
-            <button type="button" class="inventory-roster-view-btn" id="inventory-roster-view-coverflow-btn">🎞️ Cover Flow</button>
+            <!-- Cover Flow temporarily disabled (suspected contributor to a
+                 stutter/glitch reported on Samsung Internet mobile when
+                 opening a card from Grid view - see HANDOFF.md/inventory.js
+                 comments near renderCoverflow). Button just hidden, not
+                 removed - all of the Cover Flow code below is untouched and
+                 this is a one-line revert once the underlying glitch is
+                 sorted out. -->
+            <button type="button" class="inventory-roster-view-btn" id="inventory-roster-view-coverflow-btn" hidden>🎞️ Cover Flow</button>
             <button type="button" class="inventory-roster-sound-btn" id="inventory-roster-sound-btn" title="Toggle Cover Flow sound" hidden>🔊</button>
         </div>
 
