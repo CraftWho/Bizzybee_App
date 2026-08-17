@@ -290,6 +290,25 @@
     display: none;
 }
 
+/* Every grid tile is a full BeeCard shrunk down (see .inventory-roster-
+   tile-scale above), which includes bee-card.css's own continuous shine-
+   sweep animation (.bee-card-face::before, bee-card-shine). With a full
+   roster (dozens of bees) that's dozens of simultaneously-animating/
+   composited layers running the entire time the roster modal is open - a
+   likely contributor to the stutter reported on mobile (Samsung Internet)
+   when opening a card from Grid view, since the expanded card's own
+   animated layers then spin up ON TOP of all of those still-running tile
+   ones underneath. Disabled here, always, on every tile - display:none
+   (not just animation:none) so the browser doesn't even create a
+   compositor layer for it. The full-size expanded/selected card keeps its
+   shine on by default, untouched - bee-card.css's own rule isn't scoped,
+   so it still applies there, and there's only ever one of those on screen
+   at a time. */
+.inventory-roster-tile-scale .bee-card-face::before {
+    animation: none;
+    display: none;
+}
+
 /* --- COVER FLOW MODE (v2): tight, angular "deck" of art-only tiles - no
    name/text printed on the tiny tiles themselves, that only shows once
    below for whichever bee is centered (.inventory-coverflow-info) - driven
