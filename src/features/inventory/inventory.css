@@ -290,23 +290,32 @@
     display: none;
 }
 
-/* Every grid tile is a full BeeCard shrunk down (see .inventory-roster-
-   tile-scale above), which includes bee-card.css's own continuous shine-
-   sweep animation (.bee-card-face::before, bee-card-shine). With a full
-   roster (dozens of bees) that's dozens of simultaneously-animating/
-   composited layers running the entire time the roster modal is open - a
-   likely contributor to the stutter reported on mobile (Samsung Internet)
-   when opening a card from Grid view, since the expanded card's own
-   animated layers then spin up ON TOP of all of those still-running tile
-   ones underneath. Disabled here, always, on every tile - display:none
-   (not just animation:none) so the browser doesn't even create a
-   compositor layer for it. The full-size expanded/selected card keeps its
-   shine on by default, untouched - bee-card.css's own rule isn't scoped,
-   so it still applies there, and there's only ever one of those on screen
-   at a time. */
+/* Grid tile shine - back on for every tile (per request), re-tinted to
+   each tile's own rarity color instead of the plain white sweep the base
+   card uses elsewhere (bee-card.css's .bee-card-face::before). Reuses the
+   SAME --tile-color custom property .inventory-roster-tile already sets
+   per tile from beeCardColor(bee.rarity) (see createTile() in
+   inventory.js) - inherits down to this element for free, no extra JS
+   needed. Common's rarity color (#aaaaaa, db.js) already reads as silver,
+   Rare blue, Epic purple, Legendary gold, Named crimson - "match the
+   rarity" falls out of the existing color mapping automatically.
+   Note: this is a full BeeCard shrunk down per tile, so with a large
+   roster this means one animated/composited layer PER TILE running the
+   whole time the roster is open - the exact thing we disabled a bit ago
+   as a suspected contributor to the stutter reported on mobile (Samsung
+   Internet) opening a card from Grid view. Re-enabling it is what was
+   asked for here; if the stutter comes back, this rule is the first place
+   to look. */
 .inventory-roster-tile-scale .bee-card-face::before {
-    animation: none;
-    display: none;
+    display: block;
+    animation: bee-card-shine 5s ease-in-out infinite alternate;
+    /* Mixed toward transparent (not opaque white) - the first version
+       mixed the tile color against solid white, which read as a bright
+       opaque pastel streak instead of a soft sweep. This blends 28% of the
+       tile color into transparency instead, much closer in strength to
+       the original card's own 6%-alpha white sweep while still carrying
+       the rarity tint. */
+    background: linear-gradient(120deg, transparent 35%, color-mix(in srgb, var(--tile-color, #fff) 28%, transparent) 50%, transparent 65%);
 }
 
 /* --- COVER FLOW MODE (v2): tight, angular "deck" of art-only tiles - no

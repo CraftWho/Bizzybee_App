@@ -173,6 +173,7 @@ function rosterPickerMarkup() {
             <select id="inventory-roster-filter-class" class="inventory-roster-filter-select">
                 <option value="">All Work</option>
             </select>
+            <select id="inventory-roster-sort" class="inventory-roster-filter-select"></select>
             <span class="inventory-roster-result-count" id="inventory-roster-result-count"></span>
         </div>
 
@@ -217,6 +218,41 @@ function populateFilterSelect(selectEl, entries) {
     entries.forEach(([value, label]) => selectEl.appendChild(new Option(label, value)));
 }
 
+// Sort dropdown - first entry is the default (selected on open, matches
+// the roster's previous unsortable "newest first" order so nothing looks
+// different until you actually touch the control). Rarity uses its own
+// rank list (RARITY_SORT_RANK below) rather than BEE_RARITIES' declaration
+// order, since that's ordered by drop weight (Common first, most common),
+// not by actual rarity tier - and it's missing 'Named' entirely (Named
+// Beasts are a conversion, not a roll, see BEE_RARITIES in db.js).
+const SORT_OPTIONS = [
+    { value: 'obtained-desc', label: '📅 Newest First' },
+    { value: 'obtained-asc', label: '📅 Oldest First' },
+    { value: 'rarity-desc', label: '✨ Rarity (High to Low)' },
+    { value: 'rarity-asc', label: '✨ Rarity (Low to High)' }
+];
+const RARITY_SORT_RANK = ['Common', 'Rare', 'Epic', 'Legendary', 'Named'];
+
+function sortBees(list, sortValue) {
+    const sorted = list.slice();
+    switch (sortValue) {
+        case 'obtained-asc':
+            sorted.sort((a, b) => new Date(a.obtainedAt) - new Date(b.obtainedAt));
+            break;
+        case 'rarity-desc':
+            sorted.sort((a, b) => RARITY_SORT_RANK.indexOf(b.rarity) - RARITY_SORT_RANK.indexOf(a.rarity));
+            break;
+        case 'rarity-asc':
+            sorted.sort((a, b) => RARITY_SORT_RANK.indexOf(a.rarity) - RARITY_SORT_RANK.indexOf(b.rarity));
+            break;
+        case 'obtained-desc':
+        default:
+            sorted.sort((a, b) => new Date(b.obtainedAt) - new Date(a.obtainedAt));
+            break;
+    }
+    return sorted;
+}
+
 // BeeCard.render() already wires a plain tap/click to flip - this adds a
 // horizontal swipe as an alternate gesture on the expanded card, toggling
 // the same `is-flipped` class the click listener uses.
@@ -249,7 +285,10 @@ function closeExpanded(expandedOverlay) {
 // layer created alongside it in openBeeRosterModal().
 function setupRosterPicker(overlay, expandedOverlay, initialBees) {
     let allBees = initialBees;
-    let filteredBees = allBees.slice();
+    // Sorted with the same default applyFilters()/sortBees() would use, so
+    // the very first paint (before the sort control is ever touched)
+    // matches what re-selecting "Newest First" would produce.
+    let filteredBees = sortBees(allBees.slice(), SORT_OPTIONS[0].value);
     let viewMode = 'grid';
 
     const els = {
@@ -257,6 +296,7 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         rarity: overlay.querySelector('#inventory-roster-filter-rarity'),
         element: overlay.querySelector('#inventory-roster-filter-element'),
         cls: overlay.querySelector('#inventory-roster-filter-class'),
+        sort: overlay.querySelector('#inventory-roster-sort'),
         resultCount: overlay.querySelector('#inventory-roster-result-count'),
         noResults: overlay.querySelector('#inventory-roster-no-results'),
         grid: overlay.querySelector('#inventory-roster-tile-grid'),
@@ -279,6 +319,7 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
     populateFilterSelect(els.element, Object.entries(BEE_ELEMENTS).map(([key, info]) => [key, `${info.emoji} ${info.label}`]));
     populateFilterSelect(els.cls, Object.entries(BEE_CLASSES).map(([key, info]) => [key, `${info.icon} ${info.label}`]));
     els.cls.appendChild(new Option('— Unassigned —', '__unassigned__'));
+    populateFilterSelect(els.sort, SORT_OPTIONS.map(o => [o.value, o.label]));
 
     // Builds a tile as a scaled-down copy of the REAL bee card - not a
     // hand-built lookalike. BeeCard.render() (bee-card.js) is called
@@ -698,6 +739,7 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
             if (cls && cls !== '__unassigned__' && bee.class !== cls) return false;
             return true;
         });
+        filteredBees = sortBees(filteredBees, els.sort.value);
 
         els.resultCount.textContent = `${filteredBees.length} of ${allBees.length}`;
         renderCurrentView();
@@ -746,6 +788,7 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
     els.rarity.addEventListener('change', applyFilters);
     els.element.addEventListener('change', applyFilters);
     els.cls.addEventListener('change', applyFilters);
+    els.sort.addEventListener('change', applyFilters);
 
     els.viewGridBtn.addEventListener('click', () => setViewMode('grid'));
     els.viewCoverflowBtn.addEventListener('click', () => setViewMode('coverflow'));
