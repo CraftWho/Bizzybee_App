@@ -36,7 +36,11 @@ const EXTRA_PAGE_META = {
     inventory: { icon: '🎒', label: 'Inventory' },
     keeperdex: { icon: '📘', label: 'KeeperDex' },
     calendar: { icon: '📅', label: 'Calendar' },
-    'create-daily': { icon: '☀️', label: 'Daily' }
+    'create-daily': { icon: '☀️', label: 'Daily' },
+    habits: { icon: '✅', label: 'Habits' },
+    'create-habit': { icon: '✅', label: 'Habit' },
+    todos: { icon: '📝', label: 'To-Dos' },
+    'create-todo': { icon: '📝', label: 'To-Do' }
 };
 
 class CodexSystem {
@@ -104,6 +108,10 @@ class CodexSystem {
         if (path.includes('dailies.html')) return 'dailies';
         if (path.includes('create-daily.html')) return 'create-daily';
         if (path.includes('calendar.html')) return 'calendar';
+        if (path.includes('create-habit.html')) return 'create-habit';
+        if (path.includes('habits.html')) return 'habits';
+        if (path.includes('create-todo.html')) return 'create-todo';
+        if (path.includes('todos.html')) return 'todos';
         return 'home';
     }
 

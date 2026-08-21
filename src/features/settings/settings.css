@@ -1,17 +1,27 @@
-/* --- LAYOUT ---
-   Self-contained: no classes borrowed from other features' stylesheets.
-   Only .panel and .gold-gradient-text (both genuinely global) are reused. */
+/* --- SETTINGS STYLES ---
+   NOTE: this file didn't actually exist on disk even though settings.html
+   has linked to it all along - found while wiring up the new Cloud Sync
+   panel (see HANDOFF.md's "Settings reordered and stripped down" entry;
+   looks like the trim-down that moved Account/Personal Info styles out to
+   account-info.css took the whole file with it instead of just those
+   rules). Rebuilt here from what settings.html actually needs - the
+   settings-action-row/settings-action-info shape matches the copy that
+   account-info.css kept, so both pages still look identical. */
+
 .settings-container {
     width: 100%;
-    max-width: 900px;
+    max-width: 700px;
     margin: 20px auto 60px;
     padding: 0 25px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .settings-title {
     text-align: center;
-    margin: 0 0 25px;
+    margin: 0;
     font-size: 2rem;
     font-weight: 800;
 }
@@ -22,6 +32,7 @@
     margin: 0 0 20px;
 }
 
+/* --- Action rows - every panel's button/link + description pairing --- */
 .settings-action-row {
     display: flex;
     align-items: center;
@@ -49,78 +60,102 @@
     line-height: 1.5;
 }
 
-.settings-file-input {
-    margin-top: 10px;
-    color: #999;
-    font-size: 0.85rem;
-    max-width: 500px;
+.settings-action-btns {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
-.settings-file-hint {
-    margin: 6px 0 0;
-    color: #777;
-    font-size: 0.75rem;
-    line-height: 1.4;
-    max-width: 500px;
+/* Secondary/outline treatment - matches account-info.css's
+   .account-avatar-migrate-btn, reused here on Cloud Sync's Sign Out
+   button so it reads as the less-common action next to the others. */
+.account-avatar-migrate-btn {
+    background: transparent;
+    color: var(--gold-start);
+    border: 1px solid var(--gold-start);
+    white-space: nowrap;
 }
 
+.account-avatar-migrate-btn:hover {
+    background: var(--gold-start);
+    color: var(--obsidian);
+    box-shadow: none;
+}
+
+/* "Open" links (Account Info, Account Security) styled to look like the
+   buttons next to them, since they're functionally the same action. */
+.settings-nav-link {
+    display: inline-block;
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    font-weight: bold;
+    padding: 10px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.settings-nav-link:hover {
+    box-shadow: 0 0 12px var(--gold-start);
+}
+
+.settings-btn-danger {
+    background: var(--crimson);
+    color: #fff;
+}
+
+.settings-btn-danger:hover {
+    background: var(--crimson);
+    box-shadow: 0 0 12px var(--crimson);
+}
+
+/* --- Full Save Transfer inputs --- */
 .settings-password-label {
     display: block;
-    margin-top: 12px;
+    margin-top: 10px;
     color: var(--gold-start);
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: bold;
     letter-spacing: 0.5px;
     text-transform: uppercase;
 }
 
 .settings-password-input {
-    display: block;
     width: 100%;
     max-width: 320px;
-    margin-top: 6px;
     box-sizing: border-box;
+    margin-top: 6px;
 }
 
-/* Styled to match every real <button> in this app (same gradient/hover as
-   global.css's `button` rule) even though this is an <a> - it navigates to
-   its own page (src/features/account-info/) rather than doing anything
-   in-place, so a real link is the more honest element, just button-shaped. */
-.settings-nav-link {
-    display: inline-block;
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    color: var(--obsidian);
-    text-decoration: none;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    white-space: nowrap;
-    transition: transform 0.2s, box-shadow 0.2s;
+.settings-file-input {
+    display: block;
+    margin-top: 10px;
+    color: #ccc;
+    font-size: 0.85rem;
 }
 
-.settings-nav-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px var(--gold-glow);
+.settings-file-hint {
+    margin: 8px 0 0;
+    color: #777;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    max-width: 500px;
 }
 
-.settings-btn-danger {
-    background: transparent;
-    color: var(--danger-red);
-    border: 2px solid var(--danger-red);
-    white-space: nowrap;
-}
-
-.settings-btn-danger:hover {
-    background: var(--danger-red);
-    color: #fff;
-    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+/* --- Cloud Sync --- */
+#cloud-sync-email {
+    color: var(--gold-start);
 }
 
 @media (max-width: 600px) {
     .settings-action-row {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .settings-nav-link {
+        text-align: center;
     }
 }

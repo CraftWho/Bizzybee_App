@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 To-Dos</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../../core/status-dot/status-dot.css">
+    <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./todos.css">
+</head>
+<body>
+
+    <main class="todos-container">
+        <h2 class="todos-title">📝 <span class="gold-gradient-text">TO-DOS</span></h2>
+        <p class="todos-subtitle">One-off tasks - check one off and it clears from your active list. Use the honeycomb button below to add a new one.</p>
+
+        <div id="todos-not-installed" class="panel todos-not-installed" hidden>
+            <p>This plugin isn't installed yet.</p>
+            <a href="../plugin-hub/plugin-hub.html" class="todos-install-link">🧩 Go to Plugin Hub →</a>
+        </div>
+
+        <section class="panel" id="todos-app" hidden>
+            <ul class="task-list quest-task-list" id="todo-task-list"></ul>
+
+            <div class="todos-completed-section todos-completed-section--collapsed" id="todos-completed-section">
+                <button type="button" class="todos-completed-toggle" id="todos-completed-toggle" aria-expanded="false">
+                    <span id="todos-completed-heading">✅ Completed (0)</span>
+                    <span class="todos-completed-chevron">▾</span>
+                </button>
+                <ul class="task-list quest-task-list todos-completed-list" id="todo-completed-list"></ul>
+            </div>
+        </section>
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/status-dot/status-dot.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../../features/llm-engine/llm-engine.js"></script>
+
+    <script src="./todos.js"></script>
+</body>
+</html>

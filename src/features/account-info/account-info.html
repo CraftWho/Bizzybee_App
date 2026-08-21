@@ -71,7 +71,15 @@
                             <button type="button" id="account-avatar-remove-btn" class="settings-icon-btn" title="Remove photo" hidden>🗑️</button>
                         </div>
                     </div>
-                    <button id="account-avatar-edit-btn">✏️ Edit</button>
+                    <div class="settings-action-btns">
+                        <!-- Only shown when no photo has ever actually been uploaded into
+                             the save AND a local src/assets/images/me.jpg happens to exist
+                             on this device (see account-info.js's updateAvatarMigrateButton) -
+                             a one-click way to pull that device-only fallback file into real,
+                             exportable save data instead of re-picking it by hand. -->
+                        <button type="button" id="account-avatar-migrate-btn" class="account-avatar-migrate-btn" hidden>📥 Use Existing Photo</button>
+                        <button id="account-avatar-edit-btn">✏️ Edit</button>
+                    </div>
                 </div>
 
                 <input type="file" id="account-avatar-input" accept="image/*" hidden>

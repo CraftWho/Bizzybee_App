@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Create Habit</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./create-habit.css">
+</head>
+<body>
+
+    <main class="create-habit-container">
+        <div class="panel page-header-panel">
+            <h2 class="page-title" id="create-habit-heading">✅ <span class="gold-gradient-text">CREATE HABIT</span></h2>
+            <p class="page-subtitle" id="create-habit-subtitle">Set it up once - title, difficulty, tags. No schedule, no reset - it's just always there to click.</p>
+        </div>
+
+        <section class="panel create-habit-panel">
+            <h3>📝 Habit Details</h3>
+            <label class="form-label" for="habit-title-input">Habit Title</label>
+            <input type="text" id="habit-title-input" class="habit-text-input" placeholder="e.g. Drink water">
+
+            <label class="form-label" for="habit-notes-input">Notes</label>
+            <textarea id="habit-notes-input" class="habit-notes-input" placeholder="Optional details..."></textarea>
+
+            <h3 class="habit-section-heading">➕➖ Actions</h3>
+            <div class="habit-action-preview-row">
+                <button type="button" class="habit-action-preview-btn habit-action-preview-btn--negative" tabindex="-1" aria-hidden="true">−</button>
+                <button type="button" class="habit-action-preview-btn habit-action-preview-btn--positive" tabindex="-1" aria-hidden="true">+</button>
+                <span class="habit-action-preview-note">Every habit always shows both buttons - click + when you do it, − when you don't.</span>
+            </div>
+
+            <h3 class="habit-section-heading">⭐ Difficulty &amp; DP</h3>
+            <div class="habit-difficulty-grid" id="habit-difficulty-grid"></div>
+
+            <div class="habit-dp-row">
+                <div class="habit-dp-display">
+                    <span class="form-label">DP per action</span>
+                    <span class="habit-dp-value" id="habit-dp-value">20</span>
+                </div>
+                <button type="button" id="habit-ask-eevee-btn" class="habit-ask-eevee-btn">🐝 Ask Eevee</button>
+            </div>
+            <p class="habit-dp-note">The same amount is awarded on + and deducted on − (since this can be clicked many times a day, it's kept modest, same tier scale as Dailies). Ask Eevee to judge it from your title, notes, and difficulty instead.</p>
+
+            <h3 class="habit-section-heading">🏷️ Tags</h3>
+            <div class="habit-tags-list" id="habit-tags-list"></div>
+            <p class="habit-tags-note">Automatic - detected from your title &amp; notes against Dictionary terms, existing Daily/Habit tags, and Quest tasks. Click × to dismiss one.</p>
+        </section>
+
+        <div class="habit-form-actions">
+            <button type="button" id="habit-cancel-btn" class="habit-cancel-btn">Cancel</button>
+            <button type="button" id="habit-save-btn" class="habit-save-btn">💾 Create Habit</button>
+        </div>
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../../features/llm-engine/llm-engine.js"></script>
+
+    <script src="./create-habit.js"></script>
+</body>
+</html>

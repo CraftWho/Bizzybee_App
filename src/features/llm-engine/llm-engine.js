@@ -261,6 +261,102 @@ Required shape:
         return Math.round(Math.min(300, Math.max(1, dp)));
     },
 
+    // Habit title/notes + chosen difficulty tier -> a single DP number,
+    // same shape/contract as assessDailyDP above (throws on failure, no
+    // silent fallback - Create Habit's own HABIT_DIFFICULTY_TIERS table
+    // has a sane per-tier default to fall back to). A Habit can be clicked
+    // several times a DAY, not just once, so it shares Dailies' modest
+    // anchors rather than getting its own scale - and this single number
+    // is used symmetrically, awarded on + and deducted on -.
+    async assessHabitDP(title, notes, difficulty) {
+        const instructions = `
+Assess Developer Points (DP) for a Habitica-style HABIT - a recurring +/- action button, NOT a one-off quest task or a once-a-day Daily. Respond with JSON only - no commentary, no markdown fences.
+
+Title: "${title}"
+${notes ? `Notes: "${notes}"` : 'Notes: (none given)'}
+Worker bee's chosen difficulty tier: ${difficulty}
+
+A habit can be clicked several times in a single day (each click independently awards or deducts this exact DP value), so it needs to stay even more modest than a once-a-day Daily - a trivial habit clicked repeatedly should never out-earn substantial one-off quest work.
+
+Tier anchors - adjust up or down within roughly +/-40% of the anchor based on how demanding this specific habit's title/notes actually sound, don't just echo the anchor back:
+- Trivial: ~10 DP
+- Easy: ~20 DP
+- Medium: ~60 DP
+- Hard: ~120 DP
+
+Required shape:
+{ "dp": number }
+        `.trim();
+
+        const messages = [
+            { role: 'system', content: buildEeveeSystemPrompt(Vault.getUser().level) },
+            { role: 'user', content: instructions }
+        ];
+
+        const raw = await this._call(messages, { json: true });
+
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            throw new Error("Eevee's response wasn't valid JSON - try again.");
+        }
+
+        const dp = Number(parsed.dp);
+        if (!Number.isFinite(dp) || dp <= 0) {
+            throw new Error("Eevee's response was missing a valid DP value - try again.");
+        }
+
+        return Math.round(Math.min(300, Math.max(1, dp)));
+    },
+
+    // To-Do title/notes + chosen difficulty tier -> a single DP number.
+    // Unlike a Habit or Daily, a To-Do happens exactly ONCE (it archives
+    // the moment it's checked done - see Vault.toggleTodoComplete), so it
+    // shares generateQuest's higher one-off anchors above instead of the
+    // recurring-task anchors assessDailyDP/assessHabitDP use.
+    async assessTodoDP(title, notes, difficulty) {
+        const instructions = `
+Assess Developer Points (DP) for a one-off TO-DO task - NOT a recurring Daily or Habit. It happens exactly once and is done for good. Respond with JSON only - no commentary, no markdown fences.
+
+Title: "${title}"
+${notes ? `Notes: "${notes}"` : 'Notes: (none given)'}
+Worker bee's chosen difficulty tier: ${difficulty}
+
+Because this is one-off work (never repeats, unlike a Daily or Habit), DP can run meaningfully higher than a recurring task of the same apparent effort - closer to how an individual Quest task is judged.
+
+Tier anchors - adjust up or down within roughly +/-40% of the anchor based on how demanding this specific to-do's title/notes actually sound, don't just echo the anchor back:
+- Trivial: ~15 DP
+- Easy: ~30 DP
+- Medium: ~70 DP
+- Hard: ~150 DP
+
+Required shape:
+{ "dp": number }
+        `.trim();
+
+        const messages = [
+            { role: 'system', content: buildEeveeSystemPrompt(Vault.getUser().level) },
+            { role: 'user', content: instructions }
+        ];
+
+        const raw = await this._call(messages, { json: true });
+
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            throw new Error("Eevee's response wasn't valid JSON - try again.");
+        }
+
+        const dp = Number(parsed.dp);
+        if (!Number.isFinite(dp) || dp <= 0) {
+            throw new Error("Eevee's response was missing a valid DP value - try again.");
+        }
+
+        return Math.round(Math.min(300, Math.max(1, dp)));
+    },
+
     // Judges the reward for one Skill Mastery level-up - called from
     // Vault.levelUpSkill (db.js) with the label of every task that
     // contributed to this skill since it last leveled up (see

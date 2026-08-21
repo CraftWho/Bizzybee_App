@@ -10,10 +10,144 @@ function downloadFile(content, filename, mimeType) {
     URL.revokeObjectURL(url);
 }
 
+// --- Cloud Sync (Netlify Identity + Netlify Blobs) ---------------------
+// Page-level only, deliberately: reuses Vault.exportFullState()/
+// importFullState() exactly as the existing Full Save Transfer buttons do,
+// rather than adding new methods to db.js. The cloud side is just two
+// small Functions (netlify/functions/save-state.mjs, load-state.mjs) that
+// store/return that same export string per signed-in user - see
+// HANDOFF.md for the full writeup on why this lives here instead of Vault.
+//
+// Can't be exercised at all until this is actually deployed on Netlify
+// with Identity enabled (invite-only) - on any other host, or before
+// Identity's enabled, the widget script is a harmless no-op and this
+// whole panel just quietly does nothing when clicked.
+
+function cloudSyncShowSignedOut() {
+    document.getElementById('cloud-sync-signed-out').hidden = false;
+    document.getElementById('cloud-sync-signed-in').hidden = true;
+}
+
+function cloudSyncShowSignedIn(user) {
+    document.getElementById('cloud-sync-signed-out').hidden = true;
+    document.getElementById('cloud-sync-signed-in').hidden = false;
+    document.getElementById('cloud-sync-email').textContent = user.email || '';
+}
+
+function cloudSyncSetStatus(message) {
+    const el = document.getElementById('cloud-sync-status');
+    if (el) el.textContent = message;
+}
+
+async function cloudSyncAuthedFetch(path, options = {}) {
+    const user = netlifyIdentity.currentUser();
+    if (!user) throw new Error('Not signed in');
+    const token = await user.jwt();
+    return fetch(path, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`,
+        },
+    });
+}
+
+function initCloudSync() {
+    if (typeof netlifyIdentity === 'undefined') return;
+
+    netlifyIdentity.on('init', (user) => {
+        if (user) cloudSyncShowSignedIn(user);
+        else cloudSyncShowSignedOut();
+    });
+    netlifyIdentity.on('login', (user) => {
+        cloudSyncShowSignedIn(user);
+        netlifyIdentity.close();
+    });
+    netlifyIdentity.on('logout', () => {
+        cloudSyncShowSignedOut();
+    });
+    netlifyIdentity.on('error', (err) => {
+        console.error('Netlify Identity error:', err);
+        Toast.show('⚠️ Cloud Sync sign-in error - see console.', 'negative');
+    });
+
+    document.getElementById('cloud-sync-login-btn').addEventListener('click', () => {
+        netlifyIdentity.open('login');
+    });
+
+    document.getElementById('cloud-sync-logout-btn').addEventListener('click', () => {
+        netlifyIdentity.logout();
+    });
+
+    document.getElementById('cloud-sync-push-btn').addEventListener('click', async () => {
+        const snapshot = Vault.exportFullState();
+        if (!snapshot) {
+            Toast.show('Nothing to save yet.', 'negative');
+            return;
+        }
+
+        cloudSyncSetStatus('Saving...');
+        try {
+            const response = await cloudSyncAuthedFetch('/.netlify/functions/save-state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: snapshot }),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) {
+                throw new Error(result.error || `Save failed (${response.status})`);
+            }
+            cloudSyncSetStatus(`Last saved to cloud: ${new Date(result.updatedAt).toLocaleString()}`);
+            Toast.show('☁️ Saved to cloud.', 'positive');
+        } catch (error) {
+            cloudSyncSetStatus('Save failed - see below.');
+            Toast.show(`⚠️ Cloud save failed: ${error.message}`, 'negative');
+        }
+    });
+
+    document.getElementById('cloud-sync-pull-btn').addEventListener('click', async () => {
+        cloudSyncSetStatus('Checking cloud...');
+        try {
+            const response = await cloudSyncAuthedFetch('/.netlify/functions/load-state');
+            const result = await response.json();
+            if (!response.ok || !result.ok) {
+                throw new Error(result.error || `Load failed (${response.status})`);
+            }
+            if (!result.data) {
+                cloudSyncSetStatus('Nothing saved to the cloud yet from any device.');
+                Toast.show('Nothing saved to the cloud yet.', 'negative');
+                return;
+            }
+
+            const confirmed = confirm(
+                `This replaces everything currently saved in this browser with the version last saved to the cloud (${new Date(result.updatedAt).toLocaleString()}). This cannot be undone. Continue?`
+            );
+            if (!confirmed) {
+                cloudSyncSetStatus(`Last saved to cloud: ${new Date(result.updatedAt).toLocaleString()}`);
+                return;
+            }
+
+            const importResult = Vault.importFullState(result.data);
+            if (!importResult.ok) {
+                throw new Error(importResult.error);
+            }
+            Toast.show('☁️ Loaded from cloud - reloading...', 'positive');
+            setTimeout(() => window.location.reload(), 800);
+        } catch (error) {
+            cloudSyncSetStatus('Load failed - see below.');
+            Toast.show(`⚠️ Cloud load failed: ${error.message}`, 'negative');
+        }
+    });
+
+    netlifyIdentity.init();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
     HiveMind.setActions(baseHiveMindActions());
+
+    initCloudSync();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
         const conversations = Vault.getConversations();

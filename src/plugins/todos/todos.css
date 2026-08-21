@@ -1,0 +1,179 @@
+.todos-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+.todos-title {
+    text-align: center;
+    margin: 0 0 8px;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.todos-subtitle {
+    text-align: center;
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0 0 25px;
+}
+
+.todos-not-installed {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.todos-install-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--gold-start);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.todos-install-link:hover {
+    text-decoration: underline;
+}
+
+.quest-empty-state {
+    text-align: center;
+    color: #888;
+    padding: 20px 0;
+}
+
+/* --- Task rows (duplicated from dailies.css/quests.css - this feature is
+   self-contained, not dependent on another feature's stylesheet) --- */
+.quest-task-item {
+    justify-content: space-between;
+}
+
+.quest-task-label {
+    flex: 1;
+}
+
+.quest-task-item--done .quest-task-label {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.quest-task-dp {
+    color: var(--gold-start);
+    white-space: nowrap;
+}
+
+.quest-task-difficulty {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid currentColor;
+}
+
+.quest-task-difficulty--trivial { color: #888; }
+.quest-task-difficulty--easy { color: #4caf50; }
+.quest-task-difficulty--medium { color: var(--gold-start); }
+.quest-task-difficulty--hard { color: var(--danger-red); }
+
+.quest-task-checklist-badge {
+    white-space: nowrap;
+    color: #999;
+    font-size: 0.8rem;
+}
+
+.quest-task-tags {
+    display: inline-flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.quest-task-tag {
+    background: #1a1a1a;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-start);
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.quest-task-icon-btn {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 2px 4px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.quest-task-icon-btn:hover {
+    color: var(--gold-start);
+    transform: none;
+    box-shadow: none;
+}
+
+.quest-task-icon-btn--remove:hover {
+    color: var(--danger-red);
+}
+
+/* --- Due date badge - the one thing Dailies' row never needed (Dailies
+   are scheduled, not "due"). Overdue reads as an active warning (red,
+   bold) rather than the dimmed treatment Dailies uses for "not scheduled
+   today", since an overdue To-Do is a problem, not just an inactive day. --- */
+.quest-task-due-badge {
+    white-space: nowrap;
+    color: #999;
+    font-size: 0.75rem;
+}
+
+.quest-task-due-badge--overdue {
+    color: var(--danger-red);
+    font-weight: bold;
+}
+
+/* --- Completed section - archived To-Dos collapse down here instead of
+   vanishing outright, same collapsible convention Home uses for Active
+   Quest/Daily Tasks (see home.js's setupHomeCollapsibles). --- */
+.todos-completed-section {
+    margin-top: 24px;
+}
+
+.todos-completed-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 8px 0;
+    color: #999;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.todos-completed-toggle:hover {
+    color: var(--gold-start);
+    transform: none;
+    box-shadow: none;
+}
+
+.todos-completed-chevron {
+    transition: transform 0.2s ease;
+}
+
+.todos-completed-section--collapsed .todos-completed-chevron {
+    transform: rotate(-90deg);
+}
+
+.todos-completed-section--collapsed .todos-completed-list {
+    display: none;
+}
+
+.todos-completed-list .quest-task-label {
+    text-decoration: line-through;
+    opacity: 0.6;
+}

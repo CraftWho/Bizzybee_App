@@ -13,9 +13,9 @@ console.log("/// PLUGIN MANAGER ONLINE ///");
 // the actual list of plugins, their metadata, and whether there's
 // anything behind them yet (`status`). Plugins.toggle() is the only
 // place allowed to flip Vault's stored flag, specifically so a
-// 'coming-soon' plugin (see src/plugins/calendar, src/plugins/habits -
-// both still empty stub files) can never actually be switched on by
-// mistake before it has a real page behind it.
+// 'coming-soon' plugin (see src/plugins/fitness, src/plugins/diet,
+// src/plugins/recovery - all still empty stub files) can never actually
+// be switched on by mistake before it has a real page behind it.
 
 // status: 'available' once a plugin has a real page/feature behind it;
 // 'coming-soon' means the folder is scaffolded (see src/plugins/*/) but
@@ -33,8 +33,15 @@ const PLUGIN_CATALOG = [
         id: 'habits',
         icon: '✅',
         label: 'Habits',
-        status: 'coming-soon',
-        description: 'Recurring habit tracking alongside quests/dailies - streaks and consistency, not one-off tasks.'
+        status: 'available',
+        description: 'Habitica-style +/- action buttons alongside quests/dailies - click + when you do it, - when you don\'t. No schedule, no reset, just a running tally.'
+    },
+    {
+        id: 'todos',
+        icon: '📝',
+        label: 'To-Dos',
+        status: 'available',
+        description: 'One-off tasks with an optional due date - the pile of "just get it done" work that doesn\'t repeat and doesn\'t need a full Quest built around it. Checking one off archives it.'
     },
     {
         id: 'study',

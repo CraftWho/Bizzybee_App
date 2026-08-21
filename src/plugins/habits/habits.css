@@ -1,0 +1,203 @@
+.habits-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto 60px;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+.habits-title {
+    text-align: center;
+    margin: 0 0 8px;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.habits-subtitle {
+    text-align: center;
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0 0 25px;
+}
+
+.habits-not-installed {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.habits-install-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--gold-start);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.habits-install-link:hover {
+    text-decoration: underline;
+}
+
+.quest-empty-state {
+    text-align: center;
+    color: #888;
+    padding: 20px 0;
+}
+
+.habit-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* --- Habit rows (duplicated from dailies.css/quests.css - this feature is
+   self-contained, not dependent on another feature's stylesheet). Each
+   habit is its own card rather than a single-line list item like Dailies -
+   there's simply more going on per row (two independent action buttons,
+   a running +/- tally) than a checkbox ever needed. --- */
+.habit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #151515;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.habit-item-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.habit-item-top-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.habit-item-label {
+    font-weight: bold;
+    color: #eee;
+}
+
+.habit-item-dp {
+    color: var(--gold-start);
+    white-space: nowrap;
+    font-size: 0.85rem;
+}
+
+.habit-item-difficulty {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid currentColor;
+}
+
+.habit-item-difficulty--trivial { color: #888; }
+.habit-item-difficulty--easy { color: #4caf50; }
+.habit-item-difficulty--medium { color: var(--gold-start); }
+.habit-item-difficulty--hard { color: var(--danger-red); }
+
+.habit-item-tags {
+    display: inline-flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.habit-item-tag {
+    background: #1a1a1a;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-start);
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.habit-item-tally {
+    color: #777;
+    font-size: 0.78rem;
+}
+
+.habit-item-tally-positive { color: #4caf50; }
+.habit-item-tally-negative { color: var(--danger-red); }
+
+/* --- Action buttons - always both +/- (per the app's Habit design),
+   distinct green/red so the reward/punish split reads instantly. --- */
+.habit-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.habit-action-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: 800;
+    padding: 0;
+    line-height: 1;
+    box-shadow: none;
+}
+
+.habit-action-btn--positive {
+    background: transparent;
+    border: 2px solid #4caf50;
+    color: #4caf50;
+}
+
+.habit-action-btn--positive:hover {
+    background: #4caf50;
+    color: #0a0a0a;
+    transform: none;
+}
+
+.habit-action-btn--negative {
+    background: transparent;
+    border: 2px solid var(--danger-red);
+    color: var(--danger-red);
+}
+
+.habit-action-btn--negative:hover {
+    background: var(--danger-red);
+    color: #0a0a0a;
+    transform: none;
+}
+
+.habit-item-icon-btn {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 2px 4px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.habit-item-icon-btn:hover {
+    color: var(--gold-start);
+    transform: none;
+    box-shadow: none;
+}
+
+.habit-item-icon-btn--remove:hover {
+    color: var(--danger-red);
+}
+
+@media (max-width: 480px) {
+    .habit-item {
+        flex-wrap: wrap;
+    }
+    .habit-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

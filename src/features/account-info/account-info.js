@@ -76,6 +76,37 @@ function applyAccountAvatarPreview() {
     img.src = '../../assets/images/me.jpg';
 }
 
+// Whether the legacy, device-only fallback image (src/assets/images/me.jpg -
+// gitignored, never part of any save) actually exists on THIS device. A
+// plain HEAD request is enough - no need to pull the whole file just to
+// check. Any failure (404, offline, whatever) just means "no", never
+// throws - this only ever gates whether a button shows, it's not worth
+// surfacing an error for.
+async function localFallbackPhotoExists() {
+    try {
+        const res = await fetch('../../assets/images/me.jpg', { method: 'HEAD', cache: 'no-store' });
+        return res.ok;
+    } catch (error) {
+        return false;
+    }
+}
+
+// Shows "Use Existing Photo" only when it would actually do something: no
+// real photo saved yet (Vault.getProfilePhoto() null) AND the legacy local
+// file is actually sitting on this device to import. Re-run after every
+// upload/remove so the button's visibility always reflects current state,
+// same reasoning as applyAccountAvatarPreview being re-run after those too.
+async function updateAvatarMigrateButton() {
+    const btn = document.getElementById('account-avatar-migrate-btn');
+    if (!btn) return;
+
+    if (Vault.getProfilePhoto()) {
+        btn.hidden = true;
+        return;
+    }
+    btn.hidden = !(await localFallbackPhotoExists());
+}
+
 function populatePersonalInfoForm(info) {
     document.getElementById('pi-alias').value = info.alias || '';
     document.getElementById('pi-firstName').value = info.firstName || '';
@@ -245,6 +276,7 @@ function showUnlockedContent(info, pin) {
 
     populatePersonalInfoForm(info);
     applyAccountAvatarPreview();
+    updateAvatarMigrateButton();
 }
 
 // First-time setup - only reachable while Vault.hasAccountPin() is false.
@@ -344,6 +376,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dataUrl = await downscaleImageFile(file);
             Vault.setProfilePhoto(dataUrl);
             applyAccountAvatarPreview();
+            updateAvatarMigrateButton();
             Toast.show('🖼️ Photo updated.', 'positive');
         } catch (error) {
             Toast.show('Could not process that image.', 'negative');
@@ -356,7 +389,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!confirm('Remove your custom photo? This falls back to the default avatar.')) return;
         Vault.clearProfilePhoto();
         applyAccountAvatarPreview();
+        updateAvatarMigrateButton();
         Toast.show('Photo removed.', 'negative');
+    });
+
+    // One-click migration for the exact scenario that prompted this button:
+    // a photo that LOOKS set (it's on screen right now) but is actually
+    // just src/assets/images/me.jpg, a local fallback file that was never
+    // part of the save and so never traveled with an export. Fetches that
+    // same file this device is already rendering, runs it through the
+    // SAME downscale/store path a manual upload uses (downscaleImageFile
+    // happily takes any Blob, not just a <input type=file> File), so from
+    // this point on it's real save data like any other uploaded photo.
+    document.getElementById('account-avatar-migrate-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('account-avatar-migrate-btn');
+        const originalLabel = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '📥 Importing...';
+
+        try {
+            const res = await fetch('../../assets/images/me.jpg', { cache: 'no-store' });
+            if (!res.ok) throw new Error('not-found');
+
+            const blob = await res.blob();
+            if (blob.type && !blob.type.startsWith('image/')) throw new Error('not-an-image');
+
+            const dataUrl = await downscaleImageFile(blob);
+            Vault.setProfilePhoto(dataUrl);
+            applyAccountAvatarPreview();
+            await updateAvatarMigrateButton();
+            Toast.show('🖼️ Existing photo imported - it\'ll travel with your save from now on.', 'positive');
+        } catch (error) {
+            Toast.show("Couldn't find that photo on this device to import.", 'negative');
+            btn.hidden = true;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+        }
     });
 
     document.getElementById('save-account-info-btn').addEventListener('click', async () => {
