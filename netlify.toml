@@ -1,0 +1,8 @@
+# Netlify config for the Cloud Sync feature (Netlify Functions + Netlify
+# Blobs) - everything else about this site (a plain static HTML/CSS/JS app,
+# no build step) still needs nothing else here. Functions live under
+# netlify/functions/ - this is what tells Netlify to actually look there,
+# since there's no build plugin/framework that would otherwise auto-detect
+# it on a site with no build command configured.
+[functions]
+  directory = "netlify/functions"

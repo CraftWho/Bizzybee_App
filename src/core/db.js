@@ -42,6 +42,30 @@ function computeDailyDP(dailyTasks) {
     }, 0);
 }
 
+// Same "live, not a ledger" philosophy again, just bidirectional: a
+// Habit's `history` is a permanent log of every +/- click (see
+// Vault.bumpHabit below) - this sums positive clicks and SUBTRACTS
+// negative ones, both at the habit's CURRENT dp value, so editing a
+// habit's dp later reflects across every past click, in both directions,
+// exactly like a Daily's completedDates does for its own dp.
+function computeHabitDP(habits) {
+    return (habits || []).reduce((sum, habit) => {
+        const history = habit.history || [];
+        const positive = history.filter(h => h.direction === 'positive').length;
+        const negative = history.filter(h => h.direction === 'negative').length;
+        return sum + (positive - negative) * habit.dp;
+    }, 0);
+}
+
+// Same live-not-a-ledger philosophy as computeTotalDP's quest tasks: a
+// To-Do only ever contributes its CURRENT dp, and only once - the moment
+// `completed` flips true (see Vault.toggleTodoComplete below). Unlike a
+// Daily/Habit there's no repeat count to multiply by; a To-Do happens
+// exactly once by definition.
+function computeTodoDP(todos) {
+    return (todos || []).filter(t => t.completed).reduce((sum, t) => sum + (t.dp || 0), 0);
+}
+
 function todayISO() {
     return new Date().toISOString().slice(0, 10);
 }
@@ -95,7 +119,7 @@ function textContainsTerm(text, term) {
 // hand Eevee a real batch of "what actually happened" for a level-up
 // assessment - keeping both in exact sync instead of two copies of the same
 // matching logic that could quietly drift apart.
-function computeSkillContributions(dailyTasks, dictionaryTerms, quests) {
+function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos) {
     const categoryByTermName = {};
     const termNames = [];
     (dictionaryTerms || []).forEach(term => {
@@ -113,6 +137,31 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests) {
             (task.completedDates || []).forEach(dateStr => {
                 contributions.push({ category, label: task.label, dp: task.dp || 0, date: dateStr, source: 'daily' });
             });
+        });
+    });
+
+    // Habits: only POSITIVE clicks count toward the matrix - a negative
+    // click is a lapse, not accomplishment, so it shouldn't read as
+    // "skill mastery work" even though it does subtract real DP overall
+    // (see computeHabitDP above). Each positive click contributes its own
+    // dated entry, same as a Daily's completedDates.
+    (habits || []).forEach(habit => {
+        (habit.tags || []).forEach(tag => {
+            const category = categoryByTermName[tag.toLowerCase()] || tag;
+            (habit.history || []).filter(h => h.direction === 'positive').forEach(entry => {
+                contributions.push({ category, label: habit.label, dp: habit.dp || 0, date: entry.date, source: 'habit' });
+            });
+        });
+    });
+
+    // To-Dos: tagged directly (like Dailies/Habits), not text-matched
+    // (like Quests below) - only once completed, and only ever once,
+    // matching computeTodoDP's own one-shot counting.
+    (todos || []).forEach(todo => {
+        if (!todo.completed) return;
+        (todo.tags || []).forEach(tag => {
+            const category = categoryByTermName[tag.toLowerCase()] || tag;
+            contributions.push({ category, label: todo.label, dp: todo.dp || 0, date: todo.completedDate || null, source: 'todo' });
         });
     });
 
@@ -137,9 +186,9 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests) {
     return contributions;
 }
 
-function computeSkillMatrixDP(dailyTasks, dictionaryTerms, quests) {
+function computeSkillMatrixDP(dailyTasks, dictionaryTerms, quests, habits, todos) {
     const dpByCategory = {};
-    computeSkillContributions(dailyTasks, dictionaryTerms, quests).forEach(contribution => {
+    computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos).forEach(contribution => {
         dpByCategory[contribution.category] = (dpByCategory[contribution.category] || 0) + contribution.dp;
     });
 
@@ -975,6 +1024,19 @@ class DatabaseManager {
             // content, not blueprint content" reasoning as calendarEvents/
             // dictionary above.
             this.state.studyQueue = [];
+            // Habits plugin (src/plugins/habits/) - Habitica-style +/-
+            // action buttons, own top-level array like dailyTasks (not
+            // nested under studyQueue's shape - a habit's `history` log is
+            // its own thing, see computeHabitDP/bumpHabit). Ships empty,
+            // same "local content, only ever comes from adding it through
+            // the page" reasoning as studyQueue above.
+            this.state.habits = [];
+            // To-Dos plugin (src/plugins/todos/) - one-off tasks, same
+            // shape family as dailyTasks (title/notes/checklist/
+            // difficulty/dp/tags/reminders) minus a repeat schedule, plus
+            // a due date and a `completed`/`completedDate` pair instead of
+            // completedDates. Ships empty, same reasoning as habits above.
+            this.state.todos = [];
             // Skill Tree progress - id -> unlocked boolean, seeded from
             // SKILL_TREE_CATALOG's defaultUnlocked on a fresh save. Same
             // "local setting, not blueprint content" reasoning as plugins/
@@ -1105,7 +1167,10 @@ class DatabaseManager {
     getUser() {
         if (!this.state) return null;
 
-        const totalDP = computeTotalDP(this.state.quests) + computeDailyDP(this.state.dailyTasks);
+        const totalDP = computeTotalDP(this.state.quests)
+            + computeDailyDP(this.state.dailyTasks)
+            + computeHabitDP(this.state.habits)
+            + computeTodoDP(this.state.todos);
         const { level, currentXP, nextLevelXP } = computeLevelProgress(totalDP);
 
         return {
@@ -1357,6 +1422,27 @@ class DatabaseManager {
         }
         if (!this.state.calendarEvents) {
             this.state.calendarEvents = [];
+            changed = true;
+        }
+        if (!this.state.habits) {
+            this.state.habits = [];
+            changed = true;
+        }
+        if (!this.state.todos) {
+            this.state.todos = [];
+            changed = true;
+        }
+        // Habits and To-Dos ship switched ON by default - an explicit
+        // "already installed" ask, unlike every other optional plugin
+        // (Calendar, Study, ...) which starts off until you flip it on
+        // yourself in Plugin Hub. Gated on its own one-time flag rather
+        // than on state.plugins.habits/todos being falsy, so deliberately
+        // uninstalling either later in Plugin Hub never gets silently
+        // re-installed the next time the app loads.
+        if (!this.state.habitsTodosDefaultInstalled) {
+            this.state.plugins.habits = true;
+            this.state.plugins.todos = true;
+            this.state.habitsTodosDefaultInstalled = true;
             changed = true;
         }
         if (changed) this.save();
@@ -2331,15 +2417,23 @@ class DatabaseManager {
     // "daily task" exists; this is the one place allowed to make that
     // translation, since Vault is already the accepted single spot every
     // feature's real data shape lives. Shape is deliberately minimal and
-    // feature-agnostic: { id, label, reminders: [{ id, time }] }. Only
-    // Dailies feeds this today, but any future feature with its own
-    // due-now + reminder-times data (a Quests deadline, a Habits plugin
-    // entry, etc.) could be folded into this same list later without
-    // reminders.js ever changing.
+    // feature-agnostic: { id, label, reminders: [{ id, time }] }. Dailies
+    // and To-Dos both feed this now - a To-Do only counts as "due" on its
+    // actual due date, not every day like a Daily (see isDailyDueOn vs the
+    // plain dueDate === today check below). Habits deliberately don't feed
+    // this - they're not "due" on any particular day, there's nothing to
+    // remind about.
     getDueReminderItems() {
-        return this.getDailyTasks()
+        const dailyItems = this.getDailyTasks()
             .filter(task => task.dueToday && !task.completedToday)
             .map(task => ({ id: task.id, label: task.label, reminders: task.reminders || [] }));
+
+        const today = todayISO();
+        const todoItems = this.getTodos()
+            .filter(todo => !todo.completed && todo.dueDate === today)
+            .map(todo => ({ id: todo.id, label: todo.label, reminders: todo.reminders || [] }));
+
+        return [...dailyItems, ...todoItems];
     }
 
     toggleDailyTask(taskId) {
@@ -2419,6 +2513,172 @@ class DatabaseManager {
         if (!this.state || !this.state.dailyTasks) return false;
 
         this.state.dailyTasks = this.state.dailyTasks.filter(t => t.id !== taskId);
+        this.save();
+        return true;
+    }
+
+    // 5i2. Logic: Habits plugin (src/plugins/habits/) - a Habitica-style
+    // +/- action button. No schedule, no reset, nothing "due" - just a
+    // permanent `history` log of every click (see computeHabitDP above for
+    // how that log turns into a live DP total). Every habit always shows
+    // BOTH the + and - button (an explicit "both, always" call), so unlike
+    // Dailies there's no per-item "is this the right kind of action today"
+    // check - bumpHabit always just logs the click.
+    getHabits() {
+        if (!this.state) return [];
+        return (this.state.habits || []).map(habit => {
+            const history = habit.history || [];
+            return {
+                ...habit,
+                positiveCount: history.filter(h => h.direction === 'positive').length,
+                negativeCount: history.filter(h => h.direction === 'negative').length
+            };
+        });
+    }
+
+    // direction: 'positive' | 'negative'. Fire-and-forget, same as a real
+    // Habitica habit click - there's no toggle/undo (that's what clicking
+    // the opposite button is for), each click is its own permanent entry.
+    bumpHabit(habitId, direction) {
+        if (!this.state) return null;
+        if (direction !== 'positive' && direction !== 'negative') return null;
+
+        const habit = (this.state.habits || []).find(h => h.id === habitId);
+        if (!habit) return null;
+
+        if (!habit.history) habit.history = [];
+        habit.history.push({
+            id: `bump-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            direction,
+            date: todayISO()
+        });
+
+        this.save();
+        this._syncLevelUpBees();
+        // Collector-bee material drops only fire on genuine accomplishment,
+        // same reasoning as computeSkillContributions skipping negative
+        // clicks for the matrix - a lapse shouldn't drop loot.
+        if (direction === 'positive') this._collectMaterialsOnCompletion();
+        return habit;
+    }
+
+    addHabit({ label, dp, difficulty, notes, tags }) {
+        if (!this.state) return null;
+        if (!this.state.habits) this.state.habits = [];
+
+        this.state.habits.push({
+            id: `habit-${Date.now()}`,
+            label,
+            dp: Number(dp) || 0,
+            difficulty: difficulty || null,
+            notes: notes || '',
+            tags: Array.isArray(tags) ? tags : [],
+            history: []
+        });
+
+        this.save();
+        return this.state.habits;
+    }
+
+    updateHabit(habitId, { label, dp, difficulty, notes, tags }) {
+        if (!this.state) return null;
+
+        const habit = (this.state.habits || []).find(h => h.id === habitId);
+        if (!habit) return null;
+
+        if (label !== undefined) habit.label = label;
+        if (dp !== undefined) habit.dp = Number(dp) || 0;
+        if (difficulty !== undefined) habit.difficulty = difficulty || null;
+        if (notes !== undefined) habit.notes = notes;
+        if (tags !== undefined) habit.tags = Array.isArray(tags) ? tags : [];
+
+        this.save();
+        return habit;
+    }
+
+    removeHabit(habitId) {
+        if (!this.state || !this.state.habits) return false;
+
+        this.state.habits = this.state.habits.filter(h => h.id !== habitId);
+        this.save();
+        return true;
+    }
+
+    // 5i3. Logic: To-Dos plugin (src/plugins/todos/) - a one-off task, same
+    // field family as a Daily Task (see addDailyTask above) minus a repeat
+    // schedule, plus an optional due date. `completed`/`completedDate`
+    // replace Dailies' completedDates list since a To-Do only ever
+    // completes once - no per-day re-derivation needed the way
+    // getDailyTasks does for completedToday/dueToday.
+    getTodos() {
+        if (!this.state) return [];
+        return this.state.todos || [];
+    }
+
+    // Checking a To-Do complete "archives" it - todos.js filters completed
+    // items out of the active list (they collapse into a "Completed"
+    // section instead of vanishing outright, so nothing's ever silently
+    // lost, and unchecking there brings it right back to active).
+    toggleTodoComplete(todoId) {
+        if (!this.state) return null;
+
+        const todo = (this.state.todos || []).find(t => t.id === todoId);
+        if (!todo) return null;
+
+        todo.completed = !todo.completed;
+        todo.completedDate = todo.completed ? todayISO() : null;
+
+        this.save();
+        this._syncLevelUpBees();
+        if (todo.completed) this._collectMaterialsOnCompletion();
+        return todo;
+    }
+
+    addTodo({ label, dp, difficulty, notes, checklist, dueDate, reminders, tags }) {
+        if (!this.state) return null;
+        if (!this.state.todos) this.state.todos = [];
+
+        this.state.todos.push({
+            id: `todo-${Date.now()}`,
+            label,
+            dp: Number(dp) || 0,
+            difficulty: difficulty || null,
+            notes: notes || '',
+            checklist: Array.isArray(checklist) ? checklist : [],
+            dueDate: dueDate || null,
+            reminders: Array.isArray(reminders) ? reminders : [],
+            tags: Array.isArray(tags) ? tags : [],
+            completed: false,
+            completedDate: null
+        });
+
+        this.save();
+        return this.state.todos;
+    }
+
+    updateTodo(todoId, { label, dp, difficulty, notes, checklist, dueDate, reminders, tags }) {
+        if (!this.state) return null;
+
+        const todo = (this.state.todos || []).find(t => t.id === todoId);
+        if (!todo) return null;
+
+        if (label !== undefined) todo.label = label;
+        if (dp !== undefined) todo.dp = Number(dp) || 0;
+        if (difficulty !== undefined) todo.difficulty = difficulty || null;
+        if (notes !== undefined) todo.notes = notes;
+        if (checklist !== undefined) todo.checklist = Array.isArray(checklist) ? checklist : [];
+        if (dueDate !== undefined) todo.dueDate = dueDate || null;
+        if (reminders !== undefined) todo.reminders = Array.isArray(reminders) ? reminders : [];
+        if (tags !== undefined) todo.tags = Array.isArray(tags) ? tags : [];
+
+        this.save();
+        return todo;
+    }
+
+    removeTodo(todoId) {
+        if (!this.state || !this.state.todos) return false;
+
+        this.state.todos = this.state.todos.filter(t => t.id !== todoId);
         this.save();
         return true;
     }
@@ -2594,7 +2854,7 @@ class DatabaseManager {
         if (!this.state) return [];
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
-        return computeSkillMatrixDP(this.state.dailyTasks, this.state.dictionary, this.state.quests).map(entry => {
+        return computeSkillMatrixDP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
             const stored = this.state.skillLevels[entry.category];
             const levelState = computeSkillLevelState(entry.dp, stored ? stored.level : 1);
             return { ...entry, ...levelState };
@@ -2614,7 +2874,7 @@ class DatabaseManager {
         if (!this.state) return [];
         const sinceTime = sinceISO ? new Date(sinceISO).getTime() : null;
 
-        return computeSkillContributions(this.state.dailyTasks, this.state.dictionary, this.state.quests)
+        return computeSkillContributions(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
             .filter(c => c.category === category)
             .filter(c => {
                 if (!sinceTime) return true;
@@ -2641,7 +2901,7 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
-        const matrixEntry = computeSkillMatrixDP(this.state.dailyTasks, this.state.dictionary, this.state.quests)
+        const matrixEntry = computeSkillMatrixDP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
             .find(entry => entry.category === category);
         const totalDP = matrixEntry ? matrixEntry.dp : 0;
 

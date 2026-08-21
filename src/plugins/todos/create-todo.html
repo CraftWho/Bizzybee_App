@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 Create To-Do</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./create-todo.css">
+</head>
+<body>
+
+    <main class="create-todo-container">
+        <div class="panel page-header-panel">
+            <h2 class="page-title" id="create-todo-heading">📝 <span class="gold-gradient-text">CREATE TO-DO</span></h2>
+            <p class="page-subtitle" id="create-todo-subtitle">Set it up once - title, checklist, difficulty, due date, reminders, tags.</p>
+        </div>
+
+        <section class="panel create-todo-panel">
+            <h3>📝 Task Details</h3>
+            <label class="form-label" for="todo-title-input">Task Title</label>
+            <input type="text" id="todo-title-input" class="todo-text-input" placeholder="e.g. Renew car registration">
+
+            <label class="form-label" for="todo-notes-input">Notes</label>
+            <textarea id="todo-notes-input" class="todo-notes-input" placeholder="Optional details..."></textarea>
+
+            <h3 class="todo-section-heading">✅ Checklist</h3>
+            <div class="todo-checklist" id="todo-checklist"></div>
+
+            <h3 class="todo-section-heading">⭐ Difficulty &amp; DP</h3>
+            <div class="todo-difficulty-grid" id="todo-difficulty-grid"></div>
+
+            <div class="todo-dp-row">
+                <div class="todo-dp-display">
+                    <span class="form-label">DP Reward</span>
+                    <span class="todo-dp-value" id="todo-dp-value">30</span>
+                </div>
+                <button type="button" id="todo-ask-eevee-btn" class="todo-ask-eevee-btn">🐝 Ask Eevee</button>
+            </div>
+            <p class="todo-dp-note">One-off, so DP runs higher than a Daily/Habit of the same tier. Ask Eevee to judge it from your title, notes, and difficulty instead.</p>
+
+            <h3 class="todo-section-heading">📅 Due Date</h3>
+            <label class="form-label" for="todo-due-date">Due (optional)</label>
+            <input type="date" id="todo-due-date" class="todo-text-input">
+            <p class="todo-due-date-note">Leave blank for a to-do with no deadline. Past due shows an overdue badge on the list.</p>
+
+            <h3 class="todo-section-heading">🔔 Reminders</h3>
+            <div class="todo-reminders-list" id="todo-reminders-list"></div>
+
+            <div class="clock-wheel-widget">
+                <div class="clock-wheel" id="todo-clock-wheel" data-mode="hour">
+                    <div class="clock-wheel-hand" id="todo-clock-hand"></div>
+                    <div class="clock-wheel-center-dot"></div>
+                    <div class="clock-wheel-face" id="todo-clock-face"></div>
+                </div>
+                <div class="clock-wheel-controls">
+                    <span class="clock-wheel-readout" id="todo-clock-readout">12:00 AM</span>
+                    <div class="clock-wheel-period-toggle">
+                        <button type="button" class="clock-wheel-period-btn clock-wheel-period-btn--selected" data-period="AM">AM</button>
+                        <button type="button" class="clock-wheel-period-btn" data-period="PM">PM</button>
+                    </div>
+                    <button type="button" id="todo-add-reminder-btn" class="todo-add-reminder-btn">+ Add reminder</button>
+                </div>
+            </div>
+            <p class="todo-reminder-note">Fires a real browser notification on your due date, but only while a Bizzybee tab is open somewhere.</p>
+
+            <h3 class="todo-section-heading">🏷️ Tags</h3>
+            <div class="todo-tags-list" id="todo-tags-list"></div>
+            <p class="todo-tags-note">Automatic - detected from your title &amp; notes against Dictionary terms, existing Daily/To-Do tags, and Quest tasks. Click × to dismiss one.</p>
+        </section>
+
+        <div class="todo-form-actions">
+            <button type="button" id="todo-cancel-btn" class="todo-cancel-btn">Cancel</button>
+            <button type="button" id="todo-save-btn" class="todo-save-btn">💾 Create To-Do</button>
+        </div>
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../../features/llm-engine/llm-engine.js"></script>
+
+    <script src="./create-todo.js"></script>
+</body>
+</html>

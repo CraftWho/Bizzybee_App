@@ -12,6 +12,14 @@
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./settings.css">
+
+    <!-- Netlify Identity widget - handles login/signup/logout UI and JWT
+         refresh for the Cloud Sync panel below. Netlify auto-injects this
+         script's actual auth behavior once the site is deployed with
+         Identity enabled; it's a harmless no-op script tag on any other
+         host, which is why it's safe to leave in unconditionally rather
+         than feature-detecting the deployment first. -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
 
@@ -84,6 +92,57 @@
                     <p>Wipes everything and reloads fresh from the blueprint. This cannot be undone - all progress will be lost.</p>
                 </div>
                 <button id="reset-data-btn" class="settings-btn-danger">⚠️ Reset</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h3>☁️ Cloud Sync</h3>
+            <p class="settings-intro">Optional - sign in to keep your progress synced across devices automatically, instead of moving files by hand below. Invite-only while in beta.</p>
+
+            <!-- Signed-out state: default visible state, shown until
+                 netlifyIdentity confirms a logged-in user (see settings.js).
+                 Also what renders on any deployment where Identity isn't
+                 enabled yet - the Log In button just won't do anything
+                 useful until it is, matching how the rest of this feature
+                 degrades gracefully with no build/deploy step required. -->
+            <div id="cloud-sync-signed-out">
+                <div class="settings-action-row">
+                    <div class="settings-action-info">
+                        <strong>Sign In</strong>
+                        <p>Use the email you were invited with. First time? The same button lets you set your password.</p>
+                    </div>
+                    <button id="cloud-sync-login-btn">🔑 Log In / Sign Up</button>
+                </div>
+            </div>
+
+            <!-- Signed-in state: hidden until settings.js confirms a user via
+                 netlifyIdentity's 'init'/'login' events. -->
+            <div id="cloud-sync-signed-in" hidden>
+                <div class="settings-action-row">
+                    <div class="settings-action-info">
+                        <strong>Signed in as <span id="cloud-sync-email"></span></strong>
+                        <p id="cloud-sync-status">Not synced yet on this device.</p>
+                    </div>
+                    <div class="settings-action-btns">
+                        <button id="cloud-sync-logout-btn" class="account-avatar-migrate-btn">🚪 Sign Out</button>
+                    </div>
+                </div>
+
+                <div class="settings-action-row">
+                    <div class="settings-action-info">
+                        <strong>Save to Cloud</strong>
+                        <p>Uploads your current progress from this device, overwriting whatever was saved to the cloud before.</p>
+                    </div>
+                    <button id="cloud-sync-push-btn">⬆️ Save to Cloud</button>
+                </div>
+
+                <div class="settings-action-row">
+                    <div class="settings-action-info">
+                        <strong>Load from Cloud</strong>
+                        <p>Replaces this device's progress with whatever was last saved to the cloud - make sure that's what you want first.</p>
+                    </div>
+                    <button id="cloud-sync-pull-btn">⬇️ Load from Cloud</button>
+                </div>
             </div>
         </section>
 

@@ -104,6 +104,34 @@
     margin-top: 15px;
 }
 
+.settings-action-btns {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Secondary/outline treatment - Edit stays the normal filled button
+   (matches every other action button on this page), this one reads as
+   the less-common, one-time-cleanup action next to it. */
+.account-avatar-migrate-btn {
+    background: transparent;
+    color: var(--gold-start);
+    border: 1px solid var(--gold-start);
+    white-space: nowrap;
+}
+
+.account-avatar-migrate-btn:hover {
+    background: var(--gold-start);
+    color: var(--obsidian);
+    box-shadow: none;
+}
+
+.account-avatar-migrate-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
 /* --- Photo preview --- */
 .settings-avatar-preview-row {
     display: flex;
