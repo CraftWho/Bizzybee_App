@@ -96,6 +96,67 @@
     text-align: left;
 }
 
+/* Cloud Sync invite/confirmation/recovery handoff - only ever shown when
+   this page loads with a Netlify Identity token in the URL hash (see
+   index.html's #cloud-sync-invite-status + login.js). Gold and centered so
+   it reads as an active, in-progress status rather than the muted grey
+   .load-save-status hint text below. */
+.cloud-sync-invite-status {
+    margin: 0 0 18px;
+    padding: 10px 14px;
+    border: 1px solid var(--gold-start);
+    border-radius: 4px;
+    color: var(--gold-start);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* Third front-door option (invited testers) - see index.html's
+   .cloud-sync-login-section + login.js's setupCloudSyncLoginButton().
+   Deliberately styled as a secondary/outline button, not the solid gold
+   #auth-submit-btn treatment, so it doesn't compete with "Enter Hive" as
+   the primary action - this is the less-common path. */
+.cloud-sync-login-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed #333;
+    text-align: center;
+}
+
+.cloud-sync-login-divider {
+    margin: 0 0 14px;
+    color: #666;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.btn-cloud-sync {
+    width: 100%;
+    background: transparent;
+    color: var(--gold-start);
+    border: 2px solid var(--gold-start);
+    border-radius: 4px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn-cloud-sync:hover {
+    background: rgba(255, 215, 0, 0.08);
+    box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.cloud-sync-login-hint {
+    margin: 10px 0 0;
+    color: #888;
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
 .load-save-section {
     margin-top: 25px;
     padding-top: 20px;

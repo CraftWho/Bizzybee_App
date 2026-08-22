@@ -10,6 +10,19 @@
     <link rel="stylesheet" href="./src/core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="./login.css">
     <link rel="manifest" href="./manifest.json">
+
+    <!-- Netlify Identity widget - needed HERE, not just on Settings, because
+         this is the site root: invite/confirmation/recovery email links
+         from Cloud Sync land here by default with a token in the URL hash
+         (#invite_token=...). Without the widget loaded on this exact page,
+         that token was being silently dropped - the app's own unrelated
+         passcode/session check below would just fall through to "already
+         logged in, skip straight through" (if this device happened to have
+         a session already) or the normal login form, with zero feedback
+         that anything Cloud Sync-related was ever supposed to happen. See
+         HANDOFF.md's save-point notes. Harmless no-op script tag on any
+         host without Identity enabled, same as on Settings. -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body class="login-body">
 
@@ -19,6 +32,12 @@
         <div class="login-card">
             <h1 class="gold-gradient-text">Bizzybee Login</h1>
             <p class="subtitle">Authenticate to access the Hive.</p>
+
+            <!-- Only ever shown when this page loads with a Netlify Identity
+                 token in the URL hash (see the widget script tag/comment in
+                 <head>) - completely separate from the login form below it,
+                 which normal visits never touch. -->
+            <p id="cloud-sync-invite-status" class="cloud-sync-invite-status" hidden></p>
 
             <form id="login-form" class="auth-form">
                 <div class="input-group-auth">
@@ -35,6 +54,21 @@
 
                 <button type="submit" id="auth-submit-btn">Enter Hive</button>
             </form>
+
+            <!-- Third front-door option, alongside the demo credentials and redacted's
+                 own personal passcode above: for invited beta testers with a real
+                 Cloud Sync (Netlify Identity) account. Opens the Identity widget's
+                 own login modal - separate from both the form above (which never
+                 touches Netlify) and the invite/confirm banner above that (which
+                 only appears for a one-time link, see handleCloudSyncTokenIfPresent
+                 in login.js). Hidden by setupCloudSyncLoginButton() in login.js if
+                 the widget script didn't load (e.g. offline), so it never sits
+                 there as a dead button. -->
+            <div class="cloud-sync-login-section">
+                <p class="cloud-sync-login-divider">— or —</p>
+                <button type="button" id="cloud-sync-login-btn" class="btn-cloud-sync">☁️ Sign In with Cloud Sync</button>
+                <p class="cloud-sync-login-hint">For invited beta testers with a Cloud Sync account.</p>
+            </div>
 
             <div id="load-save-section" class="load-save-section" hidden>
                 <p class="load-save-heading">🐝 Welcome back. This device doesn't have your data yet.</p>
