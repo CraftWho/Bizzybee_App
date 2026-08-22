@@ -62,13 +62,15 @@ function handleCloudSyncTokenIfPresent() {
     status.hidden = false;
     status.textContent = '☁️ Confirming your Cloud Sync account...';
 
-    netlifyIdentity.on('login', () => {
+    const finishConfirmed = () => {
         status.textContent = '✅ Cloud Sync account confirmed! Taking you to Settings...';
         netlifyIdentity.close();
         setTimeout(() => {
             window.location.href = './src/features/settings/settings.html';
         }, 1500);
-    });
+    };
+
+    netlifyIdentity.on('login', finishConfirmed);
 
     netlifyIdentity.on('error', (err) => {
         console.error('Netlify Identity error:', err);
@@ -76,6 +78,25 @@ function handleCloudSyncTokenIfPresent() {
     });
 
     netlifyIdentity.init();
+
+    // REAL BUG FOUND (live-debugged 2026-08-22, see HANDOFF.md): Identity
+    // keeps its OWN persisted session (netlifyIdentity.currentUser()),
+    // completely separate from our bizzybee_session flag. If this browser
+    // already has a valid, confirmed session for this account - e.g. this
+    // exact token was already used successfully in an earlier attempt, or
+    // the account got confirmed via some other path (a recovery email,
+    // etc.) - the widget just silently restores that session instead of
+    // firing a fresh 'login' event, since nothing new actually happened.
+    // Without this check, the banner above gets stuck on "Confirming..."
+    // forever, because 'login' never fires for a session it's only
+    // restoring, not establishing. Caught by directly inspecting
+    // netlifyIdentity.currentUser() on a live tab that turned out to
+    // already hold a fully confirmed session while the page sat there
+    // looking blank/broken.
+    if (netlifyIdentity.currentUser()) {
+        finishConfirmed();
+    }
+
     return true;
 }
 
@@ -124,6 +145,21 @@ function setupCloudSyncLoginButton() {
     });
 
     btn.addEventListener('click', () => {
+        // Same root cause as the fix in handleCloudSyncTokenIfPresent()
+        // above: netlifyIdentity.currentUser() can already be populated
+        // from a session this browser established earlier (a previous
+        // Cloud Sync sign-in, or an invite/recovery that actually
+        // succeeded even if the page never showed it). Opening the login
+        // modal in that case just makes someone re-enter credentials for
+        // a session that's already valid - or, worse, shows a confusing
+        // fallback screen, which is exactly what was reported and
+        // live-debugged on 2026-08-22 (see HANDOFF.md). If we're already
+        // signed in, honor that immediately instead of prompting again.
+        if (netlifyIdentity.currentUser()) {
+            localStorage.setItem('bizzybee_session', 'identity');
+            goHome();
+            return;
+        }
         netlifyIdentity.open('login');
     });
 }
