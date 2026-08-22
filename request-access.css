@@ -1,0 +1,59 @@
+/* --- REQUEST ACCESS PAGE STYLES ---
+   Sits alongside login.css and reuses its .login-body/.login-container/
+   .hive-core-bg/.login-card/.subtitle/.auth-form/.input-group-auth/
+   .login-error/.auth-footer/.btn-link classes directly (this page is
+   styled to match the login page on purpose) - this file only adds what's
+   genuinely new here: the textarea variant of the auth input, the
+   honeypot field, and the post-submit success state. See HANDOFF.md's
+   "Request Access" entry for the full feature writeup. */
+
+.input-group-auth textarea {
+    background: #ffffff;
+    color: var(--obsidian);
+    font-weight: 600;
+    padding: 12px;
+    border: 3px solid transparent;
+    border-image: linear-gradient(to right, var(--gold-start), var(--gold-end)) 1;
+    font-family: var(--font-main);
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.input-group-auth textarea:focus {
+    outline: none;
+    box-shadow: 0 0 15px var(--gold-start);
+}
+
+/* Netlify's own documented honeypot pattern (see spam-filters docs) - a
+   field real visitors never see or fill in, but simple spam bots that
+   blindly fill every input in a form often do. Positioned off-screen
+   rather than display:none - some bots specifically skip display:none
+   fields, fewer skip ones that are just visually out of the viewport. */
+.request-access-honeypot {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+}
+
+#request-access-submit-btn {
+    margin-top: 10px;
+    width: 100%;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.request-access-sent {
+    text-align: center;
+    padding: 10px 0 4px;
+}
+
+.request-access-sent-icon {
+    font-size: 2.4rem;
+    margin: 0 0 12px;
+}
+
+.request-access-sent-text {
+    color: #ccc;
+    line-height: 1.6;
+    margin: 0;
+}
