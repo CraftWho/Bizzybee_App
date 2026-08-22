@@ -23,15 +23,35 @@ function downloadFile(content, filename, mimeType) {
 // Identity's enabled, the widget script is a harmless no-op and this
 // whole panel just quietly does nothing when clicked.
 
+// Same localStorage keys cloud-sync.js uses for the auto-sync engine -
+// duplicated as plain string literals rather than imported, since that
+// module loads asynchronously (injected by app.js) and isn't guaranteed to
+// exist yet by the time this file's own DOMContentLoaded handler runs. See
+// cloud-sync.js's header comment for the full rationale.
+const CLOUD_SYNC_AUTO_KEY = 'bizzybee_auto_sync';
+const CLOUD_SYNC_LAST_SYNCED_KEY = 'bizzybee_last_synced_at';
+
 function cloudSyncShowSignedOut() {
     document.getElementById('cloud-sync-signed-out').hidden = false;
     document.getElementById('cloud-sync-signed-in').hidden = true;
+}
+
+function cloudSyncLastSyncedText() {
+    const timestamp = localStorage.getItem(CLOUD_SYNC_LAST_SYNCED_KEY);
+    return timestamp
+        ? `Last synced: ${new Date(timestamp).toLocaleString()}`
+        : 'Not synced yet on this device.';
 }
 
 function cloudSyncShowSignedIn(user) {
     document.getElementById('cloud-sync-signed-out').hidden = true;
     document.getElementById('cloud-sync-signed-in').hidden = false;
     document.getElementById('cloud-sync-email').textContent = user.email || '';
+    // Reads whatever was actually last persisted (by a manual Save/Load
+    // here, or by the auto-sync engine on any other page) rather than the
+    // hardcoded "Not synced yet" this used to leave in place until the next
+    // fresh manual action - see HANDOFF.md's auto-sync entry.
+    cloudSyncSetStatus(cloudSyncLastSyncedText());
 }
 
 function cloudSyncSetStatus(message) {
@@ -79,6 +99,16 @@ function initCloudSync() {
         netlifyIdentity.logout();
     });
 
+    // Defaults ON (absent key = enabled) - matches cloud-sync.js's own
+    // isEnabled(); this toggle is how a device opts OUT, not how it opts
+    // in. Wired here (not gated behind the 'login' event) since it's a
+    // plain localStorage flag with no auth dependency of its own.
+    const autoToggle = document.getElementById('cloud-sync-auto-toggle');
+    autoToggle.checked = localStorage.getItem(CLOUD_SYNC_AUTO_KEY) !== 'false';
+    autoToggle.addEventListener('change', () => {
+        localStorage.setItem(CLOUD_SYNC_AUTO_KEY, autoToggle.checked ? 'true' : 'false');
+    });
+
     document.getElementById('cloud-sync-push-btn').addEventListener('click', async () => {
         const snapshot = Vault.exportFullState();
         if (!snapshot) {
@@ -97,7 +127,8 @@ function initCloudSync() {
             if (!response.ok || !result.ok) {
                 throw new Error(result.error || `Save failed (${response.status})`);
             }
-            cloudSyncSetStatus(`Last saved to cloud: ${new Date(result.updatedAt).toLocaleString()}`);
+            localStorage.setItem(CLOUD_SYNC_LAST_SYNCED_KEY, result.updatedAt);
+            cloudSyncSetStatus(`Last synced: ${new Date(result.updatedAt).toLocaleString()}`);
             Toast.show('☁️ Saved to cloud.', 'positive');
         } catch (error) {
             cloudSyncSetStatus('Save failed - see below.');
@@ -131,6 +162,7 @@ function initCloudSync() {
             if (!importResult.ok) {
                 throw new Error(importResult.error);
             }
+            localStorage.setItem(CLOUD_SYNC_LAST_SYNCED_KEY, result.updatedAt);
             Toast.show('☁️ Loaded from cloud - reloading...', 'positive');
             setTimeout(() => window.location.reload(), 800);
         } catch (error) {

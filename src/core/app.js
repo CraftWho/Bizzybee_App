@@ -50,6 +50,7 @@ class CodexSystem {
 
     init() {
         this.renderGlobalUI();
+        this.initCloudSyncAuto();
     }
 
     renderGlobalUI() {
@@ -84,6 +85,54 @@ class CodexSystem {
         }
 
         this.injectFooter();
+    }
+
+    // --- Cloud Sync auto-engine loader ----------------------------------
+    // Loads the Netlify Identity widget + cloud-sync.js on EVERY page (not
+    // just Settings) when the signed-in method is Cloud Sync - so a change
+    // made on any screen (Quests, Dailies, Dashboard...) still triggers the
+    // debounced auto-push instead of only firing after a trip to Settings.
+    // Only runs at all for 'identity' sessions - demo/personal sessions
+    // never touch either script, so the app's normal weight is unchanged
+    // for the common case. See HANDOFF.md's auto-sync entry and
+    // src/core/cloud-sync/cloud-sync.js for the rest of the design notes.
+    //
+    // settings.html separately loads the Identity widget script itself
+    // (statically, in its own <head>) for its manual Save/Load UI - that
+    // tag executes before this runs (app.js is a plain body <script>, so it
+    // always runs after head scripts), so by the time this method runs
+    // there `netlifyIdentity` is already a real global and the guard below
+    // skips straight to loading cloud-sync.js without re-injecting anything.
+    initCloudSyncAuto() {
+        if (localStorage.getItem('bizzybee_session') !== 'identity') return;
+
+        const path = window.location.pathname;
+        const isNestedPage = path.includes('features') || path.includes('plugins');
+        const rootPrefix = isNestedPage ? '../../..' : '.';
+
+        const loadCloudSyncModule = () => {
+            if (document.querySelector('script[src*="cloud-sync/cloud-sync.js"]')) return;
+            const script = document.createElement('script');
+            script.src = `${rootPrefix}/src/core/cloud-sync/cloud-sync.js`;
+            document.body.appendChild(script);
+        };
+
+        const existingWidget = document.querySelector('script[src*="netlify-identity-widget"]');
+        if (existingWidget) {
+            // Already present - either settings.html's own static tag (see
+            // above, already finished loading by now) or a widget script
+            // this same method injected on an earlier call. No reliable
+            // 'load' event to hang off of after the fact, so just check
+            // whether the global actually exists yet.
+            if (typeof netlifyIdentity !== 'undefined') loadCloudSyncModule();
+            else existingWidget.addEventListener('load', loadCloudSyncModule);
+            return;
+        }
+
+        const widgetScript = document.createElement('script');
+        widgetScript.src = 'https://identity.netlify.com/v1/netlify-identity-widget.js';
+        widgetScript.addEventListener('load', loadCloudSyncModule);
+        document.body.appendChild(widgetScript);
     }
 
     getCurrentPageKey() {
