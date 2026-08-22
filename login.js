@@ -1,11 +1,17 @@
 console.log("/// AUTH TERMINAL ONLINE ///");
 
-// --- Two front doors, no auto-anything -------------------------------------
+// --- Two front doors, nothing silent ----------------------------------------
 // This is a static site with no server, so nothing typed into login.js can
 // be a REAL secret - anyone who opens dev tools can read these constants.
 // The "personal" side is only ever a casual-visitor deterrent, not real
 // security. Don't put anything here you wouldn't be okay with a determined
 // person eventually finding.
+//
+// A returning device with a valid session still goes straight to Home
+// without retyping anything - but only via the visible #welcome-loading
+// beat in the DOMContentLoaded handler below, never silently. See that
+// handler's comment for why this isn't the same thing as the old
+// auto-skip it replaced.
 //
 // The demo shared-credential login (guest@bizzybee.hive / worker-bee,
 // pre-filled in the form so any visitor could one-click in) was RETIRED
@@ -57,6 +63,13 @@ function goHome() {
 function handleCloudSyncTokenIfPresent() {
     const hasIdentityToken = /(invite_token|confirmation_token|recovery_token|email_change_token)=/.test(window.location.hash);
     if (!hasIdentityToken || typeof netlifyIdentity === 'undefined') return false;
+
+    // This path skips the #welcome-loading beat entirely (see the
+    // DOMContentLoaded handler below) - the invite/confirm banner and the
+    // widget's own modal need #login-content visible right away, not after
+    // a loading delay that has nothing to do with this flow.
+    document.getElementById('welcome-loading').hidden = true;
+    document.getElementById('login-content').hidden = false;
 
     const status = document.getElementById('cloud-sync-invite-status');
     status.hidden = false;
@@ -167,6 +180,26 @@ function setupCloudSyncLoginButton() {
 document.addEventListener('DOMContentLoaded', async () => {
     NanoBee.render(document.querySelector('.hive-core-bg'), 'hero');
 
+    const welcomeStartedAt = Date.now();
+    const MIN_WELCOME_MS = 500;
+
+    // The #welcome-loading state in index.html is shown by default, before
+    // any of this has run. Checking bizzybee_session is just a localStorage
+    // read - effectively instant - so without this, "returning device"
+    // would resolve into Home in the same frame the loading text appears,
+    // reading as a flicker rather than an actual loading step. This just
+    // waits out whatever's left of MIN_WELCOME_MS so it reads as
+    // deliberate. Only relevant on the no-token path below - the
+    // invite/confirm path in handleCloudSyncTokenIfPresent() skips
+    // #welcome-loading entirely, since that's a distinct multi-second flow
+    // with its own status text.
+    const settleWelcome = () => {
+        const elapsed = Date.now() - welcomeStartedAt;
+        return elapsed >= MIN_WELCOME_MS
+            ? Promise.resolve()
+            : new Promise(resolve => setTimeout(resolve, MIN_WELCOME_MS - elapsed));
+    };
+
     await Vault.init();
 
     if (handleCloudSyncTokenIfPresent()) {
@@ -175,15 +208,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupCloudSyncLoginButton();
 
-    // No more auto-skip: landing on this page always shows a real login
-    // screen now, even on a device that already has a valid bizzybee_session
-    // from a prior visit. That old "already logged in? skip straight
-    // through" shortcut was retired at the same time as the demo login -
-    // see HANDOFF.md's "UPDATE: retired demo login" entry. This does NOT
-    // affect the rest of the app: every other page still just checks
-    // bizzybee_session truthy (via app.js's renderGlobalUI()) and proceeds
-    // normally without re-prompting - this change only touches what
-    // happens when you land back on the root/login page itself.
+    // Replaces the old SILENT "already logged in? skip straight through"
+    // shortcut (retired earlier today - see HANDOFF.md's "UPDATE: retired
+    // demo login" entry) with a VISIBLE one. The actual complaint "no more
+    // auto login" was about was a device silently completing a sign-in
+    // with zero on-screen indication anything happened - not that a
+    // recognized returning device should have to fully retype credentials
+    // on every single visit. So: a session that already exists still goes
+    // straight to Home, but only after this page visibly shows it's doing
+    // that; a device with no session gets the real #login-content form
+    // instead, same as before - nothing to auto-continue there. This does
+    // NOT change anything about the rest of the app: every other page
+    // still just checks bizzybee_session truthy (via app.js's
+    // renderGlobalUI()) and proceeds without re-prompting - this only
+    // touches what happens when you land back on the root/login page.
+    if (localStorage.getItem('bizzybee_session')) {
+        document.getElementById('welcome-loading-text').textContent = '✅ Welcome back! Entering the Hive...';
+        await settleWelcome();
+        goHome();
+        return;
+    }
+
+    await settleWelcome();
+    document.getElementById('welcome-loading').hidden = true;
+    document.getElementById('login-content').hidden = false;
 
     document.getElementById('login-form').addEventListener('submit', async (event) => {
         event.preventDefault();

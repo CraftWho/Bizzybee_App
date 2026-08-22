@@ -30,16 +30,34 @@
         <div class="hive-core-bg"></div>
 
         <div class="login-card">
-            <h1 class="gold-gradient-text">Bizzybee Login</h1>
-            <p class="subtitle">Authenticate to access the Hive.</p>
+            <!-- Shown by default, before login.js has decided anything. A
+                 device with a valid bizzybee_session gets sent on to Home
+                 from here without ever seeing the login form underneath -
+                 but as a visible "checking, then going" beat, not a silent
+                 instant jump. A device with no session gets this swapped
+                 out for #login-content below. Kept deliberately brief
+                 (setWelcomeOutcome() in login.js sets a minimum visible
+                 time) so it reads as a real loading step, not a flash.
+                 Not shown at all for the invite/confirm token path -
+                 handleCloudSyncTokenIfPresent() in login.js hides this and
+                 reveals #login-content immediately in that case, since the
+                 invite banner below needs to be visible. -->
+            <div id="welcome-loading" class="welcome-loading">
+                <h1 class="gold-gradient-text">Bizzybee</h1>
+                <p id="welcome-loading-text" class="welcome-loading-text">🐝 Waking the Hive...</p>
+            </div>
 
-            <!-- Only ever shown when this page loads with a Netlify Identity
-                 token in the URL hash (see the widget script tag/comment in
-                 <head>) - completely separate from the login form below it,
-                 which normal visits never touch. -->
-            <p id="cloud-sync-invite-status" class="cloud-sync-invite-status" hidden></p>
+            <div id="login-content" hidden>
+                <h1 class="gold-gradient-text">Bizzybee Login</h1>
+                <p class="subtitle">Authenticate to access the Hive.</p>
 
-            <form id="login-form" class="auth-form">
+                <!-- Only ever shown when this page loads with a Netlify Identity
+                     token in the URL hash (see the widget script tag/comment in
+                     <head>) - completely separate from the login form below it,
+                     which normal visits never touch. -->
+                <p id="cloud-sync-invite-status" class="cloud-sync-invite-status" hidden></p>
+
+                <form id="login-form" class="auth-form">
                 <div class="input-group-auth">
                     <label for="email">Email</label>
                     <input type="email" id="email" required>
@@ -92,6 +110,7 @@
             <div class="auth-footer">
                 <p>New Worker Bee?</p>
                 <a href="#" class="btn-link">Request Access</a>
+            </div>
             </div>
         </div>
     </main>
