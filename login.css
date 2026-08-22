@@ -45,6 +45,26 @@
     margin-bottom: 30px;
 }
 
+/* Default-visible state on page load - see index.html's #welcome-loading
+   comment and login.js's DOMContentLoaded handler. Sized to roughly match
+   #login-content's footprint so the card doesn't visibly jump in height
+   when one swaps for the other. */
+.welcome-loading {
+    padding: 40px 0;
+}
+
+.welcome-loading-text {
+    color: var(--gold-start);
+    font-size: 0.95rem;
+    margin: 10px 0 0;
+    animation: welcome-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes welcome-pulse {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+}
+
 .auth-form {
     display: flex;
     flex-direction: column;
