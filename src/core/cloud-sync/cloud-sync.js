@@ -41,6 +41,21 @@ const CloudSyncAuto = (() => {
         return localStorage.getItem(AUTO_SYNC_KEY) !== 'false';
     }
 
+    // Surfaces a failed auto-push to the user instead of leaving it as a
+    // console-only error. Found while debugging a real report: a photo
+    // uploaded on one device silently never showed up after "Load from
+    // Cloud" on another - with zero error shown anywhere, there was no way
+    // to tell auto-sync had failed versus not having run yet. `Toast` is
+    // loaded on every page this script itself can run on (same core script
+    // set as `Vault`), but this stays defensive since cloud-sync.js doesn't
+    // control page markup directly.
+    function notifyFailure(reason) {
+        console.error('CloudSyncAuto: push failed -', reason);
+        if (typeof Toast !== 'undefined' && typeof Toast.show === 'function') {
+            Toast.show(`⚠️ Auto-sync failed (${reason}) - try Save to Cloud in Settings.`, 'negative');
+        }
+    }
+
     async function pushNow(options = {}) {
         if (typeof netlifyIdentity === 'undefined') return false;
         const user = netlifyIdentity.currentUser();
@@ -65,14 +80,29 @@ const CloudSyncAuto = (() => {
                 // routine debounced push, only the on-leave one.
                 keepalive: !!options.keepalive,
             });
-            if (!response.ok) return false;
+            if (!response.ok) {
+                // A keepalive request's response often can't be read for
+                // detail (the page may already be gone) - avoid touching
+                // .json()/.text() on it and just report the status.
+                const reason = response.status === 413
+                    ? 'save is too large - a photo may be over the limit'
+                    : response.status === 401
+                        ? 'signed out - sign back in to Cloud Sync'
+                        : `save failed (${response.status})`;
+                if (!options.keepalive) notifyFailure(reason);
+                return false;
+            }
             const result = await response.json();
-            if (!result.ok) return false;
+            if (!result.ok) {
+                if (!options.keepalive) notifyFailure(result.error || 'save failed');
+                return false;
+            }
             localStorage.setItem(LAST_SYNCED_KEY, result.updatedAt);
             pendingPush = false;
             return true;
         } catch (err) {
-            console.error('CloudSyncAuto: push failed', err);
+            if (!options.keepalive) notifyFailure(err.message || 'network error');
+            else console.error('CloudSyncAuto: push failed', err);
             return false;
         }
     }
@@ -99,11 +129,7 @@ const CloudSyncAuto = (() => {
         // it once here rather than touching every call site, or db.js at
         // all (standing rule #4: don't split/touch db.js unless asked).
         // Local save always still happens first/normally; this just
-        // piggybacks a debounced cloud push right after it. Known gap: on
-        // a given page load, a mutation that fires before this script has
-        // finished loading (it's injected asynchronously by app.js) won't
-        // trigger this specific push - the debounce on every later
-        // mutation, plus the on-leave flush, cover that in practice.
+        // piggybacks a debounced cloud push right after it.
         const originalSave = Vault.save.bind(Vault);
         Vault.save = function (...args) {
             const result = originalSave(...args);
@@ -115,6 +141,20 @@ const CloudSyncAuto = (() => {
             if (document.visibilityState === 'hidden') flushOnLeave();
         });
         window.addEventListener('pagehide', flushOnLeave);
+
+        // Closes a real gap found while debugging a report of a photo
+        // upload never making it to another device: this script loads
+        // ASYNCHRONOUSLY (injected by app.js, after the Identity widget
+        // script finishes) - any Vault.save() that fires before the wrap
+        // above is in place (e.g. a fast photo upload right after
+        // navigating to Account Info) never scheduled a push at all, so
+        // `pendingPush` stayed false and even the on-leave flush had
+        // nothing to send. Treating "this engine just came online on a
+        // signed-in device" as its own sync trigger catches that case (and
+        // anything left over from a failed push on a previous page) - it's
+        // one extra push per page load at most, and isEnabled()/pendingPush
+        // still gate it exactly like any other call to this function.
+        scheduleDebouncedPush();
     }
 
     // No DOMContentLoaded wrapper, deliberately: this script is injected

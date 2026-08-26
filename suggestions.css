@@ -1,0 +1,103 @@
+/* --- FEEDBACK & SUGGESTIONS PAGE STYLES ---
+   Sits alongside login.css and request-access.css - reuses login.css's
+   .login-body/.login-container/.hive-core-bg/.login-card/.subtitle/
+   .auth-form/.input-group-auth/.login-error/.auth-footer/.btn-link, and
+   request-access.css's textarea + honeypot + .request-access-sent success
+   state (this file is loaded after request-access.css would be, but since
+   they're never on the same page together, it's simplest to just reuse
+   those exact class names here rather than duplicating them a third time -
+   see suggestions.html, which links this file, not request-access.css).
+   The one genuinely new thing here is the star rating picker. */
+
+.input-group-auth textarea {
+    background: #ffffff;
+    color: var(--obsidian);
+    font-weight: 600;
+    padding: 12px;
+    border: 3px solid transparent;
+    border-image: linear-gradient(to right, var(--gold-start), var(--gold-end)) 1;
+    font-family: var(--font-main);
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.input-group-auth textarea:focus {
+    outline: none;
+    box-shadow: 0 0 15px var(--gold-start);
+}
+
+.request-access-honeypot {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+}
+
+#suggestions-submit-btn {
+    margin-top: 10px;
+    width: 100%;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.request-access-sent {
+    text-align: center;
+    padding: 10px 0 4px;
+}
+
+.request-access-sent-icon {
+    font-size: 2.4rem;
+    margin: 0 0 12px;
+}
+
+.request-access-sent-text {
+    color: #ccc;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Star rating - classic CSS-only picker. The input order in the HTML is
+   5,4,3,2,1 (reversed from reading order) specifically so this works:
+   row-reverse puts them back in visual 1->5 left-to-right order, and CSS
+   can only select LATER siblings with ~, so "light up this star and every
+   star before it" only works if "before" in reading order is "after" in
+   the (reversed) DOM order. */
+.star-rating-group label:first-child {
+    margin-bottom: 4px;
+}
+
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.star-rating input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.star-rating label {
+    font-size: 2rem;
+    line-height: 1;
+    color: #444;
+    cursor: pointer;
+    transition: color 0.15s ease;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: normal;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+    color: var(--gold-start);
+}
+
+.star-rating input:focus-visible + label {
+    outline: 2px solid var(--gold-start);
+    outline-offset: 2px;
+    border-radius: 3px;
+}

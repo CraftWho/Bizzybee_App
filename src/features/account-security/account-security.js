@@ -3,14 +3,21 @@ console.log("/// ACCOUNT SECURITY PROTOCOLS INITIALIZED ///");
 // Same digits-only-as-you-type helper as account-info.js - duplicated
 // rather than shared, same tradeoff noted in this app's other small
 // page-local helpers (see account-info.js's own copy of this comment).
-function sanitizePinInput(input) {
+// maxLen defaults to 6 (the Account Info PIN) - App Lock's fields below
+// pass 4 explicitly, so this stays a single shared helper rather than a
+// second near-identical copy just for the different digit count.
+function sanitizePinInput(input, maxLen = 6) {
     input.addEventListener('input', () => {
-        input.value = input.value.replace(/\D/g, '').slice(0, 6);
+        input.value = input.value.replace(/\D/g, '').slice(0, maxLen);
     });
 }
 
 function isValidPin(pin) {
     return /^\d{6}$/.test(pin);
+}
+
+function isValidAppLockPin(pin) {
+    return /^\d{4}$/.test(pin);
 }
 
 function showError(elId, message) {
@@ -107,6 +114,108 @@ async function attemptChangePin() {
     Toast.show('🔢 PIN changed.', 'positive');
 }
 
+// --- App Lock ------------------------------------------------------------
+// Completely separate from the Account Info PIN above - see app.js's
+// AppLock object for where this is actually enforced (the full-app lock
+// overlay) and why it's stored outside Vault entirely (device-only, never
+// synced). This page is just where it gets created/changed/removed; AppLock
+// itself is defined in app.js, already loaded earlier on this same page.
+function refreshAppLockStatus() {
+    const hasPin = AppLock.hasPin();
+    document.getElementById('app-lock-status-text').textContent = hasPin ? '✅ Set on this device' : '⚠️ Not set';
+    document.getElementById('app-lock-create-section').hidden = hasPin;
+    document.getElementById('app-lock-manage-section').hidden = !hasPin;
+}
+
+async function attemptCreateAppLockPin() {
+    const errorEl = 'app-lock-create-error';
+    document.getElementById(errorEl).hidden = true;
+
+    const pin = document.getElementById('app-lock-create-new').value;
+    const confirmPin = document.getElementById('app-lock-create-confirm').value;
+
+    if (!isValidAppLockPin(pin)) {
+        showError(errorEl, 'PIN must be exactly 4 digits.');
+        return;
+    }
+    if (pin !== confirmPin) {
+        showError(errorEl, "PINs don't match.");
+        return;
+    }
+
+    await AppLock.setPin(pin);
+    // Setting the PIN up shouldn't immediately lock you out of the very
+    // page you're standing on - mark this tab unlocked right away, same as
+    // if you'd just entered it correctly. Only a future close-and-reopen
+    // (or a fresh tab) will actually ask for it.
+    AppLock.markUnlocked();
+    document.getElementById('app-lock-create-new').value = '';
+    document.getElementById('app-lock-create-confirm').value = '';
+    refreshAppLockStatus();
+    Toast.show('🔒 App Lock PIN created.', 'positive');
+}
+
+async function attemptChangeAppLockPin() {
+    const errorEl = 'app-lock-manage-error';
+    document.getElementById(errorEl).hidden = true;
+
+    const currentPin = document.getElementById('app-lock-current').value;
+    const newPin = document.getElementById('app-lock-new').value;
+    const confirmPin = document.getElementById('app-lock-confirm').value;
+
+    if (!isValidAppLockPin(currentPin)) {
+        showError(errorEl, 'Enter your current 4-digit App Lock PIN.');
+        return;
+    }
+    if (!(await AppLock.verifyPin(currentPin))) {
+        showError(errorEl, '🐝 Access Denied. Current PIN is incorrect.');
+        return;
+    }
+    if (!isValidAppLockPin(newPin)) {
+        showError(errorEl, 'New PIN must be exactly 4 digits.');
+        return;
+    }
+    if (newPin !== confirmPin) {
+        showError(errorEl, "New PINs don't match.");
+        return;
+    }
+    if (newPin === currentPin) {
+        showError(errorEl, 'New PIN must be different from your current one.');
+        return;
+    }
+
+    await AppLock.setPin(newPin);
+    document.getElementById('app-lock-current').value = '';
+    document.getElementById('app-lock-new').value = '';
+    document.getElementById('app-lock-confirm').value = '';
+    Toast.show('🔒 App Lock PIN changed.', 'positive');
+}
+
+async function attemptRemoveAppLockPin() {
+    const errorEl = 'app-lock-manage-error';
+    document.getElementById(errorEl).hidden = true;
+
+    const currentPin = document.getElementById('app-lock-current').value;
+    if (!isValidAppLockPin(currentPin)) {
+        showError(errorEl, 'Enter your current 4-digit App Lock PIN.');
+        return;
+    }
+    if (!(await AppLock.verifyPin(currentPin))) {
+        showError(errorEl, '🐝 Access Denied. Current PIN is incorrect.');
+        return;
+    }
+
+    const confirmed = confirm('Remove App Lock from this device? Bizzybee will no longer ask for a PIN here when you reopen it.');
+    if (!confirmed) return;
+
+    AppLock.removePin();
+    document.getElementById('app-lock-current').value = '';
+    document.getElementById('app-lock-new').value = '';
+    document.getElementById('app-lock-confirm').value = '';
+    refreshAppLockStatus();
+    Toast.show('🔓 App Lock removed from this device.', 'negative');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
@@ -125,5 +234,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('change-pin-btn').addEventListener('click', attemptChangePin);
     document.getElementById('change-pin-confirm').addEventListener('keydown', (event) => {
         if (event.key === 'Enter') attemptChangePin();
+    });
+
+    ['app-lock-create-new', 'app-lock-create-confirm', 'app-lock-current', 'app-lock-new', 'app-lock-confirm']
+        .forEach(id => sanitizePinInput(document.getElementById(id), 4));
+
+    refreshAppLockStatus();
+
+    document.getElementById('app-lock-create-btn').addEventListener('click', attemptCreateAppLockPin);
+    document.getElementById('app-lock-create-confirm').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') attemptCreateAppLockPin();
+    });
+
+    document.getElementById('app-lock-change-btn').addEventListener('click', attemptChangeAppLockPin);
+    document.getElementById('app-lock-remove-btn').addEventListener('click', attemptRemoveAppLockPin);
+    document.getElementById('app-lock-confirm').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') attemptChangeAppLockPin();
     });
 });

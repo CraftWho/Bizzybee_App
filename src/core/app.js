@@ -43,6 +43,66 @@ const EXTRA_PAGE_META = {
     'create-todo': { icon: '📝', label: 'To-Do' }
 };
 
+// --- App Lock ----------------------------------------------------------
+// A separate, DEVICE-ONLY 4-digit PIN that locks the whole app (not just
+// Account Info, which has its own unrelated 6-digit PIN - see
+// account-security.js) whenever this browser tab is closed and reopened,
+// or the app is opened in a fresh tab. Deliberately NOT stored in
+// Vault.state: this has to survive independently of your account data, so
+// it never travels with Cloud Sync, Full Save Transfer, or anything else
+// that moves progress between devices - each device you use gets its own
+// App Lock PIN, set up separately. Lives here (not a separate file/script
+// tag) so every page that already loads app.js - which is all of them -
+// gets it for free, same reasoning as injectHeader/injectFooter below.
+//
+// Session-scoped unlock, not per-page: sessionStorage (unlike
+// localStorage) persists across normal in-app navigation and page
+// refreshes within the SAME tab, but is cleared when the tab actually
+// closes - exactly the "stay unlocked while I'm using it, re-lock when I
+// come back" behavior asked for, with zero event-listener plumbing
+// (pagehide/visibilitychange were considered and rejected: pagehide fires
+// on every internal navigation too, which would re-lock on literally every
+// link click, and visibilitychange would re-lock on a simple tab switch -
+// neither matches "on close/leave only").
+const AppLock = {
+    PIN_HASH_KEY: 'bizzybee_app_lock_pin_hash',
+    SESSION_UNLOCK_KEY: 'bizzybee_app_lock_unlocked',
+
+    async sha256Hex(text) {
+        const buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    },
+
+    hasPin() {
+        return !!localStorage.getItem(this.PIN_HASH_KEY);
+    },
+
+    async setPin(pin) {
+        localStorage.setItem(this.PIN_HASH_KEY, await this.sha256Hex(pin));
+    },
+
+    // Doesn't touch SESSION_UNLOCK_KEY - if this tab was already unlocked,
+    // removing the PIN shouldn't retroactively lock it. The next tab that
+    // opens simply finds hasPin() false and never shows the overlay at all.
+    removePin() {
+        localStorage.removeItem(this.PIN_HASH_KEY);
+    },
+
+    async verifyPin(pin) {
+        const stored = localStorage.getItem(this.PIN_HASH_KEY);
+        if (!stored) return false;
+        return (await this.sha256Hex(pin)) === stored;
+    },
+
+    isUnlockedThisSession() {
+        return sessionStorage.getItem(this.SESSION_UNLOCK_KEY) === 'true';
+    },
+
+    markUnlocked() {
+        sessionStorage.setItem(this.SESSION_UNLOCK_KEY, 'true');
+    }
+};
+
 class CodexSystem {
     constructor() {
         this.init();
@@ -50,6 +110,7 @@ class CodexSystem {
 
     init() {
         this.renderGlobalUI();
+        this.initAppLock();
         this.initCloudSyncAuto();
     }
 
@@ -85,6 +146,90 @@ class CodexSystem {
         }
 
         this.injectFooter();
+    }
+
+    // --- App Lock ---------------------------------------------------------
+    // See the AppLock object above for the storage/design notes. This just
+    // decides WHEN to show it and builds the overlay itself.
+    initAppLock() {
+        // Only ever relevant on an actual post-login page - index.html (the
+        // login page) has no session/Vault data to protect yet, and locking
+        // someone OUT of the login screen would be nonsensical. Same
+        // isNestedPage check renderGlobalUI() above already uses.
+        const path = window.location.pathname;
+        const isNestedPage = path.includes('features') || path.includes('plugins');
+        if (!isNestedPage) return;
+
+        if (!AppLock.hasPin()) return;
+        if (AppLock.isUnlockedThisSession()) return;
+
+        this.showAppLockOverlay();
+    }
+
+    // Built and injected the same way injectHeader/injectFooter are -
+    // there's no separate HTML/CSS file for this, it's assembled here and
+    // styled by the .app-lock-* rules in global.css (the one stylesheet
+    // every page that can show this overlay already loads). A plain
+    // fixed, full-viewport, high-z-index div is enough to block interacting
+    // with the page underneath it - consistent with this app's existing,
+    // openly-stated security level (a casual deterrent on a static site
+    // with no backend, not real access control - see auth.js's comment).
+    showAppLockOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'app-lock-overlay';
+        overlay.innerHTML = `
+            <div class="app-lock-card">
+                <h1 class="gold-gradient-text">🔒 Locked</h1>
+                <p class="app-lock-subtitle">Enter your 4-digit App Lock PIN to continue.</p>
+                <div class="app-lock-pin-inputs">
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="app-lock-pin-digit" autocomplete="off">
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="app-lock-pin-digit" autocomplete="off">
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="app-lock-pin-digit" autocomplete="off">
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="app-lock-pin-digit" autocomplete="off">
+                </div>
+                <p class="app-lock-error" hidden>🐝 Incorrect PIN.</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const card = overlay.querySelector('.app-lock-card');
+        const digits = Array.from(overlay.querySelectorAll('.app-lock-pin-digit'));
+        const errorEl = overlay.querySelector('.app-lock-error');
+
+        const tryUnlock = async () => {
+            const pin = digits.map(d => d.value).join('');
+            if (pin.length !== 4) return;
+
+            if (await AppLock.verifyPin(pin)) {
+                AppLock.markUnlocked();
+                overlay.remove();
+                return;
+            }
+
+            errorEl.hidden = false;
+            card.classList.remove('app-lock-card--shake');
+            void card.offsetWidth; // force reflow so the shake can replay on a second wrong attempt in a row
+            card.classList.add('app-lock-card--shake');
+            digits.forEach((d) => { d.value = ''; });
+            digits[0].focus();
+        };
+
+        digits.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/\D/g, '').slice(0, 1);
+                if (input.value && index < digits.length - 1) {
+                    digits[index + 1].focus();
+                }
+                if (digits.every((d) => d.value)) tryUnlock();
+            });
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Backspace' && !input.value && index > 0) {
+                    digits[index - 1].focus();
+                }
+            });
+        });
+
+        digits[0].focus();
     }
 
     // --- Cloud Sync auto-engine loader ----------------------------------
