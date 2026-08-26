@@ -71,3 +71,20 @@
     letter-spacing: 0.5rem;
     text-align: center;
 }
+
+/* App Lock's PIN is 4 digits, not 6 - a narrower max-width keeps the
+   letter-spacing from looking sparse/stretched-out on a shorter value. */
+.pin-input-4 {
+    max-width: 150px;
+}
+
+.account-security-btn-danger {
+    background: var(--crimson);
+    color: #fff;
+    margin-left: 10px;
+}
+
+.account-security-btn-danger:hover {
+    background: var(--crimson);
+    box-shadow: 0 0 12px var(--crimson);
+}

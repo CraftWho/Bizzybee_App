@@ -527,6 +527,93 @@ button:hover {
     transition: width 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+/* --- App Lock overlay --- built and injected by app.js's CodexSystem
+   (showAppLockOverlay) on any post-login page, when a device-only 4-digit
+   App Lock PIN is set (see account-security.js's App Lock panel) and this
+   browser tab hasn't been unlocked yet this session. Lives here rather
+   than a page-specific stylesheet because app.js - and so this overlay -
+   can appear on every feature page, and global.css is the one stylesheet
+   all of them already load. See app.js's AppLock object for the full
+   design writeup and HANDOFF.md's App Lock entry. */
+.app-lock-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(6px);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.app-lock-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--gold-start);
+    border-top: 3px solid var(--crimson);
+    border-radius: 8px;
+    padding: 40px 30px;
+    box-shadow: 0 0 25px rgba(255, 204, 0, 0.4), 0 0 35px rgba(220, 20, 60, 0.3);
+    text-align: center;
+    max-width: 380px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.app-lock-card h1 {
+    margin: 0 0 8px;
+    font-size: 1.8rem;
+}
+
+.app-lock-subtitle {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin: 0 0 25px;
+}
+
+.app-lock-pin-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.app-lock-pin-digit {
+    width: 52px;
+    height: 60px;
+    font-size: 1.8rem;
+    text-align: center;
+    background: #ffffff;
+    color: var(--obsidian);
+    font-weight: 900;
+    border: 3px solid transparent;
+    border-image: linear-gradient(to bottom, var(--gold-start), var(--gold-end)) 1;
+    font-family: var(--font-main);
+    box-sizing: border-box;
+}
+
+.app-lock-pin-digit:focus {
+    outline: none;
+    box-shadow: 0 0 15px var(--gold-start);
+}
+
+.app-lock-error {
+    margin: 16px 0 0;
+    color: var(--crimson);
+    font-size: 0.85rem;
+}
+
+@keyframes app-lock-shake {
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-8px); }
+    40%, 60% { transform: translateX(8px); }
+}
+
+.app-lock-card--shake {
+    animation: app-lock-shake 0.5s;
+}
+
 /* --- 13. (removed) --- Login's styles were entirely feature-specific
    (.login-body/.login-container/.hive-core-bg/.login-card/.subtitle/
    .auth-form/.input-group-auth/#auth-submit-btn/.auth-footer/.btn-link -

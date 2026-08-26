@@ -72,6 +72,55 @@
             <button id="change-pin-btn">Change PIN</button>
         </section>
 
+        <!-- App Lock: a completely separate 4-digit PIN from the 6-digit
+             one above - locks the WHOLE app, not just Account Info, and is
+             device-only (never synced, never part of Save/Load) - see
+             app.js's AppLock object and HANDOFF.md's App Lock entry. -->
+        <section class="panel">
+            <h3>🔒 App Lock</h3>
+            <p class="account-security-intro">A separate 4-digit PIN that locks the whole app - not just Account Info - whenever you close this tab or browser and come back, or open Bizzybee in a new tab. Normal tab-switching or refreshing doesn't trigger it. Device-only: never saved to the cloud or included in Save/Load transfers, so each device you use gets its own.</p>
+            <p class="pin-status-line"><strong>Status:</strong> <span id="app-lock-status-text">Checking...</span></p>
+        </section>
+
+        <section class="panel" id="app-lock-create-section" hidden>
+            <h3>Create an App Lock PIN</h3>
+            <p class="account-security-intro">Set a 4-digit PIN, numbers only. There's no recovery if you forget it on this device.</p>
+
+            <div class="pin-field-group">
+                <label for="app-lock-create-new">New PIN</label>
+                <input type="password" id="app-lock-create-new" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            </div>
+            <div class="pin-field-group">
+                <label for="app-lock-create-confirm">Confirm PIN</label>
+                <input type="password" id="app-lock-create-confirm" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            </div>
+
+            <p id="app-lock-create-error" class="account-security-error" hidden></p>
+            <button id="app-lock-create-btn">Create App Lock PIN</button>
+        </section>
+
+        <section class="panel" id="app-lock-manage-section" hidden>
+            <h3>Change or Remove App Lock PIN</h3>
+            <p class="account-security-intro">Both require your current App Lock PIN. Leave "New PIN" blank if you only want to remove App Lock from this device.</p>
+
+            <div class="pin-field-group">
+                <label for="app-lock-current">Current PIN</label>
+                <input type="password" id="app-lock-current" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            </div>
+            <div class="pin-field-group">
+                <label for="app-lock-new">New PIN</label>
+                <input type="password" id="app-lock-new" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            </div>
+            <div class="pin-field-group">
+                <label for="app-lock-confirm">Confirm New PIN</label>
+                <input type="password" id="app-lock-confirm" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            </div>
+
+            <p id="app-lock-manage-error" class="account-security-error" hidden></p>
+            <button id="app-lock-change-btn">Change PIN</button>
+            <button id="app-lock-remove-btn" class="account-security-btn-danger">Remove App Lock</button>
+        </section>
+
     </main>
 
     <script src="../../core/db.js"></script>

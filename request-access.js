@@ -45,14 +45,37 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error(`Request failed (${response.status})`);
+                // A non-network failure - the request reached Netlify but
+                // got rejected (404 most likely means form detection
+                // hasn't run yet for this deploy, or ran against an older
+                // HTML that didn't have this form - see HANDOFF.md's
+                // Request Access entry). Worth a distinct message from the
+                // generic connection error below, since the fix is
+                // different (wait for/trigger a fresh deploy, not "check
+                // your wifi").
+                throw new Error(`http-${response.status}`);
             }
 
+            // Belt-and-suspenders: the `hidden` attribute alone doesn't
+            // reliably hide this element - login.css's `.auth-form {
+            // display: flex }` (an author-stylesheet rule) overrides the
+            // browser's own default `[hidden] { display: none }` (a
+            // lower-precedence user-agent rule), so the form was staying
+            // visible, stacked above the "Thanks!" message, even though
+            // `hidden` was set correctly. Found via a live test while
+            // debugging a "couldn't send" report - that specific test
+            // actually got a 200 back, so the send itself worked; this
+            // display bug was a separate, real issue found alongside it.
+            // An inline style always wins over an external stylesheet, so
+            // this closes it for good regardless of what CSS says.
             form.hidden = true;
+            form.style.display = 'none';
             sentEl.hidden = false;
         } catch (error) {
             console.error('Request Access: submit failed', error);
-            errorEl.textContent = "⚠️ Couldn't send your request - check your connection and try again.";
+            errorEl.textContent = error.message === 'http-404'
+                ? "⚠️ Couldn't send your request - this page may still be deploying. Wait a minute and try again."
+                : "⚠️ Couldn't send your request - check your connection and try again.";
             errorEl.hidden = false;
             submitBtn.disabled = false;
             submitBtn.textContent = 'Send Request';
