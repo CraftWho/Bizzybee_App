@@ -19,3 +19,8 @@ Thumbs.db
 
 # Local AI tool config/permissions - machine-specific, not app source.
 .claude/
+
+# Internal project docs (roadmap/handoff planning notes) - kept out of git
+# entirely per redacted's request, even though the repo is already private.
+ROADMAP.md
+HANDOFF.md
