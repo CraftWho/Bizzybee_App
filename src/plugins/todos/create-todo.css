@@ -47,108 +47,6 @@
     margin-top: 10px;
 }
 
-/* --- CHECKLIST (duplicated from create-daily.css) --- */
-.todo-checklist-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-
-.todo-checklist-row .todo-checklist-text {
-    flex: 1;
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 10px 12px;
-    color: #eee;
-    font-family: inherit;
-    font-size: 0.9rem;
-}
-
-.todo-checklist-row .todo-checklist-text:focus {
-    outline: none;
-    border-color: var(--gold-start);
-}
-
-.todo-checklist-remove {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    background: #2a1414;
-    color: var(--crimson);
-    border: 1px solid var(--crimson);
-    border-radius: 50%;
-    font-size: 1rem;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.todo-checklist-remove:hover {
-    background: var(--crimson);
-    color: #fff;
-    transform: none;
-    box-shadow: none;
-}
-
-.todo-checklist-row--ghost .todo-checklist-ghost-input {
-    border-style: dashed;
-    color: #999;
-}
-
-.todo-checklist-ghost-icon {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--gold-start);
-    font-size: 1.1rem;
-}
-
-/* --- DIFFICULTY TILES --- */
-.todo-difficulty-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
-
-.todo-difficulty-tile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    background: #151515;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 14px 6px;
-    color: var(--gold-start);
-    font-weight: normal;
-}
-
-.todo-difficulty-icon {
-    font-size: 1.1rem;
-    letter-spacing: 2px;
-    color: var(--gold-dim);
-}
-
-.todo-difficulty-label {
-    font-size: 0.85rem;
-}
-
-.todo-difficulty-tile--selected {
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    border-color: var(--gold-start);
-    color: var(--obsidian);
-    font-weight: bold;
-}
-
-.todo-difficulty-tile--selected .todo-difficulty-icon {
-    color: var(--obsidian);
-}
-
 /* --- DP DISPLAY --- */
 .todo-dp-row {
     margin-top: 16px;
@@ -243,166 +141,14 @@
     font-style: italic;
 }
 
-/* --- CLOCK WHEEL (duplicated from create-daily.css) --- */
-.clock-wheel-widget {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    margin-top: 16px;
-}
-
-.clock-wheel {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    background: #0a0a0a;
-    border: 2px solid #333;
-    flex-shrink: 0;
-}
-
-.clock-wheel[data-mode="minute"] {
-    border-color: var(--gold-dim);
-}
-
-.clock-wheel-face {
-    position: absolute;
-    inset: 0;
-}
-
-.clock-wheel-num {
-    position: absolute;
-    width: 32px;
-    height: 32px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    color: #999;
-    font-size: 0.85rem;
-    font-weight: bold;
-    padding: 0;
-    line-height: 32px;
-}
-
-.clock-wheel-num:hover {
-    background: #1a1a1a;
-    color: var(--gold-start);
-    transform: translate(-50%, -50%);
-}
-
-.clock-wheel-num--selected {
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    color: var(--obsidian);
-    transform: translate(-50%, -50%);
-}
-
-.clock-wheel-center-dot {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--gold-start);
-    transform: translate(-50%, -50%);
-    z-index: 2;
-}
-
-.clock-wheel-hand {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 2px;
-    background: var(--gold-start);
-    transform-origin: top center;
-    transform: translateX(-50%) rotate(0deg);
-    z-index: 1;
-    transition: transform 0.15s ease, height 0.15s ease;
-}
-
-.clock-wheel-controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.clock-wheel-readout {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: var(--gold-start);
-}
-
-.clock-wheel-period-toggle {
-    display: flex;
-    gap: 6px;
-}
-
-.clock-wheel-period-btn {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    color: #999;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 0.85rem;
-}
-
-.clock-wheel-period-btn--selected {
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    border-color: var(--gold-start);
-    color: var(--obsidian);
-}
-
-/* --- TAGS --- */
-.todo-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.todo-tags-empty {
-    color: #666;
-    font-size: 0.85rem;
-    margin: 0;
-}
-
+/* --- TAGS - the chip list/dismiss mechanics are shared (see
+   src/core/tag-picker); this note's wording (which known-term sources it
+   draws from) is page-specific so it stays here. --- */
 .todo-tags-note {
     margin: 4px 0 0;
     color: #666;
     font-size: 0.78rem;
     font-style: italic;
-}
-
-.todo-tag-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #1a1a1a;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold-start);
-    border-radius: 20px;
-    padding: 5px 10px 5px 14px;
-    font-size: 0.85rem;
-}
-
-.todo-tag-remove {
-    background: transparent;
-    border: none;
-    color: #999;
-    font-size: 0.9rem;
-    padding: 0 2px;
-    box-shadow: none;
-}
-
-.todo-tag-remove:hover {
-    color: var(--crimson);
-    transform: none;
-    box-shadow: none;
 }
 
 /* --- SAVE / CANCEL --- */
@@ -426,9 +172,6 @@
 }
 
 @media (max-width: 480px) {
-    .todo-difficulty-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
     .todo-form-actions {
         flex-direction: column-reverse;
     }

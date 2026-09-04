@@ -85,12 +85,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     renderDailyTasks();
 
-    HiveMind.setActions([
+    Waggle.setActions([
         {
             icon: '➕',
             label: 'Add Daily',
             onClick: () => { window.location.href = './create-daily.html'; }
         },
-        ...baseHiveMindActions()
+        ...baseWaggleActions()
     ]);
 });

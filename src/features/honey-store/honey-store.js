@@ -106,5 +106,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderAll();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

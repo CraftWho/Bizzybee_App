@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!installed) return;
 
     renderStudyList();
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     document.getElementById('study-add-btn').addEventListener('click', () => {
         const topicInput = document.getElementById('study-topic-input');

@@ -337,7 +337,7 @@ async function attemptUnlock() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     const pinInputs = ['pin-create-new', 'pin-create-confirm', 'account-unlock-pin'];
     pinInputs.forEach(id => sanitizePinInput(document.getElementById(id)));

@@ -175,7 +175,7 @@ function toggleKeyModal() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     document.getElementById('map-key-btn').addEventListener('click', toggleKeyModal);
 

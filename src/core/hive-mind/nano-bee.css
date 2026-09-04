@@ -2,7 +2,7 @@
    NANO-HIVE & BEE CORE
    A glowing hex core with a bee flying an infinity path around it.
    Ported from the "BizzyBee.html" prototype. Renders at two sizes:
-   --mini (the Hive Mind FAB icon) and --hero (the Login page centerpiece).
+   --mini (the Waggle FAB icon) and --hero (the Login page centerpiece).
    ========================================================================== */
 
 .nano-bee-scene {
@@ -87,6 +87,25 @@
 
 .nano-bee-scene--card .scene-inner {
     transform: scale(0.85);
+}
+
+/* Model viewer variant (src/features/models/) - the whole point of that
+   page is to see a bee at a size the --chip/--mini/--card variants were
+   never meant for, so this gets its own noticeably bigger stage instead
+   of overloading --card. .is-focused (models.js's inspector modal) scales
+   it up further still for a real close look - see models.css. */
+.nano-bee-scene--model {
+    width: 200px;
+    height: 200px;
+    overflow: visible;
+}
+
+.nano-bee-scene--model .scene-inner {
+    transform: scale(1.35);
+}
+
+.nano-bee-scene--model.is-focused .scene-inner {
+    transform: scale(3.1);
 }
 
 /* Hides the glowing hex backdrop, leaving just the bee itself - see the

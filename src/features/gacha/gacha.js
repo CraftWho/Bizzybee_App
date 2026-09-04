@@ -263,5 +263,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('gacha-destroy-btn').addEventListener('click', handleDestroy);
     document.getElementById('gacha-combine-btn').addEventListener('click', handleCombine);
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

@@ -45,9 +45,33 @@
     transform: scale(10);
 }
 
+.colony-exterior-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
 .colony-enter-btn {
     font-size: 1.05rem;
     padding: 14px 30px;
+}
+
+/* Quick-access to the bee roster (openBeeRosterModal() on the Inventory
+   page - see llm-engine.js's baseWaggleActions() for the same shortcut
+   in the Waggle FAB menu). Secondary to "Enter Hive" - outlined gold on
+   transparent rather than the solid gradient fill, same hierarchy trick
+   .colony-leave-btn already uses elsewhere on this page. */
+.colony-bees-quick-btn {
+    background: transparent;
+    border: 2px solid var(--gold-start);
+    color: var(--gold-start);
+}
+
+.colony-bees-quick-btn:hover {
+    background: var(--gold-start);
+    color: var(--obsidian);
 }
 
 /* --- AMBIENT SWARM ---

@@ -28,7 +28,10 @@
                 <div class="colony-swarm" id="colony-exterior-swarm"></div>
             </div>
 
-            <button class="colony-enter-btn" id="enter-hive-btn">Enter Hive →</button>
+            <div class="colony-exterior-actions">
+                <button class="colony-enter-btn" id="enter-hive-btn">Enter Hive →</button>
+                <button class="colony-enter-btn colony-bees-quick-btn" id="colony-bees-quick-btn">🐝 Colony Bees</button>
+            </div>
         </div>
 
         <div class="colony-view" id="colony-interior" style="display: none;">
@@ -47,8 +50,8 @@
 
             <!-- Pulling new bees, renaming, assigning work, and unwrapping
                  gacha tickets all moved to their own page (see
-                 baseHiveMindActions() in llm-engine.js for the Pollination
-                 Chamber link in the Hive Mind menu) - this page is just the
+                 baseWaggleActions() in llm-engine.js for the Pollination
+                 Chamber link in the Waggle menu) - this page is just the
                  nest/hive visualization now. -->
             <a href="../gacha/gacha.html" class="colony-gacha-link-btn">🌼 Visit the Pollination Chamber →</a>
 

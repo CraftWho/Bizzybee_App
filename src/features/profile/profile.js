@@ -135,5 +135,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? serviceRecord.map(entry => `<li><span class="log-date">[${escapeHTML(entry.date)}]</span> ${escapeHTML(entry.note)}</li>`).join('')
         : '<li class="quest-empty-state">No service record entries yet.</li>';
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

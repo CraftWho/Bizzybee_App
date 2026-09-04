@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 Bee Models</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/modal/modal.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./models.css">
+</head>
+<body>
+
+    <main class="models-container">
+
+        <div class="panel page-header-panel">
+            <h2 class="page-title">🧬 <span class="gold-gradient-text">BEE MODELS</span></h2>
+            <p class="page-subtitle">Every rarity and element, seen at a size that's actually easy to look at - not shrunk down for a card or an icon.</p>
+        </div>
+
+        <div class="panel models-intro-panel">
+            <p class="models-intro-text">
+                The bee everywhere else in the hive (the FAB, your cards, the Queen) is deliberately tiny -
+                it has to work at 26px just as well as 400px. This page exists to build and check the
+                <em>natural</em> form first, full size, before it gets shrunk down for everywhere else.
+            </p>
+            <p class="models-intro-text">
+                The plan is for every entry below to eventually be a real 3D model you can rotate and zoom,
+                the way Fallout 4 lets you turn an item over in your hands. None of that exists yet - what
+                you're looking at is still the flat NanoBee art, just given real room to breathe. Click any
+                bee to open it up bigger and try the rotate/zoom preview; it's a stand-in for the real thing,
+                not the real thing.
+            </p>
+        </div>
+
+        <div class="bee-card-grid models-grid" id="models-grid"></div>
+
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/bee-card/bee-card.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./models.js"></script>
+</body>
+</html>

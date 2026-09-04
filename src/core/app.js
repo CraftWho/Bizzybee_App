@@ -35,6 +35,10 @@ const EXTRA_PAGE_META = {
     'account-security': { icon: '🔐', label: 'Account Security' },
     inventory: { icon: '🎒', label: 'Inventory' },
     keeperdex: { icon: '📘', label: 'KeeperDex' },
+    // Temp name/icon - see src/features/models/. Natural-size bee art
+    // now, a real rotatable 3D viewer later (KEEPERDEX_ENTRIES' new
+    // `model` field in db.js is the hook for that).
+    models: { icon: '🧬', label: 'Bee Models' },
     calendar: { icon: '📅', label: 'Calendar' },
     'create-daily': { icon: '☀️', label: 'Daily' },
     habits: { icon: '✅', label: 'Habits' },
@@ -292,6 +296,7 @@ class CodexSystem {
         if (path.includes('account-security.html')) return 'account-security';
         if (path.includes('inventory.html')) return 'inventory';
         if (path.includes('keeperdex.html')) return 'keeperdex';
+        if (path.includes('models.html')) return 'models';
         if (path.includes('settings.html')) return 'settings';
         if (path.includes('colony.html')) return 'colony';
         if (path.includes('gacha.html')) return 'gacha';
@@ -364,12 +369,12 @@ class CodexSystem {
     }
 
     // A real "go back" button - lives as its own floating hexagon next to
-    // the Hive Mind FAB (bottom of the screen) rather than in the header,
+    // the Waggle FAB (bottom of the screen) rather than in the header,
     // so it reads as a peer control to that FAB instead of another header
     // nav item. Present on every page this same header/footer pair is
     // (everywhere except the root index.html/login page) - the whole point
     // is there's no dead end anywhere, no matter how you got there (header
-    // nav, Home's app grid, the Hive Mind FAB, a modal's own link, etc.).
+    // nav, Home's app grid, the Waggle FAB, a modal's own link, etc.).
     // Prefers actual browser history so it lands wherever you really came
     // from; only falls back to Home if there's nothing to go back to (e.g.
     // the very first page opened this session, or history was cleared).

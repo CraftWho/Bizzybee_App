@@ -130,12 +130,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('todos-completed-toggle').setAttribute('aria-expanded', String(!isCollapsed));
     });
 
-    HiveMind.setActions([
+    Waggle.setActions([
         {
             icon: '➕',
             label: 'Add To-Do',
             onClick: () => { window.location.href = './create-todo.html'; }
         },
-        ...baseHiveMindActions()
+        ...baseWaggleActions()
     ]);
 });

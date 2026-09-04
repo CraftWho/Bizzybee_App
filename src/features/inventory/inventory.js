@@ -278,6 +278,11 @@ function closeExpanded(expandedOverlay) {
     setTimeout(() => {
         if (expandedOverlay.isConnected) expandedOverlay.hidden = true;
     }, 220);
+    // Re-enable the per-tile shine animation behind the roster grid/
+    // coverflow now that no card is enlarged - see the matching
+    // .bee-roster-card-open toggle in openExpanded() below and the CSS
+    // override in inventory.css (mobile stutter fix).
+    document.body.classList.remove('bee-roster-card-open');
 }
 
 // All picker state/behavior for one open-modal lifetime. `overlay` is the
@@ -782,6 +787,13 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
         // change applied in the same frame an element goes display:none
         // -> visible).
         requestAnimationFrame(() => expandedOverlay.classList.add('is-open'));
+
+        // Disable the background grid/coverflow's per-tile shine animation
+        // while a card is enlarged - each tile is its own animated/
+        // composited layer (see inventory.css), and leaving all of them
+        // running underneath the expanded card is what caused the mobile
+        // stutter/glitch when opening a card. Reversed in closeExpanded().
+        document.body.classList.add('bee-roster-card-open');
     }
 
     els.search.addEventListener('input', applyFilters);
@@ -898,6 +910,11 @@ function openBeeRosterModal() {
         if (picker) picker.destroy();
         overlay.remove();
         expandedOverlay.remove();
+        // Safety net: if the whole roster modal is closed while a card was
+        // still enlarged, make sure the shine animation doesn't stay
+        // disabled forever (see bee-roster-card-open in openExpanded()/
+        // closeExpanded()).
+        document.body.classList.remove('bee-roster-card-open');
     };
 
     overlay.addEventListener('click', (event) => {
@@ -924,5 +941,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('inventory-bee-roster-count').textContent = `${Vault.getColonyBees().length} bees`;
     document.getElementById('inventory-bee-roster-btn').addEventListener('click', openBeeRosterModal);
 
-    HiveMind.setActions(baseHiveMindActions());
+    // Waggle's "Colony Bees" quick-access action (baseWaggleActions()
+    // in llm-engine.js) can't call openBeeRosterModal() directly when it
+    // sent you here from another page - it just navigated the browser to
+    // this URL - so it appends a #colony-bees hash for us to notice
+    // instead. Cleared via replaceState so a later refresh or back-nav
+    // doesn't reopen the modal on its own.
+    if (window.location.hash === '#colony-bees') {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        openBeeRosterModal();
+    }
+
+    Waggle.setActions(baseWaggleActions());
 });

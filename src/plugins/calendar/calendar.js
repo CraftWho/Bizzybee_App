@@ -399,5 +399,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderCalendar();
     }
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

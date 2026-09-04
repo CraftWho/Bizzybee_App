@@ -725,7 +725,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderQuestsPage();
     setupCollapsibleSections();
 
-    HiveMind.setActions([
+    Waggle.setActions([
         {
             icon: '➕',
             label: 'Add Campaign',
@@ -745,6 +745,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         },
-        ...baseHiveMindActions()
+        ...baseWaggleActions()
     ]);
 });

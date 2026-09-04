@@ -1,7 +1,7 @@
 console.log("/// NANO BEE MODULE ONLINE ///");
 
 // Injects the glowing hex-core + flying bee scene into a container.
-// size: 'mini' (Hive Mind FAB icon) or 'hero' (Login page centerpiece).
+// size: 'mini' (Waggle FAB icon) or 'hero' (Login page centerpiece).
 const NanoBee = {
     markup() {
         return `

@@ -90,7 +90,7 @@ function showSkill(skillId) {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     renderSkillTree();
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     // Delegated so newly-rendered nodes (after an unlock re-render) never
     // need their own listener re-attached.

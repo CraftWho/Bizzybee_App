@@ -387,6 +387,20 @@
     z-index: 2;
 }
 
+/* Mobile glitch fix: opening a card (the tap-to-enlarge overlay in
+   inventory.js) shrinks/enlarges a full BeeCard on top of a roster that,
+   in Grid or Cover Flow, can have dozens of these ::before shine layers
+   animating at once - each one is its own animated/composited layer, and
+   leaving them all running underneath the enlarged card is what caused
+   the stutter reported on mobile. openExpanded()/closeExpanded() in
+   inventory.js toggle body.bee-roster-card-open for exactly as long as a
+   card is enlarged, so the background tiles freeze while it's open and
+   pick back up the moment you're back on the roster. */
+body.bee-roster-card-open .inventory-roster-tile-scale .bee-card-face::before,
+body.bee-roster-card-open .inventory-roster-coverflow-track .inventory-cover-tile::before {
+    animation: none;
+}
+
 .inventory-cover-tile-icon-host {
     pointer-events: none;
 }
