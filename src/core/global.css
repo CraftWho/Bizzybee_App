@@ -127,6 +127,60 @@ body::before {
     box-shadow: 0 0 25px var(--gold-start);
 }
 
+/* Custom in-page "Install app" button - the same floating-hexagon peer as
+   back-fab-btn above, mirrored to the opposite side of the Waggle FAB
+   (fixed offset math: 35px FAB half-width + 14px gap + 44px own width =
+   93px, same distance back-fab-btn sits to its left). Hidden by default
+   and only revealed by app.js's injectInstallButton() once the browser
+   actually confirms this page load is installable - [hidden] has to be
+   spelled out explicitly here since the plain `display: flex` below would
+   otherwise beat the browser's own `[hidden]{display:none}` UA rule
+   (author styles win over user-agent styles regardless of specificity). */
+.install-fab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 30px;
+    left: calc(50% + 93px);
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: var(--gold-start);
+    border: none;
+    cursor: pointer;
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
+    box-shadow: 0 0 15px var(--gold-glow);
+    transition: transform 0.2s ease-in-out, filter 0.2s, box-shadow 0.2s;
+    z-index: 1000;
+}
+
+.install-fab-btn[hidden] {
+    display: none;
+}
+
+.install-fab-btn::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: var(--obsidian);
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
+    box-shadow: inset 0 0 10px var(--gold-dim);
+}
+
+.install-fab-btn-icon {
+    position: relative;
+    z-index: 1;
+    font-size: 1.3rem;
+}
+
+.install-fab-btn:hover,
+.install-fab-btn:active {
+    filter: brightness(1.2);
+    transform: scale(1.08);
+    box-shadow: 0 0 25px var(--gold-start);
+}
+
 .header-page-name {
     display: flex;
     align-items: center;

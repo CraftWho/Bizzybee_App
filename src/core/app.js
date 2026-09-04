@@ -47,6 +47,30 @@ const EXTRA_PAGE_META = {
     'create-todo': { icon: '📝', label: 'To-Do' }
 };
 
+// --- Install App (PWA) prompt --------------------------------------------
+// Chromium-family browsers (Chrome, Edge, Samsung Internet, etc.) fire
+// this once per page load when the manifest + HTTPS installability
+// criteria (see manifest.json's icons/name/start_url/display) are met and
+// the site isn't already installed. Has to be listened for at the top
+// level, before DOMContentLoaded, since the event can fire early - by the
+// time CodexSystem.init() runs, this either already caught it or it never
+// will for this page load. preventDefault() suppresses the browser's own
+// mini-infobar so injectInstallButton()'s own button drives it instead -
+// the same standard beforeinstallprompt API big sites (Facebook included)
+// build their custom install buttons on top of, not anything proprietary
+// to them or to any one browser.
+window.__bbInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    window.__bbInstallPrompt = event;
+    document.dispatchEvent(new CustomEvent('bb-install-available'));
+});
+window.addEventListener('appinstalled', () => {
+    window.__bbInstallPrompt = null;
+    document.dispatchEvent(new CustomEvent('bb-install-done'));
+    if (typeof Toast !== 'undefined') Toast.show('🐝 Bizzybee installed!', 'positive');
+});
+
 // --- App Lock ----------------------------------------------------------
 // A separate, DEVICE-ONLY 4-digit PIN that locks the whole app (not just
 // Account Info, which has its own unrelated 6-digit PIN - see
@@ -116,6 +140,7 @@ class CodexSystem {
         this.renderGlobalUI();
         this.initAppLock();
         this.initCloudSyncAuto();
+        this.injectInstallButton();
     }
 
     renderGlobalUI() {
@@ -406,6 +431,50 @@ class CodexSystem {
             const isNestedPage = currentPath.includes('features') || currentPath.includes('plugins');
             const rootPrefix = isNestedPage ? '../../..' : '.';
             window.location.href = `${rootPrefix}/src/features/home/home.html`;
+        });
+
+        document.body.appendChild(btn);
+    }
+
+    // Custom in-page "Install" button riding on the beforeinstallprompt
+    // capture at the top of this file - hidden by default (see
+    // .install-fab-btn[hidden] in global.css) and only revealed once the
+    // browser actually confirms this page load is installable, so it
+    // never shows a dead button on an already-installed app or a browser
+    // that doesn't support this API at all (notably iOS Safari - there,
+    // "Add to Home Screen" stays a manual Share-sheet action with no JS
+    // hook, so this button simply never appears, which is correct, not a
+    // bug). Sits in the same floating-hexagon row as the back button and
+    // the Waggle FAB, mirrored to the opposite side (see
+    // .install-fab-btn's left offset math in global.css).
+    injectInstallButton() {
+        const btn = document.createElement('button');
+        btn.className = 'install-fab-btn';
+        btn.title = 'Install Bizzybee as an app';
+        btn.setAttribute('aria-label', 'Install Bizzybee as an app');
+        btn.hidden = true;
+        btn.innerHTML = '<span class="install-fab-btn-icon">📲</span>';
+
+        const reveal = () => { btn.hidden = false; };
+        const hide = () => { btn.hidden = true; };
+
+        // Covers both orders: the event firing before this method ever
+        // runs (checked directly) and it firing after (the custom event
+        // the top-level listener dispatches).
+        if (window.__bbInstallPrompt) reveal();
+        document.addEventListener('bb-install-available', reveal);
+        document.addEventListener('bb-install-done', hide);
+
+        btn.addEventListener('click', async () => {
+            const promptEvent = window.__bbInstallPrompt;
+            if (!promptEvent) return;
+            // A beforeinstallprompt event can only ever be used once -
+            // consumed here regardless of what the user picks. The only
+            // way to prompt again is a fresh event on a later page load.
+            window.__bbInstallPrompt = null;
+            hide();
+            promptEvent.prompt();
+            await promptEvent.userChoice;
         });
 
         document.body.appendChild(btn);
