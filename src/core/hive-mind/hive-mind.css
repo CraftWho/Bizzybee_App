@@ -1,11 +1,11 @@
 /* ==========================================================================
-   HIVE MIND - GLOBAL FLOATING ACTION BUTTON SHELL
+   WAGGLE - GLOBAL FLOATING ACTION BUTTON SHELL
    Shell/appearance only. Per-page actions are registered via hive-mind.js
-   from each feature's own JS file - see HiveMind.setActions().
+   from each feature's own JS file - see Waggle.setActions().
    Visible at every viewport width, not just mobile.
    ========================================================================== */
 
-button.mobile-hive-btn {
+button.mobile-waggle-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -24,32 +24,32 @@ button.mobile-hive-btn {
     transition: transform 0.2s ease-in-out, filter 0.2s, box-shadow 0.2s;
 }
 
-.mobile-hive-btn .btn-icon {
+.mobile-waggle-btn .btn-icon {
     font-size: 32px;
     text-shadow: 0 0 10px var(--gold-start);
 }
 
-.mobile-hive-btn .btn-gif {
+.mobile-waggle-btn .btn-gif {
     width: 100%;
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
 }
 
-.mobile-hive-btn:active,
-.mobile-hive-btn:hover {
+.mobile-waggle-btn:active,
+.mobile-waggle-btn:hover {
     filter: brightness(1.2);
     transform: translateX(-50%) scale(1.05);
     box-shadow: 0 0 25px var(--gold-start);
 }
 
-.mobile-hive-btn.is-active {
+.mobile-waggle-btn.is-active {
     transform: translateX(-50%) scale(1.08);
     box-shadow: 0 0 25px var(--gold-start);
 }
 
 /* --- Expanding action menu --- */
-.hive-menu {
+.waggle-menu {
     position: fixed;
     bottom: 115px;
     left: 50%;
@@ -62,7 +62,7 @@ button.mobile-hive-btn {
     pointer-events: none;
 }
 
-.hive-menu-item {
+.waggle-menu-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -81,15 +81,15 @@ button.mobile-hive-btn {
     pointer-events: none;
 }
 
-.hive-menu-item .hive-menu-icon {
+.waggle-menu-item .waggle-menu-icon {
     font-size: 1.1rem;
 }
 
-.hive-menu.is-open {
+.waggle-menu.is-open {
     pointer-events: auto;
 }
 
-.hive-menu.is-open .hive-menu-item {
+.waggle-menu.is-open .waggle-menu-item {
     opacity: 1;
     transform: scale(1) translateY(0);
     pointer-events: auto;

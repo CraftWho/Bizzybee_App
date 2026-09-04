@@ -1,0 +1,123 @@
+/* --- CLOCK PICKER - circular time-of-day picker for reminders. Hour mode
+   (1-12) advances straight into minute mode (:00/:05/.../:55) on tap, same
+   two-step flow as a native mobile time picker; AM/PM is a separate toggle
+   below the dial. Positions are placed with plain trigonometry (see
+   _polarXY in clock-picker.js) against this fixed 200x200 face rather
+   than CSS transform math, so the JS and CSS never have to agree on a
+   shared rotate/translate origin.
+
+   Extracted out of create-daily.css and create-todo.css, which each
+   carried a byte-for-byte identical copy of this block - see the
+   project-tuning pass before Hive Defense. --- */
+.clock-wheel-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.clock-wheel {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    flex-shrink: 0;
+}
+
+.clock-wheel[data-mode="minute"] {
+    border-color: var(--gold-dim);
+}
+
+.clock-wheel-face {
+    position: absolute;
+    inset: 0;
+}
+
+.clock-wheel-num {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: #999;
+    font-size: 0.85rem;
+    font-weight: bold;
+    padding: 0;
+    line-height: 32px;
+}
+
+.clock-wheel-num:hover {
+    background: #1a1a1a;
+    color: var(--gold-start);
+    transform: translate(-50%, -50%);
+}
+
+.clock-wheel-num--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    transform: translate(-50%, -50%);
+}
+
+.clock-wheel-center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold-start);
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+.clock-wheel-hand {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    background: var(--gold-start);
+    transform-origin: top center;
+    transform: translateX(-50%) rotate(0deg);
+    z-index: 1;
+    transition: transform 0.15s ease, height 0.15s ease;
+}
+
+.clock-wheel-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.clock-wheel-readout {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--gold-start);
+}
+
+.clock-wheel-period-toggle {
+    display: flex;
+    gap: 6px;
+}
+
+.clock-wheel-period-btn {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #999;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.clock-wheel-period-btn--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    border-color: var(--gold-start);
+    color: var(--obsidian);
+}

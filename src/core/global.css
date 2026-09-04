@@ -66,7 +66,7 @@ body::before {
 }
 
 /* Real "go back" control - a floating hexagon that sits next to the Hive
-   Mind FAB (mobile-hive-btn, hive-mind.css) at the bottom of the screen,
+   Mind FAB (mobile-waggle-btn, hive-mind.css) at the bottom of the screen,
    not in the header, so it reads as a peer control to that FAB rather
    than a header nav item. Same shape language as the elemental hex badges
    (bee-card.css) and the same obsidian/gold-glow hover treatment as the

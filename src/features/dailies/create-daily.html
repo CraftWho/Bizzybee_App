@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/clock-picker/clock-picker.css">
+    <link rel="stylesheet" href="../../core/checklist-editor/checklist-editor.css">
+    <link rel="stylesheet" href="../../core/tag-picker/tag-picker.css">
+    <link rel="stylesheet" href="../../core/difficulty-picker/difficulty-picker.css">
     <link rel="stylesheet" href="./create-daily.css">
 </head>
 <body>
@@ -74,21 +78,8 @@
             <h3 class="daily-section-heading">🔔 Reminders</h3>
             <div class="daily-reminders-list" id="daily-reminders-list"></div>
 
-            <div class="clock-wheel-widget">
-                <div class="clock-wheel" id="daily-clock-wheel" data-mode="hour">
-                    <div class="clock-wheel-hand" id="daily-clock-hand"></div>
-                    <div class="clock-wheel-center-dot"></div>
-                    <div class="clock-wheel-face" id="daily-clock-face"></div>
-                </div>
-                <div class="clock-wheel-controls">
-                    <span class="clock-wheel-readout" id="daily-clock-readout">12:00 AM</span>
-                    <div class="clock-wheel-period-toggle">
-                        <button type="button" class="clock-wheel-period-btn clock-wheel-period-btn--selected" data-period="AM">AM</button>
-                        <button type="button" class="clock-wheel-period-btn" data-period="PM">PM</button>
-                    </div>
-                    <button type="button" id="daily-add-reminder-btn" class="daily-add-reminder-btn">+ Add reminder</button>
-                </div>
-            </div>
+            <div id="daily-clock-mount"></div>
+            <button type="button" id="daily-add-reminder-btn" class="daily-add-reminder-btn">+ Add reminder</button>
             <p class="daily-reminder-note">Fires a real browser notification, but only while a Bizzybee tab is open somewhere.</p>
 
             <h3 class="daily-section-heading">🏷️ Tags</h3>
@@ -110,6 +101,10 @@
     <script src="../../core/toast/toast.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/clock-picker/clock-picker.js"></script>
+    <script src="../../core/checklist-editor/checklist-editor.js"></script>
+    <script src="../../core/tag-picker/tag-picker.js"></script>
+    <script src="../../core/difficulty-picker/difficulty-picker.js"></script>
 
     <script src="./create-daily.js"></script>
 </body>

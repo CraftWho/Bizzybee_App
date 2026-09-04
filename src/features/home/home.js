@@ -155,8 +155,8 @@ function renderDailyTasks() {
 // and Profile moved the other way (out of the header, into here) to keep
 // the header short - see app.js's NAV_ITEMS/EXTRA_PAGE_META. Colony,
 // Pollination Chamber (gacha), and Inventory are deliberately NOT here -
-// that trio is reached exclusively through the Hive Mind FAB menu (see
-// HIVE_MIND_NAV_PAGES in llm-engine.js) as its own cohesive "system",
+// that trio is reached exclusively through the Waggle FAB menu (see
+// WAGGLE_NAV_PAGES in llm-engine.js) as its own cohesive "system",
 // same as Colony always has been.
 const HOME_APP_DESTINATIONS = [
     { key: 'skills', icon: '🌿', label: 'Skills' },
@@ -165,6 +165,9 @@ const HOME_APP_DESTINATIONS = [
     { key: 'honey-store', icon: '🍯', label: 'Honey Store' },
     { key: 'plugin-hub', icon: '🧩', label: 'Plugins' },
     { key: 'hive-archive', icon: '📚', label: 'The Hive Archive' },
+    // Temp name - see src/features/models/. Natural-size bee art for now,
+    // heading toward a real rotatable 3D viewer once those models exist.
+    { key: 'models', icon: '🧬', label: 'Bee Models' },
     { key: 'settings', icon: '⚙️', label: 'Settings' }
 ];
 
@@ -240,5 +243,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAppGrid();
     setupHomeCollapsibles();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

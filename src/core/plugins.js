@@ -3,7 +3,7 @@ console.log("/// PLUGIN MANAGER ONLINE ///");
 // The plugin manager - knows what optional expansion packs (src/plugins/*/)
 // exist and whether each is actually available to turn on yet. Loaded on
 // every page right after db.js, same as every other core singleton
-// (Toast, HiveMind), so any page can check Plugins.isEnabled('habits')
+// (Toast, Waggle), so any page can check Plugins.isEnabled('habits')
 // without needing to be the Plugin Hub page itself.
 //
 // Split of responsibility (matches ROADMAP.md's "core stores state,

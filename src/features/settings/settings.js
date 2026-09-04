@@ -177,7 +177,7 @@ function initCloudSync() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     initCloudSync();
 

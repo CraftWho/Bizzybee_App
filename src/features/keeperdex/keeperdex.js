@@ -36,5 +36,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderKeeperDex();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

@@ -1,13 +1,5 @@
 console.log("/// CREATE TO-DO PROTOCOLS INITIALIZED ///");
 
-function escapeCreateTodoAttr(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
 function todayISOLocal() {
     const now = new Date();
     const y = now.getFullYear();
@@ -33,123 +25,15 @@ const DIFFICULTY_TIERS = [
     { level: 'Hard', dp: 150, icon: '◆◆◆◆' }
 ];
 
-const CLOCK_CENTER = 100;
-const CLOCK_RADIUS = 80;
-
-let checklistState = [];
-let checklistIdCounter = 0;
+// All mutable form state lives here rather than being re-read from the DOM
+// on every change. The checklist/clock/tags/difficulty widgets keep their
+// own internal state now (see src/core/checklist-editor, clock-picker,
+// tag-picker, difficulty-picker); what's left here is state only this
+// page cares about.
 let selectedDifficulty = 'Easy';
 let selectedDP = 30;
 let remindersState = [];
-let tagsState = [];
-let dismissedTags = new Set();
 let editingTodoId = null;
-
-let clockMode = 'hour';
-let clockHour = 12;
-let clockMinute = 0;
-let clockPeriod = 'AM';
-
-function newChecklistId() {
-    checklistIdCounter += 1;
-    return `chk-${Date.now()}-${checklistIdCounter}`;
-}
-
-function createChecklistRowEl(item) {
-    const row = document.createElement('div');
-    row.className = 'todo-checklist-row';
-    row.dataset.checklistId = item.id;
-    row.innerHTML = `
-        <button type="button" class="todo-checklist-remove" aria-label="Remove entry">×</button>
-        <input type="text" class="todo-checklist-text" value="${escapeCreateTodoAttr(item.text)}">
-    `;
-
-    row.querySelector('.todo-checklist-text').addEventListener('input', (e) => {
-        item.text = e.target.value;
-    });
-
-    row.querySelector('.todo-checklist-remove').addEventListener('click', () => {
-        checklistState = checklistState.filter(i => i.id !== item.id);
-        row.remove();
-    });
-
-    return row;
-}
-
-function createGhostRowEl() {
-    const row = document.createElement('div');
-    row.className = 'todo-checklist-row todo-checklist-row--ghost';
-    row.innerHTML = `
-        <span class="todo-checklist-ghost-icon">+</span>
-        <input type="text" class="todo-checklist-text todo-checklist-ghost-input" placeholder="New checklist entry">
-    `;
-
-    const input = row.querySelector('.todo-checklist-ghost-input');
-    let promotedItem = null;
-
-    input.addEventListener('input', () => {
-        if (!promotedItem) {
-            if (!input.value) return;
-
-            promotedItem = { id: newChecklistId(), text: input.value, done: false };
-            checklistState.push(promotedItem);
-
-            row.classList.remove('todo-checklist-row--ghost');
-            input.classList.remove('todo-checklist-ghost-input');
-            input.placeholder = '';
-
-            const icon = row.querySelector('.todo-checklist-ghost-icon');
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'todo-checklist-remove';
-            removeBtn.setAttribute('aria-label', 'Remove entry');
-            removeBtn.textContent = '×';
-            removeBtn.addEventListener('click', () => {
-                checklistState = checklistState.filter(i => i.id !== promotedItem.id);
-                row.remove();
-            });
-            icon.replaceWith(removeBtn);
-
-            document.getElementById('todo-checklist').appendChild(createGhostRowEl());
-            return;
-        }
-
-        promotedItem.text = input.value;
-        if (!input.value) {
-            checklistState = checklistState.filter(i => i.id !== promotedItem.id);
-            row.remove();
-        }
-    });
-
-    return row;
-}
-
-function initChecklist(initialItems) {
-    checklistState = (initialItems || []).map(item => ({ ...item }));
-    const container = document.getElementById('todo-checklist');
-    container.innerHTML = '';
-    checklistState.forEach(item => container.appendChild(createChecklistRowEl(item)));
-    container.appendChild(createGhostRowEl());
-}
-
-function renderDifficultyTiles() {
-    const grid = document.getElementById('todo-difficulty-grid');
-    grid.innerHTML = DIFFICULTY_TIERS.map(tier => `
-        <button type="button" class="todo-difficulty-tile${tier.level === selectedDifficulty ? ' todo-difficulty-tile--selected' : ''}" data-difficulty="${tier.level}">
-            <span class="todo-difficulty-icon">${tier.icon}</span>
-            <span class="todo-difficulty-label">${tier.level}</span>
-        </button>
-    `).join('');
-
-    grid.querySelectorAll('.todo-difficulty-tile').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedDifficulty = btn.dataset.difficulty;
-            selectedDP = DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
-            document.getElementById('todo-dp-value').textContent = selectedDP;
-            renderDifficultyTiles();
-        });
-    });
-}
 
 function renderReminders() {
     const list = document.getElementById('todo-reminders-list');
@@ -171,79 +55,9 @@ function renderReminders() {
     });
 }
 
-// --- CLOCK WHEEL (duplicated from create-daily.js - self-contained, same
-// reasoning as the CSS/HTML duplication elsewhere in this feature) ---
-function clockPolarXY(index) {
-    const angle = (index / 12) * 2 * Math.PI - Math.PI / 2;
-    return {
-        x: CLOCK_CENTER + CLOCK_RADIUS * Math.cos(angle),
-        y: CLOCK_CENTER + CLOCK_RADIUS * Math.sin(angle)
-    };
-}
-
-function renderClockFace() {
-    const wheel = document.getElementById('todo-clock-wheel');
-    const face = document.getElementById('todo-clock-face');
-    const hand = document.getElementById('todo-clock-hand');
-    wheel.dataset.mode = clockMode;
-
-    const values = clockMode === 'hour'
-        ? [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-        : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-    const selectedValue = clockMode === 'hour' ? clockHour : clockMinute;
-
-    face.innerHTML = values.map((value, index) => {
-        const { x, y } = clockPolarXY(index);
-        const label = clockMode === 'minute' ? String(value).padStart(2, '0') : value;
-        const selected = value === selectedValue;
-        return `<button type="button" class="clock-wheel-num${selected ? ' clock-wheel-num--selected' : ''}" style="left:${x}px; top:${y}px;" data-value="${value}">${label}</button>`;
-    }).join('');
-
-    const selectedIndex = values.indexOf(selectedValue);
-    const handAngle = (selectedIndex / 12) * 360;
-    hand.style.height = `${CLOCK_RADIUS - 12}px`;
-    hand.style.transform = `translateX(-50%) rotate(${handAngle}deg)`;
-
-    face.querySelectorAll('.clock-wheel-num').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const value = Number(btn.dataset.value);
-            if (clockMode === 'hour') {
-                clockHour = value;
-                clockMode = 'minute';
-            } else {
-                clockMinute = value;
-            }
-            renderClockFace();
-            updateClockReadout();
-        });
-    });
-}
-
-function updateClockReadout() {
-    document.getElementById('todo-clock-readout').textContent =
-        `${clockHour}:${String(clockMinute).padStart(2, '0')} ${clockPeriod}`;
-}
-
-function clockTo24Hour() {
-    let h = clockHour % 12;
-    if (clockPeriod === 'PM') h += 12;
-    return `${String(h).padStart(2, '0')}:${String(clockMinute).padStart(2, '0')}`;
-}
-
-function resetClockWheel() {
-    clockMode = 'hour';
-    clockHour = 12;
-    clockMinute = 0;
-    clockPeriod = 'AM';
-    document.querySelectorAll('.clock-wheel-period-btn').forEach(btn => {
-        btn.classList.toggle('clock-wheel-period-btn--selected', btn.dataset.period === 'AM');
-    });
-    renderClockFace();
-    updateClockReadout();
-}
-
-// --- AUTOMATIC TAGS (duplicated from create-daily.js, plus existing
-// To-Do tags as a known-term source) ---
+// --- AUTOMATIC TAGS --- collectKnownTerms stays page-owned (see
+// src/core/tag-picker/tag-picker.js) - existing To-Do tags as a
+// known-term source, on top of create-daily.js's own sources.
 function collectKnownTerms() {
     const terms = new Map();
 
@@ -279,56 +93,10 @@ function collectKnownTerms() {
     return [...terms.values()];
 }
 
-function findMatchingTerms(text, knownTerms) {
-    if (!text) return [];
-    const lowerText = text.toLowerCase();
-
-    return knownTerms.filter(term => {
-        if (term.length < 3) return false;
-        const escaped = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const re = new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, 'i');
-        return re.test(lowerText);
-    });
-}
-
 function rescanTags() {
     const title = document.getElementById('todo-title-input').value;
     const notes = document.getElementById('todo-notes-input').value;
-    const knownTerms = collectKnownTerms();
-    const matched = new Set([
-        ...findMatchingTerms(title, knownTerms),
-        ...findMatchingTerms(notes, knownTerms)
-    ]);
-
-    let changed = false;
-    matched.forEach(tag => {
-        const lower = tag.toLowerCase();
-        if (dismissedTags.has(lower)) return;
-        if (tagsState.some(t => t.toLowerCase() === lower)) return;
-        tagsState.push(tag);
-        changed = true;
-    });
-
-    if (changed) renderTags();
-}
-
-function renderTags() {
-    const list = document.getElementById('todo-tags-list');
-    list.innerHTML = tagsState.length
-        ? tagsState.map(tag => `
-            <span class="todo-tag-chip" data-tag="${escapeCreateTodoAttr(tag)}">${escapeCreateTodoAttr(tag)} <button type="button" class="todo-tag-remove" aria-label="Remove tag">×</button></span>
-        `).join('')
-        : '<p class="todo-tags-empty">No matches yet - type a known term in your title or notes above.</p>';
-
-    list.querySelectorAll('.todo-tag-remove').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const chip = btn.closest('.todo-tag-chip');
-            const tag = chip.dataset.tag;
-            dismissedTags.add(tag.toLowerCase());
-            tagsState = tagsState.filter(t => t !== tag);
-            renderTags();
-        });
-    });
+    TagPicker.rescan(document.getElementById('todo-tags-list'), [title, notes], collectKnownTerms());
 }
 
 function getQueryParam(name) {
@@ -344,9 +112,8 @@ function loadExistingTodo(existing) {
     document.getElementById('todo-due-date').value = existing.dueDate || '';
 
     remindersState = (existing.reminders || []).map(r => ({ ...r }));
-    tagsState = [...(existing.tags || [])];
-
-    initChecklist(existing.checklist || []);
+    TagPicker.render(document.getElementById('todo-tags-list'), existing.tags || []);
+    ChecklistEditor.render(document.getElementById('todo-checklist'), existing.checklist || []);
 
     document.getElementById('create-todo-heading').innerHTML = '✏️ <span class="gold-gradient-text">EDIT TO-DO</span>';
     document.getElementById('create-todo-subtitle').textContent = 'Update any part of this to-do - changes apply immediately on save.';
@@ -356,7 +123,8 @@ function loadExistingTodo(existing) {
 function setupNewTodoDefaults() {
     selectedDP = DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
     document.getElementById('todo-dp-value').textContent = selectedDP;
-    initChecklist([]);
+    TagPicker.render(document.getElementById('todo-tags-list'), []);
+    ChecklistEditor.render(document.getElementById('todo-checklist'), []);
 }
 
 function saveTodo() {
@@ -371,10 +139,10 @@ function saveTodo() {
         dp: selectedDP,
         difficulty: selectedDifficulty,
         notes: document.getElementById('todo-notes-input').value,
-        checklist: checklistState,
+        checklist: ChecklistEditor.getItems(document.getElementById('todo-checklist')),
         dueDate: document.getElementById('todo-due-date').value || null,
         reminders: remindersState,
-        tags: tagsState
+        tags: TagPicker.getTags(document.getElementById('todo-tags-list'))
     };
 
     if (editingTodoId) {
@@ -397,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     editingTodoId = getQueryParam('id');
     const existing = editingTodoId ? Vault.getTodos().find(t => t.id === editingTodoId) : null;
@@ -409,32 +177,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupNewTodoDefaults();
     }
 
-    renderDifficultyTiles();
+    DifficultyPicker.render(document.getElementById('todo-difficulty-grid'), DIFFICULTY_TIERS, selectedDifficulty, (tier) => {
+        selectedDifficulty = tier.level;
+        selectedDP = tier.dp;
+        document.getElementById('todo-dp-value').textContent = selectedDP;
+    });
     renderReminders();
-    renderTags();
-    resetClockWheel();
+
+    // The clock wheel widget renders into its own mount point; the
+    // "+ Add reminder" button lives in the page's own HTML (it's this
+    // page's action, not the picker's) but visually belongs inside the
+    // picker's controls column, so it's moved in right after render -
+    // same flex column layout the original inline markup had.
+    const clockMount = document.getElementById('todo-clock-mount');
+    ClockPicker.render(clockMount);
+    clockMount.querySelector('.clock-wheel-controls').appendChild(document.getElementById('todo-add-reminder-btn'));
+
     rescanTags();
 
     document.getElementById('todo-title-input').addEventListener('input', rescanTags);
     document.getElementById('todo-notes-input').addEventListener('input', rescanTags);
 
-    document.querySelectorAll('.clock-wheel-period-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            clockPeriod = btn.dataset.period;
-            document.querySelectorAll('.clock-wheel-period-btn').forEach(b => {
-                b.classList.toggle('clock-wheel-period-btn--selected', b === btn);
-            });
-            updateClockReadout();
-        });
-    });
-
     document.getElementById('todo-add-reminder-btn').addEventListener('click', () => {
-        const time = clockTo24Hour();
+        const time = ClockPicker.getTime24(clockMount);
         remindersState.push({ id: `rem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, time });
         renderReminders();
         Reminders.requestPermissionIfNeeded();
         Toast.show(`🔔 Reminder set for ${formatTime12h(time)}`, 'positive');
-        resetClockWheel();
+        ClockPicker.reset(clockMount);
     });
 
     document.getElementById('todo-ask-eevee-btn').addEventListener('click', async () => {

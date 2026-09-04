@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderDictionaryList();
     refreshCategoryDatalist();
     highlightTermFromURL();
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     document.getElementById('add-term-btn').addEventListener('click', () => {
         const nameInput = document.getElementById('term-name-input');

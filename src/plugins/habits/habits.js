@@ -101,12 +101,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderHabits();
 
-    HiveMind.setActions([
+    Waggle.setActions([
         {
             icon: '➕',
             label: 'Add Habit',
             onClick: () => { window.location.href = './create-habit.html'; }
         },
-        ...baseHiveMindActions()
+        ...baseWaggleActions()
     ]);
 });

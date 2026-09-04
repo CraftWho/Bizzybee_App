@@ -722,7 +722,17 @@ const KEEPERDEX_ENTRIES = (() => {
                 name: `${rarityInfo.rarity} ${BEE_ELEMENTS[element].label} Bee`,
                 species: flavor.title,
                 description: flavor.description,
-                skills
+                skills,
+                // Single hook the Models page (src/features/models/) and,
+                // eventually, BeeCard/KeeperDexCard all read from - today
+                // ready is always false so every consumer falls back to
+                // the flat NanoBee art, same "groundwork now" spirit as
+                // BEE_ELEMENTS/BEE_CLASSES above. The moment a real
+                // rotatable asset exists for a given rarity+element pair,
+                // filling in asset (and flipping ready) here is the only
+                // change needed - no consumer's own code has to change to
+                // start using it.
+                model: { ready: false, asset: null }
             });
         });
     });

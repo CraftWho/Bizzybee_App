@@ -88,47 +88,6 @@
     font-size: 0.85rem;
 }
 
-/* --- DIFFICULTY TILES (duplicated from create-daily.css) --- */
-.habit-difficulty-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
-
-.habit-difficulty-tile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    background: #151515;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 14px 6px;
-    color: var(--gold-start);
-    font-weight: normal;
-}
-
-.habit-difficulty-icon {
-    font-size: 1.1rem;
-    letter-spacing: 2px;
-    color: var(--gold-dim);
-}
-
-.habit-difficulty-label {
-    font-size: 0.85rem;
-}
-
-.habit-difficulty-tile--selected {
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    border-color: var(--gold-start);
-    color: var(--obsidian);
-    font-weight: bold;
-}
-
-.habit-difficulty-tile--selected .habit-difficulty-icon {
-    color: var(--obsidian);
-}
-
 /* --- DP DISPLAY --- */
 .habit-dp-row {
     margin-top: 16px;
@@ -162,52 +121,14 @@
     font-style: italic;
 }
 
-/* --- TAGS (duplicated from create-daily.css) --- */
-.habit-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.habit-tags-empty {
-    color: #666;
-    font-size: 0.85rem;
-    margin: 0;
-}
-
+/* --- TAGS - the chip list/dismiss mechanics are shared (see
+   src/core/tag-picker); this note's wording (which known-term sources it
+   draws from) is page-specific so it stays here. --- */
 .habit-tags-note {
     margin: 4px 0 0;
     color: #666;
     font-size: 0.78rem;
     font-style: italic;
-}
-
-.habit-tag-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #1a1a1a;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold-start);
-    border-radius: 20px;
-    padding: 5px 10px 5px 14px;
-    font-size: 0.85rem;
-}
-
-.habit-tag-remove {
-    background: transparent;
-    border: none;
-    color: #999;
-    font-size: 0.9rem;
-    padding: 0 2px;
-    box-shadow: none;
-}
-
-.habit-tag-remove:hover {
-    color: var(--crimson);
-    transform: none;
-    box-shadow: none;
 }
 
 /* --- SAVE / CANCEL --- */
@@ -231,9 +152,6 @@
 }
 
 @media (max-width: 480px) {
-    .habit-difficulty-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
     .habit-form-actions {
         flex-direction: column-reverse;
     }

@@ -410,9 +410,9 @@ Required shape:
     }
 };
 
-// The Hive Mind menu actions every page shares (chat with Eevee, plus nav
-// to the Hive Mind "system" pages - Colony, Pollination Chamber,
-// Inventory). Each page's own JS still calls HiveMind.setActions() itself
+// The Waggle menu actions every page shares (chat with Eevee, plus nav
+// to the Waggle "system" pages - Colony, Pollination Chamber,
+// Inventory). Each page's own JS still calls Waggle.setActions() itself
 // and can add its own extras on top (e.g. Quests adds "Add Campaign") -
 // hive-mind.js's contract is that each page owns its own action list, this
 // just saves every page from redeclaring the shared ones by hand.
@@ -425,19 +425,19 @@ Required shape:
 // both places compute the same "am I at src/features or src/plugins" path.
 //
 // Each nav item is filtered out while you're already ON that page - no
-// point offering "Hive Mind" from inside the Hive Mind page itself. HIVE_
-// MIND_NAV_PAGES is the single source of truth for that filtering AND the
+// point offering "Hive Mind" from inside the Hive Mind page itself.
+// WAGGLE_NAV_PAGES is the single source of truth for that filtering AND the
 // href, so adding a future page here only means editing one list.
-const HIVE_MIND_NAV_PAGES = [
+const WAGGLE_NAV_PAGES = [
     { page: 'colony', icon: '🏰', label: 'Hive Mind' },
     { page: 'gacha', icon: '🌼', label: 'Pollination Chamber' },
     { page: 'inventory', icon: '🎒', label: 'Inventory' },
     { page: 'keeperdex', icon: '📘', label: 'KeeperDex' }
 ];
 
-function baseHiveMindActions() {
+function baseWaggleActions() {
     const currentPath = window.location.pathname;
-    // HIVE_MIND_NAV_PAGES entries (colony/gacha/inventory) all live under
+    // WAGGLE_NAV_PAGES entries (colony/gacha/inventory) all live under
     // src/features/*/ - same bug class as app.js's injectHeader (see the
     // matching note there and HANDOFF.md §12): a plugin page is at the
     // same DEPTH as a feature page but a different parent folder, so it
@@ -448,7 +448,7 @@ function baseHiveMindActions() {
     const isPluginPage = currentPath.includes('plugins');
     const linkPrefix = isFeaturePage ? '..' : (isPluginPage ? '../../features' : './src/features');
 
-    const navActions = HIVE_MIND_NAV_PAGES
+    const navActions = WAGGLE_NAV_PAGES
         .filter(entry => !currentPath.includes(`${entry.page}.html`))
         .map(entry => ({
             icon: entry.icon,
@@ -456,8 +456,30 @@ function baseHiveMindActions() {
             onClick: () => { window.location.href = `${linkPrefix}/${entry.page}/${entry.page}.html`; }
         }));
 
+    // "Colony Bees" quick-access - deliberately NOT in WAGGLE_NAV_PAGES
+    // above, because it isn't its own HTML page. It's the bee roster
+    // openBeeRosterModal() builds on the fly on top of the Inventory page
+    // (see inventory.js) - the "View & Manage Colony Bees" button there.
+    // So: already on Inventory -> call the modal function directly rather
+    // than "navigating" to the page we're standing on. Anywhere else ->
+    // send the browser to Inventory with a #colony-bees hash, which
+    // inventory.js's DOMContentLoaded handler checks for and uses to
+    // auto-open the roster once the page (and Vault) are ready.
+    const colonyBeesAction = {
+        icon: '🐝',
+        label: 'Colony Bees',
+        onClick: () => {
+            if (currentPath.includes('inventory.html') && typeof openBeeRosterModal === 'function') {
+                openBeeRosterModal();
+            } else {
+                window.location.href = `${linkPrefix}/inventory/inventory.html#colony-bees`;
+            }
+        }
+    };
+
     return [
         ...navActions,
+        colonyBeesAction,
         {
             icon: '💬',
             label: 'Chat with Eevee',

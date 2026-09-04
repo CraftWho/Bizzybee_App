@@ -93,5 +93,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderSkillMatrix();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

@@ -219,7 +219,7 @@ async function attemptRemoveAppLockPin() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     ['create-pin-new', 'create-pin-confirm', 'change-pin-current', 'change-pin-new', 'change-pin-confirm']
         .forEach(id => sanitizePinInput(document.getElementById(id)));

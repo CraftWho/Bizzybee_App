@@ -2,5 +2,5 @@ console.log("/// HIVE ARCHIVE PROTOCOLS INITIALIZED (WIP) ///");
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });

@@ -1,9 +1,9 @@
-console.log("/// HIVE MIND ONLINE ///");
+console.log("/// WAGGLE ONLINE ///");
 
 // Global FAB shell. Owns appearance, positioning, and open/close mechanics only.
-// Each feature page decides its own actions by calling HiveMind.setActions([...])
+// Each feature page decides its own actions by calling Waggle.setActions([...])
 // from its own <feature>.js - the shell never knows what a given page's actions do.
-const HiveMind = {
+const Waggle = {
     actions: [],
     isOpen: false,
     button: null,
@@ -33,11 +33,11 @@ const HiveMind = {
 
     build() {
         this.button = document.createElement('button');
-        this.button.className = 'mobile-hive-btn';
+        this.button.className = 'mobile-waggle-btn';
         this.button.addEventListener('click', () => this.toggle());
 
         this.menu = document.createElement('div');
-        this.menu.className = 'hive-menu';
+        this.menu.className = 'waggle-menu';
 
         document.body.appendChild(this.button);
         document.body.appendChild(this.menu);
@@ -47,9 +47,9 @@ const HiveMind = {
 
     renderMenuItems() {
         this.menu.innerHTML = this.actions.map((action, i) => `
-            <button class="hive-menu-item" data-index="${i}">
-                <span class="hive-menu-icon">${action.icon}</span>
-                <span class="hive-menu-label">${action.label}</span>
+            <button class="waggle-menu-item" data-index="${i}">
+                <span class="waggle-menu-icon">${action.icon}</span>
+                <span class="waggle-menu-label">${action.label}</span>
             </button>
         `).join('');
 

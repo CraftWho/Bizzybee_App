@@ -157,5 +157,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderExterior();
     });
 
-    HiveMind.setActions(baseHiveMindActions());
+    // Same quick-access shortcut as the "Colony Bees" Waggle FAB item
+    // (llm-engine.js's baseWaggleActions()) - jumps straight to the bee
+    // roster (openBeeRosterModal() on the Inventory page) via the
+    // #colony-bees hash inventory.js's DOMContentLoaded handler watches
+    // for, rather than making the user go Inventory -> scroll -> tap
+    // "View & Manage Colony Bees" themselves.
+    document.getElementById('colony-bees-quick-btn').addEventListener('click', () => {
+        window.location.href = '../inventory/inventory.html#colony-bees';
+    });
+
+    Waggle.setActions(baseWaggleActions());
 });

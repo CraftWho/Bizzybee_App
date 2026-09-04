@@ -1,15 +1,5 @@
 console.log("/// CREATE HABIT PROTOCOLS INITIALIZED ///");
 
-// Not the same escapeHTML/escapeAttr as habits.js - kept private to this
-// file, same reasoning as create-daily.js's escapeCreateDailyAttr.
-function escapeCreateHabitAttr(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
 // Same 4-tier scale Dailies uses - a habit repeats at least as often (often
 // MORE often, since it can be clicked several times a day), so it shares
 // Dailies' modest DP anchors rather than Quest's one-off anchors.
@@ -22,31 +12,12 @@ const HABIT_DIFFICULTY_TIERS = [
 
 let selectedDifficulty = 'Easy';
 let selectedDP = 20;
-let tagsState = [];
-let dismissedTags = new Set();
 let editingHabitId = null;
-
-function renderDifficultyTiles() {
-    const grid = document.getElementById('habit-difficulty-grid');
-    grid.innerHTML = HABIT_DIFFICULTY_TIERS.map(tier => `
-        <button type="button" class="habit-difficulty-tile${tier.level === selectedDifficulty ? ' habit-difficulty-tile--selected' : ''}" data-difficulty="${tier.level}">
-            <span class="habit-difficulty-icon">${tier.icon}</span>
-            <span class="habit-difficulty-label">${tier.level}</span>
-        </button>
-    `).join('');
-
-    grid.querySelectorAll('.habit-difficulty-tile').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedDifficulty = btn.dataset.difficulty;
-            selectedDP = HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
-            document.getElementById('habit-dp-value').textContent = selectedDP;
-            renderDifficultyTiles();
-        });
-    });
-}
 
 // Every term a tag could plausibly match against - same sources
 // create-daily.js's collectKnownTerms uses, plus existing Habit tags too.
+// Stays page-owned (see src/core/tag-picker/tag-picker.js) - only the
+// scan/render/dismiss mechanics around this are shared.
 function collectKnownTerms() {
     const terms = new Map();
 
@@ -82,56 +53,10 @@ function collectKnownTerms() {
     return [...terms.values()];
 }
 
-function findMatchingTerms(text, knownTerms) {
-    if (!text) return [];
-    const lowerText = text.toLowerCase();
-
-    return knownTerms.filter(term => {
-        if (term.length < 3) return false;
-        const escaped = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const re = new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, 'i');
-        return re.test(lowerText);
-    });
-}
-
 function rescanTags() {
     const title = document.getElementById('habit-title-input').value;
     const notes = document.getElementById('habit-notes-input').value;
-    const knownTerms = collectKnownTerms();
-    const matched = new Set([
-        ...findMatchingTerms(title, knownTerms),
-        ...findMatchingTerms(notes, knownTerms)
-    ]);
-
-    let changed = false;
-    matched.forEach(tag => {
-        const lower = tag.toLowerCase();
-        if (dismissedTags.has(lower)) return;
-        if (tagsState.some(t => t.toLowerCase() === lower)) return;
-        tagsState.push(tag);
-        changed = true;
-    });
-
-    if (changed) renderTags();
-}
-
-function renderTags() {
-    const list = document.getElementById('habit-tags-list');
-    list.innerHTML = tagsState.length
-        ? tagsState.map(tag => `
-            <span class="habit-tag-chip" data-tag="${escapeCreateHabitAttr(tag)}">${escapeCreateHabitAttr(tag)} <button type="button" class="habit-tag-remove" aria-label="Remove tag">×</button></span>
-        `).join('')
-        : '<p class="habit-tags-empty">No matches yet - type a known term in your title or notes above.</p>';
-
-    list.querySelectorAll('.habit-tag-remove').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const chip = btn.closest('.habit-tag-chip');
-            const tag = chip.dataset.tag;
-            dismissedTags.add(tag.toLowerCase());
-            tagsState = tagsState.filter(t => t !== tag);
-            renderTags();
-        });
-    });
+    TagPicker.rescan(document.getElementById('habit-tags-list'), [title, notes], collectKnownTerms());
 }
 
 function getQueryParam(name) {
@@ -144,7 +69,7 @@ function loadExistingHabit(existing) {
     selectedDifficulty = existing.difficulty || 'Easy';
     selectedDP = Number(existing.dp) || HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
     document.getElementById('habit-dp-value').textContent = selectedDP;
-    tagsState = [...(existing.tags || [])];
+    TagPicker.render(document.getElementById('habit-tags-list'), existing.tags || []);
 
     document.getElementById('create-habit-heading').innerHTML = '✏️ <span class="gold-gradient-text">EDIT HABIT</span>';
     document.getElementById('create-habit-subtitle').textContent = 'Update any part of this habit - changes apply immediately on save.';
@@ -154,6 +79,7 @@ function loadExistingHabit(existing) {
 function setupNewHabitDefaults() {
     selectedDP = HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
     document.getElementById('habit-dp-value').textContent = selectedDP;
+    TagPicker.render(document.getElementById('habit-tags-list'), []);
 }
 
 function saveHabit() {
@@ -168,7 +94,7 @@ function saveHabit() {
         dp: selectedDP,
         difficulty: selectedDifficulty,
         notes: document.getElementById('habit-notes-input').value,
-        tags: tagsState
+        tags: TagPicker.getTags(document.getElementById('habit-tags-list'))
     };
 
     if (editingHabitId) {
@@ -191,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 
     editingHabitId = getQueryParam('id');
     const existing = editingHabitId ? Vault.getHabits().find(h => h.id === editingHabitId) : null;
@@ -203,8 +129,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupNewHabitDefaults();
     }
 
-    renderDifficultyTiles();
-    renderTags();
+    DifficultyPicker.render(document.getElementById('habit-difficulty-grid'), HABIT_DIFFICULTY_TIERS, selectedDifficulty, (tier) => {
+        selectedDifficulty = tier.level;
+        selectedDP = tier.dp;
+        document.getElementById('habit-dp-value').textContent = selectedDP;
+    });
     rescanTags();
 
     document.getElementById('habit-title-input').addEventListener('input', rescanTags);

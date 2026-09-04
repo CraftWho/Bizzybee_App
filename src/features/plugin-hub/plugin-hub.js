@@ -83,5 +83,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderPluginGrid();
 
-    HiveMind.setActions(baseHiveMindActions());
+    Waggle.setActions(baseWaggleActions());
 });
