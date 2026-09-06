@@ -36,22 +36,26 @@ function renderHabits() {
     list.innerHTML = habits.length > 0
         ? habits.map(habit => `
             <li class="habit-item" data-habit-id="${habit.id}">
-                <div class="habit-item-main">
+                <div class="habit-item-accent habit-item-accent--${HABIT_DIFFICULTY_DOT_COLOR[(habit.difficulty || '').toLowerCase()] || 'gray'}"></div>
+                <div class="habit-item-body">
                     <div class="habit-item-top-row">
                         <span class="habit-item-label">${escapeHabitHTML(habit.label)}</span>
-                        ${habit.difficulty ? `<small class="habit-item-difficulty habit-item-difficulty--${escapeHabitAttr(habit.difficulty.toLowerCase())}">${StatusDot.html(HABIT_DIFFICULTY_DOT_COLOR[habit.difficulty.toLowerCase()] || 'gray')}${escapeHabitHTML(habit.difficulty)}</small>` : ''}
+                        <button class="habit-action-btn habit-action-btn--negative" data-role="negative" aria-label="Log negative">−</button>
+                        <button class="habit-action-btn habit-action-btn--positive" data-role="positive" aria-label="Log positive">+</button>
+                        <button class="habit-item-more-btn" data-role="more" aria-label="More actions">⋯</button>
+                    </div>
+                    <div class="habit-item-meta">
                         <small class="habit-item-dp">±${habit.dp} DP</small>
+                        ${habit.difficulty ? `<small class="habit-item-difficulty habit-item-difficulty--${escapeHabitAttr(habit.difficulty.toLowerCase())}">${StatusDot.html(HABIT_DIFFICULTY_DOT_COLOR[habit.difficulty.toLowerCase()] || 'gray')}${escapeHabitHTML(habit.difficulty)}</small>` : ''}
+                        <span class="habit-item-tally">
+                            <span class="habit-item-tally-positive">+${habit.positiveCount}</span> / <span class="habit-item-tally-negative">-${habit.negativeCount}</span> all time
+                        </span>
                         ${habitTagsHTML(habit.tags)}
                     </div>
-                    <span class="habit-item-tally">
-                        <span class="habit-item-tally-positive">+${habit.positiveCount}</span> / <span class="habit-item-tally-negative">-${habit.negativeCount}</span> all time
-                    </span>
                 </div>
-                <div class="habit-item-actions">
-                    <button class="habit-action-btn habit-action-btn--negative" data-role="negative" aria-label="Log negative">−</button>
-                    <button class="habit-action-btn habit-action-btn--positive" data-role="positive" aria-label="Log positive">+</button>
-                    <button class="habit-item-icon-btn" data-role="edit" aria-label="Edit habit">✏️</button>
-                    <button class="habit-item-icon-btn habit-item-icon-btn--remove" data-role="remove" aria-label="Remove habit">🗑️</button>
+                <div class="habit-item-more-menu" data-role="more-menu">
+                    <button type="button" data-role="edit">✏️ Edit</button>
+                    <button type="button" data-role="remove">🗑️ Remove</button>
                 </div>
             </li>
         `).join('')
@@ -77,6 +81,14 @@ function renderHabits() {
             renderHabits();
         });
 
+        row.querySelector('[data-role="more"]').addEventListener('click', (event) => {
+            event.stopPropagation();
+            const menu = row.querySelector('[data-role="more-menu"]');
+            const willOpen = !menu.classList.contains('habit-item-more-menu--open');
+            document.querySelectorAll('.habit-item-more-menu--open').forEach(m => m.classList.remove('habit-item-more-menu--open'));
+            if (willOpen) menu.classList.add('habit-item-more-menu--open');
+        });
+
         row.querySelector('[data-role="edit"]').addEventListener('click', () => {
             window.location.href = `./create-habit.html?id=${encodeURIComponent(habit.id)}`;
         });
@@ -100,6 +112,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!installed) return;
 
     renderHabits();
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.habit-item-more-menu--open').forEach(m => m.classList.remove('habit-item-more-menu--open'));
+    });
 
     Waggle.setActions([
         {

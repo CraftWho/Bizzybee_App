@@ -161,7 +161,7 @@ const QuestDetail = {
                 </div>
             </div>
 
-            <h3 class="quest-detail-heading">
+            <h3 class="quest-detail-heading quest-detail-heading--objective">
                 <span>🎯 Objective</span>
                 <button class="quest-task-icon-btn" data-role="edit-objective" aria-label="Edit objective">✏️</button>
             </h3>
@@ -187,6 +187,7 @@ const QuestDetail = {
                 <span>📋 Tasks</span>
                 <span class="quest-task-progress">${questEarnedPoints(quest)} / ${questMaxPoints(quest)} DP</span>
             </h3>
+            <div class="quest-task-progress-track"><div class="quest-task-progress-fill" style="width:${questMaxPoints(quest) > 0 ? Math.round(questEarnedPoints(quest) / questMaxPoints(quest) * 100) : 0}%;"></div></div>
             <ul class="task-list quest-task-list" id="quest-detail-task-list"></ul>
             <button class="quest-task-add-btn">➕ Add Task</button>
 
@@ -372,17 +373,27 @@ const QuestDetail = {
 
         list.innerHTML = tasks.map(task => `
             <li class="quest-task-item${task.completed ? ' quest-task-item--done' : ''}" data-task-id="${task.id}">
-                <input type="checkbox" data-role="toggle" ${task.completed ? 'checked' : ''}>
-                ${task.link
-                    ? `<a class="quest-task-label quest-task-label--link" href="${escapeAttr(task.link)}" target="_blank" rel="noopener noreferrer">${escapeHTML(task.label)}</a>`
-                    : `<span class="quest-task-label">${escapeHTML(task.label)}</span>`
-                }
-                ${task.relevance ? `<small class="quest-task-relevance quest-task-relevance--${escapeAttr(task.relevance.toLowerCase())}">${StatusDot.html(RELEVANCE_DOT_COLOR[task.relevance.toLowerCase()] || 'gray')}${escapeHTML(task.relevance)}</small>` : ''}
-                ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${StatusDot.html(DIFFICULTY_DOT_COLOR[task.difficulty.toLowerCase()] || 'gray')}${escapeHTML(task.difficulty)}</small>` : ''}
-                <small class="quest-task-dp">+${task.dp} DP</small>
-                ${task.completed && task.dateCompleted ? `<small class="quest-task-completed-at">✓ ${formatCompletedAt(task.dateCompleted)}</small>` : ''}
-                <button class="quest-task-icon-btn" data-role="edit" aria-label="Edit task">✏️</button>
-                <button class="quest-task-icon-btn quest-task-icon-btn--remove" data-role="remove" aria-label="Remove task">🗑️</button>
+                <div class="quest-task-accent quest-task-accent--${task.completed ? 'green' : 'yellow'}"></div>
+                <div class="quest-task-body">
+                    <div class="quest-task-top">
+                        <input type="checkbox" class="quest-task-checkbox" data-role="toggle" ${task.completed ? 'checked' : ''}>
+                        ${task.link
+                            ? `<a class="quest-task-label quest-task-label--link" href="${escapeAttr(task.link)}" target="_blank" rel="noopener noreferrer">${escapeHTML(task.label)}</a>`
+                            : `<span class="quest-task-label">${escapeHTML(task.label)}</span>`
+                        }
+                        <button class="quest-task-more-btn" data-role="more" aria-label="More actions">⋯</button>
+                    </div>
+                    <div class="quest-task-meta">
+                        <small class="quest-task-dp">+${task.dp} DP</small>
+                        ${task.relevance ? `<small class="quest-task-relevance quest-task-relevance--${escapeAttr(task.relevance.toLowerCase())}">${StatusDot.html(RELEVANCE_DOT_COLOR[task.relevance.toLowerCase()] || 'gray')}${escapeHTML(task.relevance)}</small>` : ''}
+                        ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${StatusDot.html(DIFFICULTY_DOT_COLOR[task.difficulty.toLowerCase()] || 'gray')}${escapeHTML(task.difficulty)}</small>` : ''}
+                        ${task.completed && task.dateCompleted ? `<small class="quest-task-completed-at">✓ ${formatCompletedAt(task.dateCompleted)}</small>` : ''}
+                    </div>
+                </div>
+                <div class="quest-task-more-menu" data-role="more-menu">
+                    <button type="button" data-role="edit">✏️ Edit</button>
+                    <button type="button" data-role="remove">🗑️ Remove</button>
+                </div>
             </li>
         `).join('');
 
@@ -403,6 +414,14 @@ const QuestDetail = {
                 renderQuestsPage();
             });
 
+            row.querySelector('[data-role="more"]').addEventListener('click', (event) => {
+                event.stopPropagation();
+                const menu = row.querySelector('[data-role="more-menu"]');
+                const willOpen = !menu.classList.contains('quest-task-more-menu--open');
+                list.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
+                if (willOpen) menu.classList.add('quest-task-more-menu--open');
+            });
+
             row.querySelector('[data-role="edit"]').addEventListener('click', () => {
                 renderTaskEditForm(row, quest, task, () => this.render(quest));
             });
@@ -414,6 +433,13 @@ const QuestDetail = {
                     renderQuestsPage();
                 }
             });
+        });
+
+        // Tapping anywhere outside a row's own ⋯ menu closes it - the menu
+        // toggle above already stopPropagation()s so this only ever fires
+        // for genuine outside clicks/taps.
+        list.addEventListener('click', () => {
+            list.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
         });
     },
 
