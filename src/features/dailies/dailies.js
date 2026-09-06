@@ -42,15 +42,25 @@ function renderDailyTasks() {
     list.innerHTML = tasks.length > 0
         ? tasks.map(task => `
             <li class="quest-task-item${task.completedToday ? ' quest-task-item--done' : ''}${task.dueToday === false ? ' quest-task-item--not-due' : ''}" data-daily-id="${task.id}">
-                <input type="checkbox" data-role="toggle" ${task.completedToday ? 'checked' : ''}>
-                <span class="quest-task-label">${escapeHTML(task.label)}</span>
-                ${task.dueToday === false ? '<small class="quest-task-not-due-badge">Not scheduled today</small>' : ''}
-                ${checklistProgressHTML(task.checklist)}
-                ${tagsHTML(task.tags)}
-                ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${StatusDot.html(DIFFICULTY_DOT_COLOR[task.difficulty.toLowerCase()] || 'gray')}${escapeHTML(task.difficulty)}</small>` : ''}
-                <small class="quest-task-dp">+${task.dp} DP</small>
-                <button class="quest-task-icon-btn" data-role="edit" aria-label="Edit daily">✏️</button>
-                <button class="quest-task-icon-btn quest-task-icon-btn--remove" data-role="remove" aria-label="Remove daily">🗑️</button>
+                <div class="quest-task-accent quest-task-accent--${DIFFICULTY_DOT_COLOR[(task.difficulty || '').toLowerCase()] || 'gray'}"></div>
+                <div class="quest-task-body">
+                    <div class="quest-task-top">
+                        <input type="checkbox" class="quest-task-checkbox" data-role="toggle" ${task.completedToday ? 'checked' : ''}>
+                        <span class="quest-task-label">${escapeHTML(task.label)}</span>
+                        <button class="quest-task-more-btn" data-role="more" aria-label="More actions">⋯</button>
+                    </div>
+                    <div class="quest-task-meta">
+                        <small class="quest-task-dp">+${task.dp} DP</small>
+                        ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${StatusDot.html(DIFFICULTY_DOT_COLOR[task.difficulty.toLowerCase()] || 'gray')}${escapeHTML(task.difficulty)}</small>` : ''}
+                        ${checklistProgressHTML(task.checklist)}
+                        ${tagsHTML(task.tags)}
+                        ${task.dueToday === false ? '<small class="quest-task-not-due-badge">Not scheduled today</small>' : ''}
+                    </div>
+                </div>
+                <div class="quest-task-more-menu" data-role="more-menu">
+                    <button type="button" data-role="edit">✏️ Edit</button>
+                    <button type="button" data-role="remove">🗑️ Remove</button>
+                </div>
             </li>
         `).join('')
         : `<p class="quest-empty-state">No daily tasks yet - use the honeycomb button below to add one.</p>`;
@@ -70,6 +80,14 @@ function renderDailyTasks() {
             renderDailyTasks();
         });
 
+        row.querySelector('[data-role="more"]').addEventListener('click', (event) => {
+            event.stopPropagation();
+            const menu = row.querySelector('[data-role="more-menu"]');
+            const willOpen = !menu.classList.contains('quest-task-more-menu--open');
+            document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
+            if (willOpen) menu.classList.add('quest-task-more-menu--open');
+        });
+
         row.querySelector('[data-role="edit"]').addEventListener('click', () => {
             window.location.href = `./create-daily.html?id=${encodeURIComponent(task.id)}`;
         });
@@ -84,6 +102,10 @@ function renderDailyTasks() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     renderDailyTasks();
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
+    });
 
     Waggle.setActions([
         {

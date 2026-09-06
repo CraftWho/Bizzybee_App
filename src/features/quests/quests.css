@@ -188,6 +188,40 @@
     justify-content: space-between;
 }
 
+.quest-detail-heading--objective {
+    justify-content: center;
+    position: relative;
+}
+
+.quest-detail-heading--objective [data-role="edit-objective"] {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Stat grid -> compact chip row (was a fixed 2x2 grid of full-size stat
+   boxes; shrunk to fit a phone screen without spilling past it). */
+.quest-detail-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.quest-detail-stats .stat-box {
+    flex: 1 1 110px;
+    padding: 6px 8px;
+}
+
+.quest-detail-stats .stat-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.5px;
+}
+
+.quest-detail-stats .stat-value {
+    font-size: 0.85rem;
+}
+
 /* Black background + grey left line - distinguishes descriptive/narrative
    content from the crimson-lined stat boxes above it. */
 .quest-detail-text-box {
@@ -262,12 +296,95 @@
     font-weight: bold;
 }
 
+.quest-task-progress-track {
+    background: #1a1a1a;
+    border-radius: 8px;
+    height: 8px;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+    margin: -4px 0 10px;
+}
+
+.quest-task-progress-fill {
+    background: linear-gradient(90deg, var(--gold-end), var(--gold-start));
+    height: 100%;
+}
+
+/* --- Compact Habitica-style task row ---
+   A colored accent stripe (done = green, active = gold/yellow) + a title
+   line with a checkbox and a "..." menu, then a small meta line (DP,
+   relevance, difficulty, completed-at) underneath - replaces the old
+   single flex row that overflowed a phone-width screen. Edit/Remove move
+   into the "..." menu instead of sitting as two more icons in that row. */
 .quest-task-item {
-    justify-content: space-between;
+    align-items: stretch;
+    background: #111;
+    border-radius: 6px;
+    border: 1px solid #222;
+    overflow: hidden;
+    flex-wrap: nowrap;
+    position: relative;
+}
+
+.quest-task-accent {
+    width: 4px;
+    flex-shrink: 0;
+}
+
+.quest-task-accent--green { background: #4caf50; }
+.quest-task-accent--yellow {
+    background: #e6c200;
+    animation: quest-task-accent-pulse 1.8s ease-in-out infinite;
+}
+.quest-task-accent--red { animation: quest-task-fire-pulse 1.8s ease-in-out infinite; }
+
+@keyframes quest-task-accent-pulse {
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+}
+
+@keyframes quest-task-fire-pulse {
+    0%, 100% {
+        background-color: var(--danger-red);
+        box-shadow: 0 0 4px 0 rgba(255, 68, 68, 0.6), inset 0 0 6px rgba(255, 68, 68, 0.35);
+    }
+    50% {
+        background-color: #ff6a2a;
+        box-shadow: 0 0 11px 3px rgba(255, 122, 40, 0.9), inset 0 0 10px rgba(255, 122, 40, 0.55);
+    }
+}
+
+@keyframes quest-task-ripple-glow {
+    0%   { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.55); }
+    70%  { box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+}
+
+.quest-task-body {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+}
+
+.quest-task-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quest-task-checkbox {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--gold-start);
 }
 
 .quest-task-label {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .quest-task-label--link {
@@ -284,23 +401,56 @@
     opacity: 0.6;
 }
 
+.quest-task-more-btn {
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: #777;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 2px 4px;
+    flex-shrink: 0;
+}
+
+.quest-task-more-btn:hover {
+    color: var(--gold-start);
+    transform: none;
+    box-shadow: none;
+}
+
+.quest-task-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 3px;
+    font-size: 0.66rem;
+    color: #888;
+    line-height: 1;
+}
+
 .quest-task-dp {
     color: var(--gold-start);
+    font-weight: bold;
     white-space: nowrap;
 }
 
 .quest-task-completed-at {
     color: #888;
     white-space: nowrap;
-    font-size: 0.8rem;
+    font-size: 0.66rem;
 }
 
 .quest-task-relevance {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    gap: 2px;
     white-space: nowrap;
-    font-size: 0.75rem;
+    font-size: 0.62rem;
     font-weight: bold;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
     border: 1px solid currentColor;
 }
 
@@ -309,17 +459,56 @@
 .quest-task-relevance--low { color: #888; }
 
 .quest-task-difficulty {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    gap: 2px;
     white-space: nowrap;
-    font-size: 0.75rem;
+    font-size: 0.62rem;
     font-weight: bold;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
     border: 1px solid currentColor;
 }
 
 .quest-task-difficulty--easy { color: #4caf50; }
 .quest-task-difficulty--medium { color: var(--gold-start); }
-.quest-task-difficulty--hard { color: var(--danger-red); }
+.quest-task-difficulty--hard {
+    color: var(--danger-red);
+    animation: quest-task-ripple-glow 2s ease-out infinite;
+}
+
+/* "..." menu - Edit/Remove tucked behind the button instead of sitting in
+   the row as two more icons; toggled open by quests.js, closed again on
+   any outside tap. */
+.quest-task-more-menu {
+    display: none;
+    flex-direction: column;
+    background: #1a1a1a;
+    border-top: 1px solid #2a2a2a;
+    font-size: 0.8rem;
+}
+
+.quest-task-more-menu.quest-task-more-menu--open {
+    display: flex;
+}
+
+.quest-task-more-menu button {
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: #ccc;
+    text-align: left;
+    padding: 8px 12px;
+    font-family: var(--font-main);
+}
+
+.quest-task-more-menu button:hover {
+    background: #222;
+    color: var(--gold-start);
+    transform: none;
+    box-shadow: none;
+}
 
 /* --- Repo Task / Quiz Challenge / Patch Notes ---
    Optional sections, only present when a quest's data includes them (see

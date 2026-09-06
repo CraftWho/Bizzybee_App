@@ -55,15 +55,25 @@ function dueBadgeHTML(todo) {
 function todoRowHTML(todo) {
     return `
         <li class="quest-task-item${todo.completed ? ' quest-task-item--done' : ''}" data-todo-id="${todo.id}">
-            <input type="checkbox" data-role="toggle" ${todo.completed ? 'checked' : ''}>
-            <span class="quest-task-label">${escapeTodoHTML(todo.label)}</span>
-            ${dueBadgeHTML(todo)}
-            ${checklistProgressHTML(todo.checklist)}
-            ${tagsHTML(todo.tags)}
-            ${todo.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeTodoAttr(todo.difficulty.toLowerCase())}">${StatusDot.html(TODO_DIFFICULTY_DOT_COLOR[todo.difficulty.toLowerCase()] || 'gray')}${escapeTodoHTML(todo.difficulty)}</small>` : ''}
-            <small class="quest-task-dp">+${todo.dp} DP</small>
-            ${todo.completed ? '' : '<button class="quest-task-icon-btn" data-role="edit" aria-label="Edit to-do">✏️</button>'}
-            <button class="quest-task-icon-btn quest-task-icon-btn--remove" data-role="remove" aria-label="Remove to-do">🗑️</button>
+            <div class="quest-task-accent quest-task-accent--${TODO_DIFFICULTY_DOT_COLOR[(todo.difficulty || '').toLowerCase()] || 'gray'}"></div>
+            <div class="quest-task-body">
+                <div class="quest-task-top">
+                    <input type="checkbox" class="quest-task-checkbox" data-role="toggle" ${todo.completed ? 'checked' : ''}>
+                    <span class="quest-task-label">${escapeTodoHTML(todo.label)}</span>
+                    <button class="quest-task-more-btn" data-role="more" aria-label="More actions">⋯</button>
+                </div>
+                <div class="quest-task-meta">
+                    <small class="quest-task-dp">+${todo.dp} DP</small>
+                    ${todo.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeTodoAttr(todo.difficulty.toLowerCase())}">${StatusDot.html(TODO_DIFFICULTY_DOT_COLOR[todo.difficulty.toLowerCase()] || 'gray')}${escapeTodoHTML(todo.difficulty)}</small>` : ''}
+                    ${dueBadgeHTML(todo)}
+                    ${checklistProgressHTML(todo.checklist)}
+                    ${tagsHTML(todo.tags)}
+                </div>
+            </div>
+            <div class="quest-task-more-menu" data-role="more-menu">
+                ${todo.completed ? '' : '<button type="button" data-role="edit">✏️ Edit</button>'}
+                <button type="button" data-role="remove">🗑️ Remove</button>
+            </div>
         </li>
     `;
 }
@@ -99,6 +109,14 @@ function renderTodos() {
             renderTodos();
         });
 
+        row.querySelector('[data-role="more"]').addEventListener('click', (event) => {
+            event.stopPropagation();
+            const menu = row.querySelector('[data-role="more-menu"]');
+            const willOpen = !menu.classList.contains('quest-task-more-menu--open');
+            document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
+            if (willOpen) menu.classList.add('quest-task-more-menu--open');
+        });
+
         const editBtn = row.querySelector('[data-role="edit"]');
         if (editBtn) {
             editBtn.addEventListener('click', () => {
@@ -123,6 +141,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!installed) return;
 
     renderTodos();
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
+    });
 
     document.getElementById('todos-completed-toggle').addEventListener('click', () => {
         const section = document.getElementById('todos-completed-section');
