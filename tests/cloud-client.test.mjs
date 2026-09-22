@@ -1,0 +1,118 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+
+const tick = () => new Promise(resolve => setImmediate(resolve));
+const fixture = () => ({ schemaVersion: 7, user: { name: 'Bee' }, quests: [], profilePhoto: 'photo-data' });
+async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', remote = fixture(), auto = true, failLoad = false } = {}) {
+    const key = 'bizzybee_user_data:alice';
+    const state = fixture();
+    const data = new Map([['bizzybee_session', 'identity'], ['bizzybee_cloud_owner', 'alice'], [key, JSON.stringify(state)],
+        [key + ':dirty', String(dirty)], [key + ':revision', JSON.stringify(revision)], ['bizzybee_auto_sync', String(auto)]]);
+    const localStorage = { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, String(value)) };
+    const window = new EventTarget(); window.location = { reload() { h.reloaded++; } };
+    const document = new EventTarget(); document.visibilityState = 'visible'; document.getElementById = () => null;
+    const timers = []; const intervals = [];
+    const user = { id: 'alice', jwt: async () => 'token' };
+    const Vault = { storageKey: key, state, init: async () => {}, exportFullState: () => JSON.stringify(Vault.state, null, 2),
+        importFullState(value) { h.imports++; Vault.state = JSON.parse(value); data.set(key, JSON.stringify(Vault.state)); data.set(key + ':dirty', 'false'); return { ok: true }; },
+        validateFullState() {}, createLocalBackup() {} };
+    const h = { data, key, timers, intervals, Vault, imports: 0, reloaded: 0, posts: [],
+        respond: async () => ({ ok: true, revision: 'r2', updatedAt: new Date().toISOString() }),
+        edit() { Vault.state.user.name += '!'; data.set(key, JSON.stringify(Vault.state)); data.set(key + ':dirty', 'true'); window.dispatchEvent(new Event('vault-saved')); } };
+    const context = vm.createContext({ localStorage, window, document, Vault, Event, CustomEvent, AbortSignal,
+        setTimeout: fn => { timers.push(fn); return timers.length; }, clearTimeout: id => { if (id) timers[id - 1] = null; }, setInterval: fn => intervals.push(fn),
+        netlifyIdentity: { currentUser: () => user, init() {}, on() {} },
+        fetch: async (url, options) => {
+            if (options.method === 'GET') {
+                if (failLoad) throw new Error('offline');
+                return { ok: true, json: async () => ({ ok: true, data: remote ? JSON.stringify(remote) : null, revision: remoteRevision, encrypted: true }) };
+            }
+            h.posts.push(JSON.parse(options.body));
+            const result = await h.respond();
+            return { ok: result.ok, status: result.ok ? 200 : 409, json: async () => result };
+        } });
+    vm.runInContext(readFileSync(new URL('../src/core/cloud-sync/cloud-sync.js', import.meta.url), 'utf8') + '\nglobalThis.engine = CloudSyncAuto;', context);
+    h.engine = context.engine;
+    await tick(); await tick();
+    return h;
+}
+test('pending uploads survive navigation and start automatically', async () => {
+    const h = await harness({ dirty: true });
+    assert.ok(h.timers.some(Boolean));
+    await h.timers.find(Boolean)(); await tick();
+    assert.equal(h.posts.length, 1);
+    assert.equal(h.data.get(h.key + ':dirty'), 'false');
+});
+test('an edit during upload remains pending and uploads next', async () => {
+    const h = await harness({ dirty: true }); let release;
+    h.respond = () => new Promise(resolve => { release = resolve; });
+    const first = h.engine.pushNow(); await tick();
+    assert.equal(await h.engine.pushNow(), false); // No concurrent requests.
+    h.edit(); release({ ok: true, revision: 'r2' }); await first;
+    assert.equal(h.data.get(h.key + ':dirty'), 'true');
+    h.respond = async () => ({ ok: true, revision: 'r3' });
+    assert.equal(await h.engine.pushNow(), true);
+    assert.equal(h.data.get(h.key + ':dirty'), 'false');
+    assert.equal(h.posts[1].revision, 'r2');
+    assert.equal(JSON.parse(h.posts[1].data).user.name, 'Bee!');
+});
+test('automatic uploads stay off even if a timer was already scheduled', async () => {
+    const h = await harness({ dirty: true });
+    h.data.set('bizzybee_auto_sync', 'false'); h.timers.find(Boolean)(); await tick();
+    assert.equal(h.posts.length, 0);
+    assert.equal(h.data.get(h.key + ':dirty'), 'true');
+});
+test('new device loads cloud progress instead of overwriting it', async () => {
+    const remote = fixture(); remote.user.name = 'Cloud Bee';
+    const h = await harness({ revision: null, dirty: true, remote });
+    assert.equal(h.imports, 1); assert.equal(h.reloaded, 1); assert.equal(h.posts.length, 0);
+    assert.equal(h.Vault.state.user.name, 'Cloud Bee');
+});
+test('pending device changes plus a newer cloud revision pause for conflict resolution', async () => {
+    const h = await harness({ dirty: true, remoteRevision: 'r9' });
+    assert.equal(h.imports, 0); assert.equal(await h.engine.pushNow(), false); assert.equal(h.posts.length, 0);
+});
+test('server conflict leaves pending changes intact', async () => {
+    const h = await harness({ dirty: true });
+    h.respond = async () => ({ ok: false, error: 'Cloud changed' });
+    assert.equal(await h.engine.pushNow(), false);
+    assert.equal(h.data.get(h.key + ':dirty'), 'true');
+    assert.equal(await h.engine.pushNow(), false);
+    assert.equal(h.posts.length, 1);
+});
+test('failed startup never pushes a device copy before checking cloud', async () => {
+    const h = await harness({ dirty: true, failLoad: true });
+    assert.equal(await h.engine.pushNow(), false); assert.equal(h.posts.length, 0);
+    assert.equal(h.data.get(h.key + ':dirty'), 'true');
+});
+test('account switch cannot upload the previous account’s state', async () => {
+    const h = await harness({ dirty: true }); h.data.set('bizzybee_cloud_owner', 'bob');
+    assert.equal(await h.engine.pushNow(), false); assert.equal(h.posts.length, 0);
+});
+test('photo-sized uploads use normal fetch rather than an exit-time keepalive', async () => {
+    const h = await harness({ dirty: true }); h.Vault.state.profilePhoto = 'p'.repeat(200000); h.edit();
+    await h.engine.pushNow(); assert.equal(JSON.parse(h.posts[0].data).profilePhoto.length, 200000);
+});
+
+test('password reset verifies a recovery token before updating the account', async () => {
+    const calls = [];
+    const context = vm.createContext({ AbortSignal, fetch: async (url, options) => {
+        calls.push({ url, options });
+        return { ok: true, json: async () => ({ access_token: 'recovery-access' }) };
+    } });
+    vm.runInContext(readFileSync(new URL('../src/core/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
+    await context.recovery.reset('email-token', 'a-long-new-password');
+    assert.equal(calls[0].url, '/.netlify/identity/verify');
+    assert.deepEqual(JSON.parse(calls[0].options.body), { type: 'recovery', token: 'email-token' });
+    assert.equal(calls[1].options.headers.Authorization, 'Bearer recovery-access');
+    assert.equal(calls[1].url, '/.netlify/identity/user');
+});
+test('expired recovery token never attempts a password change', async () => {
+    let count = 0;
+    const context = vm.createContext({ AbortSignal, fetch: async () => { count++; return { ok: false }; } });
+    vm.runInContext(readFileSync(new URL('../src/core/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
+    await assert.rejects(context.recovery.reset('expired', 'long-password'));
+    assert.equal(count, 1);
+});

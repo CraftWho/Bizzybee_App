@@ -1,61 +1,25 @@
-// Cloud Sync - "push" endpoint. Takes the caller's already-exported Full
-// Save payload (Vault.exportFullState(), still whatever shape/encryption
-// that produces) and stores it in Netlify Blobs, keyed by the signed-in
-// Identity user's id. One blob per user - nothing is ever shared across
-// accounts, and nothing is inspected/parsed here, this function is just a
-// dumb authenticated container for whatever string the client sends.
-//
-// Modern (2026) Netlify Functions v2 API: Web-standard Request/Response,
-// ESM default export. getUser() reads the Authorization: Bearer <jwt>
-// header automatically from the in-flight request via async context -
-// no manual header parsing needed.
-import { getUser } from '@netlify/identity';
-import { getStore } from '@netlify/blobs';
-
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB - generous headroom for a JSON save file
-
+import { authenticatedUser } from '../lib/auth.mjs';
+import { encryptSave } from '../lib/save-crypto.mjs';
+import { json, saves, readLatest, validateSave, createBackup, ensureSchedule } from '../lib/cloud-store.mjs';
 export default async (req) => {
-    if (req.method !== 'POST') {
-        return json({ ok: false, error: 'Method not allowed' }, 405);
-    }
-
-    const user = await getUser();
-    if (!user) {
-        return json({ ok: false, error: 'Not signed in' }, 401);
-    }
-
+    if (req.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405);
+    let user;
+    try { user = await authenticatedUser(req); } catch { return json({ ok: false, error: 'Identity is unavailable. Please retry.' }, 503); }
+    if (!user) return json({ ok: false, error: 'Not signed in' }, 401);
     let body;
+    try { body = await req.json(); validateSave(body.data); }
+    catch { return json({ ok: false, error: 'Invalid save or save exceeds 4 MB.' }, 400); }
     try {
-        body = await req.json();
-    } catch (err) {
-        return json({ ok: false, error: 'Invalid JSON body' }, 400);
+        const current = await readLatest(user.id);
+        if (body.revision !== (current?.etag ?? null)) return json({ ok: false, error: 'Cloud progress changed. Resolve the conflict in Settings.' }, 409);
+        const updatedAt = new Date().toISOString();
+        const encrypted = encryptSave(body.data, user.id);
+        if (current && (body.preservePrevious || !current.data.encrypted)) await createBackup(user.id, current.data, 'before-replacement');
+        await ensureSchedule(user.id);
+        const result = await saves().setJSON(user.id, { encrypted, updatedAt }, current ? { onlyIfMatch: current.etag } : { onlyIfNew: true });
+        if (!result.modified || !result.etag) return json({ ok: false, error: 'Cloud progress changed. Resolve the conflict in Settings.' }, 409);
+        return json({ ok: true, revision: result.etag, updatedAt, encrypted: true });
+    } catch (error) {
+        return json({ ok: false, error: error.message.includes('BIZZYBEE_SAVE_KEY') ? error.message : 'Encrypted cloud save failed. Your local progress is retained.' }, 503);
     }
-
-    if (!body || typeof body.data !== 'string' || !body.data) {
-        return json({ ok: false, error: 'Missing "data" string in body' }, 400);
-    }
-
-    if (body.data.length > MAX_BYTES) {
-        return json({ ok: false, error: 'Save data too large' }, 413);
-    }
-
-    const updatedAt = new Date().toISOString();
-
-    try {
-        const store = getStore('bizzybee-saves');
-        await store.setJSON(user.id, { data: body.data, updatedAt }, {
-            metadata: { updatedAt },
-        });
-    } catch (err) {
-        return json({ ok: false, error: 'Failed to write save data' }, 500);
-    }
-
-    return json({ ok: true, updatedAt });
 };
-
-function json(payload, status = 200) {
-    return new Response(JSON.stringify(payload), {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-    });
-}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#ffd700">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🐝 Bizzybee Terminal (Home v2 preview)</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/modal/modal.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../../core/level-bar/level-bar.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./home.css">
+    <link rel="stylesheet" href="./home-v2.css">
+</head>
+<body>
+
+    <!-- Body content below is IDENTICAL to home.html - same markup, same
+         classes, same home.css, same home.js. The only thing this file
+         adds is the bottom nav + FAB at the very end (see home-v2.css's
+         top comment for exactly what that changes vs. the original). -->
+
+    <main class="home-container">
+
+        <section class="panel home-status-panel">
+            <div class="home-status-row">
+                <span class="home-status-name" id="home-user-name">—</span>
+                <span class="home-status-level">Level <strong id="home-user-level">—</strong></span>
+            </div>
+            <div class="home-level-bar-wrap" id="home-level-bar"></div>
+        </section>
+
+        <section class="panel home-collapsible home-collapsible--collapsed" id="home-active-quest-section">
+            <button class="home-section-toggle" aria-expanded="false">
+                <span class="home-section-chevron">▾</span>
+                <h3>🎯 <span class="gold-gradient-text">ACTIVE QUEST</span></h3>
+            </button>
+            <div class="home-section-body">
+                <div class="home-section-body-inner">
+                    <div id="home-active-quest"></div>
+                    <a href="../quests/quests.html" class="home-section-link">View All Quests →</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel home-collapsible home-collapsible--collapsed" id="home-daily-section">
+            <button class="home-section-toggle" aria-expanded="false">
+                <span class="home-section-chevron">▾</span>
+                <h3>☀️ <span class="gold-gradient-text">DAILY TASKS</span></h3>
+            </button>
+            <div class="home-section-body">
+                <div class="home-section-body-inner">
+                    <ul class="task-list" id="home-daily-task-list"></ul>
+                    <a href="../dailies/dailies.html" class="home-section-link">View All Dailies →</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="home-app-grid" id="home-app-grid"></section>
+
+    </main>
+
+    <!-- ---- the one real difference from the original: bottom nav with
+         per-category dropdowns, plus a floating hex "+" replacing the
+         Waggle FAB's position (Waggle itself is hidden, not deleted - see
+         home-v2.css). Everything above this line is unchanged home.html. ---- -->
+    <nav class="hv-bottom-nav">
+        <div class="hv-fab-ring">
+            <button class="hv-fab-hex" id="hv-fab-btn" type="button" aria-label="Add">+</button>
+            <div class="hv-fab-menu" id="hv-fab-menu" hidden>
+                <a href="../../plugins/habits/create-habit.html">➕ Habit</a>
+                <a href="../dailies/create-daily.html">➕ Daily</a>
+                <a href="../../plugins/todos/create-todo.html">➕ To-Do</a>
+                <a href="../quests/quests.html">➕ Quest</a>
+            </div>
+        </div>
+
+        <div class="hv-nav-tab-wrap">
+            <button class="hv-nav-tab" type="button" data-category="home">
+                <span class="hv-n-icon">🏠</span>Home
+            </button>
+            <div class="hv-nav-dropdown hv-nav-dropdown--left" data-dropdown="home" hidden>
+                <a href="./home.html">🏠 Home (original)</a>
+                <a href="./home-v2.html">🐝 Home (this preview)</a>
+                <a href="../dashboard/dashboard.html">👨🏾‍💻 Dashboard</a>
+                <a href="../profile/profile.html">🧘🏾 Profile</a>
+                <a href="../map/map.html">🗺️ Map</a>
+            </div>
+        </div>
+
+        <div class="hv-nav-tab-wrap">
+            <button class="hv-nav-tab" type="button" data-category="lifestyle">
+                <span class="hv-n-icon">🌿</span>Lifestyle
+            </button>
+            <div class="hv-nav-dropdown" data-dropdown="lifestyle" hidden>
+                <a href="../../plugins/habits/habits.html">✅ Habits</a>
+                <a href="../dailies/dailies.html">☀️ Dailies</a>
+                <a href="../../plugins/todos/todos.html">📝 To-Dos</a>
+                <a href="../quests/quests.html">📜 Quests</a>
+            </div>
+        </div>
+
+        <div class="hv-nav-tab-wrap">
+            <button class="hv-nav-tab" type="button" data-category="hive">
+                <span class="hv-n-icon">🐝</span>Hive
+            </button>
+            <div class="hv-nav-dropdown" data-dropdown="hive" hidden>
+                <a href="../colony/colony.html">🏰 Hive Mind</a>
+                <a href="../gacha/gacha.html">🌼 Pollination Chamber</a>
+                <a href="../inventory/inventory.html">🎒 Inventory</a>
+                <a href="../keeperdex/keeperdex.html">📘 KeeperDex</a>
+                <a href="../models/models.html">🧬 Bee Models</a>
+            </div>
+        </div>
+
+        <div class="hv-nav-tab-wrap">
+            <button class="hv-nav-tab" type="button" data-category="more">
+                <span class="hv-n-icon">🍯</span>More
+            </button>
+            <div class="hv-nav-dropdown hv-nav-dropdown--right" data-dropdown="more" hidden>
+                <a href="../honey-store/honey-store.html">🍯 Honey Store</a>
+                <a href="../skills/skills.html">🌿 Skills</a>
+                <a href="../dictionary/dictionary.html">📖 Dictionary</a>
+                <a href="../plugin-hub/plugin-hub.html">🧩 Plugins</a>
+                <a href="../hive-archive/hive-archive.html">📚 Hive Archive</a>
+                <a href="../settings/settings.html">⚙️ Settings</a>
+            </div>
+        </div>
+    </nav>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../../core/level-bar/level-bar.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./home.js"></script>
+    <script src="./home-v2.js"></script>
+</body>
+</html>

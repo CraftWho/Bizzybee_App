@@ -1,8 +1,8 @@
 console.log("/// VAULT (DB) INITIALIZED ///");
 
 // Bump this whenever data.json/data.personal.json's shape changes (new
-// fields, renamed fields, etc.). A cached Vault from an older version gets
-// discarded and re-fetched automatically - no manual localStorage clearing.
+// fields, renamed fields, etc.). Older saves are backed up and migrated
+// through the additive initialization backfills; never discard progress.
 // v7: added the "profile" block (projects/serviceRecord) - this used to be
 // hardcoded directly in profile.html, which meant the real (personal)
 // content shipped in the tracked base template. Now it's blueprint content
@@ -844,20 +844,41 @@ class DatabaseManager {
     constructor() {
         this.dbName = 'BizzybeeVault';
         this.storageKey = 'bizzybee_user_data';
+        if (localStorage.getItem('bizzybee_session') === 'identity' && localStorage.getItem('bizzybee_cloud_owner')) {
+            this.storageKey += ':' + localStorage.getItem('bizzybee_cloud_owner');
+            if (!localStorage.getItem('bizzybee_legacy_owner')) localStorage.setItem('bizzybee_legacy_owner', localStorage.getItem('bizzybee_cloud_owner'));
+        }
         this.state = null;
     }
 
     // 1. Boot up the database
-    async init() {
-        const existingData = localStorage.getItem(this.storageKey);
-        const parsed = existingData ? JSON.parse(existingData) : null;
+    init() {
+        if (this._initPromise) return this._initPromise;
+        if (this.state) return Promise.resolve(this.state);
+        this._initPromise = this._initialize().finally(() => { this._initPromise = null; });
+        return this._initPromise;
+    }
 
-        if (parsed && parsed.schemaVersion === VAULT_SCHEMA_VERSION) {
+    async _initialize() {
+        await this.refreshLocalCloudDownload();
+        const existingData = localStorage.getItem(this.storageKey);
+        let parsed;
+        try { parsed = existingData ? JSON.parse(existingData) : null; }
+        catch { throw new Error('Your saved data could not be read. It has been preserved; recover a backup in Settings.'); }
+        if (existingData !== null) this.validateFullState(parsed);
+
+        if (parsed) {
+            this.validateFullState(parsed);
+            const migrated = parsed.schemaVersion !== VAULT_SCHEMA_VERSION;
+            if (migrated) {
+                this.createLocalBackup('Before schema upgrade');
+                parsed.schemaVersion = VAULT_SCHEMA_VERSION;
+            }
             console.log("Vault: Local data found. Loading state...");
             this.state = parsed;
+            if (migrated) this.save();
         } else {
-            if (parsed) console.log("Vault: Cached data is from an older schema. Refreshing from blueprint...");
-            else console.log("Vault: No local data found. Fetching Blueprint...");
+            console.log("Vault: No local data found. Fetching Blueprint...");
             await this.loadBlueprint();
         }
         // Catches up level-up bee rewards to the current level every time
@@ -926,6 +947,35 @@ class DatabaseManager {
         return this.state;
     }
 
+    // A downloaded full save is applied once on localhost, before normal
+    // blueprint/backfill logic. Subsequent local edits survive every reload.
+    async refreshLocalCloudDownload() {
+        if (!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+            || localStorage.getItem('bizzybee_session') === 'identity') return;
+        const nested = /\/(features|plugins)\//.test(window.location.pathname);
+        let response;
+        try { response = await fetch(`${nested ? '../../..' : '.'}/src/core/data.personal.json`, { cache: 'no-store' }); }
+        catch { return; } // Offline: continue using the existing browser save.
+        if (!response.ok) return;
+        const state = await response.json();
+        const id = state?._localCloudTransfer?.id;
+        if (typeof id !== 'string' || !id) return; // Ordinary blueprints stay ordinary blueprints.
+        const markerKey = this.storageKey + ':local-cloud-transfer';
+        if (localStorage.getItem(markerKey) === id) return;
+        this.validateFullState(state);
+        state.blueprintSource = 'personal';
+        const previousMarker = localStorage.getItem(markerKey);
+        // Persist the marker first; rollback if the import cannot be installed.
+        localStorage.setItem(markerKey, id);
+        const imported = this.importFullState(JSON.stringify(state), { fromCloud: true });
+        if (!imported.ok) {
+            if (previousMarker === null) localStorage.removeItem(markerKey);
+            else localStorage.setItem(markerKey, previousMarker);
+            throw new Error(imported.error);
+        }
+        this.state = null; // Continue initialization with the full imported save.
+    }
+
     // Fetches the active blueprint (personal-first, generic-fallback).
     // Shared by loadBlueprint() (overwrite) and syncFromBlueprint() (merge).
     async fetchBlueprint() {
@@ -941,8 +991,9 @@ class DatabaseManager {
         // via getBlueprintSource() to know whether this device already has your
         // real data locally, or needs you to import a save file first.
         try {
-            const personalResponse = await fetch(`${rootPrefix}/src/core/data.personal.json`);
-            if (personalResponse.ok) {
+            const personalResponse = localStorage.getItem('bizzybee_session') === 'identity'
+                ? null : await fetch(`${rootPrefix}/src/core/data.personal.json`);
+            if (personalResponse?.ok) {
                 const data = await personalResponse.json();
                 data.blueprintSource = 'personal';
                 return data;
@@ -952,6 +1003,7 @@ class DatabaseManager {
         }
 
         const response = await fetch(`${rootPrefix}/src/core/data.json`);
+        if (!response.ok) throw new Error('Could not load the starter data. Your existing save has not been replaced.');
         const data = await response.json();
         data.blueprintSource = 'generic';
         return data;
@@ -961,8 +1013,10 @@ class DatabaseManager {
     // data.personal.json is gitignored - if it exists (your own machine), it wins.
     // Everyone else silently falls back to the generic data.json.
     async loadBlueprint() {
+        const previousState = this.state;
         try {
             this.state = await this.fetchBlueprint();
+            this.validateFullState(this.state);
             this.state.schemaVersion = VAULT_SCHEMA_VERSION;
             // Eevee's memory isn't part of the blueprint (it's generated locally,
             // not authored) - always starts fresh here since loadBlueprint is
@@ -1059,7 +1113,9 @@ class DatabaseManager {
             this.save();
             console.log("Vault: Blueprint loaded and secured.");
         } catch (error) {
+            this.state = previousState;
             console.error("Vault Error: Could not load blueprint.", error);
+            throw error;
         }
     }
 
@@ -1162,6 +1218,7 @@ class DatabaseManager {
     // and intentionally has no confirmation of its own; the caller (the
     // Settings page) is responsible for confirming with the user first.
     async forceReset() {
+        this.createLocalBackup('Before reset');
         await this.loadBlueprint();
         return this.state;
     }
@@ -1169,8 +1226,46 @@ class DatabaseManager {
     // 3. Save current state to the browser
     save() {
         if (this.state) {
-            localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+            try {
+                localStorage.setItem(this.storageKey + ':dirty', 'true');
+                localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+                window.dispatchEvent(new Event('vault-saved'));
+            } catch (error) {
+                if (typeof Toast !== 'undefined') Toast.show('Could not save on this device. Export your progress before closing this page.', 'negative');
+                throw error;
+            }
         }
+    }
+
+    validateFullState(parsed) {
+        const object = value => value && typeof value === 'object' && !Array.isArray(value);
+        if (!object(parsed) || !object(parsed.user) || !Array.isArray(parsed.quests)) throw new Error('That is not a Bizzybee save file.');
+        if (parsed.schemaVersion != null && (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion > VAULT_SCHEMA_VERSION || parsed.schemaVersion < 1)) throw new Error('This save uses an unsupported schema version. Update the app before importing it.');
+        for (const field of ['dailyTasks', 'habits', 'todos', 'dictionary', 'studyQueue', 'calendarEvents']) {
+            if (parsed[field] != null && !Array.isArray(parsed[field])) throw new Error(`Invalid ${field} in save.`);
+        }
+        for (const quest of parsed.quests) {
+            if (!object(quest) || typeof quest.id !== 'string' || !Array.isArray(quest.tasks)) throw new Error('Invalid quest in save.');
+            for (const task of quest.tasks) if (!object(task) || typeof task.dp !== 'number' || !Number.isFinite(task.dp)) throw new Error('Invalid task points in save.');
+        }
+        return parsed;
+    }
+
+    getLocalBackups() {
+        return JSON.parse(localStorage.getItem(this.storageKey + ':backups') || '[]');
+    }
+
+    removeLocalBackup(id) {
+        localStorage.setItem(this.storageKey + ':backups', JSON.stringify(this.getLocalBackups().filter(item => item.id !== id)));
+    }
+
+    createLocalBackup(reason = 'Manual backup') {
+        const data = localStorage.getItem(this.storageKey);
+        if (!data) return;
+        const entries = this.getLocalBackups();
+        entries.unshift({ id: Date.now().toString(), createdAt: new Date().toISOString(), reason, data });
+        try { localStorage.setItem(this.storageKey + ':backups', JSON.stringify(entries.slice(0, 3))); }
+        catch { throw new Error('Not enough storage for a recovery copy. Export and remove older device backups to free space, then retry.'); }
     }
 
     // 4. Getters
@@ -2971,7 +3066,7 @@ class DatabaseManager {
     // (settings.js, login.js) reloads the page after a successful import so
     // Vault.init() re-runs fresh against the newly-loaded state, same as
     // any other schema-migration path.
-    importFullState(jsonString) {
+    importFullState(jsonString, { fromCloud = false } = {}) {
         let parsed;
         try {
             parsed = JSON.parse(jsonString);
@@ -2986,8 +3081,23 @@ class DatabaseManager {
             return { ok: false, error: "That doesn't look like a Bizzybee save file." };
         }
 
-        localStorage.setItem(this.storageKey, JSON.stringify(parsed));
-        return { ok: true };
+        const previousDirty = localStorage.getItem(this.storageKey + ':dirty');
+        try {
+            this.validateFullState(parsed);
+            this.createLocalBackup('Before import or cloud restore');
+            parsed.schemaVersion = VAULT_SCHEMA_VERSION;
+            localStorage.setItem(this.storageKey + ':dirty', fromCloud ? 'false' : 'true');
+            localStorage.setItem(this.storageKey, JSON.stringify(parsed));
+            this.state = parsed;
+            if (!fromCloud) window.dispatchEvent(new Event('vault-saved'));
+            return { ok: true };
+        } catch (error) {
+            try {
+                if (previousDirty === null) localStorage.removeItem(this.storageKey + ':dirty');
+                else localStorage.setItem(this.storageKey + ':dirty', previousDirty);
+            } catch { /* Original data remains intact; preserve the original error. */ }
+            return { ok: false, error: error.message };
+        }
     }
 
     // 7b. Logic: Profile photo. Unlike everything else on Profile, the
