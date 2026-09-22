@@ -137,18 +137,10 @@
    #auth-submit-btn treatment, so it doesn't compete with "Enter Hive" as
    the primary action - this is the less-common path. */
 .cloud-sync-login-section {
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: 16px;
+    padding-top: 16px;
     border-top: 1px dashed #333;
     text-align: center;
-}
-
-.cloud-sync-login-divider {
-    margin: 0 0 14px;
-    color: #666;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 2px;
 }
 
 .btn-cloud-sync {
@@ -241,6 +233,34 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
+}
+
+/* Simplified secondary-actions row (2026-09-09), index.html-only. Scoped to
+   its own class rather than changed on .auth-footer/.btn-link directly,
+   since both of those are shared - request-access.html and suggestions.html
+   also load login.css and reuse .auth-footer/.btn-link for their own
+   full-weight buttons. Touching those shared rules would have silently
+   changed those other pages too. */
+.login-quick-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+}
+
+.login-quick-links a {
+    color: var(--gold-start);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.login-quick-links a:hover {
+    color: var(--gold-end);
+}
+
+.login-quick-links .quick-link-sep {
+    color: #555;
 }
 
 .btn-link {

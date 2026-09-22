@@ -33,9 +33,41 @@
     <main class="settings-container">
 
         <h2 class="settings-title">⚙️ <span class="gold-gradient-text">SETTINGS</span></h2>
+<details class="panel settings-category" open>
+<summary>☁️ Cloud Settings</summary><div class="settings-category-body">
+<p class="settings-intro">Your cloud account keeps your progress across devices. Saves and backups are encrypted in cloud storage; this browser also keeps a local copy for offline work.</p>
+<div id="cloud-sync-signed-out"><button id="cloud-sync-login-btn">Sign in to Cloud</button></div>
+<div id="cloud-sync-signed-in" hidden>
+<p>Signed in as <span id="cloud-sync-email"></span></p>
+<p id="cloud-sync-status" role="status" aria-live="polite">Connecting to cloud…</p>
+<details class="settings-subcategory" open><summary>Sync options</summary>
+<div class="settings-action-row"><div class="settings-action-info"><strong>Automatic cloud uploads</strong><p>Uploads shortly after changes. Pending changes retry when you reconnect or reopen the app.</p></div><label class="toggle-switch"><input type="checkbox" id="cloud-sync-auto-toggle" aria-label="Automatic cloud uploads" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+<div class="settings-action-row"><div class="settings-action-info"><strong>Save now</strong><p>Upload this device’s latest progress.</p></div><button id="cloud-sync-push-btn">Save to Cloud</button></div>
+<div class="settings-action-row"><div class="settings-action-info"><strong>Use cloud copy</strong><p>Load the latest cloud progress. A local recovery copy is kept first.</p></div><button id="cloud-sync-pull-btn">Load from Cloud</button></div>
+<div class="settings-action-row">
+    <div class="settings-action-info">
+        <strong>Download cloud to local project</strong>
+        <p>Select your Bizzybee_App folder on this computer. Places the complete save in src/core/data.personal.json and backs up the previous file. Reload the local app with your personal login to update its cached progress too.</p>
+        <p class="settings-file-hint">The local file is readable JSON, including your photo and progress. Keep it private. Requires desktop browser folder access.</p>
+        <p id="cloud-local-download-status" role="status" aria-live="polite"></p>
+    </div>
+    <button id="cloud-local-download-btn">Download Cloud to Local</button>
+</div>
+<div class="settings-action-row"><div class="settings-action-info"><strong>Resolve a conflict with this device’s copy</strong><p>Replace cloud progress with this device’s progress, keeping a backup of the previous cloud copy.</p></div><button id="cloud-sync-use-device-btn">Use Device Copy</button></div>
+</details>
+<details class="settings-subcategory"><summary>Automatic backups</summary>
+<p>Backs up the latest uploaded cloud save even while the app is closed. Keeps the latest 30 backups. Changes still offline on a device cannot be included.</p>
+<label for="backup-interval">Create a backup every</label>
+<select id="backup-interval"><option value="4">4 hours</option><option value="8">8 hours</option><option value="12">12 hours</option><option value="24" selected>24 hours</option></select>
+<button id="backup-schedule-btn">Save Schedule</button>
+<p id="backup-status" role="status" aria-live="polite"></p>
+<div class="settings-action-btns"><button id="backup-now-btn">Back Up Now</button><button id="backup-refresh-btn">Refresh List</button></div>
+<div id="cloud-backup-list"></div>
+</details>
+<button id="cloud-sync-logout-btn">Sign Out</button>
+</div></div></details>
 
-        <section class="panel">
-            <h3>👤 Account</h3>
+        <details class="panel settings-category"><summary>👤 Account</summary><div class="settings-category-body">
             <p class="settings-intro">Your photo and personal information - kept off this page entirely, on their own locked and encrypted screen, so it isn't just sitting here for anyone using this device to see.</p>
 
             <div class="settings-action-row">
@@ -45,11 +77,11 @@
                 </div>
                 <a href="../account-info/account-info.html" class="settings-nav-link">🔐 Open</a>
             </div>
-        </section>
+        </div></details>
 
-        <section class="panel">
-            <h3>🔐 Account Security</h3>
-            <p class="settings-intro">Create or change the 6-digit PIN that locks Account Info.</p>
+        <details class="panel settings-category"><summary>🔐 Account Security</summary><div class="settings-category-body">
+            <p class="settings-intro">Manage your account password and device PINs.</p>
+<div class="settings-action-row"><div class="settings-action-info"><strong>Reset account password</strong><p>Netlify will email you a password reset link. This changes your cloud login password; your PINs stay the same.</p><label for="reset-account-email">Account email</label><input id="reset-account-email" type="email" autocomplete="email"><p id="reset-password-status" role="status"></p></div><button id="reset-account-password-btn">Email Reset Link</button></div>
 
             <div class="settings-action-row">
                 <div class="settings-action-info">
@@ -58,10 +90,9 @@
                 </div>
                 <a href="../account-security/account-security.html" class="settings-nav-link">🔐 Open</a>
             </div>
-        </section>
+        </div></details>
 
-        <section class="panel">
-            <h3>🐝 Eevee</h3>
+        <details class="panel settings-category"><summary>🐝 Eevee</summary><div class="settings-category-body">
             <p class="settings-intro">Talk to Eevee from the honeycomb button anywhere in the app. Here, you can export what she's picked up so far. See ROADMAP.md's "Two-track plan" for what these exports are actually for.</p>
 
             <div class="settings-action-row">
@@ -79,11 +110,10 @@
                 </div>
                 <button id="export-quests-btn">📤 Export</button>
             </div>
-        </section>
+        </div></details>
 
-        <section class="panel">
-            <h3>💾 Data Management</h3>
-            <p class="settings-intro">Your progress lives in this browser. Use these if you've hand-edited the blueprint file and want those changes reflected here.</p>
+        <details class="panel settings-category"><summary>💾 Device Recovery & Data</summary><div class="settings-category-body"><div class="settings-action-row"><button id="local-backup-btn">Create Device Backup</button><button id="local-backup-refresh-btn">Refresh Recovery Copies</button></div><div id="local-backup-list"></div>
+            <p class="settings-intro">Keep up to three recovery copies on this device. These are local copies, not encrypted cloud backups; clearing browser data removes them.</p>
 
             <div class="settings-action-row">
                 <div class="settings-action-info">
@@ -96,76 +126,15 @@
             <div class="settings-action-row">
                 <div class="settings-action-info">
                     <strong>Reset Local Data</strong>
-                    <p>Wipes everything and reloads fresh from the blueprint. This cannot be undone - all progress will be lost.</p>
+                    <p>Starts fresh from the blueprint after keeping a device recovery copy. Automatic cloud uploads are paused until you choose to resume them.</p>
                 </div>
                 <button id="reset-data-btn" class="settings-btn-danger">⚠️ Reset</button>
             </div>
-        </section>
+        </div></details>
 
-        <section class="panel">
-            <h3>☁️ Cloud Sync</h3>
-            <p class="settings-intro">Optional - sign in to keep your progress synced across devices automatically, instead of moving files by hand below. Invite-only while in beta.</p>
 
-            <!-- Signed-out state: default visible state, shown until
-                 netlifyIdentity confirms a logged-in user (see settings.js).
-                 Also what renders on any deployment where Identity isn't
-                 enabled yet - the Log In button just won't do anything
-                 useful until it is, matching how the rest of this feature
-                 degrades gracefully with no build/deploy step required. -->
-            <div id="cloud-sync-signed-out">
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <strong>Sign In</strong>
-                        <p>Use the email you were invited with. First time? The same button lets you set your password.</p>
-                    </div>
-                    <button id="cloud-sync-login-btn">🔑 Log In / Sign Up</button>
-                </div>
-            </div>
 
-            <!-- Signed-in state: hidden until settings.js confirms a user via
-                 netlifyIdentity's 'init'/'login' events. -->
-            <div id="cloud-sync-signed-in" hidden>
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <strong>Signed in as <span id="cloud-sync-email"></span></strong>
-                        <p id="cloud-sync-status">Not synced yet on this device.</p>
-                    </div>
-                    <div class="settings-action-btns">
-                        <button id="cloud-sync-logout-btn" class="account-avatar-migrate-btn">🚪 Sign Out</button>
-                    </div>
-                </div>
-
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <strong>Auto Sync</strong>
-                        <p>Saves to the cloud automatically a few seconds after any change, and again right before you close or leave the tab. Turn off to only sync when you tap Save to Cloud yourself.</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="cloud-sync-auto-toggle" checked>
-                        <span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span>
-                    </label>
-                </div>
-
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <strong>Save to Cloud</strong>
-                        <p>Uploads your current progress from this device, overwriting whatever was saved to the cloud before.</p>
-                    </div>
-                    <button id="cloud-sync-push-btn">⬆️ Save to Cloud</button>
-                </div>
-
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <strong>Load from Cloud</strong>
-                        <p>Replaces this device's progress with whatever was last saved to the cloud - make sure that's what you want first.</p>
-                    </div>
-                    <button id="cloud-sync-pull-btn">⬇️ Load from Cloud</button>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel">
-            <h3>📱 Full Save Transfer</h3>
+        <details class="panel settings-category"><summary>📱 Full Save Transfer</summary><div class="settings-category-body">
             <p class="settings-intro">Move your entire progress - every quest, DP, level, bee, everything - to another device. No account or internet connection needed, just a file you carry over yourself.</p>
 
             <div class="settings-action-row">
@@ -192,10 +161,9 @@
                 </div>
                 <button id="import-full-save-btn">📥 Import</button>
             </div>
-        </section>
+        </div></details>
 
-        <section class="panel">
-            <h3>💬 Feedback & Suggestions</h3>
+        <details class="panel settings-category"><summary>💬 Feedback & Suggestions</summary><div class="settings-category-body">
             <p class="settings-intro">Leave a review or suggest something - redacted reads every one and can reply straight to your email.</p>
 
             <div class="settings-action-row">
@@ -205,10 +173,9 @@
                 </div>
                 <a href="../../../suggestions.html" class="settings-nav-link">💬 Open</a>
             </div>
-        </section>
+        </div></details>
 
-        <section class="panel">
-            <h3>🔐 Session</h3>
+        <details class="panel settings-category"><summary>🔐 Session</summary><div class="settings-category-body">
             <div class="settings-action-row">
                 <div class="settings-action-info">
                     <strong>Log Out</strong>
@@ -216,7 +183,7 @@
                 </div>
                 <button id="logout-btn" class="settings-btn-danger">🚪 Log Out</button>
             </div>
-        </section>
+        </div></details>
 
     </main>
 
@@ -230,6 +197,9 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
-    <script src="./settings.js"></script>
+    <script src="../../core/account-recovery.js"></script>
+<script src="./cloud-controls.js"></script>
+<script src="./local-cloud-download.js"></script>
+<script src="./settings.js"></script>
 </body>
 </html>

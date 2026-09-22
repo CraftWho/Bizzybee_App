@@ -216,3 +216,17 @@
         text-align: center;
     }
 }
+/* Native disclosure controls keep every category keyboard accessible. */
+.settings-container [hidden] { display: none !important; }
+.settings-category > summary { cursor: pointer; color: var(--gold-start); font-weight: 700; font-size: 1.15rem; padding: 4px 0; }
+.settings-category-body { padding-top: 20px; }
+.settings-subcategory { border-top: 1px solid #333; padding: 16px 0; }
+.settings-subcategory > summary { cursor: pointer; font-weight: 700; color: var(--gold-start); }
+.settings-subcategory p { color: #aaa; line-height: 1.6; }
+.settings-category button { white-space: normal; }
+.settings-category select { padding: 10px; margin: 10px; max-width: 100%; }
+.settings-category summary:focus-visible { outline: 2px solid var(--gold-start); outline-offset: 6px; }
+#cloud-sync-status { color: var(--gold-start); line-height: 1.6; }
+#cloud-backup-list, #local-backup-list { max-height: 420px; overflow-y: auto; margin-top: 16px; }
+#reset-account-email { max-width: 100%; box-sizing: border-box; }
+.toggle-switch-track { pointer-events: none; }

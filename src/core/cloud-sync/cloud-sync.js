@@ -1,169 +1,187 @@
-console.log("/// CLOUD SYNC AUTO ENGINE ONLINE ///");
-
-// --- Auto Sync engine ------------------------------------------------------
-// Silently pushes local progress to Netlify Blobs (a) a few seconds after
-// any change, and (b) right before the tab closes/hides - so a signed-in
-// Cloud Sync user doesn't have to remember to click "Save to Cloud"
-// themselves. Built per explicit request: save while using, auto-save on
-// close, manual "Load from Cloud" stays exactly as it was (see
-// HANDOFF.md's "auto-sync" entry). Deliberately PUSH-only - this never
-// pulls/overwrites anything locally on its own. Auto-pulling on load was
-// considered and rejected: it risks silently clobbering a device's own
-// newer progress with an older cloud copy. Manual Load from Cloud in
-// Settings is still the only way data ever comes DOWN.
-//
-// Loaded dynamically by app.js's initCloudSyncAuto() on ANY page - not
-// just Settings - since most play happens on Home/Dashboard/Quests/
-// Dailies, not the Settings screen itself. Only ever loaded at all when
-// localStorage.bizzybee_session === 'identity' (see app.js); demo/
-// personal sessions never touch this file, so the app's normal weight is
-// completely unchanged for the common case.
-//
-// localStorage keys are duplicated as plain string literals here AND in
-// settings.js (for the toggle + "last synced" display) rather than shared
-// via this module's exports - this file loads asynchronously and isn't
-// guaranteed to be ready by the time settings.js's own DOMContentLoaded
-// handler runs, so settings.js reads/writes these directly instead of
-// depending on load order. Matches this codebase's existing "duplicate
-// rather than share" convention for exactly this kind of small coupling.
+// Cloud is authoritative when this device has no pending changes. Writes are
+// serialized and conditional; dirty state persists across navigation/offline.
 const CloudSyncAuto = (() => {
-    const AUTO_SYNC_KEY = 'bizzybee_auto_sync';
-    const LAST_SYNCED_KEY = 'bizzybee_last_synced_at';
-    const DEBOUNCE_MS = 6000;
-
-    let debounceTimer = null;
-    let pendingPush = false;
-
-    // Defaults ON (absent key = enabled) - this WAS the actual ask, not an
-    // opt-in extra on top of it. The Settings toggle exists so it can be
-    // turned OFF per device, not because it starts off.
-    function isEnabled() {
-        return localStorage.getItem(AUTO_SYNC_KEY) !== 'false';
+    let timer, running = false, ready = false, conflict = false, revision = null;
+    let accountId = null;
+    let lastStatus = 'Connecting to cloud…', lastError = '';
+    const enabled = () => localStorage.getItem('bizzybee_auto_sync') !== 'false';
+    const dirty = () => localStorage.getItem(Vault.storageKey + ':dirty') === 'true';
+    const revisionKey = () => Vault.storageKey + ':revision';
+    function status(message) {
+        lastStatus = message;
+        window.dispatchEvent(new CustomEvent('cloud-sync-status', { detail: message }));
+        const el = document.getElementById('cloud-sync-status');
+        if (el) el.textContent = message;
     }
-
-    // Surfaces a failed auto-push to the user instead of leaving it as a
-    // console-only error. Found while debugging a real report: a photo
-    // uploaded on one device silently never showed up after "Load from
-    // Cloud" on another - with zero error shown anywhere, there was no way
-    // to tell auto-sync had failed versus not having run yet. `Toast` is
-    // loaded on every page this script itself can run on (same core script
-    // set as `Vault`), but this stays defensive since cloud-sync.js doesn't
-    // control page markup directly.
-    function notifyFailure(reason) {
-        console.error('CloudSyncAuto: push failed -', reason);
-        if (typeof Toast !== 'undefined' && typeof Toast.show === 'function') {
-            Toast.show(`⚠️ Auto-sync failed (${reason}) - try Save to Cloud in Settings.`, 'negative');
-        }
+    function failure(message) {
+        status(message);
+        if (message !== lastError && typeof Toast !== 'undefined') Toast.show(message + ' Open Settings for recovery options.', 'negative');
+        lastError = message;
     }
-
-    async function pushNow(options = {}) {
-        if (typeof netlifyIdentity === 'undefined') return false;
+    function sameAccount() {
+        return netlifyIdentity.currentUser()?.id === accountId && localStorage.getItem('bizzybee_cloud_owner') === accountId && localStorage.getItem('bizzybee_session') === 'identity';
+    }
+    async function request(path, body) {
+        if (!sameAccount()) throw new Error('Sign in to your cloud account to sync.');
         const user = netlifyIdentity.currentUser();
-        if (!user) return false;
-        if (typeof Vault === 'undefined' || !Vault.state) return false;
-
+        const token = await user.jwt();
+        if (!sameAccount()) throw new Error('Account changed. Reload before syncing.');
+        const response = await fetch('/.netlify/functions/' + path, {
+            method: body ? 'POST' : 'GET', cache: 'no-store',
+            headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+            ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(20000)
+        });
+        const result = await response.json();
+        if (!sameAccount()) throw new Error('Account changed. Reload before syncing.');
+        if (!response.ok || !result.ok) {
+            if (response.status === 409) conflict = true;
+            throw new Error(result.error || 'Cloud request failed.');
+        }
+        return result;
+    }
+    function acknowledge(result) {
+        revision = result.revision;
+        localStorage.setItem(revisionKey(), JSON.stringify(revision));
+        if (result.updatedAt) localStorage.setItem(Vault.storageKey + ':syncedAt', result.updatedAt);
+    }
+    function schedule() {
+        if (!enabled()) return;
+        status('Saved on this device — cloud upload pending.');
+        clearTimeout(timer);
+        timer = setTimeout(() => { if (enabled()) pushNow(); }, 1500);
+    }
+    async function pushNow() {
+        if (!ready || running || !sameAccount()) return false;
+        if (conflict) { status('Both copies have changes. Choose a copy in Cloud settings.'); return false; }
+        running = true;
         const snapshot = Vault.exportFullState();
-        if (!snapshot) return false;
-
         try {
-            const token = await user.jwt();
-            const response = await fetch('/.netlify/functions/save-state', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ data: snapshot }),
-                // keepalive lets this fetch survive the page actually
-                // unloading right after - the whole point of the
-                // pagehide/visibilitychange flush below. Not used for the
-                // routine debounced push, only the on-leave one.
-                keepalive: !!options.keepalive,
-            });
-            if (!response.ok) {
-                // A keepalive request's response often can't be read for
-                // detail (the page may already be gone) - avoid touching
-                // .json()/.text() on it and just report the status.
-                const reason = response.status === 413
-                    ? 'save is too large - a photo may be over the limit'
-                    : response.status === 401
-                        ? 'signed out - sign back in to Cloud Sync'
-                        : `save failed (${response.status})`;
-                if (!options.keepalive) notifyFailure(reason);
-                return false;
-            }
-            const result = await response.json();
-            if (!result.ok) {
-                if (!options.keepalive) notifyFailure(result.error || 'save failed');
-                return false;
-            }
-            localStorage.setItem(LAST_SYNCED_KEY, result.updatedAt);
-            pendingPush = false;
+            status('Saving to encrypted cloud storage…');
+            const result = await request('save-state', { data: snapshot, revision });
+            acknowledge(result);
+            lastError = '';
+            // Never clear a newer edit's dirty flag while acknowledging an older request.
+            if (snapshot === Vault.exportFullState() && JSON.stringify(JSON.parse(snapshot)) === localStorage.getItem(Vault.storageKey)) {
+                localStorage.setItem(Vault.storageKey + ':dirty', 'false');
+                status('Saved to encrypted cloud storage · ' + new Date(result.updatedAt).toLocaleString());
+            } else schedule();
             return true;
-        } catch (err) {
-            if (!options.keepalive) notifyFailure(err.message || 'network error');
-            else console.error('CloudSyncAuto: push failed', err);
-            return false;
+        } catch (error) { failure(error.message + ' Your device copy is retained.'); return false; }
+        finally { running = false; }
+    }
+    async function pullLatest() {
+        if (running || !ready) throw new Error('Wait for the current sync to finish.');
+        running = true;
+        clearTimeout(timer);
+        const before = Vault.exportFullState();
+        try {
+            const result = await request('load-state');
+            if (!result.data) throw new Error('No cloud save exists yet.');
+            if (before !== Vault.exportFullState()) throw new Error('Progress changed while loading. Try again when edits are finished.');
+            const imported = Vault.importFullState(result.data, { fromCloud: true });
+            if (!imported.ok) throw new Error(imported.error);
+            acknowledge(result);
+            conflict = false;
+            window.location.reload();
+        } finally { running = false; }
+    }
+    async function useDeviceCopy() {
+        if (running || !ready) throw new Error('Wait for the current sync to finish.');
+        running = true;
+        clearTimeout(timer);
+        try {
+            const current = await request('load-state');
+            const snapshot = Vault.exportFullState();
+            const result = await request('save-state', { data: snapshot, revision: current.revision, preservePrevious: true });
+            acknowledge(result);
+            conflict = false;
+            if (snapshot === Vault.exportFullState()) localStorage.setItem(Vault.storageKey + ':dirty', 'false');
+            status('Device copy saved to cloud. The previous cloud copy is in Backups.');
+        } finally { running = false; }
+    }
+    async function restoreBackup(id) {
+        if (running || !ready) throw new Error('Wait for the current sync to finish.');
+        running = true;
+        clearTimeout(timer);
+        const before = Vault.exportFullState();
+        try {
+            const backup = await request('backups?id=' + encodeURIComponent(id));
+            Vault.validateFullState(JSON.parse(backup.data));
+            Vault.createLocalBackup('Before cloud backup restore');
+            const current = await request('load-state');
+            if (before !== Vault.exportFullState()) throw new Error('Progress changed while preparing the restore. Try again.');
+            const result = await request('save-state', { data: backup.data, revision: current.revision, preservePrevious: true });
+            if (before !== Vault.exportFullState()) {
+                conflict = true;
+                throw new Error('Backup restored in cloud. New device edits were preserved; choose a copy in Cloud settings.');
+            }
+            const imported = Vault.importFullState(backup.data, { fromCloud: true });
+            if (!imported.ok) {
+                conflict = true;
+                throw new Error('Cloud backup restored, but this device could not load it: ' + imported.error);
+            }
+            acknowledge(result);
+            conflict = false;
+            window.location.reload();
+        } finally { running = false; }
+    }
+    async function start(user) {
+        if (!user || ready || accountId) return;
+        accountId = user.id;
+        // Bind old sessions too. Existing unscoped data stays available as a recovery copy.
+        if (localStorage.getItem('bizzybee_cloud_owner') !== user.id || Vault.storageKey !== 'bizzybee_user_data:' + user.id) {
+            localStorage.setItem('bizzybee_cloud_owner', user.id);
+            localStorage.setItem('bizzybee_session', 'identity');
+            window.location.reload();
+            return;
+        }
+        try {
+            try { await Vault.init(); }
+            catch (error) {
+                ready = true; conflict = true;
+                failure(error.message + ' Use Load from Cloud or restore a backup in Settings.');
+                window.dispatchEvent(new Event('cloud-sync-ready'));
+                return;
+            }
+            revision = JSON.parse(localStorage.getItem(revisionKey()) || 'null');
+            const before = Vault.exportFullState();
+            const beforeStored = localStorage.getItem(Vault.storageKey);
+            const result = await request('load-state');
+            if (result.data && revision !== result.revision) {
+                if (revision !== null && dirty()) conflict = true;
+                else if (before !== Vault.exportFullState() || beforeStored !== localStorage.getItem(Vault.storageKey)) conflict = true;
+                else {
+                    const imported = Vault.importFullState(result.data, { fromCloud: true });
+                    if (!imported.ok) throw new Error(imported.error);
+                    acknowledge(result);
+                    window.location.reload();
+                    return;
+                }
+            } else acknowledge(result);
+            ready = true;
+            if (conflict) failure('Both copies have changes. Choose a copy in Cloud settings.');
+            else if ((dirty() || (result.data && !result.encrypted)) && enabled()) schedule();
+            else status(result.encrypted ? 'Cloud save is encrypted and up to date.' : 'Ready to save to encrypted cloud storage.');
+            window.dispatchEvent(new Event('cloud-sync-ready'));
+        } catch (error) {
+            failure(error.message + ' Working from this device; reconnect to retry.');
+            accountId = null;
         }
     }
-
-    function scheduleDebouncedPush() {
-        if (!isEnabled()) return;
-        pendingPush = true;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(pushNow, DEBOUNCE_MS);
-    }
-
-    function flushOnLeave() {
-        if (!isEnabled() || !pendingPush) return;
-        clearTimeout(debounceTimer);
-        pushNow({ keepalive: true });
-    }
-
-    function init() {
-        if (typeof netlifyIdentity !== 'undefined') netlifyIdentity.init();
-        if (typeof Vault === 'undefined' || typeof Vault.save !== 'function') return;
-
-        // The one hook point: every one of db.js's ~69 mutating methods
-        // already ends by calling this.save() to persist locally - wrap
-        // it once here rather than touching every call site, or db.js at
-        // all (standing rule #4: don't split/touch db.js unless asked).
-        // Local save always still happens first/normally; this just
-        // piggybacks a debounced cloud push right after it.
-        const originalSave = Vault.save.bind(Vault);
-        Vault.save = function (...args) {
-            const result = originalSave(...args);
-            scheduleDebouncedPush();
-            return result;
-        };
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') flushOnLeave();
-        });
-        window.addEventListener('pagehide', flushOnLeave);
-
-        // Closes a real gap found while debugging a report of a photo
-        // upload never making it to another device: this script loads
-        // ASYNCHRONOUSLY (injected by app.js, after the Identity widget
-        // script finishes) - any Vault.save() that fires before the wrap
-        // above is in place (e.g. a fast photo upload right after
-        // navigating to Account Info) never scheduled a push at all, so
-        // `pendingPush` stayed false and even the on-leave flush had
-        // nothing to send. Treating "this engine just came online on a
-        // signed-in device" as its own sync trigger catches that case (and
-        // anything left over from a failed push on a previous page) - it's
-        // one extra push per page load at most, and isEnabled()/pendingPush
-        // still gate it exactly like any other call to this function.
-        scheduleDebouncedPush();
-    }
-
-    // No DOMContentLoaded wrapper, deliberately: this script is injected
-    // well after initial page parse (see app.js), so the DOM - and more
-    // importantly `Vault`, loaded via a plain <script> tag earlier on
-    // every page - is already there by the time this executes. Waiting
-    // on an event that may have already fired would mean this never runs
-    // at all.
-    init();
-
-    return { isEnabled, pushNow };
+    window.addEventListener('vault-saved', schedule);
+    window.addEventListener('online', () => ready ? schedule() : start(netlifyIdentity.currentUser()));
+    // Recover pending uploads after page navigation and transient connection errors.
+    setInterval(() => {
+        if (!ready) start(netlifyIdentity.currentUser());
+        else if (enabled() && dirty() && !conflict) pushNow();
+    }, 30000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && enabled() && dirty()) pushNow();
+    });
+    netlifyIdentity.on('init', start);
+    netlifyIdentity.on('login', start);
+    netlifyIdentity.on('logout', () => { ready = false; accountId = null; clearTimeout(timer); });
+    netlifyIdentity.init();
+    if (netlifyIdentity.currentUser()) start(netlifyIdentity.currentUser());
+    return { isEnabled: enabled, isReady: () => ready, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, request, schedule };
 })();

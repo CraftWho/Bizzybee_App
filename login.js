@@ -76,6 +76,10 @@ function handleCloudSyncTokenIfPresent() {
     status.textContent = '☁️ Confirming your Cloud Sync account...';
 
     const finishConfirmed = () => {
+        const user = netlifyIdentity.currentUser();
+        if (!user) return;
+        localStorage.setItem('bizzybee_cloud_owner', user.id);
+        localStorage.setItem('bizzybee_session', 'identity');
         status.textContent = '✅ Cloud Sync account confirmed! Taking you to Settings...';
         netlifyIdentity.close();
         setTimeout(() => {
@@ -146,7 +150,8 @@ function setupCloudSyncLoginButton() {
 
     netlifyIdentity.init();
 
-    netlifyIdentity.on('login', () => {
+    netlifyIdentity.on('login', (user) => {
+        localStorage.setItem('bizzybee_cloud_owner', user.id);
         netlifyIdentity.close();
         localStorage.setItem('bizzybee_session', 'identity');
         goHome();
@@ -169,6 +174,7 @@ function setupCloudSyncLoginButton() {
         // live-debugged on 2026-08-22 (see HANDOFF.md). If we're already
         // signed in, honor that immediately instead of prompting again.
         if (netlifyIdentity.currentUser()) {
+            localStorage.setItem('bizzybee_cloud_owner', netlifyIdentity.currentUser().id);
             localStorage.setItem('bizzybee_session', 'identity');
             goHome();
             return;
@@ -200,7 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             : new Promise(resolve => setTimeout(resolve, MIN_WELCOME_MS - elapsed));
     };
 
-    await Vault.init();
+    try { await Vault.init(); } catch (error) { showError(error.message); }
 
     if (handleCloudSyncTokenIfPresent()) {
         return;

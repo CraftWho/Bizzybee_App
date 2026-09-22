@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="./src/core/recovery-redirect.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -89,7 +90,6 @@
                  the widget script didn't load (e.g. offline), so it never sits
                  there as a dead button. -->
             <div class="cloud-sync-login-section">
-                <p class="cloud-sync-login-divider">— or —</p>
                 <button type="button" id="cloud-sync-login-btn" class="btn-cloud-sync">☁️ Sign In with Cloud Sync</button>
                 <p class="cloud-sync-login-hint">For invited beta testers with a Cloud Sync account.</p>
             </div>
@@ -114,8 +114,19 @@
             </div>
 
             <div class="auth-footer">
-                <p>New Worker Bee?</p>
-                <a href="./request-access.html" class="btn-link">Request Access</a>
+                <!-- Simplified 2026-09-09: was two separate full-width .btn-link
+                     buttons ("Forgot your account password?" inside the Cloud
+                     Sync section above, and "Request Access" here) - visually
+                     identical in weight to the two real buttons (Enter Hive,
+                     Sign In with Cloud Sync), which made all four compete for
+                     attention and made whichever one was lowest easy to miss.
+                     Demoted to small text links, combined into one row. Same
+                     destinations, same hrefs, just lighter visual weight. -->
+                <div class="login-quick-links">
+                    <a href="./reset-password.html">Forgot password?</a>
+                    <span class="quick-link-sep">&middot;</span>
+                    <a href="./request-access.html">Request Access</a>
+                </div>
             </div>
             </div>
         </div>

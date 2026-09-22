@@ -4,6 +4,17 @@
 
 /* --- 01. GLOBAL VARIABLES --- */
 :root {
+    /* Bizzybee is a single, fixed dark theme - it never adapts to the OS/
+       browser color-scheme setting. Without this declaration, a mobile
+       browser's own "force dark" feature (Chrome's dark theme for web
+       content, Samsung Internet's dark mode, etc.) assumes the page has NOT
+       accounted for dark mode and forcibly recolors it - mangling this
+       already-dark, hand-tuned obsidian/gold/crimson palette instead of
+       leaving it alone. Declaring `dark` here tells the browser this page
+       already handles its own theming, so it should back off. This does
+       NOT enable any light variant - see the "Themes page" idea in
+       HANDOFF.md's backlog for that, a separate and much larger project. */
+    color-scheme: dark;
     --obsidian: #000000;
     --panel-bg: rgba(17, 17, 17, 0.85);
     /* Original Gold Palette */

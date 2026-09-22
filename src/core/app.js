@@ -282,6 +282,7 @@ class CodexSystem {
 
         const path = window.location.pathname;
         const isNestedPage = path.includes('features') || path.includes('plugins');
+        if (!isNestedPage) return;
         const rootPrefix = isNestedPage ? '../../..' : '.';
 
         const loadCloudSyncModule = () => {

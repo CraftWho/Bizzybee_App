@@ -1,0 +1,183 @@
+/* --- HOME v2 (nav-only delta from the original) ---
+   Everything about the page's actual content (status panel, Active Quest,
+   Daily Tasks, App Grid) is home.html/home.css/home.js, unchanged and
+   linked directly - this file adds ONLY the bottom nav + FAB and hides the
+   Waggle FAB it replaces. No avatar/stat-bar/currency/Habits content lives
+   here anymore - an earlier pass added that; per direct feedback this page
+   should stay "very similar to the original," so all of that was removed
+   and the original body content restored as-is. */
+
+:root {
+    --pollen-green: #C9E265;
+}
+
+/* Same bug class already found once in this project (request-access.js/
+   login.css - see HANDOFF.md): the `hidden` attribute's implied
+   `display:none` is a user-agent-stylesheet rule, and an author rule for
+   the same element (.hv-nav-dropdown/.hv-fab-menu set `display:flex`
+   unconditionally below) wins regardless of specificity. This explicit
+   [hidden] rule always wins since it's also an author rule, just declared
+   for the exact attribute selector. */
+.hv-nav-dropdown[hidden],
+.hv-fab-menu[hidden] {
+    display: none !important;
+}
+
+/* Only the Waggle FAB is hidden - the sitewide header/back button/install
+   prompt (app.js's CodexSystem.renderGlobalUI(), unrelated to Waggle) are
+   left completely alone, same as the real home.html. The new bottom nav's
+   hex "+" button takes over Waggle's "quick add" role in the same corner
+   of the screen instead of having two floating buttons. */
+.mobile-waggle-btn,
+.waggle-menu {
+    display: none !important;
+}
+
+/* Room for the fixed bottom nav so it never overlaps the app grid's last
+   row. home-container's own max-width/padding (home.css) is untouched -
+   this only adds clearance. */
+.home-container {
+    padding-bottom: 90px;
+}
+
+/* ---- bottom nav ---- */
+.hv-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--obsidian);
+    border-top: 3px solid var(--crimson);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 10px 4px 8px;
+    z-index: 40;
+}
+.hv-nav-tab-wrap {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+}
+.hv-nav-tab {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: #888;
+    font-size: 0.66rem;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 2px 4px;
+    max-width: 100%;
+}
+.hv-nav-tab.is-active { color: var(--gold-start); }
+.hv-nav-tab .hv-n-icon { font-size: 1.15rem; }
+
+/* Dropdowns default to centered on their tab, but the two edge tabs
+   (Home on the far left, More on the far right) anchor to that edge
+   instead so they can never clip past the viewport on a narrow phone -
+   this is the fix for the earlier "doesn't fit the screen width" report. */
+.hv-nav-dropdown {
+    position: absolute;
+    bottom: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-bg);
+    border: 1px solid var(--gold-start);
+    border-top: 2px solid var(--crimson);
+    border-radius: 6px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: max-content;
+    max-width: min(220px, calc(100vw - 20px));
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    z-index: 50;
+}
+.hv-nav-dropdown--left { left: 0; transform: none; }
+.hv-nav-dropdown--right { left: auto; right: 0; transform: none; }
+.hv-nav-dropdown a {
+    color: #eee;
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hv-nav-dropdown a:hover { background: rgba(255,204,0,0.1); color: var(--gold-start); }
+
+/* Floating hex "+" button - a crimson hex sits behind the gold hex via
+   ::before, approximating Habitica's colored ring behind its diamond. */
+.hv-fab-ring {
+    position: absolute;
+    left: 50%;
+    top: -28px;
+    transform: translateX(-50%);
+    width: 66px;
+    height: 66px;
+}
+.hv-fab-ring::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    background: var(--crimson);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    z-index: 0;
+    box-shadow: 0 0 16px rgba(220,20,60,0.5);
+}
+.hv-fab-hex {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, var(--gold-start), var(--gold-end));
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    border: none;
+    color: var(--obsidian);
+    font-size: 1.7rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 14px var(--gold-glow);
+}
+.hv-fab-menu {
+    position: absolute;
+    bottom: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-bg);
+    border: 1px solid var(--gold-start);
+    border-top: 2px solid var(--crimson);
+    border-radius: 6px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: max-content;
+    max-width: min(180px, calc(100vw - 20px));
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    z-index: 55;
+}
+.hv-fab-menu a {
+    color: #eee;
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.hv-fab-menu a:hover { background: rgba(255,204,0,0.1); color: var(--gold-start); }
+
+@media (max-width: 380px) {
+    .hv-nav-tab { font-size: 0.6rem; }
+    .hv-nav-tab .hv-n-icon { font-size: 1rem; }
+}

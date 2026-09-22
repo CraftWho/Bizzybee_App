@@ -1,0 +1,14 @@
+{
+  "milestone": "M01",
+  "objects": 119,
+  "legs": 6,
+  "wings": 4,
+  "mandible_driver_test": "passed",
+  "mandible_open_angles": [
+    0.6000000238418579,
+    -0.6000000238418579
+  ],
+  "stinger_separate": true,
+  "full_armature": false,
+  "hover_animation": false
+}
