@@ -2,10 +2,12 @@ console.log("/// HABITS PLUGIN PROTOCOLS INITIALIZED ///");
 
 // A recurring "reward/punish" action button, Habitica-style - not a
 // checklist task like Dailies (nothing resets, nothing is "due"), just a
-// running +/- tally. Every habit always shows BOTH buttons (per an
-// explicit "both, always" call over a per-habit configurable choice).
-// Adding/editing happens on its own page (create-habit.html), same split
-// as Dailies/create-daily.html.
+// running +/- tally. Which of +/- shows is a per-habit toggle set on
+// create-habit.html (both on by default) - Vault.getHabits() already
+// resolves the default for old habits, so this file just reads
+// habit.positive/habit.negative as given. Adding/editing happens on its
+// own page (create-habit.html), same split as Dailies/create-daily.html.
+const HABIT_RESET_PERIOD_LABEL = { daily: 'today', weekly: 'this week', monthly: 'this month' };
 
 function escapeHabitHTML(str) {
     const div = document.createElement('div');
@@ -40,16 +42,17 @@ function renderHabits() {
                 <div class="habit-item-body">
                     <div class="habit-item-top-row">
                         <span class="habit-item-label">${escapeHabitHTML(habit.label)}</span>
-                        <button class="habit-action-btn habit-action-btn--negative" data-role="negative" aria-label="Log negative">−</button>
-                        <button class="habit-action-btn habit-action-btn--positive" data-role="positive" aria-label="Log positive">+</button>
+                        ${habit.negative ? '<button class="habit-action-btn habit-action-btn--negative" data-role="negative" aria-label="Log negative">−</button>' : ''}
+                        ${habit.positive ? '<button class="habit-action-btn habit-action-btn--positive" data-role="positive" aria-label="Log positive">+</button>' : ''}
                         <button class="habit-item-more-btn" data-role="more" aria-label="More actions">⋯</button>
                     </div>
                     <div class="habit-item-meta">
                         <small class="habit-item-dp">±${habit.dp} DP</small>
                         ${habit.difficulty ? `<small class="habit-item-difficulty habit-item-difficulty--${escapeHabitAttr(habit.difficulty.toLowerCase())}">${StatusDot.html(HABIT_DIFFICULTY_DOT_COLOR[habit.difficulty.toLowerCase()] || 'gray')}${escapeHabitHTML(habit.difficulty)}</small>` : ''}
                         <span class="habit-item-tally">
-                            <span class="habit-item-tally-positive">+${habit.positiveCount}</span> / <span class="habit-item-tally-negative">-${habit.negativeCount}</span> all time
+                            <span class="habit-item-tally-positive">+${habit.periodPositiveCount}</span> / <span class="habit-item-tally-negative">-${habit.periodNegativeCount}</span> ${HABIT_RESET_PERIOD_LABEL[habit.resetCounter] || 'today'}
                         </span>
+                        <span class="habit-item-tally-alltime">+${habit.positiveCount} / -${habit.negativeCount} all time</span>
                         ${habitTagsHTML(habit.tags)}
                     </div>
                 </div>
@@ -64,7 +67,8 @@ function renderHabits() {
     habits.forEach(habit => {
         const row = list.querySelector(`[data-habit-id="${habit.id}"]`);
 
-        row.querySelector('[data-role="positive"]').addEventListener('click', () => {
+        const positiveBtn = row.querySelector('[data-role="positive"]');
+        if (positiveBtn) positiveBtn.addEventListener('click', () => {
             const levelBefore = Vault.getUser().level;
             Vault.bumpHabit(habit.id, 'positive');
             const levelAfter = Vault.getUser().level;
@@ -75,7 +79,8 @@ function renderHabits() {
             renderHabits();
         });
 
-        row.querySelector('[data-role="negative"]').addEventListener('click', () => {
+        const negativeBtn = row.querySelector('[data-role="negative"]');
+        if (negativeBtn) negativeBtn.addEventListener('click', () => {
             Vault.bumpHabit(habit.id, 'negative');
             Toast.show(`➖ ${habit.dp} DP`, 'negative');
             renderHabits();

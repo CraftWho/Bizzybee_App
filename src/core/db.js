@@ -70,6 +70,24 @@ function todayISO() {
     return new Date().toISOString().slice(0, 10);
 }
 
+// Start-of-current-period ISO date for a Habit's Reset Counter cadence -
+// used only to derive a display-only "this period" tally (see getHabits
+// below). Purely additive: the permanent `history` log (and everything
+// computed from it - DP totals, Skill Matrix contributions) is never
+// filtered by this and never resets. Week starts Sunday, matching the
+// daysOfWeek 0=Sun convention Dailies already use elsewhere in this file.
+function habitPeriodStartISO(resetCounter, now = new Date()) {
+    if (resetCounter === 'weekly') {
+        const start = new Date(now);
+        start.setDate(start.getDate() - start.getDay());
+        return start.toISOString().slice(0, 10);
+    }
+    if (resetCounter === 'monthly') {
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+    return now.toISOString().slice(0, 10);
+}
+
 // Word-boundary-ish, case-insensitive "does this term appear in this text"
 // check - shared by computeSkillMatrixDP's Quest-matching pass below and
 // mirrored (independently, since this file has no DOM) by create-daily.js's
@@ -1227,6 +1245,15 @@ class DatabaseManager {
     save() {
         if (this.state) {
             try {
+                // Stamped on every real mutation that goes through this method -
+                // NOT touched by importFullState() below, which writes straight
+                // to localStorage and never calls save(), so a cloud pull or a
+                // Full Save Transfer import correctly inherits the timestamp the
+                // source device already stamped on it, rather than this device
+                // claiming "just now" for data it didn't actually author. This
+                // is what Settings' Cloud-vs-Local comparison reads to tell you
+                // which copy is actually newer (see getLastLocalUpdate() below).
+                this.state.updatedAt = new Date().toISOString();
                 localStorage.setItem(this.storageKey + ':dirty', 'true');
                 localStorage.setItem(this.storageKey, JSON.stringify(this.state));
                 window.dispatchEvent(new Event('vault-saved'));
@@ -1235,6 +1262,15 @@ class DatabaseManager {
                 throw error;
             }
         }
+    }
+
+    // When this device's own local data was last actually changed (not when
+    // it was last synced/backed up - see the comment in save() above). null
+    // for a save made before this field existed; the next real change stamps
+    // it going forward, same backfill-by-next-write pattern this project
+    // already uses for every other additive field.
+    getLastLocalUpdate() {
+        return this.state?.updatedAt || null;
     }
 
     validateFullState(parsed) {
@@ -2017,6 +2053,31 @@ class DatabaseManager {
         return questData;
     }
 
+    // 5e1. Logic: permanently remove a whole quest/campaign. Unlike task/
+    // Ghost Log removal (which just trims part of a quest that still
+    // exists), this deletes the whole thing - there's no undo beyond a
+    // device or cloud backup, so callers must confirm with the user first.
+    // A stale sideQuestIds reference to the removed quest is left in place
+    // deliberately: getSideQuestsFor()/getParentQuestFor() already filter
+    // out ids that no longer resolve, so it just quietly stops showing up.
+    removeQuest(questId) {
+        if (!this.state) return false;
+
+        const quests = this.state.quests || [];
+        const before = quests.length;
+        this.state.quests = quests.filter(q => q.id !== questId);
+        const removed = this.state.quests.length < before;
+        if (!removed) return false;
+
+        // Don't leave the active-quest pointer dangling on a quest that no
+        // longer exists - Home/Quests already treat a missing match as
+        // "no active quest selected" so this is safe to just clear.
+        if (this.state.activeQuestId === questId) this.state.activeQuestId = null;
+
+        this.save();
+        return true;
+    }
+
     // 5f. Logic: Eevee's memory. Every real exchange (chat, or a quest
     // generation request) gets appended here, timestamped. This is the raw
     // material for Track B (real fine-tuning) later, and also what gets fed
@@ -2623,20 +2684,33 @@ class DatabaseManager {
     }
 
     // 5i2. Logic: Habits plugin (src/plugins/habits/) - a Habitica-style
-    // +/- action button. No schedule, no reset, nothing "due" - just a
-    // permanent `history` log of every click (see computeHabitDP above for
-    // how that log turns into a live DP total). Every habit always shows
-    // BOTH the + and - button (an explicit "both, always" call), so unlike
-    // Dailies there's no per-item "is this the right kind of action today"
-    // check - bumpHabit always just logs the click.
+    // +/- action button. No schedule, nothing "due" - just a permanent
+    // `history` log of every click (see computeHabitDP above for how that
+    // log turns into a live DP total, never affected by resetCounter).
+    // Which of +/- shows is a per-habit toggle (positive/negative, default
+    // both true) - so unlike Dailies there's no per-item "is this the
+    // right kind of action today" check, just "is this direction turned
+    // on for this habit" (enforced again in bumpHabit below).
     getHabits() {
         if (!this.state) return [];
         return (this.state.habits || []).map(habit => {
             const history = habit.history || [];
+            const resetCounter = habit.resetCounter || 'daily';
+            const periodStart = habitPeriodStartISO(resetCounter);
             return {
                 ...habit,
+                // Old habits predate the positive/negative toggle - they
+                // always showed both buttons, so an absent field defaults
+                // to true (not false) to keep their behavior unchanged.
+                positive: habit.positive !== false,
+                negative: habit.negative !== false,
+                resetCounter,
                 positiveCount: history.filter(h => h.direction === 'positive').length,
-                negativeCount: history.filter(h => h.direction === 'negative').length
+                negativeCount: history.filter(h => h.direction === 'negative').length,
+                // Display-only tally for the current Reset Counter period -
+                // DP/totals above are still computed from the full history.
+                periodPositiveCount: history.filter(h => h.direction === 'positive' && h.date >= periodStart).length,
+                periodNegativeCount: history.filter(h => h.direction === 'negative' && h.date >= periodStart).length
             };
         });
     }
@@ -2644,12 +2718,17 @@ class DatabaseManager {
     // direction: 'positive' | 'negative'. Fire-and-forget, same as a real
     // Habitica habit click - there's no toggle/undo (that's what clicking
     // the opposite button is for), each click is its own permanent entry.
+    // A habit whose positive/negative toggle is off for this direction
+    // rejects the bump - the UI already hides that button, this is just
+    // the same guard enforced server-side-of-the-Vault too.
     bumpHabit(habitId, direction) {
         if (!this.state) return null;
         if (direction !== 'positive' && direction !== 'negative') return null;
 
         const habit = (this.state.habits || []).find(h => h.id === habitId);
         if (!habit) return null;
+        if (direction === 'positive' && habit.positive === false) return null;
+        if (direction === 'negative' && habit.negative === false) return null;
 
         if (!habit.history) habit.history = [];
         habit.history.push({
@@ -2667,9 +2746,15 @@ class DatabaseManager {
         return habit;
     }
 
-    addHabit({ label, dp, difficulty, notes, tags }) {
+    addHabit({ label, dp, difficulty, notes, tags, positive, negative, resetCounter }) {
         if (!this.state) return null;
         if (!this.state.habits) this.state.habits = [];
+
+        let hasPositive = positive !== false;
+        let hasNegative = negative !== false;
+        // Refuse to create a habit with neither button visible - fall back
+        // to the historical "both, always" default rather than a dead end.
+        if (!hasPositive && !hasNegative) { hasPositive = true; hasNegative = true; }
 
         this.state.habits.push({
             id: `habit-${Date.now()}`,
@@ -2678,6 +2763,9 @@ class DatabaseManager {
             difficulty: difficulty || null,
             notes: notes || '',
             tags: Array.isArray(tags) ? tags : [],
+            positive: hasPositive,
+            negative: hasNegative,
+            resetCounter: resetCounter || 'daily',
             history: []
         });
 
@@ -2685,7 +2773,7 @@ class DatabaseManager {
         return this.state.habits;
     }
 
-    updateHabit(habitId, { label, dp, difficulty, notes, tags }) {
+    updateHabit(habitId, { label, dp, difficulty, notes, tags, positive, negative, resetCounter }) {
         if (!this.state) return null;
 
         const habit = (this.state.habits || []).find(h => h.id === habitId);
@@ -2696,6 +2784,12 @@ class DatabaseManager {
         if (difficulty !== undefined) habit.difficulty = difficulty || null;
         if (notes !== undefined) habit.notes = notes;
         if (tags !== undefined) habit.tags = Array.isArray(tags) ? tags : [];
+        if (positive !== undefined) habit.positive = positive !== false;
+        if (negative !== undefined) habit.negative = negative !== false;
+        if (resetCounter !== undefined) habit.resetCounter = resetCounter || 'daily';
+        // Same "can't have neither" guard as addHabit, re-checked after
+        // applying whichever of positive/negative was just passed in.
+        if (habit.positive === false && habit.negative === false) { habit.positive = true; habit.negative = true; }
 
         this.save();
         return habit;

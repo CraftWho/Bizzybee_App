@@ -37,8 +37,12 @@
              separate boxed .panels per section. -->
         <section class="panel create-daily-panel">
             <h3>📝 Task Details</h3>
-            <label class="form-label" for="daily-title-input">Task Title</label>
+            <div class="daily-title-label-row">
+                <label class="form-label" for="daily-title-input">Task Title</label>
+                <button type="button" class="daily-title-tip-btn" id="daily-title-tip-btn" aria-expanded="false">🔒 Privacy</button>
+            </div>
             <input type="text" id="daily-title-input" class="daily-text-input" placeholder="e.g. Morning stretch">
+            <p class="daily-title-tip-text" id="daily-title-tip-text" hidden>For your privacy, avoid entering sensitive personal information here. Task titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
 
             <label class="form-label" for="daily-notes-input">Notes</label>
             <textarea id="daily-notes-input" class="daily-notes-input" placeholder="Optional details..."></textarea>
@@ -47,7 +51,7 @@
             <div class="daily-checklist" id="daily-checklist"></div>
 
             <h3 class="daily-section-heading">⭐ Difficulty &amp; DP</h3>
-            <div class="daily-difficulty-grid" id="daily-difficulty-grid"></div>
+            <div class="daily-difficulty-grid difficulty-grid" id="daily-difficulty-grid"></div>
 
             <div class="daily-dp-row">
                 <div class="daily-dp-display">

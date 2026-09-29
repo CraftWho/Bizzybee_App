@@ -33,8 +33,12 @@
 
         <section class="panel create-todo-panel">
             <h3>📝 Task Details</h3>
-            <label class="form-label" for="todo-title-input">Task Title</label>
+            <div class="todo-title-label-row">
+                <label class="form-label" for="todo-title-input">Task Title</label>
+                <button type="button" class="todo-title-tip-btn" id="todo-title-tip-btn" aria-expanded="false">🔒 Privacy</button>
+            </div>
             <input type="text" id="todo-title-input" class="todo-text-input" placeholder="e.g. Renew car registration">
+            <p class="todo-title-tip-text" id="todo-title-tip-text" hidden>For your privacy, avoid entering sensitive personal information here. Task titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
 
             <label class="form-label" for="todo-notes-input">Notes</label>
             <textarea id="todo-notes-input" class="todo-notes-input" placeholder="Optional details..."></textarea>
@@ -43,7 +47,7 @@
             <div class="todo-checklist" id="todo-checklist"></div>
 
             <h3 class="todo-section-heading">⭐ Difficulty &amp; DP</h3>
-            <div class="todo-difficulty-grid" id="todo-difficulty-grid"></div>
+            <div class="todo-difficulty-grid difficulty-grid" id="todo-difficulty-grid"></div>
 
             <div class="todo-dp-row">
                 <div class="todo-dp-display">

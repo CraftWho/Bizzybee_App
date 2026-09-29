@@ -40,6 +40,11 @@
 <div id="cloud-sync-signed-in" hidden>
 <p>Signed in as <span id="cloud-sync-email"></span></p>
 <p id="cloud-sync-status" role="status" aria-live="polite">Connecting to cloud…</p>
+<div id="cloud-vs-local-compare" class="sync-compare" role="status" aria-live="polite">
+    <div class="sync-compare-row"><span>📍 This device</span><span id="sync-compare-local">—</span></div>
+    <div class="sync-compare-row"><span>☁️ Cloud</span><span id="sync-compare-cloud">—</span></div>
+    <p id="sync-compare-verdict" class="sync-compare-verdict">Checking…</p>
+</div>
 <details class="settings-subcategory" open><summary>Sync options</summary>
 <div class="settings-action-row"><div class="settings-action-info"><strong>Automatic cloud uploads</strong><p>Uploads shortly after changes. Pending changes retry when you reconnect or reopen the app.</p></div><label class="toggle-switch"><input type="checkbox" id="cloud-sync-auto-toggle" aria-label="Automatic cloud uploads" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
 <div class="settings-action-row"><div class="settings-action-info"><strong>Save now</strong><p>Upload this device’s latest progress.</p></div><button id="cloud-sync-push-btn">Save to Cloud</button></div>
@@ -112,38 +117,49 @@
             </div>
         </div></details>
 
-        <details class="panel settings-category"><summary>💾 Device Recovery & Data</summary><div class="settings-category-body"><div class="settings-action-row"><button id="local-backup-btn">Create Device Backup</button><button id="local-backup-refresh-btn">Refresh Recovery Copies</button></div><div id="local-backup-list"></div>
-            <p class="settings-intro">Keep up to three recovery copies on this device. These are local copies, not encrypted cloud backups; clearing browser data removes them.</p>
+        <details class="panel settings-category"><summary>💾 Local Save &amp; Device Data</summary><div class="settings-category-body">
+            <p class="settings-intro">Everything here lives only on this device/browser - nothing is sent anywhere unless you export a file yourself.</p>
+            <p id="local-only-updated-row" class="settings-intro">📍 Last updated on this device: <strong id="local-only-updated">—</strong></p>
+
+            <details class="settings-subcategory" open><summary>Device recovery copies</summary>
+            <p>Keep up to three quick recovery copies on this device. These are unencrypted local snapshots, not cloud backups; clearing browser data removes them.</p>
+            <div class="settings-action-row"><button id="local-backup-btn">Create Device Backup</button><button id="local-backup-refresh-btn">Refresh Recovery Copies</button></div>
+            <div id="local-backup-list"></div>
+            </details>
+
+            <details class="settings-subcategory"><summary>Backup to a folder on this device</summary>
+            <p>A copy that lives outside the browser entirely, so clearing site data or losing this browser can't take it with everything else.</p>
 
             <div class="settings-action-row">
                 <div class="settings-action-info">
-                    <strong>Sync from Blueprint</strong>
-                    <p>Pulls in content changes (names, objectives, new or removed quests/tasks) while keeping your progress - completed tasks and your level are untouched.</p>
+                    <strong>Download a Copy Now</strong>
+                    <p>Saves your current progress as a file to your Downloads folder. Works in every browser, including iPhone.</p>
                 </div>
-                <button id="sync-blueprint-btn">🔄 Sync</button>
+                <button id="folder-backup-download-btn">⬇️ Download</button>
             </div>
 
             <div class="settings-action-row">
                 <div class="settings-action-info">
-                    <strong>Reset Local Data</strong>
-                    <p>Starts fresh from the blueprint after keeping a device recovery copy. Automatic cloud uploads are paused until you choose to resume them.</p>
+                    <strong>Auto-Save to a Chosen Folder</strong>
+                    <p id="folder-backup-status">Checking this browser…</p>
                 </div>
-                <button id="reset-data-btn" class="settings-btn-danger">⚠️ Reset</button>
+                <button id="folder-backup-choose-btn" hidden>📁 Choose Folder</button>
+                <button id="folder-backup-disconnect-btn" hidden>Disconnect</button>
             </div>
-        </div></details>
+            </details>
 
-
-
-        <details class="panel settings-category"><summary>📱 Full Save Transfer</summary><div class="settings-category-body">
-            <p class="settings-intro">Move your entire progress - every quest, DP, level, bee, everything - to another device. No account or internet connection needed, just a file you carry over yourself.</p>
+            <details class="settings-subcategory"><summary>Full save (backup &amp; transfer)</summary>
+            <p class="settings-intro">Makes a full copy of your entire progress - every quest, DP, level, bee, everything - as one file. Nothing is removed from this device; it's a copy, not a move. Use it to keep a backup somewhere safe, or to bring your progress to another device. No account or internet connection needed.</p>
 
             <div class="settings-action-row">
                 <div class="settings-action-info">
                     <strong>Export Full Save</strong>
                     <p>Downloads your complete Vault as one file. Send it to your other device however you like (email, Drive, AirDrop) and import it there.</p>
-                    <label class="settings-password-label" for="full-save-password">Encryption password (optional)</label>
-                    <input type="password" id="full-save-password" class="settings-password-input" placeholder="Leave blank to export as plain JSON" autocomplete="new-password">
-                    <p class="settings-file-hint">Set a password to scramble the file so it isn't plain-text readable if it ends up somewhere you didn't mean to leave it. You'll need the same password to import it. There's no recovery if you forget it.</p>
+                    <label class="settings-password-label" for="full-save-password">Encryption PIN (optional, 6 digits)</label>
+                    <input type="password" id="full-save-password" class="settings-password-input pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Leave blank to export as plain JSON" autocomplete="off">
+                    <label class="settings-password-label" for="full-save-hint">Hint for yourself (optional, stored in plain text)</label>
+                    <input type="text" id="full-save-hint" class="settings-password-input" placeholder="e.g. \"same as my bike lock\"" maxlength="80">
+                    <p class="settings-file-hint">A short numeric PIN is easier to remember and re-type on another device than a full password. Set a hint too if you're worried you'll forget it - the hint is saved in the file as plain, unencrypted text, so never put the actual PIN in it. You'll still need the exact PIN to import; there's no recovery if it's really lost.</p>
                 </div>
                 <button id="export-full-save-btn">📤 Export</button>
             </div>
@@ -157,10 +173,13 @@
                          its picker to Photos/Video only when any accept filter is
                          present; wide open is what actually surfaces "My Files"). -->
                     <input type="file" id="import-full-save-input" class="settings-file-input">
-                    <p class="settings-file-hint">Picker only offering Photos/Video? Look for a menu icon, "Browse," or "My Files" inside it. If the file was exported with a password, enter the same one above before importing.</p>
+                    <p id="import-full-save-hint-display" class="settings-file-hint" hidden></p>
+                    <p class="settings-file-hint">Picker only offering Photos/Video? Look for a menu icon, "Browse," or "My Files" inside it. If the file was exported with a PIN, enter it above before importing.</p>
                 </div>
                 <button id="import-full-save-btn">📥 Import</button>
             </div>
+            </details>
+
         </div></details>
 
         <details class="panel settings-category"><summary>💬 Feedback & Suggestions</summary><div class="settings-category-body">
@@ -188,6 +207,7 @@
     </main>
 
     <script src="../../core/db.js"></script>
+    <script src="../../core/folder-backup.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/crypto-lite.js"></script>
     <script src="../../core/app.js"></script>

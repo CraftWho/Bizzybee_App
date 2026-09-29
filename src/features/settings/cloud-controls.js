@@ -54,12 +54,16 @@ function initCloudSync() {
     };
     document.getElementById('cloud-sync-logout-btn').onclick = () => netlifyIdentity.logout();
     const wire = (id, action) => { const button = document.getElementById(id); button.onclick = () => settingsAction(button, action); };
-    wire('cloud-sync-push-btn', async () => { if (!await cloudEngine().pushNow()) throw new Error('Cloud save is not complete. Check the sync status above.'); });
+    wire('cloud-sync-push-btn', async () => {
+        if (!await cloudEngine().pushNow()) throw new Error('Cloud save is not complete. Check the sync status above.');
+        refreshSyncCompare();
+    });
     wire('cloud-sync-pull-btn', async () => {
         if (confirm('Use the latest cloud copy on this device? A local recovery copy will be kept first.')) await cloudEngine().pullLatest();
     });
     wire('cloud-sync-use-device-btn', async () => {
         if (confirm('Replace cloud progress with this device’s copy? The previous cloud copy will be backed up first.')) await cloudEngine().useDeviceCopy();
+        refreshSyncCompare();
     });
     wire('backup-refresh-btn', refreshCloudBackups);
     wire('backup-now-btn', async () => {
@@ -71,10 +75,16 @@ function initCloudSync() {
         await cloudEngine().request('backups', { action: 'schedule', hours: Number(document.getElementById('backup-interval').value) });
         await refreshCloudBackups();
     });
-    window.addEventListener('cloud-sync-ready', () => refreshCloudBackups().catch(error => { document.getElementById('backup-status').textContent = error.message; }));
+    window.addEventListener('cloud-sync-ready', () => {
+        refreshCloudBackups().catch(error => { document.getElementById('backup-status').textContent = error.message; });
+        refreshSyncCompare();
+    });
     if (typeof CloudSyncAuto !== 'undefined') {
         cloudSyncSetStatus(CloudSyncAuto.getStatus());
-        if (CloudSyncAuto.isReady()) refreshCloudBackups().catch(error => { document.getElementById('backup-status').textContent = error.message; });
+        if (CloudSyncAuto.isReady()) {
+            refreshCloudBackups().catch(error => { document.getElementById('backup-status').textContent = error.message; });
+            refreshSyncCompare();
+        }
     }
 }
 async function refreshCloudBackups() {
@@ -96,6 +106,38 @@ async function refreshCloudBackups() {
         });
         row.append(label, button); list.append(row);
     }
+}
+function getLocalUpdateText() {
+    const localUpdatedAt = (typeof Vault !== 'undefined' && Vault.getLastLocalUpdate) ? Vault.getLastLocalUpdate() : null;
+    return { localUpdatedAt, localText: localUpdatedAt ? new Date(localUpdatedAt).toLocaleString() : 'No local changes yet' };
+}
+function updateLocalOnlyTimestamp() {
+    const localOnlyEl = document.getElementById('local-only-updated');
+    if (localOnlyEl) localOnlyEl.textContent = getLocalUpdateText().localText;
+}
+async function refreshSyncCompare() {
+    const localEl = document.getElementById('sync-compare-local');
+    const cloudEl = document.getElementById('sync-compare-cloud');
+    const verdictEl = document.getElementById('sync-compare-verdict');
+    updateLocalOnlyTimestamp();
+    if (!localEl || !cloudEl || !verdictEl) return;
+    const { localUpdatedAt, localText } = getLocalUpdateText();
+    localEl.textContent = localText;
+    verdictEl.textContent = 'Checking cloud…';
+    let cloud;
+    try { cloud = await cloudEngine().peekCloud(); }
+    catch (error) { cloudEl.textContent = '—'; verdictEl.textContent = 'Could not check cloud: ' + error.message; return; }
+    if (!cloud.hasData) {
+        cloudEl.textContent = 'No cloud save yet';
+        verdictEl.textContent = localUpdatedAt ? '📍 This device has progress not yet saved to the cloud. Use Save to Cloud.' : 'Nothing saved yet on either copy.';
+        return;
+    }
+    cloudEl.textContent = cloud.updatedAt ? new Date(cloud.updatedAt).toLocaleString() : 'Unknown';
+    if (!localUpdatedAt || !cloud.updatedAt) { verdictEl.textContent = 'Comparison unavailable — keep using the app so both sides have a timestamp.'; return; }
+    const diff = new Date(localUpdatedAt).getTime() - new Date(cloud.updatedAt).getTime();
+    if (Math.abs(diff) < 5000) verdictEl.textContent = '✅ In sync — both copies match.';
+    else if (diff > 0) verdictEl.textContent = '📍 This device is newer. Use Save to Cloud to update the cloud copy.';
+    else verdictEl.textContent = '☁️ The cloud copy is newer. Use Load from Cloud to update this device.';
 }
 function deviceRecoveryEntries() {
     const entries = Vault.getLocalBackups();
@@ -134,9 +176,71 @@ function renderDeviceBackups() {
     }
 }
 function initDeviceBackups() {
-    document.getElementById('local-backup-btn').onclick = event => settingsAction(event.currentTarget, async () => { Vault.createLocalBackup(); renderDeviceBackups(); });
+    document.getElementById('local-backup-btn').onclick = event => settingsAction(event.currentTarget, async () => { Vault.createLocalBackup(); renderDeviceBackups(); updateLocalOnlyTimestamp(); });
     document.getElementById('local-backup-refresh-btn').onclick = renderDeviceBackups;
     renderDeviceBackups();
+    updateLocalOnlyTimestamp();
+}
+
+// FolderBackup (src/core/folder-backup.js) may still be loading its own
+// script tag when this runs - waitForFolderBackup() polls briefly rather
+// than assuming it's already a global.
+function waitForFolderBackup(tries = 20) {
+    return new Promise(resolve => {
+        (function poll() {
+            if (typeof FolderBackup !== 'undefined') return resolve(FolderBackup);
+            if (tries-- <= 0) return resolve(null);
+            setTimeout(poll, 150);
+        })();
+    });
+}
+async function refreshFolderBackupStatus() {
+    const statusEl = document.getElementById('folder-backup-status');
+    const chooseBtn = document.getElementById('folder-backup-choose-btn');
+    const disconnectBtn = document.getElementById('folder-backup-disconnect-btn');
+    const engine = await waitForFolderBackup();
+    if (!engine) { statusEl.textContent = "Couldn't load - try reopening Settings."; return; }
+    const s = await engine.status();
+    if (!s.supported) {
+        statusEl.textContent = 'Not supported in this browser. Use Download a Copy Now instead.';
+        chooseBtn.hidden = true; disconnectBtn.hidden = true;
+        return;
+    }
+    if (!s.connected) {
+        statusEl.textContent = 'Not set up yet. Choose a folder to save there automatically.';
+        chooseBtn.hidden = false; disconnectBtn.hidden = true;
+        return;
+    }
+    if (s.permission !== 'granted') {
+        statusEl.textContent = `Folder "${s.name}" needs permission again.`;
+        chooseBtn.hidden = false; disconnectBtn.hidden = false;
+        return;
+    }
+    statusEl.textContent = `Saving automatically to "${s.name}".`;
+    chooseBtn.hidden = true; disconnectBtn.hidden = false;
+}
+function initFolderBackup() {
+    document.getElementById('folder-backup-download-btn').onclick = event => settingsAction(event.currentTarget, async () => {
+        const engine = await waitForFolderBackup();
+        if (!engine) throw new Error("Couldn't load the backup module - try reopening Settings.");
+        engine.downloadNow();
+        Toast.show('⬇️ Backup downloaded.', 'positive');
+    });
+    document.getElementById('folder-backup-choose-btn').onclick = event => settingsAction(event.currentTarget, async () => {
+        const engine = await waitForFolderBackup();
+        if (!engine) throw new Error("Couldn't load the backup module - try reopening Settings.");
+        const name = await engine.chooseFolder();
+        await engine.writeSnapshot('manual');
+        Toast.show(`📁 Saving backups to "${name}".`, 'positive');
+        await refreshFolderBackupStatus();
+    });
+    document.getElementById('folder-backup-disconnect-btn').onclick = event => settingsAction(event.currentTarget, async () => {
+        if (!confirm('Stop auto-saving to this folder? Files already saved there are untouched.')) return;
+        const engine = await waitForFolderBackup();
+        if (engine) await engine.disconnect();
+        await refreshFolderBackupStatus();
+    });
+    refreshFolderBackupStatus();
 }
 function initPasswordReset() {
     const button = document.getElementById('reset-account-password-btn');

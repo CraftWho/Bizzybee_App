@@ -261,6 +261,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('daily-title-input').addEventListener('input', rescanTags);
     document.getElementById('daily-notes-input').addEventListener('input', rescanTags);
 
+    document.getElementById('daily-title-tip-btn').addEventListener('click', () => {
+        const tip = document.getElementById('daily-title-tip-text');
+        const button = document.getElementById('daily-title-tip-btn');
+        const willShow = tip.hidden;
+        tip.hidden = !willShow;
+        button.setAttribute('aria-expanded', String(willShow));
+    });
+
     document.getElementById('daily-repeats-select').addEventListener('change', (e) => {
         repeatsType = e.target.value;
         updateScheduleFieldVisibility();

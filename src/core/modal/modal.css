@@ -121,6 +121,23 @@
     box-shadow: none;
 }
 
+/* Red-outline "destructive" button (e.g. Remove Quest). Distinct from
+   .modal-btn-accent's crimson, which marks a highlighted-but-safe action
+   (Make Active) - this uses the app's shared --danger-red so a genuinely
+   irreversible action reads the same way it does everywhere else
+   (habits/todos/dailies delete buttons). */
+.modal-btn-danger {
+    background: transparent;
+    color: var(--danger-red, #ff4444);
+    border: 2px solid var(--danger-red, #ff4444);
+}
+
+.modal-btn-danger:hover {
+    background: var(--danger-red, #ff4444);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+}
+
 /* Generic dark-themed textarea for editing text inside a modal body. */
 .modal-textarea {
     width: 100%;

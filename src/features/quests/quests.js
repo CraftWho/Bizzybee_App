@@ -93,6 +93,187 @@ function renderQuestList(containerId, quests, emptyMessage) {
 // No separate panels, no markdown: quests are fully structured data now.
 // Builds on the generic modal shell in src/core/modal/ - the same shell
 // MDViewer uses - rather than depending on MDViewer's own stylesheet.
+// Manual, Eevee-independent quest creation. Eevee is currently paused
+// app-wide (see llm-engine.js's EEVEE_PAUSED flag) since EEVEE_CONFIG
+// there always points at the visitor's own localhost Ollama install - it
+// can never work for anyone but a developer running it locally. This is
+// now the only way to add a new quest; DP per task comes from the same
+// DifficultyPicker component Create Daily/Habit/To-Do already use, not a
+// guess, and matches Eevee's own one-off-task DP anchors from
+// generateQuest's old prompt (Easy/Medium/Hard). Re-add an Eevee-assisted
+// option later once she has a real, universally-reachable backend.
+const QUEST_DIFFICULTY_TIERS = [
+    { level: 'Easy', dp: 25, icon: '\u25c6' },
+    { level: 'Medium', dp: 60, icon: '\u25c6\u25c6' },
+    { level: 'Hard', dp: 120, icon: '\u25c6\u25c6\u25c6' }
+];
+
+const CreateQuestModal = {
+    overlay: null,
+    taskRows: [],
+    selectedCategory: 'main',
+
+    open() {
+        this.close();
+        this.taskRows = [{ id: `row-${Date.now()}`, label: '', difficulty: 'Easy' }];
+        this.selectedCategory = 'main';
+
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'modal-overlay';
+        this.overlay.innerHTML = `
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span class="modal-title">\ud83d\udcdd New Quest</span>
+                    <button class="modal-close" aria-label="Close">\u2715</button>
+                </div>
+                <div class="modal-body">
+                    <div class="create-quest-title-label-row">
+                        <p class="quest-task-form-label">Title</p>
+                        <button type="button" class="create-quest-title-tip-btn" id="create-quest-title-tip-btn" aria-expanded="false">🔒 Privacy</button>
+                    </div>
+                    <input type="text" id="create-quest-title" class="quest-detail-source-input" placeholder="e.g. Learn React Hooks">
+                    <p class="create-quest-title-tip-text" id="create-quest-title-tip-text" hidden>For your privacy, avoid entering sensitive personal information here. Quest titles, objectives, and tasks sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
+
+                    <p class="quest-task-form-label">Category</p>
+                    <div class="quest-category-toggle">
+                        <button type="button" class="quest-category-btn quest-category-btn--selected" data-category="main">Main</button>
+                        <button type="button" class="quest-category-btn" data-category="side">Side</button>
+                    </div>
+
+                    <p class="quest-task-form-label">Objective</p>
+                    <textarea id="create-quest-objective" class="modal-textarea" placeholder="What does finishing this actually look like?"></textarea>
+
+                    <p class="quest-task-form-label">Tasks</p>
+                    <div id="create-quest-tasks"></div>
+                    <button type="button" class="modal-btn-muted" id="create-quest-add-task">\u2795 Add Task</button>
+                </div>
+                <div class="modal-footer">
+                    <div class="modal-footer-actions">
+                        <button class="modal-btn-accent" id="create-quest-save-btn">\ud83d\udcbe Create Quest</button>
+                    </div>
+                    <div class="modal-footer-controls">
+                        <button class="modal-btn-muted" id="create-quest-cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(this.overlay);
+
+        this.overlay.addEventListener('click', (event) => {
+            if (event.target === this.overlay) this.close();
+        });
+        this.overlay.querySelector('.modal-close').addEventListener('click', () => this.close());
+        this.overlay.querySelector('#create-quest-cancel-btn').addEventListener('click', () => this.close());
+
+        this.overlay.querySelector('#create-quest-title-tip-btn').addEventListener('click', () => {
+            const tip = this.overlay.querySelector('#create-quest-title-tip-text');
+            const button = this.overlay.querySelector('#create-quest-title-tip-btn');
+            const willShow = tip.hidden;
+            tip.hidden = !willShow;
+            button.setAttribute('aria-expanded', String(willShow));
+        });
+
+        this.overlay.querySelectorAll('.quest-category-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.overlay.querySelectorAll('.quest-category-btn').forEach(b => b.classList.remove('quest-category-btn--selected'));
+                btn.classList.add('quest-category-btn--selected');
+                this.selectedCategory = btn.dataset.category;
+            });
+        });
+
+        this.overlay.querySelector('#create-quest-add-task').addEventListener('click', () => {
+            this.taskRows.push({ id: `row-${Date.now()}-${this.taskRows.length}`, label: '', difficulty: 'Easy' });
+            this.renderTasks();
+        });
+
+        this.overlay.querySelector('#create-quest-save-btn').addEventListener('click', () => this.save());
+
+        this.renderTasks();
+    },
+
+    renderTasks() {
+        const container = this.overlay.querySelector('#create-quest-tasks');
+        container.innerHTML = this.taskRows.map(row => `
+            <div class="create-quest-task-row" data-row-id="${row.id}">
+                <input type="text" class="create-quest-task-input quest-detail-source-input" placeholder="Task description" value="${escapeAttr(row.label)}">
+                <div class="create-quest-task-difficulty"></div>
+                ${this.taskRows.length > 1 ? '<button type="button" class="create-quest-task-remove" aria-label="Remove task">\u2715</button>' : ''}
+            </div>
+        `).join('');
+
+        this.taskRows.forEach(row => {
+            const rowEl = container.querySelector(`[data-row-id="${row.id}"]`);
+            rowEl.querySelector('.create-quest-task-input').addEventListener('input', (event) => {
+                row.label = event.target.value;
+            });
+            const removeBtn = rowEl.querySelector('.create-quest-task-remove');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    this.taskRows = this.taskRows.filter(r => r.id !== row.id);
+                    this.renderTasks();
+                });
+            }
+            DifficultyPicker.render(rowEl.querySelector('.create-quest-task-difficulty'), QUEST_DIFFICULTY_TIERS, row.difficulty, (tier) => {
+                row.difficulty = tier.level;
+            });
+        });
+    },
+
+    save() {
+        const title = this.overlay.querySelector('#create-quest-title').value.trim();
+        if (!title) {
+            Toast.show('Give this quest a title first.', 'negative');
+            return;
+        }
+
+        const validTasks = this.taskRows.filter(row => row.label.trim());
+        if (validTasks.length === 0) {
+            Toast.show('Add at least one task before creating this quest.', 'negative');
+            return;
+        }
+
+        const objective = this.overlay.querySelector('#create-quest-objective').value.trim();
+        const stamp = Date.now();
+
+        const quest = {
+            id: `QUEST-${stamp}`,
+            category: this.selectedCategory,
+            status: 'active',
+            title,
+            objective,
+            queensDecree: '',
+            source: null,
+            dateStarted: new Date().toISOString().slice(0, 10),
+            dateCompleted: null,
+            tasks: validTasks.map((row, index) => {
+                const tier = QUEST_DIFFICULTY_TIERS.find(t => t.level === row.difficulty) || QUEST_DIFFICULTY_TIERS[0];
+                return {
+                    id: `manual-${stamp}-t${index}`,
+                    label: row.label.trim(),
+                    dp: tier.dp,
+                    completed: false,
+                    dateCompleted: null,
+                    link: null,
+                    difficulty: tier.level
+                };
+            })
+        };
+
+        Vault.addQuest(quest);
+        this.close();
+        renderQuestsPage();
+        Toast.show(`\ud83d\udcdd New quest added: ${quest.title}`, 'positive');
+    },
+
+    close() {
+        if (this.overlay) {
+            this.overlay.remove();
+            this.overlay = null;
+        }
+    }
+};
+
 const QuestDetail = {
     overlay: null,
 
@@ -114,6 +295,7 @@ const QuestDetail = {
                     </div>
                     <div class="modal-footer-controls">
                         <button class="modal-btn-muted quest-detail-dev-edit-btn">🛠️ Dev Edit</button>
+                        <button class="modal-btn-danger quest-detail-remove-btn">🗑️ Remove Quest</button>
                     </div>
                 </div>
             </div>
@@ -132,6 +314,13 @@ const QuestDetail = {
         });
         this.overlay.querySelector('.quest-detail-dev-edit-btn').addEventListener('click', () => {
             this.openDevEdit(quest);
+        });
+        this.overlay.querySelector('.quest-detail-remove-btn').addEventListener('click', () => {
+            if (!confirm(`Permanently remove "${quest.title}"? This deletes the whole quest and all its tasks - there's no undo beyond a device or cloud backup.`)) return;
+            if (Vault.removeQuest(quest.id)) {
+                this.close();
+                renderQuestsPage();
+            }
         });
 
         this.render(quest);
@@ -753,23 +942,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     Waggle.setActions([
         {
-            icon: '➕',
-            label: 'Add Campaign',
-            onClick: async () => {
-                const goal = prompt('🐝 What goal do you want Eevee to build a campaign around?');
-                if (!goal || !goal.trim()) return;
-
-                Toast.show('🐝 The Queen is deliberating...', 'positive');
-                try {
-                    const quest = await Eevee.generateQuest(goal.trim());
-                    Vault.addQuest(quest);
-                    renderQuestsPage();
-                    Toast.show(quest.queensDecree || `🐝 New campaign added: ${quest.title}`, 'positive');
-                } catch (error) {
-                    console.error(error);
-                    Toast.show(`⚠️ ${error.message}`, 'negative');
-                }
-            }
+            icon: '📝',
+            label: 'Add Quest',
+            onClick: () => CreateQuestModal.open()
         },
         ...baseWaggleActions()
     ]);

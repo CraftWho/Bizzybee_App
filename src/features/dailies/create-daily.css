@@ -20,6 +20,37 @@
     margin-top: 30px !important;
 }
 
+/* --- TITLE PRIVACY NOTE - a dismissible reminder that titles/notes sync
+   to the cloud account, toggled open/closed next to the label. Same
+   pattern as create-habit.css's habit-title-tip-*. --- */
+.daily-title-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.daily-title-tip-btn {
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-start);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.daily-title-tip-btn:hover {
+    background: var(--gold-dim);
+}
+
+.daily-title-tip-text {
+    margin: 6px 0 0;
+    color: #999;
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
 /* --- Shared field styling - same recipe Calendar's event modal already
    uses (dark fill, thin border, gold on focus) so this page's inputs read
    as the same app rather than a bolted-on new style. --- */

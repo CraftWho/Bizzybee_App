@@ -230,3 +230,24 @@
 #cloud-backup-list, #local-backup-list { max-height: 420px; overflow-y: auto; margin-top: 16px; }
 #reset-account-email { max-width: 100%; box-sizing: border-box; }
 .toggle-switch-track { pointer-events: none; }
+.sync-compare {
+    border: 1px solid var(--gold-dim);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 12px 0 16px;
+    background: rgba(255, 204, 0, 0.05);
+}
+.sync-compare-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    line-height: 1.8;
+}
+.sync-compare-row span:first-child { color: #aaa; }
+.sync-compare-verdict {
+    margin: 8px 0 0;
+    color: var(--gold-start);
+    font-weight: 700;
+    line-height: 1.5;
+}
+#local-only-updated-row { margin-bottom: 16px; }

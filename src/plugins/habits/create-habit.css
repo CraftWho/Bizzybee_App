@@ -49,43 +49,112 @@
     margin-top: 10px;
 }
 
-/* --- ACTION PREVIEW - both +/- always shown for every habit (no per-habit
-   choice), this is just a static preview so the DP note below reads
-   clearly against real-looking buttons. --- */
-.habit-action-preview-row {
+/* --- TITLE TIP - a dismissible one-liner on writing a good habit title,
+   toggled open/closed rather than always shown, next to the label. --- */
+.habit-title-label-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.habit-title-tip-btn {
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-start);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.habit-title-tip-btn:hover {
+    background: var(--gold-dim);
+}
+
+.habit-title-tip-text {
+    margin: 6px 0 0;
+    color: #999;
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
+/* --- ACTIONS - a per-habit toggle for which of +/- shows on the Habits
+   list. Both are on by default (matching every habit's behavior before
+   this was configurable); turning one off hides that button there. At
+   least one must stay on - see create-habit.js's toggle handler and
+   Vault.addHabit/updateHabit's own fallback guard. --- */
+.habit-action-toggle-row {
+    display: flex;
+    gap: 14px;
     margin-top: 10px;
 }
 
-.habit-action-preview-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    font-size: 1.2rem;
+.habit-action-toggle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: #151515;
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 12px 6px;
+    color: #888;
+    cursor: pointer;
+}
+
+.habit-action-toggle-icon {
+    font-size: 1.3rem;
     font-weight: 800;
-    padding: 0;
     line-height: 1;
-    box-shadow: none;
-    pointer-events: none;
 }
 
-.habit-action-preview-btn--positive {
-    background: transparent;
-    border: 2px solid #4caf50;
+.habit-action-toggle-label {
+    font-size: 0.85rem;
+}
+
+.habit-action-toggle--positive[aria-pressed="true"] {
+    border-color: #4caf50;
     color: #4caf50;
+    background: rgba(76, 175, 80, 0.1);
 }
 
-.habit-action-preview-btn--negative {
-    background: transparent;
-    border: 2px solid var(--danger-red);
+.habit-action-toggle--negative[aria-pressed="true"] {
+    border-color: var(--danger-red);
     color: var(--danger-red);
+    background: rgba(255, 68, 68, 0.1);
 }
 
-.habit-action-preview-note {
+/* --- RESET COUNTER - single-select, same pill-row pattern as Quests'
+   Main/Side category toggle (quests.css's .quest-category-toggle). --- */
+.habit-reset-toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.habit-reset-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--gold-dim);
+    background: transparent;
+    color: #eee;
+    cursor: pointer;
+}
+
+.habit-reset-btn--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    border-color: var(--gold-start);
+    font-weight: bold;
+}
+
+.habit-reset-hint {
     color: #999;
     font-size: 0.85rem;
+    margin-top: 8px;
 }
 
 /* --- DP DISPLAY --- */
