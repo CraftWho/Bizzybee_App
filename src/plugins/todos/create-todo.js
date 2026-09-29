@@ -198,6 +198,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('todo-title-input').addEventListener('input', rescanTags);
     document.getElementById('todo-notes-input').addEventListener('input', rescanTags);
 
+    document.getElementById('todo-title-tip-btn').addEventListener('click', () => {
+        const tip = document.getElementById('todo-title-tip-text');
+        const button = document.getElementById('todo-title-tip-btn');
+        const willShow = tip.hidden;
+        tip.hidden = !willShow;
+        button.setAttribute('aria-expanded', String(willShow));
+    });
+
     document.getElementById('todo-add-reminder-btn').addEventListener('click', () => {
         const time = ClockPicker.getTime24(clockMount);
         remindersState.push({ id: `rem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, time });

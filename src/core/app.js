@@ -140,6 +140,7 @@ class CodexSystem {
         this.renderGlobalUI();
         this.initAppLock();
         this.initCloudSyncAuto();
+        this.initFolderBackupAuto();
         this.injectInstallButton();
     }
 
@@ -277,6 +278,21 @@ class CodexSystem {
     // always runs after head scripts), so by the time this method runs
     // there `netlifyIdentity` is already a real global and the guard below
     // skips straight to loading cloud-sync.js without re-injecting anything.
+    // Loads FolderBackup on every nested page (not the root/login page,
+    // same gate as initCloudSyncAuto above) so its throttled background
+    // write can run no matter where the user is in the app. settings.html
+    // also includes this script statically for its own UI - the guard
+    // below skips re-injecting it there.
+    initFolderBackupAuto() {
+        const path = window.location.pathname;
+        const isNestedPage = path.includes('features') || path.includes('plugins');
+        if (!isNestedPage) return;
+        if (document.querySelector('script[src*="core/folder-backup.js"]')) return;
+        const script = document.createElement('script');
+        script.src = '../../../src/core/folder-backup.js';
+        document.body.appendChild(script);
+    }
+
     initCloudSyncAuto() {
         if (localStorage.getItem('bizzybee_session') !== 'identity') return;
 

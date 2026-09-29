@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCloudSync();
     LocalCloudDownload.init();
     initDeviceBackups();
+    initFolderBackup();
     initPasswordReset();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
@@ -33,27 +34,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         Toast.show('📤 Quest data exported.', 'positive');
     });
 
-    document.getElementById('sync-blueprint-btn').addEventListener('click', async () => {
-        const updated = await Vault.syncFromBlueprint();
-        Toast.show(
-            updated ? '🔄 Synced - content updated, progress kept.' : '⚠️ Sync failed - check the console.',
-            updated ? 'positive' : 'negative'
-        );
-    });
-
-    document.getElementById('reset-data-btn').addEventListener('click', async () => {
-        const confirmed = confirm(
-            'Start fresh from the blueprint? A device recovery copy will be kept, and automatic cloud uploads will be paused.'
-        );
-        if (!confirmed) return;
-
-        try {
-            localStorage.setItem('bizzybee_auto_sync', 'false');
-            document.getElementById('cloud-sync-auto-toggle').checked = false;
-            await Vault.forceReset();
-            Toast.show('Device reset. Cloud uploads paused.', 'positive');
-            renderDeviceBackups();
-        } catch (error) { Toast.show(error.message, 'negative'); }
+    // Numeric-only, capped at 6 digits - same sanitization pattern as the
+    // Account PIN inputs (account-info.js's sanitizePinInput), duplicated
+    // here rather than shared across files per this codebase's existing
+    // convention for this kind of small coupling.
+    document.getElementById('full-save-password').addEventListener('input', (event) => {
+        event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6);
     });
 
     document.getElementById('export-full-save-btn').addEventListener('click', async () => {
@@ -63,11 +49,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const password = document.getElementById('full-save-password').value;
-        if (password) {
+        const pin = document.getElementById('full-save-password').value;
+        if (pin) {
+            if (!/^\d{4,6}$/.test(pin)) {
+                Toast.show('⚠️ PIN must be 4-6 digits.', 'negative');
+                return;
+            }
             try {
-                const encrypted = await CryptoLite.encrypt(snapshot, password);
-                downloadFile(encrypted, 'bizzybee-full-save.json', 'application/json');
+                const encrypted = JSON.parse(await CryptoLite.encrypt(snapshot, pin));
+                // The hint is deliberately plain text, sitting outside the
+                // encrypted envelope - CryptoLite only ever encrypts the
+                // `snapshot` string above, so this never touches the PIN
+                // or your real data. Shown back on import to jog your
+                // memory; never store the actual PIN in it.
+                const hint = document.getElementById('full-save-hint').value.trim();
+                if (hint) encrypted.hint = hint;
+                downloadFile(JSON.stringify(encrypted), 'bizzybee-full-save.json', 'application/json');
                 Toast.show('🔐 Full save exported (encrypted).', 'positive');
             } catch (error) {
                 Toast.show('⚠️ Encryption failed - export cancelled.', 'negative');
@@ -77,6 +74,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         downloadFile(snapshot, 'bizzybee-full-save.json', 'application/json');
         Toast.show('📤 Full save exported.', 'positive');
+    });
+
+    document.getElementById('import-full-save-input').addEventListener('change', () => {
+        const input = document.getElementById('import-full-save-input');
+        const hintDisplay = document.getElementById('import-full-save-hint-display');
+        const file = input.files[0];
+        hintDisplay.hidden = true;
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(reader.result);
+                if (parsed && parsed.bizzybeeEncrypted && parsed.hint) {
+                    hintDisplay.textContent = `💡 Hint from export: "${parsed.hint}"`;
+                    hintDisplay.hidden = false;
+                }
+            } catch (error) { /* not JSON, or no hint - nothing to preview */ }
+        };
+        reader.readAsText(file);
     });
 
     document.getElementById('import-full-save-btn').addEventListener('click', () => {
@@ -99,13 +116,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (CryptoLite.isEncryptedEnvelope(plainText)) {
                 const password = document.getElementById('full-save-password').value;
                 if (!password) {
-                    Toast.show('⚠️ This save is encrypted - enter its password above first.', 'negative');
+                    Toast.show('⚠️ This save is encrypted - enter its PIN above first.', 'negative');
                     return;
                 }
                 try {
                     plainText = await CryptoLite.decrypt(plainText, password);
                 } catch (error) {
-                    Toast.show('⚠️ Wrong password, or the file is corrupted.', 'negative');
+                    Toast.show('⚠️ Wrong PIN, or the file is corrupted.', 'negative');
                     return;
                 }
             }

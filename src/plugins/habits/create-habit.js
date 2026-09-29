@@ -13,6 +13,9 @@ const HABIT_DIFFICULTY_TIERS = [
 let selectedDifficulty = 'Easy';
 let selectedDP = 20;
 let editingHabitId = null;
+let habitPositiveEnabled = true;
+let habitNegativeEnabled = true;
+let selectedResetCounter = 'daily';
 
 // Every term a tag could plausibly match against - same sources
 // create-daily.js's collectKnownTerms uses, plus existing Habit tags too.
@@ -71,15 +74,41 @@ function loadExistingHabit(existing) {
     document.getElementById('habit-dp-value').textContent = selectedDP;
     TagPicker.render(document.getElementById('habit-tags-list'), existing.tags || []);
 
+    // Absent on a habit saved before this toggle existed - default both on,
+    // same "both, always" behavior it already had (see Vault.getHabits).
+    habitPositiveEnabled = existing.positive !== false;
+    habitNegativeEnabled = existing.negative !== false;
+    selectedResetCounter = existing.resetCounter || 'daily';
+    renderActionToggles();
+    renderResetToggles();
+
     document.getElementById('create-habit-heading').innerHTML = '✏️ <span class="gold-gradient-text">EDIT HABIT</span>';
     document.getElementById('create-habit-subtitle').textContent = 'Update any part of this habit - changes apply immediately on save.';
     document.getElementById('habit-save-btn').textContent = '💾 Save Changes';
+}
+
+// Reflects habitPositiveEnabled/habitNegativeEnabled onto the two toggle
+// buttons - called on load and after every click (see the click handlers
+// wired in DOMContentLoaded below).
+function renderActionToggles() {
+    const positiveBtn = document.querySelector('.habit-action-toggle--positive');
+    const negativeBtn = document.querySelector('.habit-action-toggle--negative');
+    positiveBtn.setAttribute('aria-pressed', String(habitPositiveEnabled));
+    negativeBtn.setAttribute('aria-pressed', String(habitNegativeEnabled));
+}
+
+function renderResetToggles() {
+    document.querySelectorAll('.habit-reset-btn').forEach(btn => {
+        btn.classList.toggle('habit-reset-btn--selected', btn.dataset.reset === selectedResetCounter);
+    });
 }
 
 function setupNewHabitDefaults() {
     selectedDP = HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
     document.getElementById('habit-dp-value').textContent = selectedDP;
     TagPicker.render(document.getElementById('habit-tags-list'), []);
+    renderActionToggles();
+    renderResetToggles();
 }
 
 function saveHabit() {
@@ -89,12 +118,20 @@ function saveHabit() {
         return;
     }
 
+    if (!habitPositiveEnabled && !habitNegativeEnabled) {
+        Toast.show('Turn on at least one of Positive or Negative.', 'negative');
+        return;
+    }
+
     const payload = {
         label,
         dp: selectedDP,
         difficulty: selectedDifficulty,
         notes: document.getElementById('habit-notes-input').value,
-        tags: TagPicker.getTags(document.getElementById('habit-tags-list'))
+        tags: TagPicker.getTags(document.getElementById('habit-tags-list')),
+        positive: habitPositiveEnabled,
+        negative: habitNegativeEnabled,
+        resetCounter: selectedResetCounter
     };
 
     if (editingHabitId) {
@@ -135,6 +172,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('habit-dp-value').textContent = selectedDP;
     });
     rescanTags();
+
+    document.querySelector('.habit-action-toggle--positive').addEventListener('click', () => {
+        if (habitPositiveEnabled && !habitNegativeEnabled) {
+            Toast.show('Turn on at least one of Positive or Negative.', 'negative');
+            return;
+        }
+        habitPositiveEnabled = !habitPositiveEnabled;
+        renderActionToggles();
+    });
+    document.querySelector('.habit-action-toggle--negative').addEventListener('click', () => {
+        if (habitNegativeEnabled && !habitPositiveEnabled) {
+            Toast.show('Turn on at least one of Positive or Negative.', 'negative');
+            return;
+        }
+        habitNegativeEnabled = !habitNegativeEnabled;
+        renderActionToggles();
+    });
+
+    document.querySelectorAll('.habit-reset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedResetCounter = btn.dataset.reset;
+            renderResetToggles();
+        });
+    });
+
+    document.getElementById('habit-title-tip-btn').addEventListener('click', () => {
+        const tip = document.getElementById('habit-title-tip-text');
+        const button = document.getElementById('habit-title-tip-btn');
+        const willShow = tip.hidden;
+        tip.hidden = !willShow;
+        button.setAttribute('aria-expanded', String(willShow));
+    });
 
     document.getElementById('habit-title-input').addEventListener('input', rescanTags);
     document.getElementById('habit-notes-input').addEventListener('input', rescanTags);

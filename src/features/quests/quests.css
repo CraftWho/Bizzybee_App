@@ -800,3 +800,104 @@
     padding: 2px 10px;
     letter-spacing: 0.3px;
 }
+
+/* Manual quest creation (CreateQuestModal in quests.js) - added when Eevee
+   was paused app-wide and "Add Campaign" needed a non-AI replacement. */
+.quest-category-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.quest-category-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--gold-dim);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.quest-category-btn--selected {
+    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
+    color: var(--obsidian);
+    border-color: var(--gold-start);
+}
+
+.create-quest-task-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.create-quest-task-row .create-quest-task-input {
+    flex: 1;
+}
+
+.create-quest-task-remove {
+    background: transparent;
+    border: none;
+    color: var(--crimson, #b33);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 8px;
+}
+
+/* Compact per-row difficulty picker (CreateQuestModal) - the shared
+   DifficultyPicker component needs its container to opt into the
+   .difficulty-grid layout (see difficulty-picker.css); this container
+   sits inline in a flex row next to the task input instead of standing
+   alone as a full-width page section, so it gets its own compact,
+   horizontal override rather than the standard 4-column grid. */
+.create-quest-task-difficulty {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.create-quest-task-difficulty .difficulty-tile {
+    padding: 6px 8px;
+    gap: 2px;
+}
+
+.create-quest-task-difficulty .difficulty-icon {
+    font-size: 0.8rem;
+}
+
+.create-quest-task-difficulty .difficulty-label {
+    font-size: 0.7rem;
+}
+
+/* --- TITLE PRIVACY NOTE (CreateQuestModal) - same dismissible-reminder
+   pattern as create-habit.css/create-daily.css/create-todo.css's own
+   title-tip-*, reproduced here since this modal's markup lives in JS
+   rather than a static page. --- */
+.create-quest-title-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.create-quest-title-tip-btn {
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-start);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.create-quest-title-tip-btn:hover {
+    background: var(--gold-dim);
+}
+
+.create-quest-title-tip-text {
+    margin: 6px 0 0;
+    color: #999;
+    font-size: 0.82rem;
+    font-style: italic;
+}

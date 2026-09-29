@@ -99,6 +99,13 @@ const CloudSyncAuto = (() => {
             status('Device copy saved to cloud. The previous cloud copy is in Backups.');
         } finally { running = false; }
     }
+    // Read-only: checks the cloud's current save timestamp/revision without
+    // pulling, importing, or reloading. Safe to call anytime once ready.
+    async function peekCloud() {
+        if (!sameAccount()) throw new Error('Sign in to your cloud account to sync.');
+        const result = await request('load-state');
+        return { updatedAt: result.updatedAt || null, revision: result.revision ?? null, hasData: !!result.data, encrypted: !!result.encrypted };
+    }
     async function restoreBackup(id) {
         if (running || !ready) throw new Error('Wait for the current sync to finish.');
         running = true;
@@ -183,5 +190,5 @@ const CloudSyncAuto = (() => {
     netlifyIdentity.on('logout', () => { ready = false; accountId = null; clearTimeout(timer); });
     netlifyIdentity.init();
     if (netlifyIdentity.currentUser()) start(netlifyIdentity.currentUser());
-    return { isEnabled: enabled, isReady: () => ready, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, request, schedule };
+    return { isEnabled: enabled, isReady: () => ready, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule };
 })();

@@ -182,8 +182,17 @@
 .habit-item-tally-positive { color: #4caf50; }
 .habit-item-tally-negative { color: var(--danger-red); }
 
-/* --- Action buttons - always both +/- (per the app's Habit design),
-   distinct green/red so the reward/punish split reads instantly. --- */
+/* The permanent, never-resetting total - kept small/muted since the
+   period tally above is the number most people are actually watching. */
+.habit-item-tally-alltime {
+    color: #555;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+/* --- Action buttons - a per-habit toggle decides which of +/- render
+   (see create-habit.html's Actions section); distinct green/red so the
+   reward/punish split reads instantly when both are shown. --- */
 .habit-action-btn {
     width: 30px;
     height: 30px;
