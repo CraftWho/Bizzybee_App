@@ -96,7 +96,7 @@
 
             <div id="load-save-section" class="load-save-section" hidden>
                 <p class="load-save-heading">🐝 Welcome back. This device doesn't have your data yet.</p>
-                <p class="load-save-copy">Import your exported save file to continue (Settings &rarr; Full Save Transfer on your other device).</p>
+                <p class="load-save-copy">Import your exported save file to continue (Settings &rarr; Local Save &amp; Device Data on your other device).</p>
                 <!-- No accept filter at all, deliberately. accept=".json,application/json"
                      fixed stock Android Chrome but Samsung Internet still collapsed the
                      picker down to Photos/Video only with that filter present - its
@@ -107,7 +107,8 @@
                      still rejects anything that isn't valid save JSON, so a wrong pick
                      just shows an error instead of doing anything destructive. -->
                 <input type="file" id="load-save-input" class="load-save-input">
-                <input type="password" id="load-save-password" class="load-save-password-input" placeholder="Password (only if this save was encrypted)" autocomplete="current-password">
+                <input type="password" id="load-save-password" class="load-save-password-input pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN (only if this save was encrypted)" autocomplete="off">
+                <p id="load-save-hint-display" class="load-save-hint-display" hidden></p>
                 <button type="button" id="load-save-btn">📥 Load My Save</button>
                 <p id="load-save-status" class="load-save-status" hidden></p>
                 <p class="load-save-hint">Picker only offering Photos/Video? Look for a menu icon, "Browse," or "My Files" inside it - some Android browsers hide the file browser behind that instead of showing it by default.</p>

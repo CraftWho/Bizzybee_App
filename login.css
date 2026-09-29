@@ -217,6 +217,13 @@
     text-align: center;
 }
 
+.load-save-hint-display {
+    margin: 8px 0 0;
+    color: var(--gold-start, #ffd700);
+    font-size: 0.82rem;
+    text-align: center;
+}
+
 .load-save-hint {
     margin: 8px 0 0;
     color: #777;
