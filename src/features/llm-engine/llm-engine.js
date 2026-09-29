@@ -10,6 +10,26 @@ const EEVEE_CONFIG = {
     model: 'qwen2.5:7b-instruct'
 };
 
+// Paused app-wide (2026-09-29, at Craft's request) until Eevee has a real,
+// universally-reachable backend. The problem isn't a bug - EEVEE_CONFIG
+// above always points at the VISITOR's own localhost, so this feature can
+// only ever work on a machine that happens to have Ollama installed and
+// running (see the comment in _call() below). That's fine for local dev,
+// but it means every other real user/tester hits a dead end the moment
+// they try to use anything Eevee-powered - confirmed via a live new-account
+// test where quest creation, which routed exclusively through Eevee, left
+// the tester stuck. Every Eevee-dependent caller elsewhere in the app
+// already has its own graceful fallback for "Eevee's unreachable" (Create
+// Daily/Habit/To-Do fall back to the chosen difficulty tier's default DP;
+// db.js's skill level-up reward falls back to a flat 3 Pollen) - gating
+// _call() here in one place means all of those keep working exactly as
+// they already did when Ollama isn't running, with zero changes needed in
+// any of those files. Quests' old Eevee-only "Add Campaign" action did NOT
+// have a fallback, which is why it's been replaced with a manual creation
+// form (see quests.js's CreateQuestModal) instead of just failing quietly
+// like the others. Flip this back to false once Eevee is ready for real users.
+const EEVEE_PAUSED = true;
+
 // Eevee's persona. See ROADMAP.md's "Two-track plan" section for the full
 // reasoning - Track A (this prompt) is deliberately NOT real learning, just
 // steering a frozen model. Kept out of the `objective` field on quests since
@@ -63,6 +83,10 @@ function buildHiveStatusContext() {
 
 const Eevee = {
     async _call(messages, { json = false } = {}) {
+        if (EEVEE_PAUSED) {
+            throw new Error("Eevee is paused while her hive gets rebuilt - check back soon.");
+        }
+
         let response;
         try {
             response = await fetch(EEVEE_CONFIG.endpoint, {
@@ -480,11 +504,11 @@ function baseWaggleActions() {
     return [
         ...navActions,
         colonyBeesAction,
-        {
+        ...(EEVEE_PAUSED ? [] : [{
             icon: '💬',
             label: 'Chat with Eevee',
             onClick: () => EeveeChat.open()
-        }
+        }])
     ];
 }
 

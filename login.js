@@ -265,6 +265,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         showError('🐝 Access Denied. Check your credentials, Worker Bee.');
     });
 
+    // Numeric-only, capped at 6 digits - same convention as Settings' own
+    // export PIN field (settings.js), duplicated rather than shared.
+    document.getElementById('load-save-password').addEventListener('input', (event) => {
+        event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    document.getElementById('load-save-input').addEventListener('change', () => {
+        const input = document.getElementById('load-save-input');
+        const hintDisplay = document.getElementById('load-save-hint-display');
+        const file = input.files[0];
+        hintDisplay.hidden = true;
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(reader.result);
+                if (parsed && parsed.bizzybeeEncrypted && parsed.hint) {
+                    hintDisplay.textContent = `💡 Hint from export: "${parsed.hint}"`;
+                    hintDisplay.hidden = false;
+                }
+            } catch (error) { /* not JSON, or no hint - nothing to preview */ }
+        };
+        reader.readAsText(file);
+    });
+
     document.getElementById('load-save-btn').addEventListener('click', () => {
         const input = document.getElementById('load-save-input');
         const status = document.getElementById('load-save-status');
@@ -282,15 +308,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             let plainText = reader.result;
 
             if (CryptoLite.isEncryptedEnvelope(plainText)) {
-                const password = document.getElementById('load-save-password').value;
-                if (!password) {
-                    status.textContent = '⚠️ This save is encrypted - enter its password above first.';
+                const pin = document.getElementById('load-save-password').value;
+                if (!pin) {
+                    status.textContent = '⚠️ This save is encrypted - enter its PIN above first.';
                     return;
                 }
                 try {
-                    plainText = await CryptoLite.decrypt(plainText, password);
+                    plainText = await CryptoLite.decrypt(plainText, pin);
                 } catch (error) {
-                    status.textContent = '⚠️ Wrong password, or the file is corrupted.';
+                    status.textContent = '⚠️ Wrong PIN, or the file is corrupted.';
                     return;
                 }
             }
