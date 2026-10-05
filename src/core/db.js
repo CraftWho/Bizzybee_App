@@ -877,6 +877,49 @@ class DatabaseManager {
         return this._initPromise;
     }
 
+    // A device with no local data under the current storage key looks
+    // identical whether it's a genuinely new account OR a signed-in
+    // account's real save just isn't cached here yet (first login on this
+    // device/browser, or local storage got cleared) - see HANDOFF.md's
+    // data-loss writeup. This is the synchronous, no-network check that
+    // decides whether it's even worth trying a recovery pull: true only
+    // when this device is currently signed into a cloud identity.
+    _looksLikeExistingCloudAccount() {
+        return localStorage.getItem('bizzybee_session') === 'identity' && !!localStorage.getItem('bizzybee_cloud_owner');
+    }
+
+    // Best-effort only, by design: this runs before cloud-sync.js may even
+    // be loaded yet (it's injected dynamically, later, by app.js), so it
+    // talks to the same load-state Function directly rather than waiting
+    // on that module. Any failure here (network, no session yet, the
+    // Identity widget not ready) just returns false and the caller falls
+    // back to Blueprint exactly as before - this only ever adds a recovery
+    // attempt, never blocks startup on one. On success it also stamps the
+    // revision cloud-sync.js's own reconciliation expects to find (see
+    // that file's revisionKey()), so it recognizes the save as already
+    // up to date instead of re-importing and reloading a second time.
+    async _tryRecoverFromCloud() {
+        try {
+            if (typeof netlifyIdentity === 'undefined' || typeof fetch === 'undefined') return false;
+            const user = netlifyIdentity.currentUser();
+            if (!user) return false;
+            const token = await user.jwt();
+            const response = await fetch('/.netlify/functions/load-state', {
+                method: 'GET', cache: 'no-store',
+                headers: { Authorization: `Bearer ${token}` },
+                signal: AbortSignal.timeout(15000)
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok || !result.data) return false;
+            const imported = this.importFullState(result.data, { fromCloud: true });
+            if (!imported.ok) return false;
+            localStorage.setItem(this.storageKey + ':revision', JSON.stringify(result.revision ?? null));
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     async _initialize() {
         await this.refreshLocalCloudDownload();
         const existingData = localStorage.getItem(this.storageKey);
@@ -896,8 +939,14 @@ class DatabaseManager {
             this.state = parsed;
             if (migrated) this.save();
         } else {
-            console.log("Vault: No local data found. Fetching Blueprint...");
-            await this.loadBlueprint();
+            console.log("Vault: No local data found.");
+            const recovered = this._looksLikeExistingCloudAccount() && await this._tryRecoverFromCloud();
+            if (recovered) {
+                console.log("Vault: Recovered existing save from the cloud - skipped a blank reseed.");
+            } else {
+                console.log("Vault: Fetching Blueprint...");
+                await this.loadBlueprint();
+            }
         }
         // Catches up level-up bee rewards to the current level every time
         // the app loads - covers both normal play AND a save file that
