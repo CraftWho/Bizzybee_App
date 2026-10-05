@@ -170,67 +170,105 @@ function habiticaRepeatToBizzybee(task) {
     return { type: 'weekly', every: task.everyX || 1, daysOfWeek };
 }
 
+// Only kept to find (and migrate away from) an earlier version's standing
+// import quest - see migrateMisplacedHabiticaImports below. No longer
+// created for new imports.
 const HABITICA_IMPORT_QUEST_ID = 'quest-habitica-import';
 
-// Finds the standing "Imported from Habitica" quest, creating it on first
-// use. Every subsequent import (across however many sessions) adds its
-// To-Do tasks into this same quest rather than spawning a new one each
-// time - a To-Do is a single action, not a multi-step campaign, so
-// bundling them here reads more honestly than forcing Bizzybee's quest
-// shape onto something that isn't really a quest.
-function ensureHabiticaImportQuest() {
-    const existing = Vault.getQuests().find(q => q.id === HABITICA_IMPORT_QUEST_ID);
-    if (existing) return existing;
-
-    return Vault.addQuest({
-        id: HABITICA_IMPORT_QUEST_ID,
-        category: 'side',
-        title: '🎮 Imported from Habitica',
-        status: 'active',
-        objective: "To-Dos pulled in from your Habitica account (Account Info > Habitica Import). Re-running Import only adds to-do's that aren't already here.",
-        source: { label: 'Habitica', url: 'https://habitica.com' },
-        dateStarted: new Date().toISOString().slice(0, 10),
-        dateCompleted: null,
-        tasks: []
-    });
-}
-
-// addTask/addDailyTask both generate their own id from Date.now() with no
-// collision-avoidance - fine for a single manual click, but this import
-// can add many tasks back-to-back synchronously. A tiny delay between
-// writes is a simple, low-risk way to guarantee each gets a distinct
-// millisecond without touching either shared method's id scheme (both are
-// used all over the rest of the app).
+// addTask/addDailyTask/addHabit/addTodo all generate their own id from
+// Date.now() with no collision-avoidance - fine for a single manual click,
+// but this import can add many tasks back-to-back synchronously. A tiny
+// delay between writes is a simple, low-risk way to guarantee each gets a
+// distinct millisecond without touching any of those shared methods' id
+// schemes (all used elsewhere in the app too).
 function tinyDelay() {
     return new Promise(resolve => setTimeout(resolve, 2));
+}
+
+// One-time cleanup for accounts that ran an earlier version of this
+// import: that version put every Habitica Habit into Bizzybee's Dailies
+// (marked by a "Imported from Habitica (habit)." note) and every Habitica
+// To-Do into a standing "Imported from Habitica" quest, instead of
+// Bizzybee's own Habits/To-Dos. This finds anything still sitting in
+// either wrong spot, moves it to where it actually belongs (preserving a
+// To-Do's completed state), and removes the now-empty quest. Cheap no-op
+// once nothing old is left to find, so it's safe to run on every import.
+function migrateMisplacedHabiticaImports() {
+    let migratedHabits = 0;
+    for (const task of Vault.getDailyTasks()) {
+        if (task.notes && task.notes.startsWith('Imported from Habitica (habit).')) {
+            Vault.removeDailyTask(task.id);
+            migratedHabits++;
+        }
+    }
+
+    let migratedTodos = 0;
+    const oldQuest = Vault.getQuests().find(q => q.id === HABITICA_IMPORT_QUEST_ID);
+    if (oldQuest) {
+        for (const task of [...(oldQuest.tasks || [])]) {
+            const todos = Vault.addTodo({ label: task.label, dp: task.dp, notes: 'Imported from Habitica (todo).' });
+            const newTodo = todos[todos.length - 1];
+            if (task.completed && newTodo) Vault.toggleTodoComplete(newTodo.id);
+            migratedTodos++;
+        }
+        Vault.removeQuest(oldQuest.id);
+    }
+
+    return { migratedHabits, migratedTodos };
 }
 
 // Pulls the account's current Habits/Dailies/To-Dos and adds whatever
 // isn't already here (tracked via Vault.getHabiticaImportedIds/
 // markHabiticaImported, keyed by Habitica's own stable task _id - not
 // Bizzybee's own generated ids, which aren't guaranteed unique enough for
-// this - see tinyDelay above). Returns a small summary object for the
-// caller to show the user; throws straight through any HabiticaAPI error
-// (network/auth/CORS) for the caller to catch and display.
+// this - see tinyDelay above). Each Habitica task type lands in its
+// matching Bizzybee feature: Habits into Habits (carrying over which of
+// +/- is enabled), Dailies into Dailies, To-Dos into To-Dos - no more
+// bucketing Habits under Dailies or To-Dos under a synthetic quest.
+// Returns a small summary object for the caller to show the user; throws
+// straight through any HabiticaAPI error (network/auth/CORS) for the
+// caller to catch and display.
 async function importFromHabitica(userId, apiToken) {
+    const migration = migrateMisplacedHabiticaImports();
+
     const tasks = await HabiticaAPI.getTasks(userId, apiToken);
 
     const alreadyImported = new Set(Vault.getHabiticaImportedIds());
-    const habitsAndDailies = tasks.filter(t => t.type === 'habit' || t.type === 'daily');
+    const habits = tasks.filter(t => t.type === 'habit');
+    const dailies = tasks.filter(t => t.type === 'daily');
     const todos = tasks.filter(t => t.type === 'todo' && !t.completed);
 
     const newlyImportedIds = [];
+    let importedHabits = 0;
     let importedDailies = 0;
     let importedTodos = 0;
 
-    for (const task of habitsAndDailies) {
+    for (const task of habits) {
+        const key = `habit:${task._id}`;
+        if (alreadyImported.has(key)) continue;
+
+        // Habitica's own up/down flags say which button a Habit shows;
+        // missing means "on" there too, matching addHabit's own default.
+        Vault.addHabit({
+            label: task.text,
+            dp: habiticaPriorityToDp(task),
+            notes: `Imported from Habitica (habit).${task.notes ? ' ' + task.notes : ''}`,
+            positive: task.up !== false,
+            negative: task.down !== false
+        });
+        newlyImportedIds.push(key);
+        importedHabits++;
+        await tinyDelay();
+    }
+
+    for (const task of dailies) {
         const key = `daily:${task._id}`;
         if (alreadyImported.has(key)) continue;
 
         Vault.addDailyTask({
             label: task.text,
             dp: habiticaPriorityToDp(task),
-            notes: `Imported from Habitica (${task.type}).${task.notes ? ' ' + task.notes : ''}`,
+            notes: `Imported from Habitica (daily).${task.notes ? ' ' + task.notes : ''}`,
             repeats: habiticaRepeatToBizzybee(task)
         });
         newlyImportedIds.push(key);
@@ -238,34 +276,67 @@ async function importFromHabitica(userId, apiToken) {
         await tinyDelay();
     }
 
-    if (todos.length > 0) {
-        const quest = ensureHabiticaImportQuest();
-        for (const task of todos) {
-            const key = `todo:${task._id}`;
-            if (alreadyImported.has(key)) continue;
+    for (const task of todos) {
+        const key = `todo:${task._id}`;
+        if (alreadyImported.has(key)) continue;
 
-            Vault.addTask(quest.id, {
-                label: task.text,
-                dp: habiticaPriorityToDp(task)
-            });
-            newlyImportedIds.push(key);
-            importedTodos++;
-            await tinyDelay();
-        }
+        Vault.addTodo({
+            label: task.text,
+            dp: habiticaPriorityToDp(task),
+            notes: `Imported from Habitica (todo).${task.notes ? ' ' + task.notes : ''}`
+        });
+        newlyImportedIds.push(key);
+        importedTodos++;
+        await tinyDelay();
     }
 
     if (newlyImportedIds.length > 0) {
         Vault.markHabiticaImported(newlyImportedIds);
     }
 
-    const totalSeen = habitsAndDailies.length + todos.length;
-    return { importedDailies, importedTodos, skipped: totalSeen - newlyImportedIds.length };
+    const totalSeen = habits.length + dailies.length + todos.length;
+    return {
+        importedHabits, importedDailies, importedTodos,
+        skipped: totalSeen - newlyImportedIds.length,
+        migratedHabits: migration.migratedHabits,
+        migratedTodos: migration.migratedTodos
+    };
 }
 
 function showError(elId, message) {
     const el = document.getElementById(elId);
     el.textContent = message;
     el.hidden = false;
+}
+
+const HABITICA_AUTO_IMPORT_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const HABITICA_AUTO_IMPORT_KEY = 'bizzybee_habitica_last_auto_import';
+
+// Runs the same import the manual button does, but quietly and at most
+// once a day. Habitica credentials only ever decrypt while this page is
+// unlocked (see the PIN comment at the top of this file) - there's no way
+// to read an encrypted personalInfo field without it, by design - so
+// "automatic" here means "whenever you happen to open/unlock Account
+// Info," not a true background sync reachable from anywhere else in the
+// app. Failures are swallowed on purpose: this runs without a click, so a
+// network hiccup shouldn't interrupt the page with an error the user
+// didn't ask for. The manual Import button still surfaces failures as
+// normal.
+async function maybeAutoImportHabitica(info) {
+    if (!info.habiticaUserId || !info.habiticaApiToken) return;
+    const last = Number(localStorage.getItem(HABITICA_AUTO_IMPORT_KEY) || 0);
+    if (Date.now() - last < HABITICA_AUTO_IMPORT_INTERVAL_MS) return;
+
+    localStorage.setItem(HABITICA_AUTO_IMPORT_KEY, String(Date.now()));
+    try {
+        const result = await importFromHabitica(info.habiticaUserId, info.habiticaApiToken);
+        const changed = result.importedHabits + result.importedDailies + result.importedTodos + result.migratedHabits + result.migratedTodos;
+        if (changed > 0) {
+            Toast.show(`🎮 Habitica auto-sync: ${changed} item${changed === 1 ? '' : 's'} updated.`, 'positive');
+        }
+    } catch (error) {
+        console.warn('Habitica auto-import skipped:', error.message);
+    }
 }
 
 function showUnlockedContent(info, pin) {
@@ -277,6 +348,7 @@ function showUnlockedContent(info, pin) {
     populatePersonalInfoForm(info);
     applyAccountAvatarPreview();
     updateAvatarMigrateButton();
+    maybeAutoImportHabitica(info);
 }
 
 // First-time setup - only reachable while Vault.hasAccountPin() is false.
@@ -479,8 +551,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await Vault.setPersonalInfo(data, unlockedPin);
             }
 
-            statusEl.textContent = `✅ Imported ${result.importedDailies} daily/habit${result.importedDailies === 1 ? '' : 's'} and ${result.importedTodos} to-do${result.importedTodos === 1 ? '' : 's'}.` +
-                (result.skipped > 0 ? ` (${result.skipped} already imported, skipped.)` : '');
+            const migratedTotal = result.migratedHabits + result.migratedTodos;
+            statusEl.textContent = `✅ Imported ${result.importedHabits} habit${result.importedHabits === 1 ? '' : 's'}, ${result.importedDailies} daily${result.importedDailies === 1 ? '' : 's'}, and ${result.importedTodos} to-do${result.importedTodos === 1 ? '' : 's'}.` +
+                (result.skipped > 0 ? ` (${result.skipped} already imported, skipped.)` : '') +
+                (migratedTotal > 0 ? ` Also moved ${migratedTotal} item${migratedTotal === 1 ? '' : 's'} from an earlier import that landed in the wrong place.` : '');
             statusEl.hidden = false;
             Toast.show('🎮 Habitica import complete.', 'positive');
         } catch (error) {
