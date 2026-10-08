@@ -685,3 +685,335 @@ button:hover {
    confirmed used only by login.html) and moved to login.css, which had
    been sitting empty this whole time even though login.html already
    linked it. Moved rather than duplicated during the modularity audit pass.
+/* ==========================================================================
+   APP SHELL (2026-10-08) - replaces the yellow .global-header.
+   Top bar = your King/Queen + name + level bar (app.js AppShell).
+   Full size on Home, slim everywhere else (and on Home once you scroll).
+   Bottom dock = Habits / Dailies / [hex +] / To-Dos / Quests.
+   ========================================================================== */
+:root {
+    --shell-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --shell-honey: #ffcc00;
+    --shell-honey-hi: #fff2b0;
+    --shell-amber: #e8a317;
+    --shell-text: #f1ede2;
+    --shell-muted: #a69a80;
+    --dock-h: 68px;
+}
+
+.app-head {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    width: 100%;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top);
+    font-family: var(--shell-sans);
+    color: var(--shell-text);
+    background: linear-gradient(180deg, rgba(20, 14, 5, .97), rgba(10, 7, 2, .94));
+    border-bottom: 1px solid rgba(255, 204, 0, .22);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .55);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+.app-head::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--crimson), transparent);
+    opacity: .8;
+}
+.app-head button { font-family: inherit; box-shadow: none; transform: none; }
+.app-head button:hover { transform: none; box-shadow: none; }
+.ah-in {
+    max-width: 1000px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 118px 1fr;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 70px 14px 18px;
+    transition: padding .35s cubic-bezier(.3, .9, .3, 1), grid-template-columns .35s cubic-bezier(.3, .9, .3, 1), gap .35s;
+}
+.ah-royal {
+    position: relative;
+    width: 118px;
+    height: 128px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    cursor: pointer;
+    transition: width .35s cubic-bezier(.3, .9, .3, 1), height .35s cubic-bezier(.3, .9, .3, 1);
+}
+.ah-royal:focus-visible { outline: 2px solid var(--shell-honey); outline-offset: 4px; border-radius: 12px; }
+.ah-hex { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ah-hex-glow { fill: none; stroke: #ffcc00; stroke-width: 6; opacity: .5; filter: blur(5px); animation: ahGlow 4.2s ease-in-out infinite; }
+@keyframes ahGlow { 0%, 100% { opacity: .35; } 50% { opacity: .85; } }
+.ah-rstack {
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    width: 96%;
+    transform: translate(-50%, -50%);
+    animation: ahBob 3.8s ease-in-out infinite;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .6)) drop-shadow(0 0 14px rgba(255, 190, 80, .25));
+    pointer-events: none;
+}
+.ah-rstack img { display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none; }
+.ah-rstack .ah-l { position: absolute; inset: 0; }
+.ah-rstack .ah-body { position: relative; z-index: 1; }
+.ah-rstack .ah-wb { z-index: 0; }
+.ah-rstack .ah-wf { z-index: 2; }
+.ah-rstack .ah-w { transform-origin: 47.5% 47.6%; }
+.ah-rstack.is-king .ah-w { transform-origin: 48.4% 47%; }
+.ah-rstack.flutter .ah-wf { animation: ahFlap .09s ease-in-out 14 alternate; }
+.ah-rstack.flutter .ah-wb { animation: ahFlapB .09s ease-in-out 14 alternate; animation-delay: -.045s; }
+@keyframes ahFlap { from { transform: rotate(8deg); } to { transform: rotate(-34deg) scaleY(.66); } }
+@keyframes ahFlapB { from { transform: rotate(6deg); } to { transform: rotate(-26deg) scaleY(.7); } }
+@keyframes ahBob { 0%, 100% { transform: translate(-50%, -50%) rotate(-2deg); } 50% { transform: translate(-50%, -54%) rotate(1.5deg); } }
+.ah-info { min-width: 0; }
+.ah-hello { margin: 0; color: var(--shell-muted); font-size: .86rem; }
+.ah-name {
+    margin: 2px 0 4px;
+    font: 700 1.55rem/1.15 var(--font-main);
+    color: var(--shell-honey);
+    text-shadow: 0 0 18px rgba(255, 204, 0, .25);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: font-size .35s cubic-bezier(.3, .9, .3, 1), margin .35s;
+}
+.ah-line { margin: 0 0 12px; font-size: .84rem; color: #d9c79a; }
+.ah-line b { color: var(--shell-honey); font-weight: 600; }
+.ah-hello, .ah-line, .ah-meta { max-height: 40px; overflow: hidden; transition: opacity .25s, max-height .35s, margin .35s; }
+.ah-lvl { display: flex; align-items: center; gap: 10px; }
+.ah-chip {
+    flex: none;
+    font: 700 .72rem/1 var(--font-main) !important;
+    letter-spacing: .06em;
+    color: #1a1000;
+    background: linear-gradient(180deg, var(--shell-honey-hi), var(--shell-honey) 45%, var(--shell-amber));
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 8px;
+    box-shadow: 0 0 12px rgba(255, 204, 0, .35) !important;
+    cursor: default;
+}
+.ah-chip.ready { cursor: pointer; animation: ahPing 1.4s ease-out infinite; }
+@keyframes ahPing { 0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, .6); } 100% { box-shadow: 0 0 0 14px rgba(255, 204, 0, 0); } }
+.ah-bar {
+    position: relative;
+    flex: 1;
+    height: 12px;
+    border-radius: 999px;
+    background: #140d03;
+    border: 1px solid #5a3d06;
+    box-shadow: inset 0 1px 3px #000;
+    overflow: hidden;
+    transition: height .35s;
+}
+.ah-bar i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #ffe680, #ffcc00 45%, #d99a00);
+    box-shadow: 0 0 12px rgba(255, 204, 0, .55);
+    transition: width 1s cubic-bezier(.2, .8, .2, 1);
+}
+.ah-bar i::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .55) 50%, transparent 70%);
+    background-size: 220% 100%;
+    animation: ahShine 3.2s ease-in-out infinite;
+}
+@keyframes ahShine { 0% { background-position: 160% 0; } 60%, 100% { background-position: -60% 0; } }
+.ah-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 7px; font-size: .76rem; color: var(--shell-muted); white-space: nowrap; }
+.ah-meta b { color: var(--shell-text); font-weight: 600; }
+.ah-levelup {
+    display: none;
+    margin-top: 10px;
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 11px;
+    cursor: pointer;
+    font: 700 .9rem var(--font-main) !important;
+    letter-spacing: .08em;
+    color: #1a1000;
+    background: linear-gradient(180deg, var(--shell-honey-hi), var(--shell-honey) 50%, var(--shell-amber));
+    animation: ahPing 1.4s ease-out infinite;
+}
+.ah-levelup.show { display: block; }
+.ah-confetti { position: fixed; width: 8px; height: 12px; z-index: 3000; pointer-events: none; border-radius: 2px; }
+
+/* slim bar */
+.app-head.compact .ah-in { grid-template-columns: 46px 1fr; gap: 12px; padding: 8px 70px 9px 16px; cursor: pointer; }
+.app-head.compact .ah-royal { width: 46px; height: 50px; }
+.app-head.compact .ah-hex-glow { display: none; }
+.app-head.compact .ah-hello,
+.app-head.compact .ah-line,
+.app-head.compact .ah-meta { opacity: 0; max-height: 0; margin: 0; }
+.app-head.compact .ah-name { font-size: 1.02rem; margin: 0 0 5px; }
+.app-head.compact .ah-levelup { display: none !important; }
+.app-head.compact .ah-bar { height: 9px; }
+.app-head.compact .ah-chip { padding: 4px 6px; font-size: .66rem !important; }
+@media (min-width: 860px) {
+    .ah-in { grid-template-columns: 120px minmax(0, 520px); padding: 18px 90px 18px 24px; }
+    .ah-royal { width: 120px; height: 130px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ah-rstack, .ah-bar i::after, .ah-hex-glow, .ah-chip.ready, .ah-levelup { animation: none !important; }
+}
+
+/* bottom dock */
+.app-dock {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 1100;
+    display: grid;
+    grid-template-columns: 1fr 1fr 84px 1fr 1fr;
+    align-items: end;
+    height: calc(var(--dock-h) + env(safe-area-inset-bottom));
+    padding: 0 6px env(safe-area-inset-bottom);
+    box-sizing: border-box;
+    font-family: var(--shell-sans);
+    background: linear-gradient(180deg, rgba(18, 13, 5, .94), rgba(6, 4, 1, .98));
+    border-top: 1px solid rgba(255, 204, 0, .25);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, .6);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+.app-dock::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--crimson), transparent); opacity: .7; }
+.ad-tab {
+    position: relative;
+    height: var(--dock-h);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-decoration: none;
+    color: #8d8167;
+    font: 600 .72rem var(--shell-sans);
+    -webkit-tap-highlight-color: transparent;
+}
+.ad-tab svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s cubic-bezier(.3, 1.5, .4, 1); }
+.ad-tab:hover { color: #cdbb8a; }
+.ad-tab.on { color: var(--shell-honey); }
+.ad-tab.on svg { transform: translateY(-2px); filter: drop-shadow(0 0 6px rgba(255, 204, 0, .55)); }
+.ad-tab.on::after { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: var(--shell-honey); box-shadow: 0 0 8px var(--shell-honey); }
+.ad-tab:active svg { transform: scale(.88); }
+.ad-add {
+    position: absolute;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    width: 72px;
+    height: 80px;
+    transform: translateX(-50%) !important;
+    padding: 0 !important;
+    border: 0;
+    border-radius: 0;
+    background: none !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.ad-add svg { width: 100%; height: 100%; overflow: visible; transition: transform .3s cubic-bezier(.3, 1.5, .4, 1); }
+.ad-glow { fill: none; stroke: #ffcc00; stroke-width: 6; opacity: .55; filter: blur(6px); animation: ahGlow 3.6s ease-in-out infinite; }
+.ad-body { fill: url(#adAddG); stroke: #fff2b0; stroke-width: 1.4; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .6)); }
+.ad-hi { fill: rgba(255, 255, 255, .22); }
+.ad-plus { stroke: #1a1000; stroke-width: 6; stroke-linecap: round; transition: transform .45s cubic-bezier(.3, 1.4, .4, 1); transform-origin: 36px 40px; }
+.ad-add:hover svg { transform: translateY(-2px); }
+.ad-add:active svg { transform: scale(.92); }
+.app-dock.open .ad-plus { transform: rotate(45deg); }
+@media (min-width: 860px) {
+    .app-dock { padding-left: calc(50% - 320px); padding-right: calc(50% - 320px); }
+}
+
+/* "Create" chooser (the + on Home and other pages) */
+.app-create-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0, 0, 0, .55);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    animation: acsFade .25s ease;
+}
+@keyframes acsFade { from { opacity: 0; } }
+.acs-card {
+    width: min(520px, calc(100% - 24px));
+    margin-bottom: calc(96px + env(safe-area-inset-bottom));
+    padding: 18px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    background: #120d05;
+    border: 1px solid rgba(255, 204, 0, .3);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .7);
+    font-family: var(--shell-sans);
+    animation: acsUp .35s cubic-bezier(.2, .9, .3, 1.1);
+}
+@keyframes acsUp { from { opacity: 0; transform: translateY(30px) scale(.97); } }
+.acs-card h3 { margin: 0 0 12px; font: 700 1rem var(--font-main); color: var(--shell-honey); letter-spacing: .06em; background: none; border: 0; padding: 0; }
+.acs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.acs-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 4px;
+    border-radius: 14px;
+    background: rgba(255, 204, 0, .06);
+    border: 1px solid rgba(255, 204, 0, .22);
+    color: var(--shell-text);
+    font: 600 .85rem var(--shell-sans);
+    text-decoration: none;
+}
+.acs-opt:hover { background: rgba(255, 204, 0, .14); }
+.acs-opt svg { width: 30px; height: 30px; fill: none; stroke: var(--shell-honey); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Make room for the dock, and move the floating buttons out of its way. */
+body.has-app-dock { padding-bottom: calc(var(--dock-h) + 40px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+body.has-app-dock .global-footer { display: none; }
+body.has-app-head button.mobile-waggle-btn {
+    top: calc(env(safe-area-inset-top) + 10px);
+    bottom: auto;
+    left: auto;
+    right: 12px;
+    width: 50px;
+    height: 50px;
+    transform: none;
+    z-index: 950;
+}
+body.has-app-head .mobile-waggle-btn:hover,
+body.has-app-head .mobile-waggle-btn:active,
+body.has-app-head .mobile-waggle-btn.is-active { transform: scale(1.06); }
+body.has-app-head .waggle-menu {
+    top: calc(env(safe-area-inset-top) + 72px);
+    bottom: auto;
+    left: auto;
+    right: 12px;
+    transform: none;
+    flex-direction: column;
+    align-items: flex-end;
+    z-index: 960;
+}
+body.has-app-head .waggle-menu-item { transform: scale(.5) translateY(-20px); transform-origin: top right; }
+body.has-app-head .waggle-menu.is-open .waggle-menu-item { transform: scale(1) translateY(0); }
+/* With the dock, the top bar (tap = Home) and the dock cover navigation,
+   so the floating back button would only sit on top of list buttons. */
+body.has-app-dock .back-fab-btn { display: none; }
+body.has-app-head .install-fab-btn { left: auto; right: 70px; bottom: auto; top: calc(env(safe-area-inset-top) + 14px); width: 40px; height: 40px; z-index: 950; }
+body:not(.has-app-dock).has-app-head .back-fab-btn { left: 12px; bottom: 16px; }
+body.is-home .back-fab-btn { display: none; }
+body:has(.install-fab-btn:not([hidden])) .ah-in { padding-right: 116px; }

@@ -18,69 +18,72 @@
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
     <link rel="stylesheet" href="../../core/tag-picker/tag-picker.css">
-    <link rel="stylesheet" href="../../core/difficulty-picker/difficulty-picker.css">
     <link rel="stylesheet" href="./create-habit.css">
 </head>
-<body>
+<body class="habit-form-page">
 
-    <main class="create-habit-container">
-        <div class="panel page-header-panel">
-            <h2 class="page-title" id="create-habit-heading">✅ <span class="gold-gradient-text">CREATE HABIT</span></h2>
-        </div>
-
-        <section class="panel create-habit-panel">
-            <h3>📝 Habit Details</h3>
-            <div class="habit-title-label-row">
-                <label class="form-label" for="habit-title-input">Habit Title</label>
-                <button type="button" class="habit-title-tip-btn" id="habit-title-tip-btn" aria-expanded="false">🔒 Privacy</button>
-            </div>
-            <input type="text" id="habit-title-input" class="habit-text-input" placeholder="e.g. Drink water">
-            <p class="habit-title-tip-text" id="habit-title-tip-text" hidden>For your privacy, avoid entering sensitive personal information here. Habit titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
-
-            <label class="form-label" for="habit-notes-input">Notes</label>
-            <textarea id="habit-notes-input" class="habit-notes-input" placeholder="Optional details..."></textarea>
-
-            <h3 class="habit-section-heading">➕➖ Actions</h3>
-            <div class="habit-action-toggle-row">
-                <button type="button" class="habit-action-toggle habit-action-toggle--positive" data-role="positive" aria-pressed="true">
-                    <span class="habit-action-toggle-icon">+</span>
-                    <span class="habit-action-toggle-label">Positive</span>
+    <main class="hf" id="hf">
+        <section class="hf-top">
+            <div class="hf-bar">
+                <button type="button" class="hf-icon" id="hf-back" aria-label="Back">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7M8 12h12"/></svg>
                 </button>
-                <button type="button" class="habit-action-toggle habit-action-toggle--negative" data-role="negative" aria-pressed="true">
-                    <span class="habit-action-toggle-icon">−</span>
-                    <span class="habit-action-toggle-label">Negative</span>
-                </button>
+                <h1 class="hf-heading" id="hf-heading">Create Habit</h1>
+                <button type="button" class="hf-act" id="hf-delete" hidden>DELETE</button>
+                <button type="button" class="hf-act" id="hf-save">CREATE</button>
             </div>
-
-            <h3 class="habit-section-heading">⭐ Difficulty &amp; DP</h3>
-            <div class="habit-difficulty-grid difficulty-grid" id="habit-difficulty-grid"></div>
-
-            <div class="habit-dp-row">
-                <div class="habit-dp-display">
-                    <span class="form-label">DP per action</span>
-                    <span class="habit-dp-value" id="habit-dp-value">20</span>
-                </div>
-                <button type="button" id="habit-ask-eevee-btn" class="habit-ask-eevee-btn">🐝 Ask Eevee</button>
+            <div class="hf-tip-row">
+                <button type="button" class="hf-tip-btn" id="hf-tip-btn" aria-expanded="false">🔒 Privacy</button>
             </div>
-            <p class="habit-dp-note">The same amount is awarded on + and deducted on − (since this can be clicked many times a day, it's kept modest, same tier scale as Dailies). Ask Eevee to judge it from your title, notes, and difficulty instead.</p>
-
-            <h3 class="habit-section-heading">🔁 Reset Counter</h3>
-            <div class="habit-reset-toggle-row">
-                <button type="button" class="habit-reset-btn habit-reset-btn--selected" data-reset="daily">Daily</button>
-                <button type="button" class="habit-reset-btn" data-reset="weekly">Weekly</button>
-                <button type="button" class="habit-reset-btn" data-reset="monthly">Monthly</button>
-            </div>
-            <p class="habit-reset-hint">How often the "this period" tally on the Habits list resets. Your all-time total and DP are never affected.</p>
-
-            <h3 class="habit-section-heading">🏷️ Tags</h3>
-            <div class="habit-tags-list" id="habit-tags-list"></div>
-            <p class="habit-tags-note">Automatic - detected from your title &amp; notes against Dictionary terms, existing Daily/Habit tags, and Quest tasks. Click × to dismiss one.</p>
+            <p class="hf-tip" id="hf-tip" hidden>For your privacy, avoid entering sensitive personal information here. Habit titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
+            <label class="hf-field">
+                <small>Task Title</small>
+                <input type="text" id="habit-title-input" maxlength="120" placeholder="e.g. Drink water" autocomplete="off">
+            </label>
+            <label class="hf-field hf-notes">
+                <small>Notes</small>
+                <textarea id="habit-notes-input" rows="2" placeholder="Why it matters, or how you'll do it"></textarea>
+            </label>
         </section>
 
-        <div class="habit-form-actions">
-            <button type="button" id="habit-cancel-btn" class="habit-cancel-btn">Cancel</button>
-            <button type="button" id="habit-save-btn" class="habit-save-btn">💾 Create Habit</button>
-        </div>
+        <section class="hf-body">
+            <div class="hf-pn">
+                <button type="button" class="hf-toggle" id="hf-positive" aria-pressed="true">
+                    <svg viewBox="0 0 44 48" aria-hidden="true"><polygon points="22,2 41,13 41,35 22,46 3,35 3,13"/><path d="M22 15v18M13 24h18"/></svg>
+                    <span>Positive</span>
+                </button>
+                <button type="button" class="hf-toggle" id="hf-negative" aria-pressed="false">
+                    <svg viewBox="0 0 44 48" aria-hidden="true"><polygon points="22,2 41,13 41,35 22,46 3,35 3,13"/><path d="M13 24h18"/></svg>
+                    <span>Negative</span>
+                </button>
+            </div>
+            <p class="hf-hint" id="hf-pn-hint"></p>
+
+            <h2 class="hf-h">Difficulty <small id="hf-dp-note"></small></h2>
+            <div class="hf-diff" id="hf-diff" role="radiogroup" aria-label="Difficulty"></div>
+            <button type="button" class="hf-eevee" id="habit-ask-eevee-btn">🐝 Ask Eevee for the DP</button>
+
+            <h2 class="hf-h">Reset Counter</h2>
+            <div class="hf-seg" id="hf-reset" role="radiogroup" aria-label="Reset counter">
+                <button type="button" data-reset="daily">Daily</button>
+                <button type="button" data-reset="weekly">Weekly</button>
+                <button type="button" data-reset="monthly">Monthly</button>
+            </div>
+            <p class="hf-hint hf-hint-left">How often the count on each habit starts over. Your DP is never reset.</p>
+
+            <div id="hf-adjust" hidden>
+                <h2 class="hf-h">Adjust Counter</h2>
+                <div class="hf-adj">
+                    <label id="hf-adj-pos"><small>Positive</small><input type="number" min="0" inputmode="numeric" id="hf-adj-pos-input"></label>
+                    <label id="hf-adj-neg"><small>Negative</small><input type="number" min="0" inputmode="numeric" id="hf-adj-neg-input"></label>
+                </div>
+                <p class="hf-hint hf-hint-left">This period's count. Adding or removing clicks changes your DP the same way tapping does.</p>
+            </div>
+
+            <h2 class="hf-h">Tags</h2>
+            <div class="hf-tags" id="habit-tags-list"></div>
+            <p class="hf-hint hf-hint-left">Found automatically from your title and notes. Tap × to remove one.</p>
+        </section>
     </main>
 
     <script src="../../core/db.js"></script>
@@ -92,8 +95,8 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../../features/llm-engine/llm-engine.js"></script>
     <script src="../../core/tag-picker/tag-picker.js"></script>
-    <script src="../../core/difficulty-picker/difficulty-picker.js"></script>
 
+    <script src="../../core/habit-row/habit-row.js"></script>
     <script src="./create-habit.js"></script>
 </body>
 </html>

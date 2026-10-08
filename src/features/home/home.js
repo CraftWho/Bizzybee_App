@@ -1,247 +1,282 @@
 console.log("/// HOME PROTOCOLS INITIALIZED ///");
 
+// Home (rebuilt 2026-10-08 from the approved demo, Craft):
+//   - your royal + name + level bar now live in the app's top bar (app.js
+//     AppShell), full size on this page - the Level Up button is there too
+//   - hive strip: bees / honey cells / decayed cells, taps through to the hive
+//   - Today: a dropdown (closed by default) with Dailies / Habits / To-Dos /
+//     Quest tabs, so the day can be checked off without leaving Home
+//   - the app grid: every page that isn't in the bottom dock
+
 function escapeHTML(str) {
     const div = document.createElement('div');
-    div.textContent = str;
+    div.textContent = str == null ? '' : str;
     return div.innerHTML;
 }
 
-function renderStatus(user) {
-    document.getElementById('home-user-name').textContent = user.name;
-    document.getElementById('home-user-level').textContent = user.level;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TODAY_TABS = ['dailies', 'habits', 'todos', 'quest'];
+const TAB_LINKS = {
+    dailies: { href: '../dailies/dailies.html', label: 'Open Dailies' },
+    habits: { href: '../../plugins/habits/habits.html', label: 'Open Habits' },
+    todos: { href: '../../plugins/todos/todos.html', label: 'Open To-Dos' },
+    quest: { href: '../quests/quests.html', label: 'Open Quests' }
+};
+let currentTab = 'dailies';
+
+function pluginOn(id) {
+    return typeof Plugins === 'undefined' || Plugins.isEnabled(id);
 }
 
-// icon/label lookup for awarded materials - MATERIAL_CATALOG is a plain
-// global from db.js (loaded before this file), same as Eevee/Vault.
-function materialDisplay(materialId) {
-    const material = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(m => m.id === materialId);
-    return material ? `${material.icon} ${material.label}` : materialId;
+function localDateISO(offsetDays = 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Character leveling now uses the same shared, gated LevelBar as the
-// Dashboard's Skill Mastery matrix (src/core/level-bar/) - one row, always
-// - instead of its own bespoke fill/confetti system. The bar itself can run
-// ahead of what's been "claimed" (see computeCharacterLevelBandState in
-// db.js); the header's Level number above it still always shows your real,
-// live level regardless of whether you've pressed Level Up yet.
-function characterLevelBarToRows(bar) {
-    return [{
-        key: 'character',
-        icon: '⚡',
-        label: 'Character Level',
-        levelBadge: `Lv. ${bar.level}`,
-        dpIntoLevel: bar.dpIntoLevel,
-        cap: bar.cap,
-        percentage: bar.percentage,
-        maxed: bar.maxed,
-        gradient: 'linear-gradient(90deg, var(--gold-end), var(--gold-start))',
-        shadow: '0 0 10px var(--gold-glow)'
-    }];
+// ---- data for the Today card ----
+function todayData() {
+    const dailies = Vault.getDailyTasks().filter(t => t.dueToday || t.completedToday);
+    const todosAll = pluginOn('todos') ? Vault.getTodos() : [];
+    const today = todayISO();
+    const todos = todosAll.filter(t => !t.completed || t.completedDate === today);
+    const quest = Vault.getQuests().find(q => q.id === Vault.getActiveQuestId()) || null;
+    return { dailies, todos, quest, habits: pluginOn('habits') ? Vault.getHabits() : [] };
 }
 
-// Vault.levelUpCharacterBar() already grants the bees/tickets/materials
-// (via _syncLevelUpBees) and reports exactly what was granted - this just
-// formats that into the celebration modal's { title, lines } shape.
-function formatCharacterLevelReward(reward) {
-    const lines = [];
-
-    if (reward.awardedBees.length > 0) {
-        const label = reward.awardedBees.length === 1 ? escapeHTML(reward.awardedBees[0].name) : `${reward.awardedBees.length} bees`;
-        lines.push(`🐝 ${label} joined your colony!`);
-    }
-    if (reward.ticketsGranted > 0) {
-        lines.push(`🎟️ +${reward.ticketsGranted} Gacha Ticket${reward.ticketsGranted === 1 ? '' : 's'}`);
-    }
-    if (reward.awardedMaterials.length > 0) {
-        const counts = {};
-        reward.awardedMaterials.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
-        Object.entries(counts).forEach(([id, count]) => lines.push(`${materialDisplay(id)} +${count}`));
-    }
-    if (lines.length === 0) lines.push('Onward!');
-
-    return { title: `Character reached Level ${reward.newLevel}!`, lines };
+// ---- hive strip ----
+function renderHive() {
+    const hive = Vault.getHiveHoney();
+    document.getElementById('home-hive-bees').textContent = hive.bees;
+    document.getElementById('home-hive-honey').textContent = Math.max(0, hive.lit - hive.decay);
+    document.getElementById('home-hive-decay').textContent = hive.decay;
 }
 
-function renderCharacterLevelBar() {
-    const container = document.getElementById('home-level-bar');
-    if (!container) return;
+// ---- Today ----
+const hexCheck = `<svg viewBox="0 0 30 32" aria-hidden="true">
+    <polygon class="hc-cell" points="15,1.5 28,9 28,23 15,30.5 2,23 2,9"/>
+    <polygon class="hc-fill" points="15,4 25.6,10.2 25.6,21.8 15,28 4.4,21.8 4.4,10.2"/>
+    <path class="hc-tick" d="M9.5 16.5 L13.5 20.5 L21 12"/></svg>`;
 
-    LevelBar.renderRows(container, {
-        getRows: () => characterLevelBarToRows(Vault.getCharacterLevelBar()),
-        onLevelUp: async () => {
-            const reward = await Vault.levelUpCharacterBar();
-            return reward ? formatCharacterLevelReward(reward) : null;
+function checkRow({ id, kind, label, sub, done, dp, due }) {
+    return `<li class="home-row${done ? ' done' : ''}" data-kind="${kind}" data-id="${escapeHTML(id)}">
+        <button type="button" class="home-check" data-act="check" aria-label="${done ? 'Undo' : 'Check off'}: ${escapeHTML(label)}">${hexCheck}</button>
+        <div class="home-row-text"><span>${escapeHTML(label)}</span>${sub ? `<small>${escapeHTML(sub)}</small>` : ''}</div>
+        ${due && !done ? `<span class="home-due${due === 'Today' || due === 'Overdue' ? '' : ' soon'}">${escapeHTML(due)}</span>` : `<span class="home-dp">+${dp}</span>`}
+    </li>`;
+}
+
+function dueLabel(dueDate) {
+    if (!dueDate) return '';
+    if (dueDate < localDateISO(0)) return 'Overdue';
+    if (dueDate === localDateISO(0)) return 'Today';
+    if (dueDate === localDateISO(1)) return 'Tomorrow';
+    return dueDate.slice(5).replace('-', '/');
+}
+
+function emptyState(icon, text) {
+    return `<div class="home-empty"><b>${icon}</b>${text}</div>`;
+}
+
+function renderPanel(direction) {
+    const data = todayData();
+    const panel = document.getElementById('home-panel');
+    let html = '';
+
+    if (currentTab === 'dailies') {
+        html = data.dailies.length
+            ? `<ul class="home-list">${data.dailies.map(t => checkRow({ id: t.id, kind: 'daily', label: t.label, sub: t.difficulty || '', done: t.completedToday, dp: t.dp })).join('')}</ul>`
+            : emptyState('☀️', 'No dailies due today.');
+    } else if (currentTab === 'habits') {
+        if (!pluginOn('habits')) html = emptyState('✅', 'Habits are off. Turn them on in Plugins.');
+        else html = data.habits.length ? `<div class="home-habits">${HabitRow.listHTML(data.habits)}</div>` : emptyState('✅', 'No habits yet. Tap the + on the Habits tab to make one.');
+    } else if (currentTab === 'todos') {
+        if (!pluginOn('todos')) html = emptyState('📝', 'To-Dos are off. Turn them on in Plugins.');
+        else {
+            const open = data.todos.filter(t => !t.completed).sort((a, b) => (a.dueDate || '9999') < (b.dueDate || '9999') ? -1 : 1);
+            const done = data.todos.filter(t => t.completed);
+            html = open.length || done.length
+                ? `<ul class="home-list">${[...open, ...done].map(t => {
+                    const steps = (t.checklist || []).length;
+                    const stepsDone = (t.checklist || []).filter(c => c.done || c.completed).length;
+                    return checkRow({ id: t.id, kind: 'todo', label: t.label, sub: steps ? `${stepsDone} of ${steps} steps` : '', done: t.completed, dp: t.dp, due: dueLabel(t.dueDate) });
+                }).join('')}</ul>`
+                : emptyState('📝', 'Nothing to do. Nice.');
         }
-    });
-}
-
-// Simplified on purpose - just the title and a plain checklist, no edit/
-// remove icons or stat boxes. Full detail still lives on the Quests page.
-function renderActiveQuest() {
-    const container = document.getElementById('home-active-quest');
-    const activeQuestId = Vault.getActiveQuestId();
-    const quest = Vault.getQuests().find(q => q.id === activeQuestId);
-
-    if (!quest) {
-        container.innerHTML = `<p class="quest-empty-state">No active quest selected yet - pick one from the Quests page.</p>`;
-        return;
+    } else if (currentTab === 'quest') {
+        const q = data.quest;
+        html = q
+            ? `<p class="home-quest-title">🎯 ${escapeHTML(q.title)}</p><ul class="home-list">${(q.tasks || []).map(t => checkRow({ id: t.id, kind: 'quest', label: t.label, done: t.completed, dp: t.dp })).join('')}</ul>`
+            : emptyState('🎯', 'No active quest yet. Pick one on the Quests tab.');
     }
 
-    container.innerHTML = `
-        <p class="home-active-quest-title">${escapeHTML(quest.title)}</p>
-        <ul class="task-list" id="home-active-quest-tasks"></ul>
-    `;
-
-    const tasks = quest.tasks || [];
-    const list = document.getElementById('home-active-quest-tasks');
-    list.innerHTML = tasks.map(task => `
-        <li data-task-id="${task.id}">
-            <input type="checkbox" data-role="toggle" ${task.completed ? 'checked' : ''}>
-            <span class="home-task-label${task.completed ? ' home-task-label--done' : ''}">${escapeHTML(task.label)}</span>
-            <small class="quest-task-dp">+${task.dp} DP</small>
-        </li>
-    `).join('');
-
-    tasks.forEach(task => {
-        const row = list.querySelector(`[data-task-id="${task.id}"]`);
-        row.querySelector('[data-role="toggle"]').addEventListener('change', () => {
-            const willComplete = !task.completed;
-            Vault.toggleTask(quest.id, task.id);
-
-            // No instant "LEVEL UP!" toast any more - the character-level
-            // bar (see renderCharacterLevelBar) shakes and offers its own
-            // Level Up button once it's actually maxed, same ritual as
-            // Skill Mastery, instead of announcing it the moment DP crosses
-            // the threshold.
-            Toast.show(willComplete ? `🐝 +${task.dp} DP` : `➖ ${task.dp} DP`, willComplete ? 'positive' : 'negative');
-
-            renderHome();
-        });
-    });
-}
-
-function renderDailyTasks() {
-    const list = document.getElementById('home-daily-task-list');
-    const tasks = Vault.getDailyTasks();
-
-    if (tasks.length === 0) {
-        list.innerHTML = `<li class="quest-empty-state">No daily tasks set up yet.</li>`;
-        return;
+    panel.innerHTML = html;
+    const list = panel.querySelector('.home-list, .home-habits, .home-empty');
+    if (list && direction && !reduceMotion) {
+        list.style.setProperty('--dx', `${direction * 14}px`);
+        list.classList.add('home-enter');
     }
+    const link = document.getElementById('home-see-all');
+    link.href = TAB_LINKS[currentTab].href;
+    link.textContent = `${TAB_LINKS[currentTab].label} →`;
+}
 
-    list.innerHTML = tasks.map(task => `
-        <li data-task-id="${task.id}">
-            <input type="checkbox" data-role="toggle" ${task.completedToday ? 'checked' : ''}>
-            <span class="home-task-label${task.completedToday ? ' home-task-label--done' : ''}">${escapeHTML(task.label)}</span>
-            <small class="quest-task-dp">+${task.dp} DP</small>
-        </li>
-    `).join('');
-
-    tasks.forEach(task => {
-        const row = list.querySelector(`[data-task-id="${task.id}"]`);
-        row.querySelector('[data-role="toggle"]').addEventListener('change', () => {
-            const willComplete = !task.completedToday;
-            Vault.toggleDailyTask(task.id);
-
-            Toast.show(willComplete ? `🐝 +${task.dp} DP` : `➖ ${task.dp} DP`, willComplete ? 'positive' : 'negative');
-
-            renderHome();
-        });
+function renderTabs() {
+    const data = todayData();
+    const i = TODAY_TABS.indexOf(currentTab);
+    document.getElementById('home-tab-pill').style.transform = `translateX(${i * 100}%)`;
+    document.querySelectorAll('.home-tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === currentTab)));
+    const counts = {
+        dailies: data.dailies.filter(t => !t.completedToday).length,
+        todos: data.todos.filter(t => !t.completed).length,
+        quest: data.quest ? (data.quest.tasks || []).filter(t => !t.completed).length : 0
+    };
+    document.querySelectorAll('[data-n]').forEach(el => {
+        const n = counts[el.dataset.n];
+        el.textContent = n;
+        el.hidden = !n;
     });
 }
 
-// "More apps" launcher for destinations that live outside the header entirely.
-// Dailies and Map graduated INTO the header nav itself; Skills, Dictionary,
-// and Profile moved the other way (out of the header, into here) to keep
-// the header short - see app.js's NAV_ITEMS/EXTRA_PAGE_META. Colony,
-// Pollination Chamber (gacha), and Inventory are deliberately NOT here -
-// that trio is reached exclusively through the Waggle FAB menu (see
-// WAGGLE_NAV_PAGES in llm-engine.js) as its own cohesive "system",
-// same as Colony always has been.
+function renderRing() {
+    const data = todayData();
+    const today = localDateISO(0);
+    const items = [
+        ...data.dailies.map(t => t.completedToday),
+        ...(data.quest ? (data.quest.tasks || []).map(t => t.completed) : []),
+        ...data.todos.filter(t => t.completed || (t.dueDate && t.dueDate <= today)).map(t => t.completed)
+    ];
+    const total = items.length, done = items.filter(Boolean).length;
+    document.getElementById('home-ring-fg').style.strokeDashoffset = total ? 119.4 * (1 - done / total) : 119.4;
+    document.getElementById('home-ring-text').textContent = done;
+    document.getElementById('home-today-sub').textContent = !total
+        ? 'Nothing due today'
+        : done === total ? 'All done. The hive is proud of you.' : `${done} of ${total} done · ${total - done} to go`;
+}
+
+function renderToday(direction) {
+    renderTabs();
+    renderPanel(direction);
+    renderRing();
+}
+
+function floatAt(row, text, cls) {
+    const f = document.createElement('span');
+    f.className = `home-float ${cls}`;
+    f.textContent = text;
+    row.appendChild(f);
+    setTimeout(() => f.remove(), 1100);
+}
+
+function handleCheck(button) {
+    const row = button.closest('.home-row');
+    const { kind, id } = row.dataset;
+    let nowDone = false, dp = 0;
+    if (kind === 'daily') {
+        const before = Vault.getDailyTasks().find(t => t.id === id);
+        if (!before) return;
+        Vault.toggleDailyTask(id);
+        nowDone = !before.completedToday; dp = before.dp;
+    } else if (kind === 'todo') {
+        const before = Vault.getTodos().find(t => t.id === id);
+        if (!before) return;
+        Vault.toggleTodoComplete(id);
+        nowDone = !before.completed; dp = before.dp;
+    } else if (kind === 'quest') {
+        const quest = Vault.getQuests().find(q => q.id === Vault.getActiveQuestId());
+        const task = quest && (quest.tasks || []).find(t => t.id === id);
+        if (!task) return;
+        Vault.toggleTask(quest.id, id);
+        nowDone = !task.completed; dp = task.dp;
+    }
+    row.classList.toggle('done', nowDone);
+    button.setAttribute('aria-label', `${nowDone ? 'Undo' : 'Check off'}: ${row.querySelector('.home-row-text span').textContent}`);
+    if (nowDone) {
+        button.classList.remove('home-pop'); void button.offsetWidth; button.classList.add('home-pop');
+        const ripple = document.createElement('span');
+        ripple.className = 'home-ripple';
+        row.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+        floatAt(row, `+${dp} DP`, 'good');
+        if (navigator.vibrate) navigator.vibrate(25);
+    } else {
+        floatAt(row, `−${dp} DP`, 'bad');
+    }
+    renderHive();
+    setTimeout(() => { renderTabs(); renderRing(); if (kind !== 'daily') renderPanel(); }, nowDone && kind !== 'daily' ? 650 : 0);
+}
+
+function setupToday() {
+    const card = document.getElementById('home-today');
+    const toggle = document.getElementById('home-today-toggle');
+    toggle.addEventListener('click', () => {
+        const open = card.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(open));
+    });
+    document.getElementById('home-tabs').addEventListener('click', (event) => {
+        const b = event.target.closest('.home-tab');
+        if (!b || b.dataset.tab === currentTab) return;
+        const direction = TODAY_TABS.indexOf(b.dataset.tab) > TODAY_TABS.indexOf(currentTab) ? 1 : -1;
+        currentTab = b.dataset.tab;
+        renderTabs();
+        renderPanel(direction);
+    });
+    const panel = document.getElementById('home-panel');
+    panel.addEventListener('click', (event) => {
+        const b = event.target.closest('[data-act="check"]');
+        if (b) handleCheck(b);
+    });
+    HabitRow.bind(panel, {
+        editHref: (habit) => `../../plugins/habits/create-habit.html?id=${encodeURIComponent(habit.id)}`,
+        onChange: () => { renderHive(); }
+    });
+}
+
+// ---- app grid: everything that isn't in the bottom dock ----
 const HOME_APP_DESTINATIONS = [
+    { key: 'dashboard', icon: '👨🏾‍💻', label: 'Dashboard' },
+    { key: 'map', icon: '🗺️', label: 'Map' },
     { key: 'skills', icon: '🌿', label: 'Skills' },
     { key: 'dictionary', icon: '📖', label: 'Dictionary' },
     { key: 'profile', icon: '🧘🏾', label: 'Profile' },
     { key: 'honey-store', icon: '🍯', label: 'Honey Store' },
     { key: 'plugin-hub', icon: '🧩', label: 'Plugins' },
-    { key: 'hive-archive', icon: '📚', label: 'The Hive Archive' },
-    // Temp name - see src/features/models/. Natural-size bee art for now,
-    // heading toward a real rotatable 3D viewer once those models exist.
+    { key: 'hive-archive', icon: '📚', label: 'Hive Archive' },
     { key: 'models', icon: '🧬', label: 'Bee Models' },
     { key: 'settings', icon: '⚙️', label: 'Settings' }
 ];
+// Habits and To-Dos are in the dock, so only the other installed plugins
+// (Calendar, Study...) join the grid.
+const DOCK_PLUGINS = ['habits', 'todos'];
 
-// Installed plugins (see Plugins.isEnabled/PLUGIN_CATALOG in plugins.js)
-// join the static destinations above dynamically - a plugin only needs
-// its status flipped to 'available' and to be installed from Plugin Hub
-// to show up here, no home.html/home.js changes needed per plugin.
-// Lives under src/plugins/<id>/<id>.html instead of src/features/, so it
-// gets its own tiny map function rather than reusing HOME_APP_DESTINATIONS'
-// hardcoded features/ path.
 function installedPluginDestinations() {
     if (typeof Plugins === 'undefined') return [];
     return Plugins.getCatalog()
-        .filter(entry => Plugins.isEnabled(entry.id))
+        .filter(entry => Plugins.isEnabled(entry.id) && !DOCK_PLUGINS.includes(entry.id))
         .map(entry => ({ key: entry.id, icon: entry.icon, label: entry.label, base: 'plugins' }));
 }
 
-// Home now lives at src/features/home/home.html (moved out of the project
-// root so login.html could take over root index.html - see HANDOFF.md §12
-// "index/login swap"). That makes Home a normal feature page one level
-// away from every OTHER feature folder, but two levels away from a
-// src/plugins/*/ page - hence the branch below instead of the flat
-// './src/...' paths this used when Home WAS the root.
 function hrefForDestination(item) {
-    return item.base === 'plugins'
-        ? `../../plugins/${item.key}/${item.key}.html`
-        : `../${item.key}/${item.key}.html`;
+    return item.base === 'plugins' ? `../../plugins/${item.key}/${item.key}.html` : `../${item.key}/${item.key}.html`;
 }
 
 function renderAppGrid() {
     const grid = document.getElementById('home-app-grid');
-
-    const destinations = [
-        ...HOME_APP_DESTINATIONS.map(item => ({ ...item, base: 'features' })),
-        ...installedPluginDestinations()
-    ];
-
+    const destinations = [...HOME_APP_DESTINATIONS, ...installedPluginDestinations()];
     grid.innerHTML = destinations.map(item => `
-        <a class="home-app-icon" href="${hrefForDestination(item)}">
-            <span class="home-app-icon-emoji">${item.icon}</span>
-            <span class="home-app-icon-label">${item.label}</span>
-        </a>
-    `).join('');
-}
-
-// Active Quest and Daily Tasks start collapsed (see the --collapsed class
-// already in home.html) so the app icon grid isn't buried below them -
-// this just wires the chevron/click toggle, matching quests.js's pattern.
-function setupHomeCollapsibles() {
-    document.querySelectorAll('.home-collapsible .home-section-toggle').forEach(toggle => {
-        toggle.addEventListener('click', () => {
-            const section = toggle.closest('.home-collapsible');
-            const isCollapsed = section.classList.toggle('home-collapsible--collapsed');
-            toggle.setAttribute('aria-expanded', String(!isCollapsed));
-        });
-    });
-}
-
-function renderHome() {
-    const user = Vault.getUser();
-    if (!user) return;
-
-    renderStatus(user);
-    renderCharacterLevelBar();
-    renderActiveQuest();
-    renderDailyTasks();
+        <a class="home-app" href="${hrefForDestination(item)}">
+            <span class="home-app-ic" aria-hidden="true">${item.icon}</span>
+            <span class="home-app-label">${escapeHTML(item.label)}</span>
+        </a>`).join('');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    renderHome();
+    renderHive();
+    renderToday();
     renderAppGrid();
-    setupHomeCollapsibles();
+    setupToday();
 
     Waggle.setActions(baseWaggleActions());
 });

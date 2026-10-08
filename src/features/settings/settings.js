@@ -140,6 +140,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         reader.readAsText(file);
     });
 
+    // Hidden developer tools: tap the SETTINGS title 5 times to reveal.
+    const devSection = document.getElementById('dev-section');
+    const settingsTitle = document.querySelector('.settings-title');
+    let devTaps = 0, devTapTimer = null;
+    if (settingsTitle && devSection) settingsTitle.addEventListener('click', () => {
+        devTaps += 1;
+        clearTimeout(devTapTimer);
+        devTapTimer = setTimeout(() => { devTaps = 0; }, 1500);
+        if (devTaps >= 5 && devSection.hidden) {
+            devSection.hidden = false;
+            devSection.open = true;
+            devSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            Toast.show('🛠 Developer tools shown.', 'positive');
+        }
+    });
+    document.getElementById('practice-egg-btn').addEventListener('click', () => {
+        window.location.href = '../onboarding/onboarding.html?practice=1';
+    });
+
     document.getElementById('logout-btn').addEventListener('click', async () => {
         if (typeof netlifyIdentity !== 'undefined' && netlifyIdentity.currentUser()) await netlifyIdentity.logout();
         localStorage.removeItem('bizzybee_session');

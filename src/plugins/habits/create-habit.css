@@ -1,227 +1,121 @@
-.create-habit-container {
+/* Create / edit habit (rebuilt 2026-10-08 from Craft's Habitica photos).
+   The page brings its own coloured top bar, so the app's top bar, dock and
+   floating back button are hidden here. --dc / --dk = the difficulty colour
+   and the ink that reads on it (set by create-habit.js). */
+body.habit-form-page { padding-bottom: 0; }
+body.habit-form-page .app-head,
+body.habit-form-page .back-fab-btn,
+body.habit-form-page .global-footer,
+body.habit-form-page .mobile-waggle-btn,
+body.habit-form-page .waggle-menu { display: none !important; }
+
+.hf {
+    --dc: #34c77b;
+    --dk: #06210f;
+    --hf-text: #f1ede2;
+    --hf-muted: #a69a80;
+    --hf-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     width: 100%;
-    max-width: 640px;
-    margin: 20px auto 100px;
-    padding: 0 25px;
-    box-sizing: border-box;
+    min-height: 100vh;
+    background: #0d0a05;
+    font-family: var(--hf-sans);
+    color: var(--hf-text);
+    animation: hfIn .32s cubic-bezier(.2, .9, .3, 1);
 }
+@keyframes hfIn { from { transform: translateY(24px); opacity: 0; } }
+.hf * { box-sizing: border-box; }
+.hf button { font-family: inherit; box-shadow: none; transform: none; transition: none; }
+.hf button:hover { transform: none; box-shadow: none; }
 
-.create-habit-container .panel {
-    margin-bottom: 20px;
+/* coloured top */
+.hf-top {
+    position: relative;
+    padding: calc(6px + env(safe-area-inset-top)) 16px 18px;
+    background: var(--dc);
+    color: var(--dk);
+    transition: background .35s, color .35s;
+    overflow: hidden;
 }
-
-/* Every internal section separated only by its own <h3> - same convention
-   as create-daily.css/dictionary.css. */
-.habit-section-heading {
-    margin-top: 30px !important;
+.hf-top::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .12;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34.64' height='60' viewBox='0 0 34.64 60'%3E%3Cpath d='M17.32 60V40L0 30V10L17.32 0l17.32 10v20L17.32 40' fill='none' stroke='%23000' stroke-width='1.2'/%3E%3C/svg%3E");
+    background-size: 28px 48px;
 }
-
-.form-label {
-    display: block;
-    color: var(--gold-start);
-    font-size: 0.85rem;
-    font-weight: bold;
-    margin: 14px 0 6px;
-}
-
-.habit-text-input,
-.habit-notes-input {
+.hf-top > * { position: relative; max-width: 640px; margin-left: auto; margin-right: auto; }
+.hf-bar { display: flex; align-items: center; gap: 6px; height: 56px; }
+.hf-heading { flex: 1; margin: 0 0 0 6px; font: 700 1.3rem var(--hf-sans); color: inherit; background: none; border: 0; padding: 0; text-align: left; }
+.hf-icon { width: 42px; height: 42px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; }
+.hf-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.hf-icon:hover, .hf-act:hover { background: rgba(0, 0, 0, .12); }
+.hf-act { padding: 10px; border: 0; border-radius: 8px; background: none; color: inherit; font: 800 .95rem var(--hf-sans); letter-spacing: .06em; cursor: pointer; }
+.hf-act[hidden] { display: none; }
+.hf-act.armed { background: rgba(0, 0, 0, .25); }
+.hf-tip-row { display: flex; justify-content: flex-end; }
+.hf-tip-btn { padding: 4px 8px; border: 0; border-radius: 8px; background: none; color: inherit; font: 600 .8rem var(--hf-sans); text-decoration: underline; cursor: pointer; opacity: .85; }
+.hf-tip { margin: 6px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(0, 0, 0, .3); color: #fff; font-size: .82rem; line-height: 1.4; }
+.hf-tip[hidden] { display: none; }
+.hf-field { display: block; margin-top: 12px; padding: 10px 14px 8px; border-radius: 12px 12px 4px 4px; background: rgba(0, 0, 0, .32); border-bottom: 2px solid rgba(0, 0, 0, .35); transition: border-color .2s; }
+.hf-field:focus-within { border-bottom-color: var(--dk); }
+.hf-field small { display: block; font-size: .76rem; color: #fff; opacity: .85; }
+.hf-field input,
+.hf-field textarea {
     width: 100%;
-    box-sizing: border-box;
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 10px 12px;
-    color: #eee;
-    font-family: inherit;
-    font-size: 0.95rem;
-}
-
-.habit-text-input:focus,
-.habit-notes-input:focus {
-    outline: none;
-    border-color: var(--gold-start);
-}
-
-.habit-notes-input {
-    min-height: 90px;
-    resize: vertical;
-    margin-top: 10px;
-}
-
-/* --- TITLE TIP - a dismissible one-liner on writing a good habit title,
-   toggled open/closed rather than always shown, next to the label. --- */
-.habit-title-label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.habit-title-tip-btn {
-    background: transparent;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold-start);
-    border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 0.78rem;
-    cursor: pointer;
-}
-
-.habit-title-tip-btn:hover {
-    background: var(--gold-dim);
-}
-
-.habit-title-tip-text {
-    margin: 6px 0 0;
-    color: #999;
-    font-size: 0.82rem;
-    font-style: italic;
-}
-
-/* --- ACTIONS - a per-habit toggle for which of +/- shows on the Habits
-   list. Both are on by default (matching every habit's behavior before
-   this was configurable); turning one off hides that button there. At
-   least one must stay on - see create-habit.js's toggle handler and
-   Vault.addHabit/updateHabit's own fallback guard. --- */
-.habit-action-toggle-row {
-    display: flex;
-    gap: 14px;
-    margin-top: 10px;
-}
-
-.habit-action-toggle {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    background: #151515;
-    border: 2px solid #333;
-    border-radius: 8px;
-    padding: 12px 6px;
-    color: #888;
-    cursor: pointer;
-}
-
-.habit-action-toggle-icon {
-    font-size: 1.3rem;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.habit-action-toggle-label {
-    font-size: 0.85rem;
-}
-
-.habit-action-toggle--positive[aria-pressed="true"] {
-    border-color: #4caf50;
-    color: #4caf50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.habit-action-toggle--negative[aria-pressed="true"] {
-    border-color: var(--danger-red);
-    color: var(--danger-red);
-    background: rgba(255, 68, 68, 0.1);
-}
-
-/* --- RESET COUNTER - single-select, same pill-row pattern as Quests'
-   Main/Side category toggle (quests.css's .quest-category-toggle). --- */
-.habit-reset-toggle-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.habit-reset-btn {
-    flex: 1;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--gold-dim);
-    background: transparent;
-    color: #eee;
-    cursor: pointer;
-}
-
-.habit-reset-btn--selected {
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    color: var(--obsidian);
-    border-color: var(--gold-start);
-    font-weight: bold;
-}
-
-.habit-reset-hint {
-    color: #999;
-    font-size: 0.85rem;
-    margin-top: 8px;
-}
-
-/* --- DP DISPLAY --- */
-.habit-dp-row {
-    margin-top: 16px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
-}
-
-.habit-dp-display {
-    display: flex;
-    flex-direction: column;
-}
-
-.habit-dp-value {
-    color: var(--gold-start);
-    font-size: 1.6rem;
-    font-weight: 800;
-}
-
-.habit-ask-eevee-btn {
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-.habit-dp-note {
-    margin: 10px 0 0;
-    color: #666;
-    font-size: 0.78rem;
-    font-style: italic;
-}
-
-/* --- TAGS - the chip list/dismiss mechanics are shared (see
-   src/core/tag-picker); this note's wording (which known-term sources it
-   draws from) is page-specific so it stays here. --- */
-.habit-tags-note {
-    margin: 4px 0 0;
-    color: #666;
-    font-size: 0.78rem;
-    font-style: italic;
-}
-
-/* --- SAVE / CANCEL --- */
-.habit-form-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-bottom: 40px;
-}
-
-.habit-cancel-btn {
-    background: transparent;
-    color: #999;
-    border: 2px solid #555;
-}
-
-.habit-cancel-btn:hover {
-    background: #333;
+    padding: 4px 0 2px;
+    border: 0;
+    border-radius: 0;
+    background: none;
     color: #fff;
+    font: 500 1.12rem var(--hf-sans);
+    outline: none;
+    resize: none;
     box-shadow: none;
 }
+.hf-field input:focus, .hf-field textarea:focus { border: 0; box-shadow: none; }
+.hf-field input::placeholder, .hf-field textarea::placeholder { color: rgba(255, 255, 255, .55); }
+.hf-notes textarea { font-size: 1rem; min-height: 52px; }
 
-@media (max-width: 480px) {
-    .habit-form-actions {
-        flex-direction: column-reverse;
-    }
-}
+/* dark body */
+.hf-body { max-width: 640px; margin: 0 auto; padding: 18px 16px 48px; }
+.hf-h { margin: 24px 2px 10px; font: 600 1.05rem var(--hf-sans); color: var(--hf-text); background: none; border: 0; padding: 0; text-align: left; }
+.hf-h small { margin-left: 6px; font-weight: 500; font-size: .78rem; color: var(--hf-muted); }
+.hf-hint { margin: 10px 0 0; text-align: center; font-size: .8rem; color: var(--hf-muted); }
+.hf-hint-left { text-align: left; margin-left: 2px; }
+
+.hf-pn { display: flex; justify-content: center; gap: 34px; }
+.hf-toggle { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--hf-muted); font: 600 .95rem var(--hf-sans); cursor: pointer; }
+.hf-toggle svg { width: 48px; height: 52px; overflow: visible; transition: transform .25s cubic-bezier(.3, 1.5, .4, 1); }
+.hf-toggle polygon { fill: none; stroke: var(--dc); stroke-width: 1.8; transition: fill .2s, stroke .35s; }
+.hf-toggle path { stroke: var(--dc); stroke-width: 2.6; stroke-linecap: round; transition: stroke .35s; }
+.hf-toggle.on { color: var(--hf-text); }
+.hf-toggle.on polygon { fill: var(--dc); }
+.hf-toggle.on path { stroke: var(--dk); }
+.hf-toggle:active svg { transform: scale(.9); }
+.hf-toggle:focus-visible, .hf-d:focus-visible, .hf-seg button:focus-visible { outline: 2px solid #ffcc00; outline-offset: 3px; border-radius: 12px; }
+
+.hf-diff { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.hf-d { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--hf-muted); font: 600 .9rem var(--hf-sans); cursor: pointer; }
+.hf-d svg { width: 100%; max-width: 74px; aspect-ratio: 1; padding: 16px; border-radius: 18px; background: #1d1810; fill: var(--c); transition: background .2s, transform .25s cubic-bezier(.3, 1.5, .4, 1); }
+.hf-d.on { color: var(--hf-text); }
+.hf-d.on svg { background: var(--c); fill: var(--k); box-shadow: 0 0 18px color-mix(in srgb, var(--c) 45%, transparent); transform: translateY(-2px); }
+.hf-eevee { display: block; margin: 12px auto 0; padding: 6px 12px; border: 1px solid rgba(255, 204, 0, .3); border-radius: 999px; background: rgba(255, 204, 0, .06); color: #e9cf7a; font: 600 .8rem var(--hf-sans); cursor: pointer; }
+.hf-eevee:disabled { opacity: .6; cursor: wait; }
+
+.hf-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.hf-seg button { padding: 14px 6px; border: 0; border-radius: 14px; background: #1d1810; color: var(--hf-muted); font: 600 .98rem var(--hf-sans); cursor: pointer; transition: background .2s, color .2s; }
+.hf-seg button.on { background: var(--dc); color: var(--dk); }
+
+.hf-adj { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.hf-adj label { display: block; padding: 10px 14px 8px; border-radius: 12px 12px 4px 4px; background: #1d1810; border-bottom: 2px solid var(--dc); }
+.hf-adj label[hidden] { display: none; }
+.hf-adj small { display: block; font-size: .76rem; color: var(--hf-muted); }
+.hf-adj input { width: 100%; padding: 4px 0; border: 0; border-radius: 0; background: none; color: var(--hf-text); font: 600 1.2rem var(--hf-sans); outline: none; box-shadow: none; }
+#hf-adjust[hidden] { display: none; }
+
+.hf-tags .tag-chip { background: #1d1810; border-color: color-mix(in srgb, var(--dc) 60%, transparent); color: var(--hf-text); }
+.hf-tags .tags-empty { color: #6d6450; }
+
+@media (prefers-reduced-motion: reduce) { .hf { animation: none; } }

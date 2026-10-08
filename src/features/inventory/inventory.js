@@ -372,54 +372,28 @@ function setupRosterPicker(overlay, expandedOverlay, initialBees) {
 
     // Cover Flow's tile - deliberately art-only, no name/text printed on
     // it (that only shows once below, in .inventory-coverflow-info, for
-    // whichever bee is centered - matches the iPod-style reference this
-    // was redesigned from). Still not a hand-built lookalike: it reuses
-    // the REAL card's own art classes straight from bee-card.css
-    // (bee-card-art-frame--<rarity>, bee-card-element-hex, bee-card-class-
-    // badge) and the actual NanoBee sprite for its art, same "one source
-    // of truth per bee" rule createTile() above already follows - just a
-    // different (smaller, art-only) shape of tile.
+    // whichever bee is centered). Not a hand-built lookalike: the tile IS
+    // the real card's art window - same forest, bee picture, element tint,
+    // aura and job badge, built by bee-card.js's beeCardApplyTheme() and
+    // beeCardArtHTML() helpers, so it always matches the full card.
     //
     // Position/rotation/scale are NOT set here - renderCoverflowFrame()
     // drives every tile's transform every frame from coverflowIndex, this
     // just builds the static element once per rebuild.
     function createCoverTile(bee) {
         const color = beeCardColor(bee.rarity);
-        const themeKey = (bee.rarity || 'common').toLowerCase();
         const elementInfo = bee.element && BEE_ELEMENTS[bee.element] ? BEE_ELEMENTS[bee.element] : null;
         const classInfo = bee.class && BEE_CLASSES[bee.class] ? BEE_CLASSES[bee.class] : null;
 
         const tile = document.createElement('button');
         tile.type = 'button';
-        tile.className = `inventory-cover-tile bee-card-art-frame bee-card-art-frame--${themeKey}`;
+        tile.className = 'inventory-cover-tile bc-tile';
+        const rarityKey = beeCardApplyTheme(tile, bee.rarity, elementInfo ? bee.element : null);
         tile.dataset.beeId = bee.id;
         tile.title = `${bee.name} (${bee.rarity})`;
         tile.style.setProperty('--tile-color', color);
-        // Inline style always wins over bee-card.css's .bee-card-art-frame
-        // border shorthand, regardless of cascade order - same trick
-        // bee-card.js itself uses for the real card's border color.
-        tile.style.borderColor = color;
-
-        if (elementInfo) {
-            const hex = document.createElement('span');
-            hex.className = 'bee-card-element-hex';
-            hex.title = elementInfo.label;
-            hex.textContent = elementInfo.emoji;
-            tile.appendChild(hex);
-        }
-
-        const iconHost = document.createElement('div');
-        iconHost.className = 'inventory-cover-tile-icon-host';
-        tile.appendChild(iconHost);
-        NanoBee.render(iconHost, 'card', { color, hideCore: true, noFlight: true });
-
-        if (classInfo) {
-            const badge = document.createElement('span');
-            badge.className = 'bee-card-class-badge';
-            badge.title = classInfo.label;
-            badge.textContent = classInfo.icon;
-            tile.appendChild(badge);
-        }
+        tile.innerHTML = beeCardArtHTML({ rarityKey, classInfo, rivets: 2, royal: bee.royal || null })
+            + (elementInfo ? `<span class="bc-elhex-mini" title="${elementInfo.label}">${elementInfo.emoji}</span>` : '');
 
         tile.addEventListener('click', () => {
             // A drag/swipe that ends back over the tile still fires a

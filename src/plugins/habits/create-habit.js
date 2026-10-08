@@ -1,21 +1,29 @@
 console.log("/// CREATE HABIT PROTOCOLS INITIALIZED ///");
 
+// Create / edit a habit (rebuilt 2026-10-08 from Craft's Habitica photos):
+// a coloured top with Task Title + Notes, then Positive / Negative hexagons,
+// Difficulty, Reset Counter, Adjust Counter (edit only) and Tags. The top
+// takes the colour of the chosen difficulty, same colours as the hexagon
+// buttons on the Habits page (HABIT_DIFFICULTY_STYLE in habit-row.js).
+// Creating shows CREATE; editing shows DELETE and SAVE.
+
 // Same 4-tier scale Dailies uses - a habit repeats at least as often (often
 // MORE often, since it can be clicked several times a day), so it shares
 // Dailies' modest DP anchors rather than Quest's one-off anchors.
 const HABIT_DIFFICULTY_TIERS = [
-    { level: 'Trivial', dp: 10, icon: '◆' },
-    { level: 'Easy', dp: 20, icon: '◆◆' },
-    { level: 'Medium', dp: 60, icon: '◆◆◆' },
-    { level: 'Hard', dp: 120, icon: '◆◆◆◆' }
+    { level: 'Trivial', dp: 10, sparks: 1 },
+    { level: 'Easy', dp: 20, sparks: 2 },
+    { level: 'Medium', dp: 60, sparks: 3 },
+    { level: 'Hard', dp: 120, sparks: 4 }
 ];
 
 let selectedDifficulty = 'Easy';
 let selectedDP = 20;
 let editingHabitId = null;
 let habitPositiveEnabled = true;
-let habitNegativeEnabled = true;
+let habitNegativeEnabled = false;
 let selectedResetCounter = 'daily';
+let deleteArmed = false;
 
 // Every term a tag could plausibly match against - same sources
 // create-daily.js's collectKnownTerms uses, plus existing Habit tags too.
@@ -23,36 +31,14 @@ let selectedResetCounter = 'daily';
 // scan/render/dismiss mechanics around this are shared.
 function collectKnownTerms() {
     const terms = new Map();
-
-    (Vault.getDictionaryTerms() || []).forEach(term => {
-        if (term.name && !terms.has(term.name.toLowerCase())) {
-            terms.set(term.name.toLowerCase(), term.name);
-        }
-    });
-
-    (Vault.getDailyTasks() || []).forEach(task => {
-        (task.tags || []).forEach(tag => {
-            if (tag && !terms.has(tag.toLowerCase())) terms.set(tag.toLowerCase(), tag);
-        });
-    });
-
-    (Vault.getHabits() || []).forEach(habit => {
-        (habit.tags || []).forEach(tag => {
-            if (tag && !terms.has(tag.toLowerCase())) terms.set(tag.toLowerCase(), tag);
-        });
-    });
-
+    const add = (t) => { if (t && !terms.has(t.toLowerCase())) terms.set(t.toLowerCase(), t); };
+    (Vault.getDictionaryTerms() || []).forEach(term => add(term.name));
+    (Vault.getDailyTasks() || []).forEach(task => (task.tags || []).forEach(add));
+    (Vault.getHabits() || []).forEach(habit => (habit.tags || []).forEach(add));
     (Vault.getQuests() || []).forEach(quest => {
-        if (quest.title && !terms.has(quest.title.toLowerCase())) {
-            terms.set(quest.title.toLowerCase(), quest.title);
-        }
-        (quest.tasks || []).forEach(task => {
-            if (task.label && !terms.has(task.label.toLowerCase())) {
-                terms.set(task.label.toLowerCase(), task.label);
-            }
-        });
+        add(quest.title);
+        (quest.tasks || []).forEach(task => add(task.label));
     });
-
     return [...terms.values()];
 }
 
@@ -62,64 +48,93 @@ function rescanTags() {
     TagPicker.rescan(document.getElementById('habit-tags-list'), [title, notes], collectKnownTerms());
 }
 
-function getQueryParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
+function sparksSVG(n) {
+    const spots = { 1: [[16, 16]], 2: [[9, 16], [23, 16]], 3: [[16, 9], [9, 21], [23, 21]], 4: [[9, 9], [23, 9], [9, 23], [23, 23]] }[n];
+    return `<svg viewBox="0 0 32 32" aria-hidden="true">${spots.map(([x, y]) =>
+        `<path d="M${x} ${y - 6}Q${x + 1} ${y - 1} ${x + 6} ${y}Q${x + 1} ${y + 1} ${x} ${y + 6}Q${x - 1} ${y + 1} ${x - 6} ${y}Q${x - 1} ${y - 1} ${x} ${y - 6}Z"/>`).join('')}</svg>`;
+}
+
+// ---- render the parts that change ----
+function renderColour() {
+    const style = HABIT_DIFFICULTY_STYLE[selectedDifficulty] || HABIT_DIFFICULTY_STYLE.Easy;
+    const form = document.getElementById('hf');
+    form.style.setProperty('--dc', style.color);
+    form.style.setProperty('--dk', style.ink);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', style.color);
+}
+
+function renderDifficulty() {
+    const grid = document.getElementById('hf-diff');
+    grid.innerHTML = HABIT_DIFFICULTY_TIERS.map(tier => {
+        const s = HABIT_DIFFICULTY_STYLE[tier.level];
+        const on = tier.level === selectedDifficulty;
+        return `<button type="button" class="hf-d${on ? ' on' : ''}" role="radio" aria-checked="${on}" data-level="${tier.level}" style="--c:${s.color};--k:${s.ink}">
+            ${sparksSVG(tier.sparks)}<span>${tier.level}</span></button>`;
+    }).join('');
+    document.getElementById('hf-dp-note').textContent = `${selectedDP} DP each tap`;
+    renderColour();
+}
+
+function renderToggles() {
+    const pos = document.getElementById('hf-positive');
+    const neg = document.getElementById('hf-negative');
+    pos.setAttribute('aria-pressed', String(habitPositiveEnabled));
+    neg.setAttribute('aria-pressed', String(habitNegativeEnabled));
+    pos.classList.toggle('on', habitPositiveEnabled);
+    neg.classList.toggle('on', habitNegativeEnabled);
+    document.getElementById('hf-pn-hint').textContent = habitPositiveEnabled && habitNegativeEnabled
+        ? "+ means you did it. − means you didn't."
+        : habitPositiveEnabled ? 'Tap + each time you do it.' : 'Tap − each time it slips in.';
+    document.getElementById('hf-adj-pos').hidden = !habitPositiveEnabled;
+    document.getElementById('hf-adj-neg').hidden = !habitNegativeEnabled;
+}
+
+function renderReset() {
+    document.querySelectorAll('#hf-reset button').forEach(btn => {
+        const on = btn.dataset.reset === selectedResetCounter;
+        btn.classList.toggle('on', on);
+        btn.setAttribute('aria-checked', String(on));
+        btn.setAttribute('role', 'radio');
+    });
+}
+
+function nudge(el) {
+    el.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], 260);
 }
 
 function loadExistingHabit(existing) {
     document.getElementById('habit-title-input').value = existing.label || '';
     document.getElementById('habit-notes-input').value = existing.notes || '';
-    selectedDifficulty = existing.difficulty || 'Easy';
+    selectedDifficulty = HABIT_DIFFICULTY_TIERS.some(t => t.level === existing.difficulty) ? existing.difficulty : 'Easy';
     selectedDP = Number(existing.dp) || HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
-    document.getElementById('habit-dp-value').textContent = selectedDP;
     TagPicker.render(document.getElementById('habit-tags-list'), existing.tags || []);
-
     // Absent on a habit saved before this toggle existed - default both on,
     // same "both, always" behavior it already had (see Vault.getHabits).
     habitPositiveEnabled = existing.positive !== false;
     habitNegativeEnabled = existing.negative !== false;
     selectedResetCounter = existing.resetCounter || 'daily';
-    renderActionToggles();
-    renderResetToggles();
 
-    document.getElementById('create-habit-heading').innerHTML = '✏️ <span class="gold-gradient-text">EDIT HABIT</span>';
-    document.getElementById('create-habit-subtitle').textContent = 'Update any part of this habit - changes apply immediately on save.';
-    document.getElementById('habit-save-btn').textContent = '💾 Save Changes';
+    document.getElementById('hf-heading').textContent = '';
+    document.getElementById('hf-delete').hidden = false;
+    document.getElementById('hf-save').textContent = 'SAVE';
+    document.getElementById('hf-adjust').hidden = false;
+    document.getElementById('hf-adj-pos-input').value = existing.periodPositiveCount || 0;
+    document.getElementById('hf-adj-neg-input').value = existing.periodNegativeCount || 0;
+    document.title = '✏️ Edit Habit';
 }
 
-// Reflects habitPositiveEnabled/habitNegativeEnabled onto the two toggle
-// buttons - called on load and after every click (see the click handlers
-// wired in DOMContentLoaded below).
-function renderActionToggles() {
-    const positiveBtn = document.querySelector('.habit-action-toggle--positive');
-    const negativeBtn = document.querySelector('.habit-action-toggle--negative');
-    positiveBtn.setAttribute('aria-pressed', String(habitPositiveEnabled));
-    negativeBtn.setAttribute('aria-pressed', String(habitNegativeEnabled));
-}
-
-function renderResetToggles() {
-    document.querySelectorAll('.habit-reset-btn').forEach(btn => {
-        btn.classList.toggle('habit-reset-btn--selected', btn.dataset.reset === selectedResetCounter);
-    });
-}
-
-function setupNewHabitDefaults() {
-    selectedDP = HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
-    document.getElementById('habit-dp-value').textContent = selectedDP;
-    TagPicker.render(document.getElementById('habit-tags-list'), []);
-    renderActionToggles();
-    renderResetToggles();
+function goBack() {
+    window.location.href = './habits.html';
 }
 
 function saveHabit() {
-    const label = document.getElementById('habit-title-input').value.trim();
+    const titleInput = document.getElementById('habit-title-input');
+    const label = titleInput.value.trim();
     if (!label) {
+        titleInput.focus();
+        nudge(titleInput.closest('.hf-field'));
         Toast.show('Give this habit a title first.', 'negative');
-        return;
-    }
-
-    if (!habitPositiveEnabled && !habitNegativeEnabled) {
-        Toast.show('Turn on at least one of Positive or Negative.', 'negative');
         return;
     }
 
@@ -127,7 +142,7 @@ function saveHabit() {
         label,
         dp: selectedDP,
         difficulty: selectedDifficulty,
-        notes: document.getElementById('habit-notes-input').value,
+        notes: document.getElementById('habit-notes-input').value.trim(),
         tags: TagPicker.getTags(document.getElementById('habit-tags-list')),
         positive: habitPositiveEnabled,
         negative: habitNegativeEnabled,
@@ -136,13 +151,19 @@ function saveHabit() {
 
     if (editingHabitId) {
         Vault.updateHabit(editingHabitId, payload);
-        Toast.show(`✅ Updated: ${label}`, 'positive');
+        const fresh = Vault.getHabits().find(h => h.id === editingHabitId);
+        const wantPos = habitPositiveEnabled ? Number(document.getElementById('hf-adj-pos-input').value) : undefined;
+        const wantNeg = habitNegativeEnabled ? Number(document.getElementById('hf-adj-neg-input').value) : undefined;
+        const counts = {};
+        if (wantPos !== undefined && wantPos !== fresh.periodPositiveCount) counts.positive = wantPos;
+        if (wantNeg !== undefined && wantNeg !== fresh.periodNegativeCount) counts.negative = wantNeg;
+        if (Object.keys(counts).length) Vault.setHabitPeriodCounts(editingHabitId, counts);
+        Toast.show(`✅ Saved: ${label}`, 'positive');
     } else {
         Vault.addHabit(payload);
-        Toast.show(`✅ New habit added: ${label}`, 'positive');
+        Toast.show(`✅ New habit: ${label}`, 'positive');
     }
-
-    window.location.href = './habits.html';
+    goBack();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -156,57 +177,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     Waggle.setActions(baseWaggleActions());
 
-    editingHabitId = getQueryParam('id');
+    editingHabitId = new URLSearchParams(window.location.search).get('id');
     const existing = editingHabitId ? Vault.getHabits().find(h => h.id === editingHabitId) : null;
-
     if (existing) {
         loadExistingHabit(existing);
     } else {
         editingHabitId = null;
-        setupNewHabitDefaults();
+        TagPicker.render(document.getElementById('habit-tags-list'), []);
     }
 
-    DifficultyPicker.render(document.getElementById('habit-difficulty-grid'), HABIT_DIFFICULTY_TIERS, selectedDifficulty, (tier) => {
-        selectedDifficulty = tier.level;
-        selectedDP = tier.dp;
-        document.getElementById('habit-dp-value').textContent = selectedDP;
-    });
+    renderDifficulty();
+    renderToggles();
+    renderReset();
     rescanTags();
+    if (!existing) setTimeout(() => document.getElementById('habit-title-input').focus(), 300);
 
-    document.querySelector('.habit-action-toggle--positive').addEventListener('click', () => {
-        if (habitPositiveEnabled && !habitNegativeEnabled) {
-            Toast.show('Turn on at least one of Positive or Negative.', 'negative');
-            return;
-        }
+    document.getElementById('hf-diff').addEventListener('click', (event) => {
+        const b = event.target.closest('.hf-d');
+        if (!b) return;
+        selectedDifficulty = b.dataset.level;
+        selectedDP = HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
+        renderDifficulty();
+    });
+
+    document.getElementById('hf-positive').addEventListener('click', (event) => {
+        if (habitPositiveEnabled && !habitNegativeEnabled) { nudge(event.currentTarget); return; }
         habitPositiveEnabled = !habitPositiveEnabled;
-        renderActionToggles();
+        renderToggles();
     });
-    document.querySelector('.habit-action-toggle--negative').addEventListener('click', () => {
-        if (habitNegativeEnabled && !habitPositiveEnabled) {
-            Toast.show('Turn on at least one of Positive or Negative.', 'negative');
-            return;
-        }
+    document.getElementById('hf-negative').addEventListener('click', (event) => {
+        if (habitNegativeEnabled && !habitPositiveEnabled) { nudge(event.currentTarget); return; }
         habitNegativeEnabled = !habitNegativeEnabled;
-        renderActionToggles();
+        renderToggles();
     });
 
-    document.querySelectorAll('.habit-reset-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedResetCounter = btn.dataset.reset;
-            renderResetToggles();
-        });
+    document.getElementById('hf-reset').addEventListener('click', (event) => {
+        const b = event.target.closest('button[data-reset]');
+        if (!b) return;
+        selectedResetCounter = b.dataset.reset;
+        renderReset();
     });
 
-    document.getElementById('habit-title-tip-btn').addEventListener('click', () => {
-        const tip = document.getElementById('habit-title-tip-text');
-        const button = document.getElementById('habit-title-tip-btn');
-        const willShow = tip.hidden;
-        tip.hidden = !willShow;
-        button.setAttribute('aria-expanded', String(willShow));
+    document.getElementById('hf-tip-btn').addEventListener('click', () => {
+        const tip = document.getElementById('hf-tip');
+        const button = document.getElementById('hf-tip-btn');
+        tip.hidden = !tip.hidden;
+        button.setAttribute('aria-expanded', String(!tip.hidden));
     });
 
     document.getElementById('habit-title-input').addEventListener('input', rescanTags);
     document.getElementById('habit-notes-input').addEventListener('input', rescanTags);
+    document.getElementById('habit-title-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') saveHabit(); });
 
     document.getElementById('habit-ask-eevee-btn').addEventListener('click', async () => {
         const title = document.getElementById('habit-title-input').value.trim();
@@ -219,22 +240,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         const originalLabel = btn.textContent;
         btn.textContent = '🐝 Buzzing...';
         btn.disabled = true;
-
         try {
             selectedDP = await Eevee.assessHabitDP(title, notes, selectedDifficulty);
-            document.getElementById('habit-dp-value').textContent = selectedDP;
+            document.getElementById('hf-dp-note').textContent = `${selectedDP} DP each tap`;
             Toast.show(`🐝 Eevee set this at ${selectedDP} DP.`, 'positive');
         } catch (error) {
-            Toast.show(`⚠️ ${error.message} Keeping the ${selectedDifficulty} tier default.`, 'negative');
+            Toast.show(`⚠️ ${error.message} Keeping the ${selectedDifficulty} default.`, 'negative');
         } finally {
             btn.textContent = originalLabel;
             btn.disabled = false;
         }
     });
 
-    document.getElementById('habit-cancel-btn').addEventListener('click', () => {
-        window.location.href = './habits.html';
-    });
+    document.getElementById('hf-back').addEventListener('click', goBack);
+    document.getElementById('hf-save').addEventListener('click', saveHabit);
 
-    document.getElementById('habit-save-btn').addEventListener('click', saveHabit);
+    // Delete asks for a second tap instead of a pop-up box.
+    document.getElementById('hf-delete').addEventListener('click', (event) => {
+        const btn = event.currentTarget;
+        if (!deleteArmed) {
+            deleteArmed = true;
+            btn.textContent = 'TAP AGAIN';
+            btn.classList.add('armed');
+            setTimeout(() => { deleteArmed = false; btn.textContent = 'DELETE'; btn.classList.remove('armed'); }, 2500);
+            return;
+        }
+        Vault.removeHabit(editingHabitId);
+        Toast.show('Habit deleted', 'negative');
+        goBack();
+    });
 });

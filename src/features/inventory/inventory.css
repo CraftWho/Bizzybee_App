@@ -290,44 +290,18 @@
     display: none;
 }
 
-/* Grid tile shine - back on for every tile (per request), re-tinted to
-   each tile's own rarity color instead of the plain white sweep the base
-   card uses elsewhere (bee-card.css's .bee-card-face::before). Reuses the
-   SAME --tile-color custom property .inventory-roster-tile already sets
-   per tile from beeCardColor(bee.rarity) (see createTile() in
-   inventory.js) - inherits down to this element for free, no extra JS
-   needed. Common's rarity color (#aaaaaa, db.js) already reads as silver,
-   Rare blue, Epic purple, Legendary gold, Named crimson - "match the
-   rarity" falls out of the existing color mapping automatically.
-   Note: this is a full BeeCard shrunk down per tile, so with a large
-   roster this means one animated/composited layer PER TILE running the
-   whole time the roster is open - the exact thing we disabled a bit ago
-   as a suspected contributor to the stutter reported on mobile (Samsung
-   Internet) opening a card from Grid view. Re-enabling it is what was
-   asked for here; if the stutter comes back, this rule is the first place
-   to look. */
-.inventory-roster-tile-scale .bee-card-face::before {
-    display: block;
-    animation: bee-card-shine 5s ease-in-out infinite alternate;
-    /* Mixed toward transparent (not opaque white) - the first version
-       mixed the tile color against solid white, which read as a bright
-       opaque pastel streak instead of a soft sweep. This blends 28% of the
-       tile color into transparency instead, much closer in strength to
-       the original card's own 6%-alpha white sweep while still carrying
-       the rarity tint. */
-    background: linear-gradient(120deg, transparent 35%, color-mix(in srgb, var(--tile-color, #fff) 28%, transparent) 50%, transparent 65%);
-}
+/* Grid tiles: the old per-tile white shine sweep came from the v1 card's
+   .bee-card-face::before, which the v2 card no longer has (Legendary and
+   Named cards carry their own foil sweep instead). */
 
 /* --- COVER FLOW MODE (v2): tight, angular "deck" of art-only tiles - no
    name/text printed on the tiny tiles themselves, that only shows once
    below for whichever bee is centered (.inventory-coverflow-info) - driven
    entirely by a JS index state (coverflowIndex in inventory.js), NOT
-   native scrolling/scroll-snap. Each tile reuses the REAL card's art
-   classes straight from bee-card.css (bee-card-art-frame--<rarity>,
-   bee-card-element-hex, bee-card-class-badge) plus the actual NanoBee
-   sprite (nano-bee.js) for its art - same "no hand-built lookalike" rule
-   the rest of this file already follows for Grid tiles, just applied to a
-   different (art-only) tile shape. 1 wheel notch = 1 card, faster notches
+   native scrolling/scroll-snap. Each tile IS the real v2 card's art
+   window (bee-card.css .bc-v2.bc-tile, built by beeCardArtHTML() in
+   bee-card.js) - same "no hand-built lookalike" rule the rest of this
+   file already follows for Grid tiles, just an art-only tile shape. 1 wheel notch = 1 card, faster notches
    carry through more cards, and ~1s of sustained fast scrolling opens
    Jump-to-Letter mode (the .inventory-letter-jump overlay). See the
    Cover Flow section of inventory.js for all of the above. */
@@ -348,9 +322,8 @@
     width: 100%;
 }
 
-/* Two-class selector beats bee-card.css's single-class .bee-card-art-frame
-   rules regardless of stylesheet load order - same convention
-   .inventory-roster-tile-scale already uses further up this file. */
+/* Two-class selector, loaded after bee-card.css, so these win over the
+   .bc-v2.bc-tile art-window rules (position, size, glow). */
 .inventory-roster-coverflow-track .inventory-cover-tile {
     position: absolute;
     left: 50%;
@@ -364,6 +337,11 @@
     will-change: transform, opacity;
     box-shadow: 0 0 14px color-mix(in srgb, var(--tile-color, #555) 40%, transparent);
     transition: transform 0.16s ease-out, opacity 0.16s ease-out;
+}
+
+/* Common stays plain - no glow, same as the full Common card. */
+.inventory-roster-coverflow-track .inventory-cover-tile.bc-r-common {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .5);
 }
 
 /* No easing lag while actively dragging - the deck should track the
@@ -396,13 +374,8 @@
    inventory.js toggle body.bee-roster-card-open for exactly as long as a
    card is enlarged, so the background tiles freeze while it's open and
    pick back up the moment you're back on the roster. */
-body.bee-roster-card-open .inventory-roster-tile-scale .bee-card-face::before,
 body.bee-roster-card-open .inventory-roster-coverflow-track .inventory-cover-tile::before {
     animation: none;
-}
-
-.inventory-cover-tile-icon-host {
-    pointer-events: none;
 }
 
 /* --- JUMP-TO-LETTER overlay - appears after ~1s of sustained fast

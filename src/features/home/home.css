@@ -1,214 +1,172 @@
+/* Home (rebuilt 2026-10-08). The royal + level bar live in the app's top
+   bar (global.css "APP SHELL"); this page is the hive strip, the Today
+   dropdown and the app grid. */
 .home-container {
+    --h-honey: #ffcc00;
+    --h-honey-hi: #fff2b0;
+    --h-amber: #e8a317;
+    --h-text: #f1ede2;
+    --h-muted: #a69a80;
+    --h-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     width: 100%;
-    max-width: 900px;
-    margin: 20px auto 60px;
-    padding: 0 25px;
+    max-width: 1000px;
+    margin: 14px auto 0;
+    padding: 0 16px;
     box-sizing: border-box;
-}
-
-/* --- STATUS STRIP --- */
-.home-status-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.home-status-name {
-    font-size: 1.7rem;
-    font-weight: bold;
-    color: var(--gold-start);
-}
-
-.home-status-level {
-    color: #ccc;
-    font-size: 1.15rem;
-}
-
-.home-status-level strong {
-    color: var(--gold-start);
-    font-size: 1.5rem;
-}
-
-/* --- CHARACTER LEVEL BAR (lives in the same status panel as Name/Level,
-   not its own section) - the bar/badge/shake/Level Up button/celebration
-   are all the shared src/core/level-bar/level-bar.css now; this is just
-   the spacing for its wrapper. --- */
-.home-level-bar-wrap {
-    margin-top: 12px;
-}
-
-/* --- COLLAPSIBLE HOME SECTIONS (Active Quest, Daily Tasks) - collapsed by
-   default so the app icon grid isn't buried below them, centered content,
-   each with a link out to its own full page. --- */
-/* The toggle button holds the chevron AND the h3 side by side, so the new
-   global ".panel h3" rectangle-banner rule (see global.css) would only box
-   the text half, leaving the chevron stranded outside it. Box the whole
-   button instead - same bleed-to-the-panel's-edges trick, and explicitly
-   flatten the nested h3 back to plain text so it isn't boxed twice. */
-.home-collapsible .home-section-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    /* `<button>` doesn't behave like a plain block box for width:auto -
-       even with display:flex, it shrinks to fit its content instead of
-       filling the available width (unlike a div/h3), so leaving width
-       unset just made the bar too narrow. `width: 100%` alone was also
-       wrong (over-constrained against the -20px margins below, so the
-       browser silently dropped the right margin and the bar fell short
-       of the panel's right edge). Spelling the width out explicitly as
-       "100% of the content area, plus the 40px of padding being
-       cancelled" sidesteps both problems and reliably bleeds flush on
-       BOTH sides. */
-    width: calc(100% + 40px);
-    background: #0a0a0a;
-    border: none;
-    border-bottom: 2px solid var(--crimson);
-    border-radius: 8px 8px 0 0;
-    box-shadow: none;
-    cursor: pointer;
-    padding: 14px 20px;
-    margin: -20px -20px 0;
-}
-
-.home-collapsible .home-section-toggle:hover {
-    transform: none;
-    box-shadow: none;
-}
-
-.home-collapsible .home-section-toggle h3 {
-    margin: 0;
-    background: none;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-}
-
-.home-section-chevron {
-    color: var(--crimson);
-    font-size: 1rem;
-    transition: transform 0.2s ease;
-}
-
-.home-collapsible--collapsed .home-section-chevron {
-    transform: rotate(-90deg);
-}
-
-/* Smooth expand/collapse via the CSS grid-rows trick (0fr <-> 1fr) rather
-   than a hard display:none snap - the chevron already had its own
-   transition (rotate, above), but the body itself used to just vanish/
-   appear instantly, which read as broken/glitchy next to a part that DID
-   animate. grid-template-rows can transition to/from an intrinsic height
-   without any JS measuring the content's real height; the inner wrapper
-   needs its own overflow:hidden since a 0fr row still technically has
-   content trying to render inside it mid-transition. */
-.home-section-body {
     display: grid;
-    grid-template-rows: 1fr;
-    opacity: 1;
-    transition: grid-template-rows 0.3s ease, opacity 0.25s ease;
-}
-
-.home-collapsible--collapsed .home-section-body {
-    grid-template-rows: 0fr;
-    opacity: 0;
-}
-
-.home-section-body-inner {
-    overflow: hidden;
-    margin-top: 18px;
-    text-align: center;
-}
-
-.home-section-body .task-list {
-    max-width: 420px;
-    margin: 0 auto;
-    text-align: left;
-    font-size: 1.1rem;
-}
-
-.home-section-link {
-    display: inline-block;
-    margin-top: 15px;
-    color: var(--gold-start);
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 1.05rem;
-}
-
-.home-section-link:hover {
-    text-decoration: underline;
-}
-
-/* --- ACTIVE QUEST (simplified) --- */
-.home-active-quest-title {
-    color: var(--crimson);
-    font-weight: bold;
-    font-size: 1.25rem;
-    margin: 0 0 12px;
-    text-align: center;
-}
-
-/* --- Shared task-list row treatment for both Active Quest and Daily Tasks --- */
-.home-task-label {
-    flex: 1;
-}
-
-.home-task-label--done {
-    text-decoration: line-through;
-    opacity: 0.6;
-}
-
-/* --- APP ICON GRID: 4 square icons per row - "more apps" launcher for
-   destinations that live outside the header nav (Skills, Dictionary,
-   Profile, Settings, Honey Store, Plugins, The Hive Archive - all pulled
-   from the header/promoted out of it to keep the header itself short). --- */
-.home-app-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
-    margin-top: 25px;
+    grid-template-columns: 1fr;
+    font-family: var(--h-sans);
+    color: var(--h-text);
+}
+.home-container * { box-sizing: border-box; }
+.home-container button { font-family: inherit; box-shadow: none; transform: none; }
+.home-container button:hover { transform: none; box-shadow: none; }
+
+.home-card {
+    position: relative;
+    background: rgba(14, 11, 6, .88);
+    border: 1px solid rgba(255, 204, 0, .18);
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 230, 150, .06);
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+}
+.home-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--crimson) 20%, var(--crimson) 80%, transparent);
+    opacity: .85;
 }
 
-.home-app-icon {
-    aspect-ratio: 1 / 1;
+.home-rise { opacity: 0; transform: translateY(14px); animation: homeRise .7s cubic-bezier(.2, .8, .2, 1) forwards; animation-delay: calc(var(--i, 0) * 110ms + 80ms); }
+@keyframes homeRise { to { opacity: 1; transform: none; } }
+
+/* ---- hive strip ---- */
+.home-hive { display: grid; grid-template-columns: repeat(3, 1fr) auto; align-items: center; padding: 12px 8px 12px 6px; text-decoration: none; color: inherit; transition: border-color .2s; }
+.home-hive:hover { border-color: rgba(255, 204, 0, .35); }
+.home-hive-stat { text-align: center; border-right: 1px solid rgba(255, 204, 0, .1); }
+.home-hive-stat:nth-child(3) { border-right: 0; }
+.home-hive-stat b { display: block; font: 700 1.15rem/1.1 var(--font-main); color: var(--h-honey); font-variant-numeric: tabular-nums; }
+.home-hive-stat b.is-bad { color: #ff5a4a; }
+.home-hive-stat small { font-size: .72rem; color: var(--h-muted); }
+.home-hive-go { color: var(--h-honey); font-size: 1.3rem; padding: 0 8px; transition: transform .2s; }
+.home-hive:hover .home-hive-go { transform: translateX(3px); }
+
+/* ---- Today (dropdown, closed by default) ---- */
+.home-today-head {
+    width: 100%;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: #151515;
-    border: 1px solid #333;
-    border-top: 2px solid var(--crimson);
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    text-decoration: none;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
 }
+.home-ring { width: 46px; height: 46px; flex: none; }
+.home-ring circle { fill: none; stroke-width: 5; }
+.home-ring-bg { stroke: #2a1f08; }
+.home-ring-fg { stroke: url(#homeRingG); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .9s cubic-bezier(.2, .8, .2, 1); }
+.home-ring text { font: 700 12px var(--font-main); fill: var(--h-honey); }
+.home-today-title { flex: 1; min-width: 0; }
+.home-today-title b { display: block; font: 700 1.05rem var(--font-main); letter-spacing: .08em; color: var(--h-honey); }
+.home-today-title small { display: block; margin-top: 2px; font-size: .8rem; color: var(--h-muted); }
+.home-chev { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 204, 0, .08); transition: transform .35s cubic-bezier(.3, .9, .3, 1.1), background .2s; }
+.home-chev svg { width: 18px; height: 18px; fill: none; stroke: var(--h-honey); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.home-today-head:hover .home-chev { background: rgba(255, 204, 0, .16); }
+.home-today.open .home-chev { transform: rotate(180deg); }
+.home-today-head:focus-visible { outline: 2px solid var(--h-honey); outline-offset: -4px; border-radius: 16px; }
+.home-today-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .45s cubic-bezier(.3, .9, .3, 1); }
+.home-today.open .home-today-body { grid-template-rows: 1fr; }
+.home-today-inner { overflow: hidden; min-height: 0; }
+.home-today:not(.open) .home-today-inner { visibility: hidden; transition: visibility 0s .45s; }
 
-.home-app-icon:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 12px var(--gold-glow);
+.home-tabs { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 12px; padding: 4px; background: #0a0703; border: 1px solid rgba(255, 204, 0, .12); border-radius: 12px; }
+.home-tab { position: relative; z-index: 1; padding: 9px 2px; border: 0; border-radius: 9px; background: none; cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--h-muted); transition: color .2s; }
+.home-tab[aria-selected="true"] { color: #1a1000; }
+.home-tab-n { display: inline-block; min-width: 18px; margin-left: 4px; padding: 1px 5px; border-radius: 999px; font-size: .68rem; background: rgba(255, 204, 0, .14); color: var(--h-honey); }
+.home-tab-n[hidden] { display: none; }
+.home-tab[aria-selected="true"] .home-tab-n { background: rgba(0, 0, 0, .18); color: #1a1000; }
+.home-tab-pill { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 4); border-radius: 9px; background: linear-gradient(180deg, var(--h-honey-hi), var(--h-honey) 50%, var(--h-amber)); box-shadow: 0 2px 10px rgba(255, 204, 0, .35); transition: transform .35s cubic-bezier(.3, .9, .3, 1.1); }
+
+.home-panel { position: relative; min-height: 120px; padding: 8px 8px 0; }
+.home-enter { animation: homeIn .35s ease; }
+@keyframes homeIn { from { opacity: 0; transform: translateX(var(--dx, 12px)); } to { opacity: 1; transform: none; } }
+.home-list { list-style: none; margin: 0; padding: 0; }
+.home-row { position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 10px; border-radius: 12px; transition: background .2s; }
+.home-row:hover { background: rgba(255, 204, 0, .04); }
+.home-row-text { flex: 1; min-width: 0; font-size: .95rem; line-height: 1.3; }
+.home-row-text span { overflow-wrap: anywhere; }
+.home-row-text small { display: block; margin-top: 2px; font-size: .74rem; color: var(--h-muted); }
+.home-row.done .home-row-text { color: #8a826e; }
+.home-row.done .home-row-text span { text-decoration: line-through; text-decoration-color: rgba(255, 204, 0, .5); }
+.home-dp { flex: none; font: 600 .74rem var(--font-main); color: var(--h-honey); opacity: .85; }
+.home-row.done .home-dp { opacity: .35; }
+.home-due { flex: none; font-size: .7rem; padding: 3px 7px; border-radius: 999px; background: rgba(220, 20, 60, .16); color: #ff8a9a; border: 1px solid rgba(220, 20, 60, .35); }
+.home-due.soon { background: rgba(255, 204, 0, .1); color: #e9cf7a; border-color: rgba(255, 204, 0, .3); }
+.home-quest-title { margin: 6px 10px 2px; font: 700 .95rem var(--font-main); color: var(--crimson); }
+.home-habits { padding: 2px 0 4px; }
+.home-habits .hr-row { min-height: 62px; }
+.home-habits .hr-side { width: 56px; }
+.home-empty { padding: 26px 16px; text-align: center; color: var(--h-muted); font-size: .88rem; }
+.home-empty b { display: block; font-size: 1.6rem; margin-bottom: 6px; }
+
+/* hex check: an empty cell that fills with honey */
+.home-check { flex: none; width: 30px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+.home-check svg { width: 100%; height: 100%; overflow: visible; }
+.hc-cell { fill: #120c03; stroke: #8a6a1a; stroke-width: 1.6; transition: stroke .25s; }
+.hc-fill { fill: #ffcc00; transform-origin: 50% 100%; transform: scaleY(0); transition: transform .35s cubic-bezier(.3, .9, .3, 1.2); }
+.hc-tick { fill: none; stroke: #2a1600; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .3s .15s ease; }
+.home-row.done .hc-fill { transform: scaleY(1); }
+.home-row.done .hc-tick { stroke-dashoffset: 0; }
+.home-row.done .hc-cell, .home-check:hover .hc-cell { stroke: var(--h-honey); }
+.home-check:focus-visible { outline: 2px solid var(--h-honey); outline-offset: 2px; }
+.home-pop { animation: homePop .45s cubic-bezier(.3, 1.6, .4, 1); }
+@keyframes homePop { 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
+.home-ripple { position: absolute; left: 25px; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid var(--h-honey); pointer-events: none; animation: homeRipple .6s ease-out forwards; }
+@keyframes homeRipple { to { transform: scale(6); opacity: 0; } }
+.home-float { position: absolute; right: 14px; top: 6px; font: 700 .85rem var(--font-main); pointer-events: none; animation: homeFloat 1.1s ease-out forwards; }
+.home-float.good { color: var(--h-honey); text-shadow: 0 0 8px rgba(255, 204, 0, .6); }
+.home-float.bad { color: #ff5a4a; }
+@keyframes homeFloat { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px); } }
+.home-today-foot { display: flex; align-items: center; padding: 8px 16px 12px; margin-top: 6px; border-top: 1px solid rgba(255, 204, 0, .08); }
+.home-today-foot a { color: var(--h-honey); text-decoration: none; font-weight: 600; font-size: .85rem; }
+.home-today-foot a:hover { text-decoration: underline; }
+
+/* ---- app grid: frosted hexagons + frosted name pills over the honeycomb ---- */
+.home-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 2px 4px; }
+.home-app { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 8px 2px; border-radius: 14px; text-decoration: none; transition: transform .2s; }
+.home-app:active { transform: scale(.95); }
+.home-app-ic {
+    position: relative;
+    width: 64px;
+    height: 70px;
+    display: grid;
+    place-items: center;
+    font-size: 1.95rem;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    background: radial-gradient(circle at 50% 35%, rgba(78, 54, 10, .86), rgba(10, 6, 1, .92));
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    backdrop-filter: blur(10px) saturate(1.2);
+    transition: transform .25s cubic-bezier(.3, 1.4, .4, 1), background .25s;
 }
+.home-app:hover .home-app-ic { transform: translateY(-2px) scale(1.06); background: radial-gradient(circle at 50% 35%, rgba(130, 90, 12, .9), rgba(14, 9, 1, .94)); }
+.home-app-label { padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, .82); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #f3e6bd; font-size: .74rem; font-weight: 600; text-align: center; line-height: 1.15; }
+.home-app:focus-visible { outline: 2px solid var(--h-honey); outline-offset: 2px; }
 
-.home-app-icon-emoji {
-    font-size: 2.5rem;
-    line-height: 1;
+@media (min-width: 860px) {
+    .home-container { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "hive hive" "today apps"; align-items: start; gap: 18px; margin-top: 22px; }
+    .home-hive { grid-area: hive; }
+    .home-today { grid-area: today; }
+    .home-apps { grid-area: apps; }
 }
-
-.home-app-icon-label {
-    color: var(--gold-start);
-    font-size: 0.95rem;
-    font-weight: bold;
-    text-align: center;
-    letter-spacing: 0.3px;
-}
-
-@media (max-width: 480px) {
-    .home-app-icon-emoji {
-        font-size: 2rem;
-    }
-    .home-app-icon-label {
-        font-size: 0.8rem;
-    }
+@media (prefers-reduced-motion: reduce) {
+    .home-rise, .home-enter, .home-pop, .home-ripple, .home-float { animation: none !important; opacity: 1; transform: none; }
 }

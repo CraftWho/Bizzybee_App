@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🥚 A Gift</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="./onboarding.css">
+</head>
+<body class="onboarding-page">
+<!-- The egg gift (EGG_ORIGIN_STORY_SPEC.md). Every player sees this until
+     their egg hatches - db.js's _onboardingGate() sends other pages here.
+     ?practice=1 (Settings > Developer) plays it without saving anything. -->
+
+<div class="gift" id="gift" hidden role="button" tabindex="0" aria-label="A gift from the developer. Tap to continue.">
+ <div class="gift-in">
+  <svg class="gift-logo" viewBox="0 0 100 100" aria-hidden="true">
+ <defs>
+  <linearGradient id="gl-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e3a4"/><stop offset=".45" stop-color="#d9b968"/><stop offset="1" stop-color="#a8823a"/></linearGradient>
+ </defs>
+ <g fill="none" stroke="url(#gl-gold)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M46 22 L39 12"/><path d="M54 22 L61 12"/>
+  <path d="M43 30 L31 19"/><path d="M57 30 L69 19"/>
+  <path d="M40 51 L33 58 L30 72"/><path d="M60 51 L67 58 L70 72"/>
+  <path d="M39 56 L31 62"/><path d="M61 56 L69 62"/>
+ </g>
+ <g fill="url(#gl-gold)" stroke="#2a1a04" stroke-width="1.1" stroke-linejoin="round">
+  <!-- upper wings, tips lifted -->
+  <path d="M44 34 C36 28 20 24 12 27 C6 30 7 37 14 40 C22 43 35 43 44 41Z"/>
+  <path d="M56 34 C64 28 80 24 88 27 C94 30 93 37 86 40 C78 43 65 43 56 41Z"/>
+  <!-- lower wings -->
+  <path d="M44 41 C36 42 27 45 25 49 C24 53 31 54 37 52 C41 50 44 47 45 44Z"/>
+  <path d="M56 41 C64 42 73 45 75 49 C76 53 69 54 63 52 C59 50 56 47 55 44Z"/>
+  <!-- head -->
+  <circle cx="50" cy="25.5" r="5"/>
+  <!-- thorax -->
+  <ellipse cx="50" cy="39" rx="8.6" ry="9.5"/>
+  <!-- abdomen bands -->
+  <path d="M39.6 51 H60.4 C61.4 53 61.4 55 60.8 56.6 H39.2 C38.6 55 38.6 53 39.6 51Z"/>
+  <path d="M38.8 59 H61.2 C61.4 61 61 63 60.2 64.6 H39.8 C39 63 38.6 61 38.8 59Z"/>
+  <path d="M40.6 67 H59.4 C58.6 69 57.6 71 56.4 72.6 H43.6 C42.4 71 41.4 69 40.6 67Z"/>
+  <path d="M45 75 H55 C53.8 77.6 52.2 80 50 82.5 C47.8 80 46.2 77.6 45 75Z"/>
+ </g>
+</svg>
+  <h1>A gift from the developer.</h1>
+  <p>Take care of it.</p>
+  <small>Tap to continue</small>
+ </div>
+</div>
+
+<div class="practice-bar" id="practiceBar" hidden><span><b>Practice</b> · nothing is saved</span><button id="practiceSkip">Skip wait</button><button id="practiceExit">Exit</button></div>
+
+<div class="motes" id="motes"></div>
+<div class="sunrise" id="sunrise"></div>
+<div class="reveal-title" id="revealTitle"></div>
+<div class="stage" id="stage">
+ <div class="egg-wrap" id="egg" tabindex="0" role="button" aria-label="A mysterious egg. Press and hold.">
+  <div class="aura" id="aura"></div>
+  <div class="glow" id="glow"></div>
+  <svg class="rim rim-wide" id="rimWide" viewBox="0 0 120 150" aria-hidden="true"><path/></svg>
+  <svg class="rim rim-mid" id="rimMid" viewBox="0 0 120 150" aria-hidden="true"><path/></svg>
+  <div class="royal" id="royal"></div>
+  <div class="egg-shake" id="shake">
+   <svg class="egg-svg" id="eggSvg" viewBox="0 0 120 150" aria-hidden="true"></svg>
+   <svg class="egg-svg egg-glow" id="eggGlow" viewBox="0 0 120 150" aria-hidden="true"></svg>
+   <svg class="rim rim-line" id="rimLine" viewBox="0 0 120 150" aria-hidden="true"><path/></svg>
+   <svg class="egg-svg cell-svg" id="cellSvg" viewBox="0 0 120 150" aria-hidden="true"></svg>
+   <div class="halves" id="halves"></div>
+   <div class="shock" id="shock"></div>
+   <svg class="egg-logo" id="badge" viewBox="0 0 100 100" aria-hidden="true">
+ <defs>
+  <linearGradient id="bl-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e3a4"/><stop offset=".45" stop-color="#d9b968"/><stop offset="1" stop-color="#a8823a"/></linearGradient>
+ </defs>
+ <g fill="none" stroke="url(#bl-gold)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M46 22 L39 12"/><path d="M54 22 L61 12"/>
+  <path d="M43 30 L31 19"/><path d="M57 30 L69 19"/>
+  <path d="M40 51 L33 58 L30 72"/><path d="M60 51 L67 58 L70 72"/>
+  <path d="M39 56 L31 62"/><path d="M61 56 L69 62"/>
+ </g>
+ <g fill="url(#bl-gold)" stroke="#2a1a04" stroke-width="1.1" stroke-linejoin="round">
+  <!-- upper wings, tips lifted -->
+  <path d="M44 34 C36 28 20 24 12 27 C6 30 7 37 14 40 C22 43 35 43 44 41Z"/>
+  <path d="M56 34 C64 28 80 24 88 27 C94 30 93 37 86 40 C78 43 65 43 56 41Z"/>
+  <!-- lower wings -->
+  <path d="M44 41 C36 42 27 45 25 49 C24 53 31 54 37 52 C41 50 44 47 45 44Z"/>
+  <path d="M56 41 C64 42 73 45 75 49 C76 53 69 54 63 52 C59 50 56 47 55 44Z"/>
+  <!-- head -->
+  <circle cx="50" cy="25.5" r="5"/>
+  <!-- thorax -->
+  <ellipse cx="50" cy="39" rx="8.6" ry="9.5"/>
+  <!-- abdomen bands -->
+  <path d="M39.6 51 H60.4 C61.4 53 61.4 55 60.8 56.6 H39.2 C38.6 55 38.6 53 39.6 51Z"/>
+  <path d="M38.8 59 H61.2 C61.4 61 61 63 60.2 64.6 H39.8 C39 63 38.6 61 38.8 59Z"/>
+  <path d="M40.6 67 H59.4 C58.6 69 57.6 71 56.4 72.6 H43.6 C42.4 71 41.4 69 40.6 67Z"/>
+  <path d="M45 75 H55 C53.8 77.6 52.2 80 50 82.5 C47.8 80 46.2 77.6 45 75Z"/>
+ </g>
+</svg>
+  </div>
+ </div>
+</div>
+
+<div class="after" id="after">
+ <div class="energy"><b>ENERGY</b><div class="bar" id="energy"><span></span></div><em id="energyNum">0 / 100</em></div>
+ <div class="qlog" id="qlog"></div>
+</div>
+
+<div class="sheet" id="introSheet" hidden><div class="card">
+ <h2>🐝 Habits unlocked</h2>
+ <p>Habits are the small things you do again and again. They build who you are.</p>
+ <p>Tap <b style="color:#ffd76a">+</b> when you do a good one. Tap <b style="color:#ff6a5a">−</b> when a bad one slips in. Good habits feed your egg. Bad ones drain it, a little. Reality waits on no one.</p>
+ <p>Now make one of your own.</p>
+ <div class="row2"><button class="btn ghost" id="introLater">Later</button><button class="btn" id="introMake">Make my own habit</button></div>
+</div></div>
+
+<div class="sheet" id="makeSheet" hidden><div class="card">
+ <h2 id="makeTitle">New habit</h2>
+ <label for="habitName">What is it?</label>
+ <input type="text" id="habitName" maxlength="40" placeholder="e.g. Drink a glass of water" autocomplete="off">
+ <label>Is it good or bad? <span style="color:#6f6b62">(pick one or both)</span></label>
+ <div class="seg"><button type="button" class="g" id="segGood" aria-pressed="true">+ Good</button><button type="button" class="b" id="segBad" aria-pressed="false">− Bad</button></div>
+ <div class="hintline" id="makeHint">Good habits feed the egg when you tap +.</div>
+ <div class="row2"><button class="btn ghost" id="makeCancel">Cancel</button><button class="btn" id="makeSave">Create</button></div>
+</div></div>
+
+<div class="sheet" id="todoSheet" hidden><div class="card">
+ <h2>New To-Do</h2>
+ <label for="todoName">What needs doing?</label>
+ <input type="text" id="todoName" maxlength="60" placeholder="e.g. Call the dentist" autocomplete="off">
+ <label>Due date</label>
+ <div class="seg" id="dueSeg"><button type="button" class="g" data-d="" aria-pressed="true">None</button><button type="button" class="g" data-d="today" aria-pressed="false">Today</button><button type="button" class="g" data-d="tomorrow" aria-pressed="false">Tomorrow</button></div>
+ <label for="todoSteps">Steps <span style="color:#6f6b62">(optional, one per line)</span></label>
+ <textarea class="ta" id="todoSteps" rows="3" placeholder="Find the number&#10;Pick a time"></textarea>
+ <div class="row2"><button class="btn ghost" id="todoCancel">Cancel</button><button class="btn" id="todoSave">Add To-Do</button></div>
+</div></div>
+
+<div class="sheet" id="story" hidden><div class="card" id="storyCard"></div></div>
+<div class="flash" id="flash"></div>
+
+<script src="../../core/db.js"></script>
+<script src="../../core/plugins.js"></script>
+<script src="../../core/app.js"></script>
+<script src="./egg-designs.js"></script>
+<script src="./onboarding.js"></script>
+</body>
+</html>

@@ -54,7 +54,7 @@ The M01 build notes referred to them by upload names (primary, profile, mechanic
 - `BB_Ref_02_Render_Side.png` - 3D-style side render. Best guide for proportions and materials.
 - `BB_Ref_03_Illustration_ThreeQuarter.png` - three-quarter illustration. Best guide for head, mandibles, rivets.
 - `BB_Ref_04_Illustration_Side.png` - flat side illustration. Best guide for silhouette and leg stance.
-- `BB_Ref_05_Head_Front.png` - head from the front (added 2026-10-01). **The target for the head**: wide shield shape, big side eyes with thick gold rims, gold crown, two-panel face shield with centre seam, cheek plates under the eyes, four dark mandible blades. No beak.
+- `BB_Ref_05_Head_Front.png` (original file: `BB_Ref_05_Head_Front_source.jpg`) - head from the front (added 2026-10-01). **The target for the head**: wide shield shape, big side eyes with thick gold rims, gold crown, two-panel face shield with centre seam, cheek plates under the eyes, four dark mandible blades. No beak.
 
 ### Inspiration (`reference/inspiration/`)
 
@@ -64,7 +64,7 @@ flying sprite sheet). Kept for history and mood only. The user confirmed the cur
 design (the four references above) stands - this is not a rebrand. The sprite sheet may
 still help later with the hover/flap animation in M07.
 
-Also useful: `BeeDiagram_01_External.jpg` (project root) for real bee anatomy
+Also useful: `reference/BeeDiagram_01_External.jpg` (moved here from the project root 2026-10-05) for real bee anatomy
 (segmented legs, pollen basket, fore/hind wing sizes, elbowed antennae).
 
 Design traits all references share: narrow waist connector between thorax and abdomen;
@@ -82,7 +82,7 @@ Only M01 and M07 (drill/tool swap) are from the original notes.
 | # | Name | Scope |
 |---|------|-------|
 | M01 | Proportion blockout | Done 2026-09-06. Parts, controls, attachment mounts, mandible driver. |
-| M02 | Silhouette | Waist connector, helmet head shape, abdomen taper, standing pose. |
+| M02 | Silhouette | **In progress, paused 2026-10-05** (head being refined). WIP scripts in `wip_M02_scripts/`, file `output/milestones/BB_M02_Silhouette.blend`. Head shape, neck/waist, abdomen taper and droop, wing outline, standing pose. |
 | M03 | Legs and antennae | 3-segment legs, hooked claw feet, elbowed banded antennae. |
 | M04 | Wings | Fore/hind wing shapes, gold vein web, membrane look. |
 | M05 | Head details | Faceted hex eye lenses, gold eye rings, faceplate, mandibles. |

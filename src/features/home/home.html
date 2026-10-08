@@ -19,47 +19,47 @@
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../../core/level-bar/level-bar.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/habit-row/habit-row.css">
     <link rel="stylesheet" href="./home.css">
 </head>
 <body>
 
     <main class="home-container">
 
-        <section class="panel home-status-panel">
-            <div class="home-status-row">
-                <span class="home-status-name" id="home-user-name">—</span>
-                <span class="home-status-level">Level <strong id="home-user-level">—</strong></span>
-            </div>
-            <div class="home-level-bar-wrap" id="home-level-bar"></div>
-        </section>
+        <a class="home-card home-hive home-rise" style="--i:0" id="home-hive" href="../colony/colony.html" aria-label="Open the hive">
+            <div class="home-hive-stat"><b id="home-hive-bees">0</b><small>🐝 bees</small></div>
+            <div class="home-hive-stat"><b id="home-hive-honey">0</b><small>🍯 honey cells</small></div>
+            <div class="home-hive-stat"><b id="home-hive-decay" class="is-bad">0</b><small>🥀 decayed</small></div>
+            <span class="home-hive-go" aria-hidden="true">›</span>
+        </a>
 
-        <section class="panel home-collapsible home-collapsible--collapsed" id="home-active-quest-section">
-            <button class="home-section-toggle" aria-expanded="false">
-                <span class="home-section-chevron">▾</span>
-                <h3>🎯 <span class="gold-gradient-text">ACTIVE QUEST</span></h3>
+        <section class="home-card home-today home-rise" style="--i:1" id="home-today">
+            <button type="button" class="home-today-head" id="home-today-toggle" aria-expanded="false" aria-controls="home-today-body">
+                <svg class="home-ring" viewBox="0 0 46 46" aria-hidden="true">
+                    <defs><linearGradient id="homeRingG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset="1" stop-color="#e8a317"/></linearGradient></defs>
+                    <circle class="home-ring-bg" cx="23" cy="23" r="19"/>
+                    <circle class="home-ring-fg" id="home-ring-fg" cx="23" cy="23" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+                    <text x="23" y="27" text-anchor="middle" id="home-ring-text">0</text>
+                </svg>
+                <span class="home-today-title"><b>TODAY</b><small id="home-today-sub"></small></span>
+                <span class="home-chev" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M5 8 L10 13 L15 8"/></svg></span>
             </button>
-            <div class="home-section-body">
-                <div class="home-section-body-inner">
-                    <div id="home-active-quest"></div>
-                    <a href="../quests/quests.html" class="home-section-link">View All Quests →</a>
+            <div class="home-today-body" id="home-today-body">
+                <div class="home-today-inner">
+                    <div class="home-tabs" role="tablist" id="home-tabs">
+                        <span class="home-tab-pill" id="home-tab-pill"></span>
+                        <button type="button" class="home-tab" role="tab" data-tab="dailies">Dailies<span class="home-tab-n" data-n="dailies"></span></button>
+                        <button type="button" class="home-tab" role="tab" data-tab="habits">Habits</button>
+                        <button type="button" class="home-tab" role="tab" data-tab="todos">To-Dos<span class="home-tab-n" data-n="todos"></span></button>
+                        <button type="button" class="home-tab" role="tab" data-tab="quest">Quest<span class="home-tab-n" data-n="quest"></span></button>
+                    </div>
+                    <div class="home-panel" id="home-panel"></div>
+                    <div class="home-today-foot"><a href="../dailies/dailies.html" id="home-see-all">Open Dailies →</a></div>
                 </div>
             </div>
         </section>
 
-        <section class="panel home-collapsible home-collapsible--collapsed" id="home-daily-section">
-            <button class="home-section-toggle" aria-expanded="false">
-                <span class="home-section-chevron">▾</span>
-                <h3>☀️ <span class="gold-gradient-text">DAILY TASKS</span></h3>
-            </button>
-            <div class="home-section-body">
-                <div class="home-section-body-inner">
-                    <ul class="task-list" id="home-daily-task-list"></ul>
-                    <a href="../dailies/dailies.html" class="home-section-link">View All Dailies →</a>
-                </div>
-            </div>
-        </section>
-
-        <section class="home-app-grid" id="home-app-grid"></section>
+        <section class="home-apps home-rise" style="--i:2" id="home-app-grid" aria-label="Apps"></section>
 
     </main>
 
@@ -73,6 +73,7 @@
     <script src="../../core/level-bar/level-bar.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/habit-row/habit-row.js"></script>
     <script src="./home.js"></script>
 </body>
 </html>
