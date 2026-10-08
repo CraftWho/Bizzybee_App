@@ -18,21 +18,22 @@
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../../core/status-dot/status-dot.css">
     <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/habit-row/habit-row.css">
     <link rel="stylesheet" href="./habits.css">
 </head>
 <body>
 
     <main class="habits-container">
         <h2 class="habits-title">✅ <span class="gold-gradient-text">HABITS</span></h2>
-        <p class="habits-subtitle">Click + or - any time - no schedule, no reset. Use the honeycomb button below to add a new one.</p>
+        <p class="habits-subtitle">Tap + when you do it, − when you slip. Tap a habit to edit it. Hold it to move it.</p>
 
         <div id="habits-not-installed" class="panel habits-not-installed" hidden>
             <p>This plugin isn't installed yet.</p>
             <a href="../plugin-hub/plugin-hub.html" class="habits-install-link">🧩 Go to Plugin Hub →</a>
         </div>
 
-        <section class="panel" id="habits-app" hidden>
-            <ul class="habit-list" id="habit-list"></ul>
+        <section id="habits-app" hidden>
+            <div id="habit-list"></div>
         </section>
     </main>
 
@@ -46,6 +47,7 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../../features/llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/habit-row/habit-row.js"></script>
     <script src="./habits.js"></script>
 </body>
 </html>

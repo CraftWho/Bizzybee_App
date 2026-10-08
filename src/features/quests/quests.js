@@ -948,4 +948,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
         ...baseWaggleActions()
     ]);
+
+    // The dock's + (or Home's Create > Quest) lands here with #new-quest.
+    if (window.location.hash === '#new-quest') {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        CreateQuestModal.open();
+    }
 });

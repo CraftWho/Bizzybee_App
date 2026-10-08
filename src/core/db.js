@@ -311,7 +311,10 @@ const BEE_RARITIES = [
     { rarity: 'Rare', weight: 25, color: '#4aa3ff' },
     { rarity: 'Epic', weight: 12, color: '#b06bff' },
     { rarity: 'Legendary', weight: 3, color: 'var(--gold-start)' },
-    { rarity: 'Named', weight: 0, color: '#ff2d78' }
+    { rarity: 'Named', weight: 0, color: '#ff2d78' },
+    // Royal: the Queen/King hatched in onboarding (the egg gift). Never
+    // rolled (weight 0), never evolved, combined or destroyed - one per save.
+    { rarity: 'Royal', weight: 0, color: '#ffd700' }
 ];
 
 // Named Beast bees get a "<Noun> The <Title>" name instead of the usual
@@ -773,6 +776,47 @@ function isKeeperDexEntryObtained(entry, bees) {
 // the same millisecond and produce duplicate ids. Every bee-lookup
 // feature (rename, class-assign, destroy, combine) depends on ids being
 // unique, so this appends a short random suffix on top of the timestamp.
+// --- Onboarding: the egg gift (EGG_ORIGIN_STORY_SPEC.md) -----------------
+// Every save gets state.onboarding the first time it loads after this
+// shipped - new AND existing players (Craft's launch call, 2026-10-08):
+// the egg is "a gift from the developer". Until it hatches (stage 'done'),
+// _onboardingGate() sends every page except onboarding/settings/account
+// pages to src/features/onboarding/. The page itself owns all the stage
+// logic; Vault only stores the record and does the final hand-off
+// (completeOnboarding: royal bee + starter habits).
+const ONBOARDING_STARTER_HABITS = [
+    { label: 'Read a motivational quote', notes: "Don't go into the day without a plan. A quote makes you stop, think it through and prepare." },
+    { label: 'Walk 1,000 feet', notes: 'Walking loosens your muscles and keeps you healthy.' },
+    { label: 'Stretch for 3 minutes', notes: 'A full stretch wakes you up, keeps you flexible and lowers your risk of injury.' }
+];
+// Pages that stay reachable while the egg is being raised.
+const ONBOARDING_OPEN_PAGES = ['/onboarding/', '/settings/', '/account-info/', '/account-security/'];
+
+function freshOnboardingRecord() {
+    return {
+        stage: 'gift',               // gift -> egg -> larva -> pupa -> ready -> hatched -> done
+        seed: 1 + Math.floor(Math.random() * 2147483000),   // the egg's design (EggDesign seed)
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        energy: 0,
+        step: 'quiet',
+        bonded: false,
+        taps: 0,
+        quote: null,
+        done: {},                    // starter habits: tap / quote / walk / stretch
+        tut: {},                     // Habits tutorial quests
+        ltut: {},                    // To-Dos tutorial quests
+        unlocked: false,             // Habits unlocked (after habit 2)
+        plusLog: {},                 // habitId -> { date, count } (energy cap per day)
+        todoChecks: { date: null, count: 0 },
+        crackTaps: 0,
+        readyTaps: 0,
+        pupaEnd: null,
+        royal: null,                 // 'queen' | 'king'
+        name: ''
+    };
+}
+
 function generateBeeId() {
     return `bee-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -969,6 +1013,9 @@ class DatabaseManager {
         // repeats defaults to 'daily' (due every day), so nothing about an
         // existing daily's behavior changes just by picking up this field.
         this._ensureDailyTaskScheduleData();
+        // Gives every save the egg gift record once (new and existing
+        // players alike) - no-ops after that. See freshOnboardingRecord.
+        this._ensureOnboardingData();
         // Backfills state.dictionary onto any save from before the
         // Dictionary feature existed - no-ops once it's there.
         if (!this.state.dictionary) {
@@ -1011,6 +1058,7 @@ class DatabaseManager {
             this.state.studyQueue = [];
             this.save();
         }
+        this._onboardingGate();
         return this.state;
     }
 
@@ -1707,7 +1755,7 @@ class DatabaseManager {
                 bee.dexNumber = index + 1;
                 changed = true;
             }
-            if (!bee.element || !BEE_ELEMENTS[bee.element]) {
+            if (bee.rarity !== 'Royal' && (!bee.element || !BEE_ELEMENTS[bee.element])) {
                 bee.element = rollBeeElement();
                 changed = true;
             }
@@ -2173,7 +2221,7 @@ class DatabaseManager {
     // in the UI later - nothing currently branches on it.
     awardBee(source) {
         const rarityInfo = rollBeeRarity();
-        const dexNumber = this.getColonyBees().length + 1;
+        const dexNumber = this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
         const bee = {
             id: generateBeeId(),
             name: `${rarityInfo.rarity} Bee #${dexNumber}`,
@@ -2249,7 +2297,7 @@ class DatabaseManager {
             source: 'ticket',
             stats: rollBeeStats('Named'),
             weight: rollBeeWeight('Named'),
-            dexNumber: this.getColonyBees().length + 1,
+            dexNumber: this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1,
             element: rollBeeElement(),
             // Named Beasts from a ticket already have a generated themed
             // name (rollNamedBeeName above), but that's not a CUSTOM name
@@ -2486,7 +2534,7 @@ class DatabaseManager {
         if (!item) return null;
 
         const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
-        if (!bee || bee.rarity === 'Named') return null;
+        if (!bee || bee.rarity === 'Named' || bee.rarity === 'Royal') return null;
         if (!this._consumeItem(itemId, 1)) return null;
 
         let evolved = false;
@@ -2523,7 +2571,7 @@ class DatabaseManager {
         if (!item) return null;
 
         const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
-        if (!bee || bee.rarity === 'Named' || bee.customNamed) return null;
+        if (!bee || bee.rarity === 'Named' || bee.rarity === 'Royal' || bee.customNamed) return null;
         if (!this._consumeItem(itemId, 1)) return null;
 
         bee.rarity = 'Named';
@@ -2544,6 +2592,7 @@ class DatabaseManager {
         const bees = this.state.colony.bees || [];
         const index = bees.findIndex(b => b.id === beeId);
         if (index === -1) return null;
+        if (bees[index].rarity === 'Royal') return null;   // the founder stays
 
         const [removed] = bees.splice(index, 1);
 
@@ -2575,6 +2624,7 @@ class DatabaseManager {
         const beeA = bees.find(b => b.id === beeIdA);
         const beeB = bees.find(b => b.id === beeIdB);
         if (!beeA || !beeB) return null;
+        if (beeA.rarity === 'Royal' || beeB.rarity === 'Royal') return null;
 
         const indexOf = (rarity) => {
             const idx = RARITY_ORDER.indexOf(rarity);
@@ -2587,7 +2637,7 @@ class DatabaseManager {
 
         this.state.colony.bees = bees.filter(b => b.id !== beeIdA && b.id !== beeIdB);
 
-        const dexNumber = this.getColonyBees().length + 1;
+        const dexNumber = this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
         const newBee = {
             id: generateBeeId(),
             name: `${resultRarity} Bee #${dexNumber}`,
@@ -2840,6 +2890,50 @@ class DatabaseManager {
         // applying whichever of positive/negative was just passed in.
         if (habit.positive === false && habit.negative === false) { habit.positive = true; habit.negative = true; }
 
+        this.save();
+        return habit;
+    }
+
+    // Hold-to-move on the Habits page: moves one habit to a new position
+    // in the list. The list order IS the display order everywhere.
+    moveHabit(habitId, toIndex) {
+        if (!this.state || !this.state.habits) return false;
+        const list = this.state.habits;
+        const from = list.findIndex(h => h.id === habitId);
+        if (from < 0) return false;
+        const to = Math.max(0, Math.min(list.length - 1, Number(toIndex) || 0));
+        if (from === to) return false;
+        const [habit] = list.splice(from, 1);
+        list.splice(to, 0, habit);
+        this.save();
+        return true;
+    }
+
+    // "Adjust Counter" on the edit screen: sets the current period's +/-
+    // tally (the one the Reset Counter resets). Adds clicks dated today, or
+    // removes the newest clicks from this period. DP follows the clicks,
+    // same as tapping + or - yourself.
+    setHabitPeriodCounts(habitId, { positive, negative } = {}) {
+        if (!this.state) return null;
+        const habit = (this.state.habits || []).find(h => h.id === habitId);
+        if (!habit) return null;
+        if (!habit.history) habit.history = [];
+        const periodStart = habitPeriodStartISO(habit.resetCounter || 'daily');
+        const adjust = (direction, wanted) => {
+            if (wanted === undefined || wanted === null) return;
+            const target = Math.max(0, Math.floor(Number(wanted) || 0));
+            const inPeriod = habit.history.filter(h => h.direction === direction && h.date >= periodStart);
+            if (target > inPeriod.length) {
+                for (let i = inPeriod.length; i < target; i++) {
+                    habit.history.push({ id: `bump-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, direction, date: todayISO(), adjusted: true });
+                }
+            } else if (target < inPeriod.length) {
+                const drop = new Set(inPeriod.slice(target).map(h => h.id));
+                habit.history = habit.history.filter(h => !drop.has(h.id));
+            }
+        };
+        adjust('positive', positive);
+        adjust('negative', negative);
         this.save();
         return habit;
     }
@@ -3396,6 +3490,126 @@ class DatabaseManager {
         (ids || []).forEach(id => existing.add(id));
         this.state.habiticaImportedIds = Array.from(existing);
         this.save();
+    }
+
+    // --- Onboarding (the egg gift) ------------------------------------------
+    _ensureOnboardingData() {
+        if (this.state.onboarding) return;
+        this.state.onboarding = freshOnboardingRecord();
+        this.save();
+    }
+
+    getOnboarding() {
+        return this.state ? (this.state.onboarding || null) : null;
+    }
+
+    isOnboarding() {
+        const o = this.getOnboarding();
+        return !!o && o.stage !== 'done';
+    }
+
+    // Merges a partial update into the record and saves. The onboarding
+    // page calls this on every meaningful step, so closing the app never
+    // loses progress.
+    updateOnboarding(patch) {
+        if (!this.state || !this.state.onboarding) return null;
+        Object.assign(this.state.onboarding, patch || {});
+        this.save();
+        return this.state.onboarding;
+    }
+
+    // Sends pages to the egg while it isn't hatched yet. Only nested app
+    // pages are gated - the login page and the open pages above never are.
+    _onboardingGate() {
+        if (typeof window === 'undefined' || !window.location || typeof window.location.replace !== 'function') return;
+        if (!this.isOnboarding()) return;
+        const path = window.location.pathname || '';
+        const inFeatures = path.includes('/src/features/'), inPlugins = path.includes('/src/plugins/');
+        if (!inFeatures && !inPlugins) return;
+        if (ONBOARDING_OPEN_PAGES.some(p => path.includes(p))) return;
+        window.location.replace((inPlugins ? '../../features/onboarding/' : '../onboarding/') + 'onboarding.html');
+    }
+
+    // The hatch: adds the founder (Royal) bee, keeps the starter habits as
+    // real Habits, and opens the app. Safe to call twice - it never adds a
+    // second royal or duplicate starter habits.
+    completeOnboarding({ royal, name } = {}) {
+        if (!this.state || !this.state.onboarding) return null;
+        const kind = royal === 'king' ? 'king' : 'queen';
+        const label = kind === 'king' ? 'King' : 'Queen';
+        if (!this.state.colony) this.state.colony = { bees: [] };
+        const bees = this.state.colony.bees || (this.state.colony.bees = []);
+        if (!bees.some(b => b.rarity === 'Royal')) {
+            bees.push({
+                id: 'bee-royal',
+                name: (String(name || '').trim().slice(0, 24)) || label,
+                rarity: 'Royal',
+                royal: kind,
+                class: null,
+                obtainedAt: new Date().toISOString(),
+                source: 'onboarding',
+                // the same founder card for everyone (Craft's call): fixed stats, no element
+                stats: { level: 1, hp: 120, offense: 40, defense: 40, speed: 40, power: 40 },
+                weight: 4.0,
+                dexNumber: 0,
+                element: null,
+                customNamed: true
+            });
+        }
+        if (!this.state.habits) this.state.habits = [];
+        ONBOARDING_STARTER_HABITS.forEach((h, i) => {
+            if (this.state.habits.some(x => x.label === h.label)) return;
+            this.state.habits.push({
+                id: `habit-starter-${i}-${Date.now()}`,
+                label: h.label, dp: 20, difficulty: 'Easy', notes: h.notes, tags: [],
+                positive: true, negative: false, resetCounter: 'daily', history: []
+            });
+        });
+        Object.assign(this.state.onboarding, { stage: 'done', royal: kind, name: String(name || '').trim().slice(0, 24), completedAt: new Date().toISOString() });
+        this.save();
+        return bees.find(b => b.rarity === 'Royal');
+    }
+
+    // The hive's honey and decay, shared by the Hive page and Home's hive
+    // strip (moved here from colony.js so both read the same numbers).
+    //   honey  = base + 4 per bee card + 3 per level (XP counts partly)
+    //   decay  = missed dailies, overdue To-Dos and bad-habit clicks in the
+    //            last 14 days; it can hollow at most half the honey.
+    getHiveHoney() {
+        const CAP = 320, BASE = 6, PER_BEE = 4, PER_LEVEL = 3, DAYS = 14;
+        const dayISO = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+        const user = this.getUser() || { level: 1, currentXP: 0, nextLevelXP: 1 };
+        const bees = this.getColonyBees();
+        const ids = [];
+        const today = dayISO(0), windowStart = dayISO(DAYS);
+        const dailies = this.getDailyTasks ? this.getDailyTasks() : [];
+        for (let d = 1; d <= DAYS; d++) {
+            const day = dayISO(d);
+            dailies.forEach(task => {
+                if (!isDailyDueOn(task, day)) return;
+                if ((task.completedDates || []).includes(day)) return;
+                ids.push(`daily:${task.id}:${day}`);
+            });
+        }
+        (this.getTodos ? this.getTodos() : []).forEach(todo => {
+            if (todo.completed || !todo.dueDate) return;
+            if (todo.dueDate < today && todo.dueDate >= windowStart) ids.push(`todo:${todo.id}`);
+        });
+        (this.getHabits ? this.getHabits() : []).forEach(habit => {
+            (habit.history || []).forEach(entry => {
+                if (entry.direction === 'negative' && entry.date >= windowStart) ids.push(`habit:${habit.id}:${entry.id}`);
+            });
+        });
+        const xpPart = user.nextLevelXP ? Math.min(1, user.currentXP / user.nextLevelXP) : 0;
+        const fromCards = bees.length * PER_BEE;
+        const fromLevel = Math.floor(((user.level || 1) - 1 + xpPart) * PER_LEVEL);
+        const lit = Math.min(CAP, BASE + fromCards + fromLevel);
+        const decay = Math.min(ids.length, Math.floor(lit * 0.5));
+        return { lit, capacity: CAP, fromCards, fromLevel, lapseIds: ids, lapses: ids.length, decay, level: user.level || 1, bees: bees.length };
+    }
+
+    getRoyalBee() {
+        return this.getColonyBees().find(b => b.rarity === 'Royal') || null;
     }
 
     // 6. Logic: Privacy Preference Write

@@ -1,0 +1,32 @@
+/* ==========================================================================
+   MECH BEE - wing flap + name label for MechBee (mech-bee.js).
+   ========================================================================== */
+
+.mech-bee .mb-wing {
+    animation: mech-bee-flap 0.07s linear infinite alternate;
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+}
+
+@keyframes mech-bee-flap {
+    from { transform: scaleY(1); }
+    to   { transform: scaleY(0.35); }
+}
+
+.mech-bee-label {
+    font: 700 6px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: rgba(0, 0, 0, .85);
+    stroke-width: 1.6px;
+    pointer-events: none;
+}
+
+/* Tappable bees (onClick): invisible hit area + pointer. */
+.mech-bee.is-tappable { cursor: pointer; }
+.mech-bee-hit { fill: transparent; pointer-events: all; }
+.mech-bee.is-tappable:hover .mech-bee-art { filter: drop-shadow(0 0 3px #ffd700); }
+
+@media (prefers-reduced-motion: reduce) {
+    .mech-bee .mb-wing { animation: none; }
+}

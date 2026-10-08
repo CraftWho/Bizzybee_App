@@ -1,84 +1,45 @@
 /* ==========================================================================
    KEEPERDEX CARD
-   A single-face reference card for KeeperDex (src/features/keeperdex/) -
-   deliberately reuses bee-card.css's shared chrome classes directly
-   (.bee-card-face, .bee-card-top-row, .bee-card-type-badge, .bee-card-
-   art-frame + its rarity theme variants, .bee-card-element-hex, .bee-
-   card-dex-strip parts, .bee-card-weakness-row, .bee-card-flavor) so a
-   KeeperDex entry looks like the same card family as an owned bee's real
-   card, not a hand-built lookalike that could drift out of sync later.
-   This file only supplies what's genuinely new: the outer sizing (no
-   flip/inner wrapper needed - single face), the skills list, and the
-   locked/silhouette treatment. Load AFTER bee-card.css.
+   Single-face reference card for the KeeperDex (src/features/keeperdex/).
+   The look comes from bee-card.css's v2 block (.bc-v2) - this file only
+   adds what's specific to a dex entry: the outer box, the move list with
+   power numbers, and the locked "???" state. Load AFTER bee-card.css.
+   The old v1 version of this file is archived in archive/cards-v1/.
    ========================================================================== */
 
 .keeperdex-card {
     position: relative;
-    width: 260px;
-    aspect-ratio: 5 / 7;
     flex-shrink: 0;
 }
 
-/* .bee-card-face already supplies position:absolute;inset:0 plus the
-   metallic border/shine/padding/overflow-hidden shell. This only adds
-   the vertical gap between rows that .bee-card-front normally supplies -
-   not reused here, since that class also switches the face to
-   position:relative for BeeCard's flip mechanic, which this single-face
-   card doesn't have. */
-.keeperdex-card-face {
-    gap: 6px;
-}
-
-/* Diagonal "unknown" stripe pattern instead of one of the real rarity
-   art-frame themes (bee-card.css) - reads as "nothing to show yet"
-   rather than quietly reusing Common's actual meadow art for an entry
-   you haven't earned. */
-.keeperdex-art-frame--locked {
-    background: repeating-linear-gradient(45deg, #1a1a1a, #1a1a1a 8px, #141414 8px, #141414 16px);
-}
-
-.keeperdex-card-icon--silhouette {
-    filter: brightness(0) opacity(0.55);
-}
-
-/* --- SKILLS: flavor-only "move list," same idea as a real trading
-   card's attacks - name left, power right. No gameplay effect anywhere -
-   see KEEPERDEX_ELEMENT_SKILLS/KEEPERDEX_RARITY_SIGNATURE_SKILL, db.js. --- */
-.keeperdex-skills-row {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    z-index: 1;
-}
-
-.keeperdex-skill {
-    display: flex;
+/* Move list: icon | name | power, like attacks on a real card. */
+.keeperdex-card .bc-move {
+    grid-template-columns: 6.4cqw 1fr auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    background: linear-gradient(180deg, #262626 0%, #171717 100%);
-    border: 1px solid #3a3a3a;
-    border-radius: 5px;
-    padding: 3px 8px;
-    font-size: 0.66rem;
+    background: linear-gradient(90deg, rgba(255, 255, 255, .03), transparent);
+    border-radius: 1.4cqw;
+    padding-right: 1.6cqw;
 }
 
-.keeperdex-skill-name {
-    color: #ddd;
+.keeperdex-card .bc-move .bc-ic {
+    grid-row: auto;
 }
 
-.keeperdex-skill-power {
-    color: var(--gold-start);
-    font-weight: bold;
+.keeperdex-card .bc-move h4 {
+    margin: 0;
 }
 
-/* --- LOCKED STATE: dims the whole card and mutes the dex number so an
-   unobtained entry reads as genuinely unknown, not just a plain card
-   with placeholder text dropped in. --- */
-.keeperdex-card.is-locked .keeperdex-card-face {
-    filter: saturate(0.4) brightness(0.85);
+.keeperdex-card .bc-pow {
+    font: 800 4.2cqw/1 ui-monospace, Menlo, Consolas, monospace;
+    color: var(--m1);
+    text-shadow: 0 0 2cqw var(--glow);
 }
 
-.keeperdex-card.is-locked .bee-card-dex-no {
+/* --- LOCKED: muted card (the silhouette bee is in bee-card.css) --- */
+.keeperdex-card.is-locked .bee-card-face {
+    filter: saturate(.4) brightness(.85);
+}
+
+.keeperdex-card.is-locked .bc-dex b {
     color: #888;
 }
