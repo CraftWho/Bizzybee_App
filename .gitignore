@@ -29,6 +29,9 @@ HANDOFF.md
 codebase_context_no_images.txt
 context2.py
 _git_backup_*.tar
+EGG_ORIGIN_STORY_SPEC.md
+# Design workshop (demos, test pages, art sources, screenshots) - local only.
+workshop/
 _local_backup_before_history_scrub_2026-08-26/
 # Local dependency cache
 .npm-cache/
