@@ -378,6 +378,23 @@ class CodexSystem {
         this.initCloudSyncAuto();
         this.initFolderBackupAuto();
         this.injectInstallButton();
+        this.loadLocalDevTools();
+    }
+
+    // Local dev tools (src/local/admin.local.js) are in .gitignore, so they
+    // only exist on Craft's own computer. Only asked for on localhost / a
+    // local network address, so the live site never even requests the file.
+    loadLocalDevTools() {
+        const host = window.location.hostname;
+        const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
+            || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
+        if (!isLocal) return;
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        const script = document.createElement('script');
+        script.src = `${nested ? '../../..' : '.'}/src/local/admin.local.js`;
+        script.onerror = () => script.remove();
+        document.body.appendChild(script);
     }
 
     renderGlobalUI() {
