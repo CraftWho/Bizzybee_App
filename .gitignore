@@ -21,11 +21,19 @@ Thumbs.db
 # Local AI tool config/permissions - machine-specific, not app source.
 .claude/
 
-# Internal project docs (roadmap/handoff planning notes) - kept out of git
-# entirely per redacted's request, even though the repo is already private.
-ROADMAP.md
+# Private project docs - kept out of git (scrubbed from history 2026-10-08).
+# ROADMAP.md and CLOUD_SETUP.md in the repo are the shareable versions; the
+# full private ones are *.private.md.
 HANDOFF.md
+*.private.md
+codebase_context_no_images.txt
+context2.py
+_git_backup_*.tar
 _local_backup_before_history_scrub_2026-08-26/
 # Local dependency cache
 .npm-cache/
 node_modules/
+
+# Local dev tools (Hacker login + 🛠 panel). Craft's computer only - never
+# commit or deploy. app.js only loads it on localhost.
+src/local/

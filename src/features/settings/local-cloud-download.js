@@ -38,7 +38,7 @@ const LocalCloudDownload = {
         status.textContent = 'Downloading the latest cloud save…';
         const cloudSave = await cloudEngine().request('load-state');
         const result = await this.saveToProject(directory, cloudSave);
-        status.textContent = `Saved to src/core/data.personal.json.${result.backedUp ? ' The previous file was backed up.' : ''} Reload your localhost app using the personal login to load this progress. Your local edits stay local.`;
+        status.textContent = `Saved to src/core/data.personal.json.${result.backedUp ? ' The previous file was backed up.' : ''} Reload your localhost app using your local dev login to load this progress. Your local edits stay local.`;
     },
     init() {
         const button = document.getElementById('cloud-local-download-btn');

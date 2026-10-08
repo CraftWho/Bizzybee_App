@@ -13,18 +13,11 @@ console.log("/// AUTH TERMINAL ONLINE ///");
 // handler's comment for why this isn't the same thing as the old
 // auto-skip it replaced.
 //
-// The demo shared-credential login (guest@bizzybee.hive / worker-bee,
-// pre-filled in the form so any visitor could one-click in) was RETIRED
-// here - see HANDOFF.md's "UPDATE: retired demo login" entry for why. This
-// form now only ever authenticates PERSONAL_EMAIL below; the other real
-// front door is the explicit "☁️ Sign In with Cloud Sync" button, wired up
-// in setupCloudSyncLoginButton() further down.
-//
-// The actual passcode hash + digest helper live in src/core/auth.js (the
-// `Auth` object, loaded before this file) - factored out so
-// src/features/account-info/'s own lock screen can check the SAME passcode
-// without a second, easy-to-drift copy of the hash.
-const PERSONAL_EMAIL = 'craft@bizzybee.hive';
+// The personal passcode login (craft@bizzybee.hive) was removed on
+// 2026-10-08. Its jobs (load a save file / data.personal.json) moved to the
+// local dev tools in src/local/admin.local.js, which is gitignored and only
+// loads on localhost - so this form only ever opens anything on Craft's own
+// computer. Everyone else signs in with Cloud Sync.
 
 function showError(message) {
     const el = document.getElementById('login-error');
@@ -118,7 +111,7 @@ function handleCloudSyncTokenIfPresent() {
 }
 
 // --- Cloud Sync front-door sign-in (invited testers) -----------------------
-// A second, explicit way into the app alongside PERSONAL_EMAIL above:
+// The explicit way into the app for testers:
 // opens Netlify Identity's own login modal so an
 // already-invited tester can sign in with their real Cloud Sync account, on
 // any ordinary return visit (not just the one-time invite/confirm/recovery
@@ -243,94 +236,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         event.preventDefault();
         clearError();
 
-        const email = document.getElementById('email').value.trim().toLowerCase();
-        const password = document.getElementById('password').value;
-
-        if (email === PERSONAL_EMAIL) {
-            if (await Auth.checkPersonalPasscode(password)) {
-                if (Vault.getBlueprintSource() === 'personal') {
-                    // This device already has the real data (e.g. your own
-                    // dev machine, or a phone that's already imported a save).
-                    localStorage.setItem('bizzybee_session', 'personal');
-                    goHome();
-                } else {
-                    // Right credentials, but this device is still on generic
-                    // data - reveal the import step instead of going further.
-                    document.getElementById('load-save-section').hidden = false;
-                }
-                return;
-            }
-        }
+        // Nothing here opens the app any more - the local dev tools catch
+        // their own login before this runs (see the note at the top).
 
         showError('🐝 Access Denied. Check your credentials, Worker Bee.');
-    });
-
-    // Numeric-only, capped at 6 digits - same convention as Settings' own
-    // export PIN field (settings.js), duplicated rather than shared.
-    document.getElementById('load-save-password').addEventListener('input', (event) => {
-        event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6);
-    });
-
-    document.getElementById('load-save-input').addEventListener('change', () => {
-        const input = document.getElementById('load-save-input');
-        const hintDisplay = document.getElementById('load-save-hint-display');
-        const file = input.files[0];
-        hintDisplay.hidden = true;
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = () => {
-            try {
-                const parsed = JSON.parse(reader.result);
-                if (parsed && parsed.bizzybeeEncrypted && parsed.hint) {
-                    hintDisplay.textContent = `💡 Hint from export: "${parsed.hint}"`;
-                    hintDisplay.hidden = false;
-                }
-            } catch (error) { /* not JSON, or no hint - nothing to preview */ }
-        };
-        reader.readAsText(file);
-    });
-
-    document.getElementById('load-save-btn').addEventListener('click', () => {
-        const input = document.getElementById('load-save-input');
-        const status = document.getElementById('load-save-status');
-        const file = input.files[0];
-
-        status.hidden = false;
-        if (!file) {
-            status.textContent = 'Choose a save file first.';
-            return;
-        }
-
-        status.textContent = 'Loading...';
-        const reader = new FileReader();
-        reader.onload = async () => {
-            let plainText = reader.result;
-
-            if (CryptoLite.isEncryptedEnvelope(plainText)) {
-                const pin = document.getElementById('load-save-password').value;
-                if (!pin) {
-                    status.textContent = '⚠️ This save is encrypted - enter its PIN above first.';
-                    return;
-                }
-                try {
-                    plainText = await CryptoLite.decrypt(plainText, pin);
-                } catch (error) {
-                    status.textContent = '⚠️ Wrong PIN, or the file is corrupted.';
-                    return;
-                }
-            }
-
-            const result = Vault.importFullState(plainText);
-            if (!result.ok) {
-                status.textContent = `⚠️ ${result.error}`;
-                return;
-            }
-            localStorage.setItem('bizzybee_session', 'personal');
-            status.textContent = '📥 Save loaded - entering the Hive...';
-            setTimeout(goHome, 800);
-        };
-        reader.onerror = () => { status.textContent = '⚠️ Could not read that file.'; };
-        reader.readAsText(file);
     });
 });
