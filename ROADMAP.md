@@ -53,13 +53,12 @@ src/core/                shared code every page uses (db.js = the save, app.js =
 src/features/<page>/     one folder per page (html + css + js)
 src/plugins/<plugin>/    optional add-on pages
 src/assets/              art (bees, icons, 3D)
-workshop/                demos, test pages and screenshots - not loaded by the app
 tests/                   automated checks (run: npm run check)
 ```
 
 ## Rules of the road
 
 - **No personal data in the repo.** `src/core/data.json` is the generic starter save. Personal saves and notes are gitignored.
-- **New UI gets a demo first** (in `workshop/`) and is reviewed before it's built into the app.
+- **New UI gets a demo first** and is reviewed before it's built into the app.
 - **Keep pages self-contained.** Page code stays in its own folder; only truly shared code goes in `src/core/`.
 - Run `npm run check` before committing.
