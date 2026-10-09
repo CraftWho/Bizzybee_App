@@ -6,3 +6,15 @@
 # it on a site with no build command configured.
 [functions]
   directory = "netlify/functions"
+
+# Habits and To-Dos became core features on 2026-10-09 and moved from
+# src/plugins/ to src/features/. Old bookmarks still land on the new pages.
+[[redirects]]
+  from = "/src/plugins/habits/*"
+  to = "/src/features/habits/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/src/plugins/todos/*"
+  to = "/src/features/todos/:splat"
+  status = 301

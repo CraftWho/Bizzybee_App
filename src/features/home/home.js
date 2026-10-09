@@ -21,8 +21,8 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 const TODAY_TABS = ['dailies', 'habits', 'todos', 'quest'];
 const TAB_LINKS = {
     dailies: { href: '../dailies/dailies.html', label: 'Open Dailies', edit: '../dailies/create-daily.html?id=' },
-    habits: { href: '../../plugins/habits/habits.html', label: 'Open Habits' },
-    todos: { href: '../../plugins/todos/todos.html', label: 'Open To-Dos', edit: '../../plugins/todos/create-todo.html?id=' },
+    habits: { href: '../../features/habits/habits.html', label: 'Open Habits' },
+    todos: { href: '../../features/todos/todos.html', label: 'Open To-Dos', edit: '../../features/todos/create-todo.html?id=' },
     quest: { href: '../quests/quests.html', label: 'Open Quests' }
 };
 let currentTab = 'dailies';
@@ -226,7 +226,7 @@ function setupToday() {
         if (main && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); main.click(); }
     });
     HabitRow.bind(panel, {
-        editHref: (habit) => `../../plugins/habits/create-habit.html?id=${encodeURIComponent(habit.id)}`,
+        editHref: (habit) => `../../features/habits/create-habit.html?id=${encodeURIComponent(habit.id)}`,
         onChange: () => { renderHive(); }
     });
 }

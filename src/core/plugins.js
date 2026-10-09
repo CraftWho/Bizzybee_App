@@ -3,7 +3,7 @@ console.log("/// PLUGIN MANAGER ONLINE ///");
 // The plugin manager - knows what optional expansion packs (src/plugins/*/)
 // exist and whether each is actually available to turn on yet. Loaded on
 // every page right after db.js, same as every other core singleton
-// (Toast, Waggle), so any page can check Plugins.isEnabled('habits')
+// (Toast, Waggle), so any page can check Plugins.isEnabled('calendar')
 // without needing to be the Plugin Hub page itself.
 //
 // Split of responsibility (matches ROADMAP.md's "core stores state,
@@ -28,20 +28,6 @@ const PLUGIN_CATALOG = [
         label: 'Calendar',
         status: 'available',
         description: 'A real calendar view of your quests, dailies, and deadlines - see the whole week at a glance instead of just a list. Month/Week/Day views, plus your own events.'
-    },
-    {
-        id: 'habits',
-        icon: '✅',
-        label: 'Habits',
-        status: 'available',
-        description: 'Habitica-style +/- action buttons alongside quests/dailies - click + when you do it, - when you don\'t. No schedule, no reset, just a running tally.'
-    },
-    {
-        id: 'todos',
-        icon: '📝',
-        label: 'To-Dos',
-        status: 'available',
-        description: 'One-off tasks with an optional due date - the pile of "just get it done" work that doesn\'t repeat and doesn\'t need a full Quest built around it. Checking one off archives it.'
     },
     {
         id: 'study',
@@ -97,7 +83,18 @@ const PLUGIN_CATALOG = [
     }
 ];
 
+// Core features (Craft, 2026-10-09): Habits, Dailies, To-Dos and Quests
+// are the four dock tabs - part of the app itself, always on, and no
+// longer listed in the Plugin Hub. (Habits and To-Dos started life as
+// plugins, which is why their pages still live under src/plugins/.)
+// Anything asking Plugins.isEnabled() about one of these gets true.
+const CORE_FEATURES = ['habits', 'dailies', 'todos', 'quests'];
+
 const Plugins = {
+    isCore(id) {
+        return CORE_FEATURES.includes(id);
+    },
+
     // Full catalog, in display order - Plugin Hub renders directly from
     // this so a plugin only needs to be added here (plus its own status
     // flipped to 'available' once it has a real page) to show up.
@@ -114,6 +111,7 @@ const Plugins = {
     // if some stray state flag says true (e.g. an old save from before
     // this system existed), since there's no real page to hand off to.
     isEnabled(pluginId) {
+        if (this.isCore(pluginId)) return true;
         const entry = this.getEntry(pluginId);
         if (!entry || entry.status !== 'available') return false;
         return typeof Vault !== 'undefined' && Vault.isPluginEnabled(pluginId);
@@ -124,6 +122,7 @@ const Plugins = {
     // (Plugin Hub disables the toggle control for 'coming-soon' entries,
     // but this guard is the real gate - the UI check is just a courtesy).
     toggle(pluginId) {
+        if (this.isCore(pluginId)) return true;   // core: can't be switched off
         const entry = this.getEntry(pluginId);
         if (!entry || entry.status !== 'available') return null;
         if (typeof Vault === 'undefined') return null;

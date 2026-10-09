@@ -477,8 +477,8 @@ $('qlog').addEventListener('click', e => {
 // Dock tabs: unlock, guide steps, and turning real-page work into energy
 // ---------------------------------------------------------------------------
 const TAB_LINKS = {
-    habits: { list: '../../plugins/habits/habits.html', make: '../../plugins/habits/create-habit.html' },
-    todos: { list: '../../plugins/todos/todos.html', make: '../../plugins/todos/create-todo.html' },
+    habits: { list: '../../features/habits/habits.html', make: '../../features/habits/create-habit.html' },
+    todos: { list: '../../features/todos/todos.html', make: '../../features/todos/create-todo.html' },
     dailies: { list: '../dailies/dailies.html', make: '../dailies/create-daily.html' },
     quests: { list: '../quests/quests.html', make: '../quests/create-quest.html' }
 };

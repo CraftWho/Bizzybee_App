@@ -841,8 +841,8 @@ const ONBOARDING_OPEN_PAGES = ['/onboarding/', '/settings/', '/account-info/', '
 // tutorial that's checked against what you actually do on those pages.
 const ONBOARDING_TAB_ORDER = ['habits', 'todos', 'dailies', 'quests'];
 const ONBOARDING_TAB_PATHS = {
-    habits: ['/plugins/habits/'],
-    todos: ['/plugins/todos/'],
+    habits: ['/features/habits/'],
+    todos: ['/features/todos/'],
     dailies: ['/features/dailies/'],
     quests: ['/features/quests/']
 };
@@ -984,7 +984,14 @@ class DatabaseManager {
     constructor() {
         this.dbName = 'BizzybeeVault';
         this.storageKey = 'bizzybee_user_data';
-        if (localStorage.getItem('bizzybee_session') === 'identity' && localStorage.getItem('bizzybee_cloud_owner')) {
+        // Dev test save (src/core/dev-tools/dev-tools.js): a separate save
+        // under its own key that never syncs to the cloud, so the dev panel
+        // can never touch your real save. app.js skips Cloud Sync and folder
+        // backup while it's on.
+        this.devTest = localStorage.getItem('bizzybee_dev_test') === '1';
+        if (this.devTest) {
+            this.storageKey = 'bizzybee_user_data:devtest';
+        } else if (localStorage.getItem('bizzybee_session') === 'identity' && localStorage.getItem('bizzybee_cloud_owner')) {
             this.storageKey += ':' + localStorage.getItem('bizzybee_cloud_owner');
             if (!localStorage.getItem('bizzybee_legacy_owner')) localStorage.setItem('bizzybee_legacy_owner', localStorage.getItem('bizzybee_cloud_owner'));
         }
@@ -1007,6 +1014,7 @@ class DatabaseManager {
     // decides whether it's even worth trying a recovery pull: true only
     // when this device is currently signed into a cloud identity.
     _looksLikeExistingCloudAccount() {
+        if (this.devTest) return false;
         return localStorage.getItem('bizzybee_session') === 'identity' && !!localStorage.getItem('bizzybee_cloud_owner');
     }
 
@@ -1144,7 +1152,7 @@ class DatabaseManager {
     // blueprint/backfill logic. Subsequent local edits survive every reload.
     async refreshLocalCloudDownload() {
         if (!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
-            || localStorage.getItem('bizzybee_session') === 'identity') return;
+            || localStorage.getItem('bizzybee_session') === 'identity' || this.devTest) return;
         const nested = /\/(features|plugins)\//.test(window.location.pathname);
         let response;
         try { response = await fetch(`${nested ? '../../..' : '.'}/src/core/data.personal.json`, { cache: 'no-store' }); }
@@ -1281,14 +1289,14 @@ class DatabaseManager {
             // content, not blueprint content" reasoning as calendarEvents/
             // dictionary above.
             this.state.studyQueue = [];
-            // Habits plugin (src/plugins/habits/) - Habitica-style +/-
+            // Habits (core feature, src/features/habits/) - Habitica-style +/-
             // action buttons, own top-level array like dailyTasks (not
             // nested under studyQueue's shape - a habit's `history` log is
             // its own thing, see computeHabitDP/bumpHabit). Ships empty,
             // same "local content, only ever comes from adding it through
             // the page" reasoning as studyQueue above.
             this.state.habits = [];
-            // To-Dos plugin (src/plugins/todos/) - one-off tasks, same
+            // To-Dos (core feature, src/features/todos/) - one-off tasks, same
             // shape family as dailyTasks (title/notes/checklist/
             // difficulty/dp/tags/reminders) minus a repeat schedule, plus
             // a due date and a `completed`/`completedDate` pair instead of
@@ -2960,7 +2968,7 @@ class DatabaseManager {
         return true;
     }
 
-    // 5i2. Logic: Habits plugin (src/plugins/habits/) - a Habitica-style
+    // 5i2. Logic: Habits (src/features/habits/) - a Habitica-style
     // +/- action button. No schedule, nothing "due" - just a permanent
     // `history` log of every click (see computeHabitDP above for how that
     // log turns into a live DP total, never affected by resetCounter).
@@ -3124,7 +3132,7 @@ class DatabaseManager {
         return true;
     }
 
-    // 5i3. Logic: To-Dos plugin (src/plugins/todos/) - a one-off task, same
+    // 5i3. Logic: To-Dos (src/features/todos/) - a one-off task, same
     // field family as a Daily Task (see addDailyTask above) minus a repeat
     // schedule, plus an optional due date. `completed`/`completedDate`
     // replace Dailies' completedDates list since a To-Do only ever
