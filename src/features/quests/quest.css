@@ -1,0 +1,161 @@
+/* Quest page (2026-10-09). --qc / --qk = the quest's category colour and
+   the ink that reads on it (set on .qd by quest.js). */
+.qd {
+    --qc: #ffcc00;
+    --qk: #2a1a00;
+    width: 100%;
+    max-width: 700px;
+    margin: 14px auto 0;
+    padding: 0 16px;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #f1ede2;
+}
+.qd * { box-sizing: border-box; }
+.qd button { font-family: inherit; }
+.qd button:hover { transform: none; box-shadow: none; }
+
+/* ---- hero ---- */
+.qd-hero {
+    position: relative;
+    padding: 8px 16px 18px;
+    border-radius: 20px;
+    background:
+        radial-gradient(130% 100% at 100% 0%, color-mix(in srgb, var(--qc) 30%, transparent), transparent 62%),
+        linear-gradient(180deg, #17120a, #0f0b05);
+    border: 1px solid color-mix(in srgb, var(--qc) 45%, transparent);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, .6);
+    overflow: hidden;
+}
+.qd-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .07;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34.64' height='60' viewBox='0 0 34.64 60'%3E%3Cpath d='M17.32 60V40L0 30V10L17.32 0l17.32 10v20L17.32 40' fill='none' stroke='%23ffcc00' stroke-width='1.2'/%3E%3C/svg%3E");
+    background-size: 28px 48px;
+}
+.qd-hero > * { position: relative; }
+.qd-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 52px; }
+.qd-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; color: #f1ede2; }
+.qd-icon:hover { background: rgba(255, 255, 255, .07); }
+.qd-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.qd-chip { padding: 4px 10px; border-radius: 999px; background: var(--qc); color: var(--qk); font: 700 .66rem var(--font-main); letter-spacing: .12em; }
+.qd-parent { display: inline-block; margin: 2px 0 0; font-size: .8rem; color: var(--qc); text-decoration: none; }
+.qd-parent:hover { text-decoration: underline; }
+.qd-title { margin: 6px 0 0; padding: 0; border: 0; background: none; font: 700 1.6rem/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #fff7dc; text-align: left; overflow-wrap: anywhere; }
+.qd-obj { margin: 8px 0 0; font-size: .95rem; line-height: 1.5; color: #c9bc9b; white-space: pre-line; }
+.qd-muted { color: #8a7e62; font-size: .85rem; }
+.qd button.qd-focus {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 10px 16px;
+    border: 1px solid color-mix(in srgb, var(--qc) 55%, transparent);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .3);
+    box-shadow: none;
+    color: var(--qc);
+    font: 700 .88rem system-ui, sans-serif;
+    cursor: pointer;
+}
+.qd-focus svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+.qd button.qd-focus.on { background: var(--qc); color: var(--qk); border-color: var(--qc); box-shadow: 0 0 18px color-mix(in srgb, var(--qc) 40%, transparent); }
+
+/* ---- stats ---- */
+.qd-stats { display: flex; align-items: center; gap: 10px; margin: 14px 0; padding: 14px; border-radius: 18px; background: #120e07; border: 1px solid rgba(255, 255, 255, .05); }
+.qd-stats .q-ring text { font-size: 12px; }
+.qd-stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.qd-stat b { font: 700 1.3rem var(--font-main); color: #fff7dc; }
+.qd-stat b small { font-size: .7em; color: #8a7e62; }
+.qd-stat span { font-size: .7rem; line-height: 1.25; color: #8a7e62; }
+
+/* ---- sections ---- */
+.qd-sec { margin: 0 0 14px; padding: 14px; border-radius: 18px; background: #120e07; border: 1px solid rgba(255, 255, 255, .05); }
+.qd-h { display: flex; align-items: baseline; gap: 8px; margin: 4px 2px 10px; padding: 0; border: 0; background: none; font: 700 1.02rem system-ui, sans-serif; color: #f1ede2; text-align: left; }
+.qd-h:not(:first-child) { margin-top: 18px; }
+.qd-h span { font-weight: 500; font-size: .76rem; color: #8a7e62; }
+.qd-bar-prog { height: 6px; margin: 0 2px 12px; }
+
+.qd button.qd-add {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px 14px;
+    border: 1px dashed color-mix(in srgb, var(--qc) 50%, transparent);
+    border-radius: 12px;
+    background: none;
+    box-shadow: none;
+    color: #f1ede2;
+    font: 600 .92rem system-ui, sans-serif;
+    text-align: left;
+    cursor: pointer;
+}
+.qd button.qd-add:hover { background: color-mix(in srgb, var(--qc) 8%, transparent); }
+.qd-add svg { width: 18px; height: 18px; fill: none; stroke: var(--qc); stroke-width: 2.6; stroke-linecap: round; }
+
+.qd-add-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; padding: 12px; border-radius: 14px; background: #1a150d; border: 1px solid color-mix(in srgb, var(--qc) 35%, transparent); }
+.qd-add-form input { width: 100%; padding: 10px 12px; border: 0; border-bottom: 2px solid var(--qc); border-radius: 10px 10px 4px 4px; background: #0f0b05; color: #f1ede2; font: 500 1rem system-ui, sans-serif; outline: none; box-shadow: none; }
+.qd-add-form input:focus { border: 0; border-bottom: 2px solid var(--qc); box-shadow: none; }
+.qd-segs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.qd button.qd-seg { padding: 8px 4px; border: 1px solid #3a3222; border-radius: 10px; background: #0f0b05; box-shadow: none; color: #a69a80; font: 600 .82rem system-ui, sans-serif; cursor: pointer; }
+.qd-seg small { opacity: .7; }
+.qd button.qd-seg.on { background: var(--c); border-color: var(--c); color: var(--k); }
+.qd-form-acts { display: flex; justify-content: flex-end; gap: 8px; }
+.qd button.qd-btn { padding: 8px 14px; border: 1px solid #3a3222; border-radius: 10px; background: #1d1810; box-shadow: none; color: #c9bc9b; font: 600 .85rem system-ui, sans-serif; cursor: pointer; }
+.qd button.qd-btn.primary { background: var(--qc); border-color: var(--qc); color: var(--qk); }
+
+/* source, terms, decree */
+.qd-source { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: #1a150d; color: #f1ede2; text-decoration: none; }
+.qd-source:hover { background: #211a10; }
+.qd-source svg { flex: none; width: 22px; height: 22px; fill: none; stroke: var(--qc); stroke-width: 2; stroke-linecap: round; }
+.qd-source span { min-width: 0; display: flex; flex-direction: column; font-weight: 600; }
+.qd-source small { font-weight: 400; font-size: .75rem; color: #8a7e62; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qd-terms { display: flex; flex-wrap: wrap; gap: 6px; }
+.qd-terms a { padding: 5px 10px; border-radius: 999px; background: #1a150d; border: 1px solid #3a3222; color: #e9cf7a; font-size: .8rem; text-decoration: none; }
+.qd-terms a:hover { border-color: var(--qc); }
+.qd-decree { margin: 0; padding: 12px 14px; border-left: 3px solid #ffcc00; border-radius: 0 12px 12px 0; background: #1a150d; font: italic 500 .95rem/1.5 Georgia, serif; color: #efe6cf; }
+
+/* ghost logs */
+.qd-ghosts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.qd-ghost { padding: 10px 12px; border-radius: 14px; background: #1a150d; border-left: 3px solid #4a4334; }
+.qd-ghost.s-red { border-left-color: #e3304a; }
+.qd-ghost.s-yellow { border-left-color: #ffcc00; }
+.qd-ghost.s-green { border-left-color: #34c77b; }
+.qd-ghost-top { display: flex; align-items: center; gap: 10px; }
+.qd-ghost-name { flex: 1; min-width: 0; font-size: .95rem; overflow-wrap: anywhere; }
+.qd-ghost .dr-dp { font: 600 .72rem var(--font-main); }
+.qd button.qd-x { min-width: 34px; height: 30px; padding: 0 8px; border: 0; border-radius: 8px; background: none; box-shadow: none; color: #8a7e62; font: 400 1.2rem/1 system-ui, sans-serif; cursor: pointer; }
+.qd button.qd-x.armed { background: rgba(227, 48, 74, .18); color: #ff6a78; font-size: .75rem; font-weight: 700; }
+.qd-ghost-states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.qd-ghost-states button { padding: 7px 2px; border: 1px solid #3a3222; border-radius: 9px; background: #0f0b05; box-shadow: none; color: #8a7e62; font: 600 .76rem system-ui, sans-serif; cursor: pointer; }
+.qd-ghost-states button.on.g-pending { background: #3a3222; color: #f1ede2; border-color: #4a4334; }
+.qd-ghost-states button.on.g-red { background: #e3304a; color: #fff; border-color: #e3304a; }
+.qd-ghost-states button.on.g-yellow { background: #ffcc00; color: #2a1a00; border-color: #ffcc00; }
+.qd-ghost-states button.on.g-green { background: #34c77b; color: #06210f; border-color: #34c77b; }
+
+/* side quests + unlocks */
+.qd-links, .qd-unlocks, .qd-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.qd-links a { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 14px; background: #1a150d; border-left: 3px solid var(--qc); color: #f1ede2; text-decoration: none; }
+.qd-links a:hover { background: #211a10; }
+.qd-links span { display: flex; flex-direction: column; font-size: .95rem; }
+.qd-links small { font-size: .74rem; color: #8a7e62; }
+.qd-unlocks li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #1a150d; }
+.qd-unlocks li div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.qd-unlocks li span { font-size: .8rem; color: #a69a80; }
+.qd-unlocks small { color: #34c77b; font-weight: 600; }
+.qd-box { padding: 12px 14px; border-radius: 14px; background: #1a150d; font-size: .88rem; line-height: 1.45; }
+.qd-box p { margin: 0 0 6px; }
+.qd-box ul { margin: 0 0 6px; padding-left: 18px; }
+.qd-notes li { padding: 10px 12px; border-radius: 12px; background: #1a150d; font-size: .86rem; }
+.qd-notes small { display: block; margin-top: 3px; color: #8a7e62; }
+.qd-dev { padding: 2px 8px; border-radius: 999px; background: #241d11; color: #e9cf7a !important; font-size: .68rem !important; }
+
+/* advanced */
+.qd-adv { margin: 0 0 20px; padding: 12px 14px; border-radius: 16px; background: #0d0a05; border: 1px solid rgba(255, 255, 255, .05); }
+.qd-adv summary { cursor: pointer; font-size: .85rem; color: #8a7e62; }
+.qd-adv textarea { width: 100%; min-height: 240px; margin: 8px 0; padding: 10px; border: 1px solid #3a3222; border-radius: 10px; background: #070503; color: #d8ceb6; font: .78rem/1.45 ui-monospace, Consolas, monospace; }

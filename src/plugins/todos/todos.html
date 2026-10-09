@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
     <link rel="manifest" href="../../../manifest.json">
-    <meta name="theme-color" content="#ffd700">
+    <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>📝 To-Dos</title>
 
@@ -16,31 +16,32 @@
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../../core/status-dot/status-dot.css">
     <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/habit-row/habit-row.css">
+    <link rel="stylesheet" href="../../core/task-row/task-row.css">
     <link rel="stylesheet" href="./todos.css">
 </head>
 <body>
 
     <main class="todos-container">
-        <h2 class="todos-title">📝 <span class="gold-gradient-text">TO-DOS</span></h2>
-        <p class="todos-subtitle">One-off tasks - check one off and it clears from your active list. Use the honeycomb button below to add a new one.</p>
+        <section class="dl-head">
+            <h2 class="dl-title">📝 TO-DOS <small id="td-hold">Hold a to-do to move it</small></h2>
+            <p class="td-sum" id="td-sum"></p>
+            <div class="td-tabs" role="tablist" aria-label="Show">
+                <button type="button" role="tab" data-tab="active" aria-selected="true">Active <b id="td-n-active">0</b></button>
+                <button type="button" role="tab" data-tab="scheduled" aria-selected="false">Scheduled <b id="td-n-scheduled">0</b></button>
+                <button type="button" role="tab" data-tab="done" aria-selected="false">Done <b id="td-n-done">0</b></button>
+            </div>
+            <p class="dl-tip" id="td-tip">Tap the hexagon when it's done. Tap a to-do to edit it.</p>
+        </section>
 
         <div id="todos-not-installed" class="panel todos-not-installed" hidden>
             <p>This plugin isn't installed yet.</p>
             <a href="../plugin-hub/plugin-hub.html" class="todos-install-link">🧩 Go to Plugin Hub →</a>
         </div>
 
-        <section class="panel" id="todos-app" hidden>
-            <ul class="task-list quest-task-list" id="todo-task-list"></ul>
-
-            <div class="todos-completed-section todos-completed-section--collapsed" id="todos-completed-section">
-                <button type="button" class="todos-completed-toggle" id="todos-completed-toggle" aria-expanded="false">
-                    <span id="todos-completed-heading">✅ Completed (0)</span>
-                    <span class="todos-completed-chevron">▾</span>
-                </button>
-                <ul class="task-list quest-task-list todos-completed-list" id="todo-completed-list"></ul>
-            </div>
+        <section id="todos-app" hidden>
+            <div id="todo-task-list"></div>
         </section>
     </main>
 
@@ -50,10 +51,11 @@
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/status-dot/status-dot.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../../features/llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/habit-row/habit-row.js"></script>
+    <script src="../../core/task-row/task-row.js"></script>
     <script src="./todos.js"></script>
 </body>
 </html>

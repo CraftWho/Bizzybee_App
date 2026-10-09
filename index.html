@@ -8,14 +8,17 @@
     <link rel="icon" type="image/png" sizes="32x32" href="src/assets/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="src/assets/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" href="src/assets/icons/apple-touch-icon.png">
-    <title>🔐 Login - Bizzybee</title>
+    <title>Bizzybee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="./src/core/global.css">
     <link rel="stylesheet" href="./src/core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="./src/core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="./login.css">
     <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#ffd700">
+    <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
 
     <!-- Netlify Identity widget - needed HERE, not just on Settings, because
@@ -49,14 +52,49 @@
                  handleCloudSyncTokenIfPresent() in login.js hides this and
                  reveals #login-content immediately in that case, since the
                  invite banner below needs to be visible. -->
+            <!-- The launch screen (2026-10-09): the gold bee pulses on black
+                 while the app loads. When login.js hides this, the crimson
+                 line draws and the screen opens onto the login card
+                 (launch.js + AppOpen in app.js). -->
             <div id="welcome-loading" class="welcome-loading">
-                <h1 class="gold-gradient-text">Bizzybee</h1>
-                <p id="welcome-loading-text" class="welcome-loading-text">🐝 Waking the Hive...</p>
+                <div class="launch-mark">
+                    <span class="launch-halo"></span><span class="launch-halo b"></span>
+                    <svg class="launch-bee" viewBox="0 0 100 100" aria-hidden="true">
+ <defs>
+  <linearGradient id="ln-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e3a4"/><stop offset=".45" stop-color="#d9b968"/><stop offset="1" stop-color="#a8823a"/></linearGradient>
+ </defs>
+ <g fill="none" stroke="url(#ln-gold)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M46 22 L39 12"/><path d="M54 22 L61 12"/>
+  <path d="M43 30 L31 19"/><path d="M57 30 L69 19"/>
+  <path d="M40 51 L33 58 L30 72"/><path d="M60 51 L67 58 L70 72"/>
+  <path d="M39 56 L31 62"/><path d="M61 56 L69 62"/>
+ </g>
+ <g fill="url(#ln-gold)" stroke="#2a1a04" stroke-width="1.1" stroke-linejoin="round">
+  <!-- upper wings, tips lifted -->
+  <path d="M44 34 C36 28 20 24 12 27 C6 30 7 37 14 40 C22 43 35 43 44 41Z"/>
+  <path d="M56 34 C64 28 80 24 88 27 C94 30 93 37 86 40 C78 43 65 43 56 41Z"/>
+  <!-- lower wings -->
+  <path d="M44 41 C36 42 27 45 25 49 C24 53 31 54 37 52 C41 50 44 47 45 44Z"/>
+  <path d="M56 41 C64 42 73 45 75 49 C76 53 69 54 63 52 C59 50 56 47 55 44Z"/>
+  <!-- head -->
+  <circle cx="50" cy="25.5" r="5"/>
+  <!-- thorax -->
+  <ellipse cx="50" cy="39" rx="8.6" ry="9.5"/>
+  <!-- abdomen bands -->
+  <path d="M39.6 51 H60.4 C61.4 53 61.4 55 60.8 56.6 H39.2 C38.6 55 38.6 53 39.6 51Z"/>
+  <path d="M38.8 59 H61.2 C61.4 61 61 63 60.2 64.6 H39.8 C39 63 38.6 61 38.8 59Z"/>
+  <path d="M40.6 67 H59.4 C58.6 69 57.6 71 56.4 72.6 H43.6 C42.4 71 41.4 69 40.6 67Z"/>
+  <path d="M45 75 H55 C53.8 77.6 52.2 80 50 82.5 C47.8 80 46.2 77.6 45 75Z"/>
+ </g>
+</svg>
+                </div>
+                <h1 class="launch-word">BIZZYBEE</h1>
+                <p id="welcome-loading-text" class="welcome-loading-text">Waking the hive</p>
             </div>
 
             <div id="login-content" hidden>
-                <h1 class="gold-gradient-text">Bizzybee Login</h1>
-                <p class="subtitle">Authenticate to access the Hive.</p>
+                <h1 class="login-title">BIZZYBEE</h1>
+                <p class="subtitle">Welcome to the hive</p>
 
                 <!-- Only ever shown when this page loads with a Netlify Identity
                      token in the URL hash (see the widget script tag/comment in
@@ -121,5 +159,6 @@
     <script src="./src/core/hive-mind/hive-mind.js"></script>
 
     <script src="./login.js"></script>
+    <script src="./launch.js"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
     <link rel="manifest" href="../../../manifest.json">
-    <meta name="theme-color" content="#ffd700">
+    <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>✅ Habits</title>
 
@@ -24,8 +24,15 @@
 <body>
 
     <main class="habits-container">
-        <h2 class="habits-title">✅ <span class="gold-gradient-text">HABITS</span></h2>
-        <p class="habits-subtitle">Tap + when you do it, − when you slip. Tap a habit to edit it. Hold it to move it.</p>
+        <section class="habits-head">
+            <h2 class="habits-title">✅ HABITS <small>Hold a habit to move it</small></h2>
+            <blockquote class="habits-quote" id="habits-quote">
+                <span class="habits-quote-tag">QUOTE OF THE WEEK</span>
+                <p id="habits-quote-text"></p>
+                <footer id="habits-quote-by"></footer>
+            </blockquote>
+            <p class="habits-tip">Tap + when you do it, − when you slip. Tap a habit to edit it.</p>
+        </section>
 
         <div id="habits-not-installed" class="panel habits-not-installed" hidden>
             <p>This plugin isn't installed yet.</p>
@@ -47,6 +54,7 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../../features/llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/habit-quotes/habit-quotes.js"></script>
     <script src="../../core/habit-row/habit-row.js"></script>
     <script src="./habits.js"></script>
 </body>

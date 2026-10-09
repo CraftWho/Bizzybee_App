@@ -274,26 +274,69 @@ const DICTIONARY_STARTER_TERMS = [
 function isDailyDueOn(daily, dateStr) {
     const repeats = daily.repeats || { type: 'daily', every: 1, daysOfWeek: [] };
     const date = new Date(`${dateStr}T00:00:00`);
+    const start = daily.startDate ? new Date(`${daily.startDate}T00:00:00`) : null;
+    const every = Math.max(1, Number(repeats.every) || 1);
 
-    if (daily.startDate) {
-        const start = new Date(`${daily.startDate}T00:00:00`);
-        if (date < start) return false;
+    if (start && date < start) return false;
+
+    // 'daily' with every > 1 = every N days, counted from startDate
+    // (added 2026-10-09 with the new Daily form; every:1 is unchanged).
+    if (repeats.type === 'monthly') {
+        if (!start) return date.getDate() === 1;
+        const monthsSince = (date.getFullYear() - start.getFullYear()) * 12 + (date.getMonth() - start.getMonth());
+        if (monthsSince % every !== 0) return false;
+        // A start on the 31st still lands on the last day of a short month.
+        const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+        return date.getDate() === Math.min(start.getDate(), lastDay);
     }
 
-    if (repeats.type !== 'weekly') return true;
+    if (repeats.type !== 'weekly') {
+        if (every > 1 && start) return Math.round((date - start) / 86400000) % every === 0;
+        return true;
+    }
 
     const daysOfWeek = repeats.daysOfWeek || [];
     if (!daysOfWeek.includes(date.getDay())) return false;
 
-    const every = repeats.every || 1;
-    if (every > 1 && daily.startDate) {
-        const start = new Date(`${daily.startDate}T00:00:00`);
+    if (every > 1 && start) {
         const daysSince = Math.round((date - start) / 86400000);
         const weeksSince = Math.floor(daysSince / 7);
         if (weeksSince % every !== 0) return false;
     }
 
     return true;
+}
+
+// YYYY-MM-DD moved by n days (local calendar, noon to dodge DST edges).
+function shiftISODate(dateStr, n) {
+    const d = new Date(`${dateStr}T12:00:00`);
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// A daily's streak: how many due days in a row it was done, ending today
+// (or yesterday, while today is still open). Days it isn't due are
+// skipped. "Adjust Streak" on the edit screen stores streakAdjust =
+// { value, through }: the streak as of the `through` date, so the count
+// keeps growing from there and still breaks on a missed day.
+function computeDailyStreak(task, today) {
+    const done = new Set(task.completedDates || []);
+    const adj = task.streakAdjust && task.streakAdjust.through ? task.streakAdjust : null;
+    let count = 0;
+    let day = done.has(today) ? today : shiftISODate(today, -1);
+    for (let i = 0; i < 1000; i++) {
+        if (adj && day <= adj.through) {
+            const extra = Math.max(0, Number(adj.value) || 0);
+            return count + (adj.through === today && !done.has(today) ? Math.max(0, extra - 1) : extra);
+        }
+        if (task.startDate && day < task.startDate) return count;
+        if (isDailyDueOn(task, day)) {
+            if (!done.has(day)) return count;
+            count++;
+        }
+        day = shiftISODate(day, -1);
+    }
+    return count;
 }
 
 // Colony bee rarities - lives here (not colony.js) because bees are now
@@ -791,6 +834,41 @@ const ONBOARDING_STARTER_HABITS = [
 ];
 // Pages that stay reachable while the egg is being raised.
 const ONBOARDING_OPEN_PAGES = ['/onboarding/', '/settings/', '/account-info/', '/account-security/'];
+
+// The dock tabs unlock one by one while the egg grows (2026-10-09):
+// Habits (egg), To-Dos (larva), Dailies then Quests (while sealed). Each
+// tab's real pages open up once it's unlocked, and each has a short
+// tutorial that's checked against what you actually do on those pages.
+const ONBOARDING_TAB_ORDER = ['habits', 'todos', 'dailies', 'quests'];
+const ONBOARDING_TAB_PATHS = {
+    habits: ['/plugins/habits/'],
+    todos: ['/plugins/todos/'],
+    dailies: ['/features/dailies/'],
+    quests: ['/features/quests/']
+};
+const ONBOARDING_STEPS = {
+    habits: [
+        { key: 'make', title: 'Make your own habit', why: 'Pick something small you want to do more of.' },
+        { key: 'plus', title: 'Tap + on your habit when you do it', why: 'Each + on your own habit gives the egg energy.' },
+        { key: 'bad', title: 'Add a bad habit you want to break', why: 'Be honest. If it slips in, tap −. It drains a little energy. Reality waits on no one.' }
+    ],
+    todos: [
+        { key: 'add', title: 'Add your first To-Do', why: "Get it out of your head. Once it's written down, you don't have to keep remembering it." },
+        { key: 'due', title: 'Give a To-Do a due date', why: "A due date turns 'someday' into a plan." },
+        { key: 'steps', title: 'Break a To-Do into a checklist', why: 'Big jobs feel smaller one step at a time.' },
+        { key: 'check', title: 'Check off a To-Do', why: 'Finishing feels good. It feeds the larva too.' }
+    ],
+    dailies: [
+        { key: 'add', title: 'Make a daily', why: 'Something you do on set days. It resets every morning, so each day is a fresh start.' },
+        { key: 'days', title: 'Choose the days it repeats', why: 'Not every day? Pick the days, or every few days. It only shows up when it counts.' },
+        { key: 'check', title: 'Check off a daily today', why: 'Do it, tap the hexagon. Day after day, that builds a streak.' }
+    ],
+    quests: [
+        { key: 'make', title: 'Start a quest with 2 or more tasks', why: "A quest is a long-term goal, too big for one day. Break it into steps you can finish." },
+        { key: 'focus', title: 'Put a quest in focus 🎯', why: 'Your focused quest sits on top of Quests and on Home, so you always know the next step.' },
+        { key: 'check', title: 'Check off a quest task', why: 'Every task you finish moves the whole goal forward.' }
+    ]
+};
 
 function freshOnboardingRecord() {
     return {
@@ -1413,6 +1491,9 @@ class DatabaseManager {
 
         return {
             ...this.state.user,
+            // The name you gave while raising your egg wins over the
+            // blueprint's placeholder ("Worker Bee").
+            name: this.state.displayName || (this.state.user && this.state.user.name),
             totalDP,
             level,
             currentXP,
@@ -2157,6 +2238,56 @@ class DatabaseManager {
     // A stale sideQuestIds reference to the removed quest is left in place
     // deliberately: getSideQuestsFor()/getParentQuestFor() already filter
     // out ids that no longer resolve, so it just quietly stops showing up.
+    // Create / Edit Quest form (2026-10-09). Saves title, objective,
+    // category, source and the task list in one go. Existing tasks are
+    // matched by id so their completed state, dates, links and relevance
+    // are kept; new rows become new tasks; rows left out are removed.
+    // Everything else on the quest (ghost logs, side quests, codex
+    // unlocks, repo task...) is left alone. Returns the quest.
+    saveQuestForm(questId, { title, objective, category, source, tasks, makeActive }) {
+        if (!this.state) return null;
+        if (!this.state.quests) this.state.quests = [];
+        const stamp = Date.now();
+        let quest = questId ? this.state.quests.find(q => q.id === questId) : null;
+        if (!quest) {
+            quest = {
+                id: `QUEST-${stamp}`,
+                category: 'main',
+                status: 'active',
+                title: '',
+                objective: '',
+                queensDecree: '',
+                source: null,
+                dateStarted: todayISO(),
+                dateCompleted: null,
+                tasks: []
+            };
+            this.state.quests.push(quest);
+        }
+        const old = quest.tasks || [];
+        quest.title = title;
+        quest.objective = objective || '';
+        quest.category = category === 'side' ? 'side' : 'main';
+        quest.source = source && source.url ? { label: source.label || source.url, url: source.url } : null;
+        quest.tasks = (tasks || []).map((row, index) => {
+            const prev = row.id && old.find(t => t.id === row.id);
+            if (prev) return { ...prev, label: row.label, difficulty: row.difficulty || null, dp: Number(row.dp) || 0 };
+            return {
+                id: `${quest.id.toLowerCase()}-t${stamp}-${index}`,
+                label: row.label,
+                dp: Number(row.dp) || 0,
+                completed: false,
+                dateCompleted: null,
+                link: null,
+                difficulty: row.difficulty || null
+            };
+        });
+        if (quest.tasks.length) this._updateQuestCompletionState(quest);
+        if (makeActive) this.state.activeQuestId = quest.id;
+        this.save();
+        return quest;
+    }
+
     removeQuest(questId) {
         if (!this.state) return false;
 
@@ -2673,8 +2804,53 @@ class DatabaseManager {
             // Whether its own schedule (see isDailyDueOn above) actually
             // includes today - dailies.js dims/badges these rather than
             // hiding them outright, so nothing looks like it vanished.
-            dueToday: isDailyDueOn(task, today)
+            dueToday: isDailyDueOn(task, today),
+            streak: computeDailyStreak(task, today),
+            // Checklist ticks reset every day: an item counts as done only
+            // when its doneOn is today.
+            checklist: (task.checklist || []).map(item => ({ ...item, done: item.doneOn === today }))
         }));
+    }
+
+    // Tick or untick one checklist line on a daily (no DP - the daily
+    // itself is what pays out).
+    toggleDailyChecklistItem(taskId, itemId) {
+        if (!this.state) return null;
+        const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
+        const item = task && (task.checklist || []).find(i => i.id === itemId);
+        if (!item) return null;
+        const today = todayISO();
+        item.doneOn = item.doneOn === today ? null : today;
+        item.done = item.doneOn === today;
+        this.save();
+        return item;
+    }
+
+    // Hold-to-move on the Dailies page, same as moveHabit.
+    moveDaily(taskId, toIndex) {
+        if (!this.state || !this.state.dailyTasks) return false;
+        const list = this.state.dailyTasks;
+        const from = list.findIndex(t => t.id === taskId);
+        if (from < 0) return false;
+        const to = Math.max(0, Math.min(list.length - 1, Number(toIndex) || 0));
+        if (from === to) return false;
+        const [task] = list.splice(from, 1);
+        list.splice(to, 0, task);
+        this.save();
+        return true;
+    }
+
+    // "Adjust Streak": sets today's streak to `value`. Stored as the streak
+    // through the last counted day (today if done, else yesterday).
+    setDailyStreak(taskId, value) {
+        if (!this.state) return null;
+        const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
+        if (!task) return null;
+        const today = todayISO();
+        const doneToday = (task.completedDates || []).includes(today);
+        task.streakAdjust = { value: Math.max(0, Math.floor(Number(value) || 0)), through: doneToday ? today : shiftISODate(today, -1) };
+        this.save();
+        return task;
     }
 
     // Generic feed for the sitewide Reminders engine (src/core/reminders/) -
@@ -2736,8 +2912,10 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.dailyTasks) this.state.dailyTasks = [];
 
+        const id = `daily-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        this._lastDailyId = id;
         this.state.dailyTasks.push({
-            id: `daily-${Date.now()}`,
+            id,
             label,
             dp: Number(dp) || 0,
             difficulty: difficulty || null,
@@ -2981,7 +3159,7 @@ class DatabaseManager {
         if (!this.state.todos) this.state.todos = [];
 
         this.state.todos.push({
-            id: `todo-${Date.now()}`,
+            id: `todo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             label,
             dp: Number(dp) || 0,
             difficulty: difficulty || null,
@@ -3021,6 +3199,32 @@ class DatabaseManager {
         if (!this.state || !this.state.todos) return false;
 
         this.state.todos = this.state.todos.filter(t => t.id !== todoId);
+        this.save();
+        return true;
+    }
+
+    // Tick or untick one checklist line on a to-do (no DP - the to-do
+    // itself pays out). Unlike a daily's, these stay ticked.
+    toggleTodoChecklistItem(todoId, itemId) {
+        if (!this.state) return null;
+        const todo = (this.state.todos || []).find(t => t.id === todoId);
+        const item = todo && (todo.checklist || []).find(i => i.id === itemId);
+        if (!item) return null;
+        item.done = !item.done;
+        this.save();
+        return item;
+    }
+
+    // Hold-to-move on the To-Dos page, same as moveHabit.
+    moveTodo(todoId, toIndex) {
+        if (!this.state || !this.state.todos) return false;
+        const list = this.state.todos;
+        const from = list.findIndex(t => t.id === todoId);
+        if (from < 0) return false;
+        const to = Math.max(0, Math.min(list.length - 1, Number(toIndex) || 0));
+        if (from === to) return false;
+        const [todo] = list.splice(from, 1);
+        list.splice(to, 0, todo);
         this.save();
         return true;
     }
@@ -3518,6 +3722,101 @@ class DatabaseManager {
         return this.state.onboarding;
     }
 
+    // Your own name (asked for while raising your egg; Account Info can
+    // change it). Kept apart from state.user, which the blueprint owns.
+    setDisplayName(name) {
+        if (!this.state) return null;
+        const clean = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+        this.state.displayName = clean || null;
+        this.save();
+        return this.state.displayName;
+    }
+
+    // Which dock tabs are open during onboarding, in unlock order. Older
+    // records (from before tabs existed) are read from how far they got.
+    getOnboardingTabs() {
+        const o = this.getOnboarding();
+        if (!o) return [];
+        if (Array.isArray(o.tabs)) return o.tabs.filter(t => ONBOARDING_TAB_ORDER.includes(t));
+        const tabs = [];
+        if (o.unlocked) tabs.push('habits');
+        if (['larva', 'pupa', 'ready', 'hatched'].includes(o.stage)) tabs.push('todos');
+        if (['ready', 'hatched'].includes(o.stage)) tabs.push('dailies', 'quests');
+        return tabs;
+    }
+
+    // Opens a tab and remembers what was already there, so only things
+    // made from now on count toward its tutorial.
+    unlockOnboardingTab(tab) {
+        const o = this.getOnboarding();
+        if (!o || !ONBOARDING_TAB_ORDER.includes(tab)) return false;
+        if (!Array.isArray(o.tabs)) o.tabs = this.getOnboardingTabs();
+        if (!o.base) o.base = {};
+        if (!o.tabs.includes(tab)) o.tabs.push(tab);
+        if (!o.base[tab]) o.base[tab] = this._onboardingItems(tab).map(x => x.id);
+        if (tab === 'habits' || tab === 'todos') this.setPluginEnabled(tab, true);
+        this.save();
+        return true;
+    }
+
+    _onboardingItems(tab) {
+        if (!this.state) return [];
+        return ({ habits: this.state.habits, todos: this.state.todos, dailies: this.state.dailyTasks, quests: this.state.quests }[tab]) || [];
+    }
+
+    // Things made on this tab since it unlocked.
+    onboardingNewItems(tab) {
+        const o = this.getOnboarding();
+        const base = new Set((o && o.base && o.base[tab]) || []);
+        return this._onboardingItems(tab).filter(x => !base.has(x.id));
+    }
+
+    // { stepKey: true/false } for one tab, read from the real data.
+    onboardingStepStatus(tab) {
+        const items = this.onboardingNewItems(tab);
+        const today = todayISO();
+        if (tab === 'habits') {
+            return {
+                make: items.length > 0,
+                plus: items.some(h => (h.history || []).some(x => x.direction === 'positive')),
+                bad: items.some(h => h.negative === true)
+            };
+        }
+        if (tab === 'todos') {
+            return {
+                add: items.length > 0,
+                due: items.some(t => !!t.dueDate),
+                steps: items.some(t => (t.checklist || []).length > 0),
+                check: items.some(t => t.completed)
+            };
+        }
+        if (tab === 'dailies') {
+            return {
+                add: items.length > 0,
+                days: items.some(d => {
+                    const r = d.repeats || {};
+                    return r.type === 'monthly' || (Number(r.every) || 1) > 1 || (r.type === 'weekly' && (r.daysOfWeek || []).length > 0 && (r.daysOfWeek || []).length < 7);
+                }),
+                check: items.some(d => (d.completedDates || []).includes(today))
+            };
+        }
+        if (tab === 'quests') {
+            const ids = new Set(items.map(q => q.id));
+            return {
+                make: items.some(q => (q.tasks || []).length >= 2),
+                focus: ids.has(this.getActiveQuestId()),
+                check: items.some(q => (q.tasks || []).some(t => t.completed))
+            };
+        }
+        return {};
+    }
+
+    // The next step still to do on a tab (or null when it's all done).
+    onboardingNextStep(tab) {
+        const status = this.onboardingStepStatus(tab);
+        return (ONBOARDING_STEPS[tab] || []).find(st => !status[st.key]) || null;
+    }
+
     // Sends pages to the egg while it isn't hatched yet. Only nested app
     // pages are gated - the login page and the open pages above never are.
     _onboardingGate() {
@@ -3527,6 +3826,7 @@ class DatabaseManager {
         const inFeatures = path.includes('/src/features/'), inPlugins = path.includes('/src/plugins/');
         if (!inFeatures && !inPlugins) return;
         if (ONBOARDING_OPEN_PAGES.some(p => path.includes(p))) return;
+        if (this.getOnboardingTabs().some(tab => ONBOARDING_TAB_PATHS[tab].some(p => path.includes(p)))) return;
         window.location.replace((inPlugins ? '../../features/onboarding/' : '../onboarding/') + 'onboarding.html');
     }
 
@@ -3562,7 +3862,8 @@ class DatabaseManager {
             this.state.habits.push({
                 id: `habit-starter-${i}-${Date.now()}`,
                 label: h.label, dp: 20, difficulty: 'Easy', notes: h.notes, tags: [],
-                positive: true, negative: false, resetCounter: 'daily', history: []
+                positive: true, negative: false, resetCounter: 'daily', history: [],
+                ...(i === 0 ? { quoteOfWeek: true } : {})
             });
         });
         Object.assign(this.state.onboarding, { stage: 'done', royal: kind, name: String(name || '').trim().slice(0, 24), completedAt: new Date().toISOString() });

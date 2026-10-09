@@ -8,28 +8,35 @@
     <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
     <link rel="manifest" href="../../../manifest.json">
-    <meta name="theme-color" content="#ffd700">
+    <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>☀️ Dailies</title>
 
     <link rel="stylesheet" href="../../core/global.css">
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../../core/status-dot/status-dot.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/habit-row/habit-row.css">
+    <link rel="stylesheet" href="../../core/task-row/task-row.css">
     <link rel="stylesheet" href="./dailies.css">
 </head>
 <body>
 
     <main class="dailies-container">
-        <h2 class="dailies-title">☀️ <span class="gold-gradient-text">DAILY TASKS</span></h2>
-        <p class="dailies-subtitle">Resets every day. Use the honeycomb button below to add a new one.</p>
-
-        <section class="panel">
-            <ul class="task-list quest-task-list" id="daily-task-list"></ul>
+        <section class="dl-head">
+            <h2 class="dl-title">☀️ DAILIES <small>Hold a daily to move it</small></h2>
+            <div class="dl-today">
+                <div class="dl-today-top">
+                    <span id="dl-count">0 of 0 done today</span>
+                    <span class="dl-date" id="dl-date"></span>
+                </div>
+                <div class="dl-bar" role="progressbar" aria-label="Done today" aria-valuemin="0" aria-valuemax="100" id="dl-bar"><i id="dl-bar-fill"></i></div>
+            </div>
+            <p class="dl-tip">Tap the hexagon when it's done. Tap a daily to edit it. They reset every day.</p>
         </section>
+
+        <section id="daily-task-list"></section>
     </main>
 
     <script src="../../core/db.js"></script>
@@ -38,10 +45,11 @@
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/status-dot/status-dot.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/habit-row/habit-row.js"></script>
+    <script src="../../core/task-row/task-row.js"></script>
     <script src="./dailies.js"></script>
 </body>
 </html>

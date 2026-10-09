@@ -1,110 +1,74 @@
 console.log("/// DAILIES PROTOCOLS INITIALIZED ///");
 
-function escapeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+// Dailies list (rebuilt 2026-10-09 to match Habits and Home). Each daily is
+// a card with a hexagon check in its difficulty colour. Tap the hexagon to
+// check it off, tap the card to edit, hold to move. Dailies not due today
+// are dimmed and show when they're next due. The box on the right is the
+// checklist count; tap it to tick lines here (they reset every day, like
+// the daily itself). The card itself is TaskRow.dailyHTML (src/core/task-row/),
+// shared with Home's Today panel.
+
+const openChecklists = new Set();
+
+function renderHead(tasks) {
+    const due = tasks.filter(t => t.dueToday || t.completedToday);
+    const done = due.filter(t => t.completedToday).length;
+    const pct = due.length ? Math.round(done / due.length * 100) : 0;
+    document.getElementById('dl-count').innerHTML = due.length
+        ? `<b>${done}</b> of ${due.length} done today`
+        : 'Nothing due today';
+    document.getElementById('dl-date').textContent = new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const bar = document.getElementById('dl-bar');
+    bar.setAttribute('aria-valuenow', pct);
+    bar.classList.toggle('full', due.length > 0 && done === due.length);
+    document.getElementById('dl-bar-fill').style.width = `${pct}%`;
 }
 
-function escapeAttr(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
-function checklistProgressHTML(checklist) {
-    if (!checklist || checklist.length === 0) return '';
-    const done = checklist.filter(item => item.done).length;
-    return `<small class="quest-task-checklist-badge">✅ ${done}/${checklist.length}</small>`;
-}
-
-function tagsHTML(tags) {
-    if (!tags || tags.length === 0) return '';
-    return `<span class="quest-task-tags">${tags.map(tag => `<span class="quest-task-tag">${escapeHTML(tag)}</span>`).join('')}</span>`;
-}
-
-// Maps this page's difficulty vocabulary onto the shared StatusDot palette
-// (src/core/status-dot/) - same mapping quests.js uses for its own task
-// difficulty badge, so "hard" reads as the same red dot everywhere.
-const DIFFICULTY_DOT_COLOR = { easy: 'green', medium: 'yellow', hard: 'red' };
-
-// Adding/editing now happens on its own full page (create-daily.html) -
-// see openAddDailyForm/renderDailyEditForm's removal below - so this list
-// just renders + toggles + removes, plus surfaces the extra info that page
-// collects (checklist progress, tags, and whether today is even a
-// scheduled day for a given daily per its own repeats settings).
 function renderDailyTasks() {
-    const list = document.getElementById('daily-task-list');
     const tasks = Vault.getDailyTasks();
-
-    list.innerHTML = tasks.length > 0
-        ? tasks.map(task => `
-            <li class="quest-task-item${task.completedToday ? ' quest-task-item--done' : ''}${task.dueToday === false ? ' quest-task-item--not-due' : ''}" data-daily-id="${task.id}">
-                <div class="quest-task-accent quest-task-accent--${DIFFICULTY_DOT_COLOR[(task.difficulty || '').toLowerCase()] || 'gray'}"></div>
-                <div class="quest-task-body">
-                    <div class="quest-task-top">
-                        <input type="checkbox" class="quest-task-checkbox" data-role="toggle" ${task.completedToday ? 'checked' : ''}>
-                        <span class="quest-task-label">${escapeHTML(task.label)}</span>
-                        <button class="quest-task-more-btn" data-role="more" aria-label="More actions">⋯</button>
-                    </div>
-                    <div class="quest-task-meta">
-                        <small class="quest-task-dp">+${task.dp} DP</small>
-                        ${task.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeAttr(task.difficulty.toLowerCase())}">${StatusDot.html(DIFFICULTY_DOT_COLOR[task.difficulty.toLowerCase()] || 'gray')}${escapeHTML(task.difficulty)}</small>` : ''}
-                        ${checklistProgressHTML(task.checklist)}
-                        ${tagsHTML(task.tags)}
-                        ${task.dueToday === false ? '<small class="quest-task-not-due-badge">Not scheduled today</small>' : ''}
-                    </div>
-                </div>
-                <div class="quest-task-more-menu" data-role="more-menu">
-                    <button type="button" data-role="edit">✏️ Edit</button>
-                    <button type="button" data-role="remove">🗑️ Remove</button>
-                </div>
-            </li>
-        `).join('')
-        : `<p class="quest-empty-state">No daily tasks yet - use the honeycomb button below to add one.</p>`;
-
-    tasks.forEach(task => {
-        const row = list.querySelector(`[data-daily-id="${task.id}"]`);
-
-        row.querySelector('[data-role="toggle"]').addEventListener('change', () => {
-            const willComplete = !task.completedToday;
-            const levelBefore = Vault.getUser().level;
-            Vault.toggleDailyTask(task.id);
-            const levelAfter = Vault.getUser().level;
-
-            Toast.show(willComplete ? `🐝 +${task.dp} DP` : `➖ ${task.dp} DP`, willComplete ? 'positive' : 'negative');
-            if (levelAfter > levelBefore) Toast.show(`🎉 LEVEL UP! Lv. ${levelAfter}`, 'positive');
-
-            renderDailyTasks();
-        });
-
-        row.querySelector('[data-role="more"]').addEventListener('click', (event) => {
-            event.stopPropagation();
-            const menu = row.querySelector('[data-role="more-menu"]');
-            const willOpen = !menu.classList.contains('quest-task-more-menu--open');
-            document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
-            if (willOpen) menu.classList.add('quest-task-more-menu--open');
-        });
-
-        row.querySelector('[data-role="edit"]').addEventListener('click', () => {
-            window.location.href = `./create-daily.html?id=${encodeURIComponent(task.id)}`;
-        });
-
-        row.querySelector('[data-role="remove"]').addEventListener('click', () => {
-            if (!confirm(`Remove daily "${task.label}"?`)) return;
-            if (Vault.removeDailyTask(task.id)) renderDailyTasks();
-        });
-    });
+    renderHead(tasks);
+    document.getElementById('daily-task-list').innerHTML = tasks.length
+        ? `<ul class="hr-list" data-reorder="1">${tasks.map(t => TaskRow.dailyHTML(t, openChecklists.has(t.id))).join('')}</ul>`
+        : '<p class="dl-empty">No dailies yet. Tap the + below to make one.</p>';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     renderDailyTasks();
 
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
+    const list = document.getElementById('daily-task-list');
+    list.addEventListener('click', (event) => {
+        if (window.__hrJustDragged) return;
+        const el = event.target.closest('[data-act]');
+        if (!el) return;
+        const row = el.closest('.dr-row');
+        const task = Vault.getDailyTasks().find(t => t.id === row.dataset.rowId);
+        if (!task) return;
+        const act = el.dataset.act;
+        if (act === 'edit') {
+            window.location.href = `./create-daily.html?id=${encodeURIComponent(task.id)}`;
+        } else if (act === 'check') {
+            Vault.toggleDailyTask(task.id);
+            TaskRow.animateCheck(row, !task.completedToday, task.dp);
+            setTimeout(renderDailyTasks, 650);
+        } else if (act === 'list') {
+            if (openChecklists.has(task.id)) openChecklists.delete(task.id); else openChecklists.add(task.id);
+            renderDailyTasks();
+        } else if (act === 'item') {
+            Vault.toggleDailyChecklistItem(task.id, el.dataset.item);
+            renderDailyTasks();
+        }
+    });
+    list.addEventListener('keydown', (event) => {
+        const main = event.target.closest('.dr-main');
+        if (main && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); main.click(); }
+    });
+
+    HabitRow.enableReorder(list, {
+        onMoved: (taskId, toIndex) => {
+            Vault.moveDaily(taskId, toIndex);
+            renderDailyTasks();
+        }
     });
 
     Waggle.setActions([

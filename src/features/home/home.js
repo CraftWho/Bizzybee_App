@@ -1,12 +1,15 @@
 console.log("/// HOME PROTOCOLS INITIALIZED ///");
 
-// Home (rebuilt 2026-10-08 from the approved demo, Craft):
-//   - your royal + name + level bar now live in the app's top bar (app.js
+// Home (rebuilt 2026-10-08, refreshed 2026-10-09 - Craft):
+//   - your royal + name + level bar live in the app's top bar (app.js
 //     AppShell), full size on this page - the Level Up button is there too
-//   - hive strip: bees / honey cells / decayed cells, taps through to the hive
-//   - Today: a dropdown (closed by default) with Dailies / Habits / To-Dos /
-//     Quest tabs, so the day can be checked off without leaving Home
-//   - the app grid: every page that isn't in the bottom dock
+//   - hive strip: four stats, each opening its own page (bees -> Colony,
+//     DP today -> Dashboard, best streak -> Dailies, focus quest -> Quests)
+//   - Today: a dropdown with Dailies / Habits / To-Dos / Quest tabs, using
+//     the exact same cards as those tabs (TaskRow, HabitRow, QuestUI).
+//     Closed by default on phones, open on wide screens.
+//   - the app grid: every page that isn't in the bottom dock, grouped
+//     (Hive / Grow / You / More), with gold line icons on coloured hexagons
 
 function escapeHTML(str) {
     const div = document.createElement('div');
@@ -17,21 +20,16 @@ function escapeHTML(str) {
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const TODAY_TABS = ['dailies', 'habits', 'todos', 'quest'];
 const TAB_LINKS = {
-    dailies: { href: '../dailies/dailies.html', label: 'Open Dailies' },
+    dailies: { href: '../dailies/dailies.html', label: 'Open Dailies', edit: '../dailies/create-daily.html?id=' },
     habits: { href: '../../plugins/habits/habits.html', label: 'Open Habits' },
-    todos: { href: '../../plugins/todos/todos.html', label: 'Open To-Dos' },
+    todos: { href: '../../plugins/todos/todos.html', label: 'Open To-Dos', edit: '../../plugins/todos/create-todo.html?id=' },
     quest: { href: '../quests/quests.html', label: 'Open Quests' }
 };
 let currentTab = 'dailies';
+const openChecklists = new Set();
 
 function pluginOn(id) {
     return typeof Plugins === 'undefined' || Plugins.isEnabled(id);
-}
-
-function localDateISO(offsetDays = 0) {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // ---- data for the Today card ----
@@ -44,36 +42,47 @@ function todayData() {
     return { dailies, todos, quest, habits: pluginOn('habits') ? Vault.getHabits() : [] };
 }
 
-// ---- hive strip ----
+// DP earned today across everything (habits count + and −).
+function dpToday() {
+    const today = todayISO();
+    let dp = 0;
+    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) dp += Number(t.dp) || 0; });
+    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) dp += Number(t.dp) || 0; });
+    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) dp += Number(t.dp) || 0; }));
+    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => (h.history || []).forEach(x => {
+        if (x.date === today) dp += (x.direction === 'positive' ? 1 : -1) * (Number(h.dp) || 0);
+    }));
+    return dp;
+}
+
+// ---- hive strip: four stats, each to its own page ----
+const STRIP_ICONS = {
+    bees: '<path d="M12 6.5a3 3 0 1 1 0 .1"/><path d="M8.5 11h7l-.8 7.5a2.7 2.7 0 0 1-5.4 0z"/><path d="M8.8 14h6.4M9.2 16.8h5.6M8.5 11C5 8 3 9.5 4.2 11.8S8.2 13 8.5 11zM15.5 11c3.5-3 5.5-1.5 4.3.8S15.8 13 15.5 11z"/>',
+    dp: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
+    streak: '<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-8.3.7 1.9 1.8 3 3 3.4-.2-2.6.8-5.3 2.9-6.9.1 3.4 3.5 6 3.5 10.4C18.5 18.2 16 21 12 21z"/><path d="M12 21c-1.7 0-2.8-1.2-2.8-2.8 0-1.8 1.6-2.7 2.2-4.2.9 1.5 3.4 2.4 3.4 4.4 0 1.5-1.2 2.6-2.8 2.6z"/>',
+    quest: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2"/>'
+};
+
 function renderHive() {
     const hive = Vault.getHiveHoney();
-    document.getElementById('home-hive-bees').textContent = hive.bees;
-    document.getElementById('home-hive-honey').textContent = Math.max(0, hive.lit - hive.decay);
-    document.getElementById('home-hive-decay').textContent = hive.decay;
+    const streak = Vault.getDailyTasks().reduce((m, t) => Math.max(m, t.streak || 0), 0);
+    const quest = Vault.getQuests().find(q => q.id === Vault.getActiveQuestId());
+    const qp = quest && typeof QuestUI !== 'undefined' ? QuestUI.progress(quest).pct : null;
+    const dp = dpToday();
+    const stats = [
+        { key: 'bees', value: hive.bees, label: 'Bees', href: '../colony/colony.html', color: '#ffcc00' },
+        { key: 'dp', value: `${dp > 0 ? '+' : ''}${dp}`, label: 'DP today', href: '../dashboard/dashboard.html', color: '#34c77b' },
+        { key: 'streak', value: streak, label: 'Best streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
+        { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
+    ];
+    document.getElementById('home-hive').innerHTML = stats.map(s => `
+        <a class="home-stat" href="${s.href}" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>
+            <b>${escapeHTML(s.value)}</b><small>${escapeHTML(s.label)}</small>
+        </a>`).join('');
 }
 
 // ---- Today ----
-const hexCheck = `<svg viewBox="0 0 30 32" aria-hidden="true">
-    <polygon class="hc-cell" points="15,1.5 28,9 28,23 15,30.5 2,23 2,9"/>
-    <polygon class="hc-fill" points="15,4 25.6,10.2 25.6,21.8 15,28 4.4,21.8 4.4,10.2"/>
-    <path class="hc-tick" d="M9.5 16.5 L13.5 20.5 L21 12"/></svg>`;
-
-function checkRow({ id, kind, label, sub, done, dp, due }) {
-    return `<li class="home-row${done ? ' done' : ''}" data-kind="${kind}" data-id="${escapeHTML(id)}">
-        <button type="button" class="home-check" data-act="check" aria-label="${done ? 'Undo' : 'Check off'}: ${escapeHTML(label)}">${hexCheck}</button>
-        <div class="home-row-text"><span>${escapeHTML(label)}</span>${sub ? `<small>${escapeHTML(sub)}</small>` : ''}</div>
-        ${due && !done ? `<span class="home-due${due === 'Today' || due === 'Overdue' ? '' : ' soon'}">${escapeHTML(due)}</span>` : `<span class="home-dp">+${dp}</span>`}
-    </li>`;
-}
-
-function dueLabel(dueDate) {
-    if (!dueDate) return '';
-    if (dueDate < localDateISO(0)) return 'Overdue';
-    if (dueDate === localDateISO(0)) return 'Today';
-    if (dueDate === localDateISO(1)) return 'Tomorrow';
-    return dueDate.slice(5).replace('-', '/');
-}
-
 function emptyState(icon, text) {
     return `<div class="home-empty"><b>${icon}</b>${text}</div>`;
 }
@@ -85,7 +94,7 @@ function renderPanel(direction) {
 
     if (currentTab === 'dailies') {
         html = data.dailies.length
-            ? `<ul class="home-list">${data.dailies.map(t => checkRow({ id: t.id, kind: 'daily', label: t.label, sub: t.difficulty || '', done: t.completedToday, dp: t.dp })).join('')}</ul>`
+            ? `<ul class="hr-list home-cards" data-kind="daily">${data.dailies.map(t => TaskRow.dailyHTML(t, openChecklists.has(t.id))).join('')}</ul>`
             : emptyState('☀️', 'No dailies due today.');
     } else if (currentTab === 'habits') {
         if (!pluginOn('habits')) html = emptyState('✅', 'Habits are off. Turn them on in Plugins.');
@@ -96,22 +105,15 @@ function renderPanel(direction) {
             const open = data.todos.filter(t => !t.completed).sort((a, b) => (a.dueDate || '9999') < (b.dueDate || '9999') ? -1 : 1);
             const done = data.todos.filter(t => t.completed);
             html = open.length || done.length
-                ? `<ul class="home-list">${[...open, ...done].map(t => {
-                    const steps = (t.checklist || []).length;
-                    const stepsDone = (t.checklist || []).filter(c => c.done || c.completed).length;
-                    return checkRow({ id: t.id, kind: 'todo', label: t.label, sub: steps ? `${stepsDone} of ${steps} steps` : '', done: t.completed, dp: t.dp, due: dueLabel(t.dueDate) });
-                }).join('')}</ul>`
+                ? `<ul class="hr-list home-cards" data-kind="todo">${[...open, ...done].map(t => TaskRow.todoHTML(t, openChecklists.has(t.id))).join('')}</ul>`
                 : emptyState('📝', 'Nothing to do. Nice.');
         }
     } else if (currentTab === 'quest') {
-        const q = data.quest;
-        html = q
-            ? `<p class="home-quest-title">🎯 ${escapeHTML(q.title)}</p><ul class="home-list">${(q.tasks || []).map(t => checkRow({ id: t.id, kind: 'quest', label: t.label, done: t.completed, dp: t.dp })).join('')}</ul>`
-            : emptyState('🎯', 'No active quest yet. Pick one on the Quests tab.');
+        html = `<div class="home-quest">${QuestUI.focusCardHTML(data.quest)}</div>`;
     }
 
     panel.innerHTML = html;
-    const list = panel.querySelector('.home-list, .home-habits, .home-empty');
+    const list = panel.firstElementChild;
     if (list && direction && !reduceMotion) {
         list.style.setProperty('--dx', `${direction * 14}px`);
         list.classList.add('home-enter');
@@ -140,7 +142,7 @@ function renderTabs() {
 
 function renderRing() {
     const data = todayData();
-    const today = localDateISO(0);
+    const today = TaskRow.localISO(new Date());
     const items = [
         ...data.dailies.map(t => t.completedToday),
         ...(data.quest ? (data.quest.tasks || []).map(t => t.completed) : []),
@@ -160,59 +162,55 @@ function renderToday(direction) {
     renderRing();
 }
 
-function floatAt(row, text, cls) {
-    const f = document.createElement('span');
-    f.className = `home-float ${cls}`;
-    f.textContent = text;
-    row.appendChild(f);
-    setTimeout(() => f.remove(), 1100);
+function refreshAfterCheck() {
+    renderHive();
+    setTimeout(() => { renderTabs(); renderRing(); renderPanel(); }, 700);
 }
 
-function handleCheck(button) {
-    const row = button.closest('.home-row');
-    const { kind, id } = row.dataset;
-    let nowDone = false, dp = 0;
+// Taps on a daily / to-do card or the focused quest.
+function handlePanelClick(event) {
+    if (window.__hrJustDragged) return;
+    const quest = event.target.closest('.qa-card');
+    if (quest) {
+        const check = event.target.closest('.dr-check');
+        if (check) {
+            const row = check.closest('.qt');
+            QuestUI.toggleTask(quest.dataset.questId, row.dataset.taskId, row);
+            refreshAfterCheck();
+        } else if (event.target.closest('[data-act="open"]')) {
+            window.location.href = `../quests/quest.html?id=${encodeURIComponent(quest.dataset.questId)}`;
+        }
+        return;
+    }
+    const el = event.target.closest('[data-act]');
+    const row = el && el.closest('.dr-row');
+    const list = row && row.closest('[data-kind]');
+    if (!row || !list) return;
+    const kind = list.dataset.kind, id = row.dataset.rowId, act = el.dataset.act;
     if (kind === 'daily') {
-        const before = Vault.getDailyTasks().find(t => t.id === id);
-        if (!before) return;
-        Vault.toggleDailyTask(id);
-        nowDone = !before.completedToday; dp = before.dp;
-    } else if (kind === 'todo') {
-        const before = Vault.getTodos().find(t => t.id === id);
-        if (!before) return;
-        Vault.toggleTodoComplete(id);
-        nowDone = !before.completed; dp = before.dp;
-    } else if (kind === 'quest') {
-        const quest = Vault.getQuests().find(q => q.id === Vault.getActiveQuestId());
-        const task = quest && (quest.tasks || []).find(t => t.id === id);
+        const task = Vault.getDailyTasks().find(t => t.id === id);
         if (!task) return;
-        Vault.toggleTask(quest.id, id);
-        nowDone = !task.completed; dp = task.dp;
+        if (act === 'check') { Vault.toggleDailyTask(id); TaskRow.animateCheck(row, !task.completedToday, task.dp); refreshAfterCheck(); }
+        else if (act === 'edit') window.location.href = TAB_LINKS.dailies.edit + encodeURIComponent(id);
+        else if (act === 'list') { if (openChecklists.has(id)) openChecklists.delete(id); else openChecklists.add(id); renderPanel(); }
+        else if (act === 'item') { Vault.toggleDailyChecklistItem(id, el.dataset.item); renderPanel(); }
+    } else if (kind === 'todo') {
+        const todo = Vault.getTodos().find(t => t.id === id);
+        if (!todo) return;
+        if (act === 'check') { Vault.toggleTodoComplete(id); TaskRow.animateCheck(row, !todo.completed, todo.dp); refreshAfterCheck(); }
+        else if (act === 'edit') window.location.href = TAB_LINKS.todos.edit + encodeURIComponent(id);
+        else if (act === 'list') { if (openChecklists.has(id)) openChecklists.delete(id); else openChecklists.add(id); renderPanel(); }
+        else if (act === 'item') { Vault.toggleTodoChecklistItem(id, el.dataset.item); renderPanel(); }
     }
-    row.classList.toggle('done', nowDone);
-    button.setAttribute('aria-label', `${nowDone ? 'Undo' : 'Check off'}: ${row.querySelector('.home-row-text span').textContent}`);
-    if (nowDone) {
-        button.classList.remove('home-pop'); void button.offsetWidth; button.classList.add('home-pop');
-        const ripple = document.createElement('span');
-        ripple.className = 'home-ripple';
-        row.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 600);
-        floatAt(row, `+${dp} DP`, 'good');
-        if (navigator.vibrate) navigator.vibrate(25);
-    } else {
-        floatAt(row, `−${dp} DP`, 'bad');
-    }
-    renderHive();
-    setTimeout(() => { renderTabs(); renderRing(); if (kind !== 'daily') renderPanel(); }, nowDone && kind !== 'daily' ? 650 : 0);
 }
 
 function setupToday() {
     const card = document.getElementById('home-today');
     const toggle = document.getElementById('home-today-toggle');
-    toggle.addEventListener('click', () => {
-        const open = card.classList.toggle('open');
-        toggle.setAttribute('aria-expanded', String(open));
-    });
+    const setOpen = (open) => { card.classList.toggle('open', open); toggle.setAttribute('aria-expanded', String(open)); };
+    // Open by default on wide screens, where there's room for it.
+    if (window.matchMedia('(min-width: 860px)').matches) setOpen(true);
+    toggle.addEventListener('click', () => setOpen(!card.classList.contains('open')));
     document.getElementById('home-tabs').addEventListener('click', (event) => {
         const b = event.target.closest('.home-tab');
         if (!b || b.dataset.tab === currentTab) return;
@@ -222,9 +220,10 @@ function setupToday() {
         renderPanel(direction);
     });
     const panel = document.getElementById('home-panel');
-    panel.addEventListener('click', (event) => {
-        const b = event.target.closest('[data-act="check"]');
-        if (b) handleCheck(b);
+    panel.addEventListener('click', handlePanelClick);
+    panel.addEventListener('keydown', (event) => {
+        const main = event.target.closest('.dr-main');
+        if (main && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); main.click(); }
     });
     HabitRow.bind(panel, {
         editHref: (habit) => `../../plugins/habits/create-habit.html?id=${encodeURIComponent(habit.id)}`,
@@ -232,42 +231,58 @@ function setupToday() {
     });
 }
 
-// ---- app grid: everything that isn't in the bottom dock ----
-const HOME_APP_DESTINATIONS = [
-    { key: 'dashboard', icon: '👨🏾‍💻', label: 'Dashboard' },
-    { key: 'map', icon: '🗺️', label: 'Map' },
-    { key: 'skills', icon: '🌿', label: 'Skills' },
-    { key: 'dictionary', icon: '📖', label: 'Dictionary' },
-    { key: 'profile', icon: '🧘🏾', label: 'Profile' },
-    { key: 'honey-store', icon: '🍯', label: 'Honey Store' },
-    { key: 'plugin-hub', icon: '🧩', label: 'Plugins' },
-    { key: 'hive-archive', icon: '📚', label: 'Hive Archive' },
-    { key: 'models', icon: '🧬', label: 'Bee Models' },
-    { key: 'settings', icon: '⚙️', label: 'Settings' }
+// ---- app grid: everything that isn't in the bottom dock, in groups ----
+const APP_ICONS = {
+    colony: '<path d="M14 3.5 20.5 7.2v7.6L14 18.5l-6.5-3.7V7.2z"/><path d="M7.5 14.8 1.8 18v6.6l5.7 3.2 5.7-3.2V18M20.5 14.8l5.7 3.2v6.6l-5.7 3.2-5.7-3.2V18"/>',
+    models: '<path d="M9 3c0 6 10 8 10 14S9 19 9 25M19 3c0 6-10 8-10 14s10 2 10 8"/><path d="M10.5 7h7M10.5 21h7M12 11.5h4M12 16.5h4"/>',
+    'honey-store': '<path d="M9 6h10M10 6v2.5C6.5 10 5.5 13 5.5 16.5c0 5 3.6 8 8.5 8s8.5-3 8.5-8c0-3.5-1-6.5-4.5-8V6"/><path d="M8 15c2 1.5 4 1.5 6 0s4-1.5 6 0"/><path d="M11 3.5h6"/>',
+    skills: '<path d="M14 25V13"/><path d="M14 16c-5 0-8-3-8-8 5 0 8 3 8 8zM14 13c0-5 3-8 8-8 0 5-3 8-8 8z"/><path d="M9 25h10"/>',
+    dictionary: '<path d="M4 6.5C7.5 5 11 5 14 7c3-2 6.5-2 10-.5v16c-3.5-1.5-7-1.5-10 .5-3-2-6.5-2-10-.5z"/><path d="M14 7v16"/>',
+    map: '<path d="M3.5 7 10 4.5l8 3 6.5-2.5v16.5L18 24l-8-3-6.5 2.5z"/><path d="M10 4.5v16.5M18 7.5V24"/>',
+    dashboard: '<path d="M4 23h20"/><rect x="6" y="13" width="3.5" height="7" rx="1"/><rect x="12.2" y="8" width="3.5" height="12" rx="1"/><rect x="18.5" y="4.5" width="3.5" height="15.5" rx="1"/>',
+    profile: '<circle cx="14" cy="9.5" r="4.5"/><path d="M5 24c1-5 4.5-7.5 9-7.5s8 2.5 9 7.5"/>',
+    'plugin-hub': '<path d="M11 4.5h2.5a2 2 0 1 1 4 0H20v5.5a2 2 0 1 0 0 4V20h-5.5a2 2 0 1 0-4 0H5v-5.5a2 2 0 1 1 0-4V4.5z"/>',
+    'hive-archive': '<rect x="4" y="5" width="20" height="5.5" rx="1.5"/><path d="M5.5 10.5V22a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V10.5M11.5 14.5h5"/>',
+    settings: '<circle cx="14" cy="14" r="3.6"/><path d="M14 3.5v3M14 21.5v3M24.5 14h-3M6.5 14h-3M21.4 6.6l-2.1 2.1M8.7 19.3l-2.1 2.1M21.4 21.4l-2.1-2.1M8.7 8.7 6.6 6.6"/><circle cx="14" cy="14" r="7.5"/>',
+    plugin: '<path d="M14 3.5 23 8.7v10.6L14 24.5 5 19.3V8.7z"/><path d="M14 9v10M9 14h10"/>'
+};
+const APP_GROUPS = [
+    { key: 'hive', label: 'Hive', color: '#ffcc00', ink: '#2a1a00', apps: [
+        { key: 'colony', label: 'Colony' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' }] },
+    { key: 'grow', label: 'Grow', color: '#34c77b', ink: '#06210f', apps: [
+        { key: 'skills', label: 'Skills' }, { key: 'dictionary', label: 'Dictionary' }, { key: 'map', label: 'Map' }, { key: 'dashboard', label: 'Dashboard' }] },
+    { key: 'you', label: 'You', color: '#4fb3d9', ink: '#04202b', apps: [
+        { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' }, { key: 'hive-archive', label: 'Hive Archive' }, { key: 'settings', label: 'Settings' }] }
 ];
 // Habits and To-Dos are in the dock, so only the other installed plugins
-// (Calendar, Study...) join the grid.
+// (Calendar, Study...) join the grid, as their own "More" group.
 const DOCK_PLUGINS = ['habits', 'todos'];
 
-function installedPluginDestinations() {
+function installedPluginApps() {
     if (typeof Plugins === 'undefined') return [];
     return Plugins.getCatalog()
         .filter(entry => Plugins.isEnabled(entry.id) && !DOCK_PLUGINS.includes(entry.id))
-        .map(entry => ({ key: entry.id, icon: entry.icon, label: entry.label, base: 'plugins' }));
+        .map(entry => ({ key: entry.id, label: entry.label, base: 'plugins' }));
 }
 
-function hrefForDestination(item) {
-    return item.base === 'plugins' ? `../../plugins/${item.key}/${item.key}.html` : `../${item.key}/${item.key}.html`;
+function hrefFor(app) {
+    return app.base === 'plugins' ? `../../plugins/${app.key}/${app.key}.html` : `../${app.key}/${app.key}.html`;
 }
 
 function renderAppGrid() {
-    const grid = document.getElementById('home-app-grid');
-    const destinations = [...HOME_APP_DESTINATIONS, ...installedPluginDestinations()];
-    grid.innerHTML = destinations.map(item => `
-        <a class="home-app" href="${hrefForDestination(item)}">
-            <span class="home-app-ic" aria-hidden="true">${item.icon}</span>
-            <span class="home-app-label">${escapeHTML(item.label)}</span>
-        </a>`).join('');
+    const groups = [...APP_GROUPS];
+    const extra = installedPluginApps();
+    if (extra.length) groups.push({ key: 'more', label: 'More', color: '#b18cff', ink: '#1a0b33', apps: extra });
+    document.getElementById('home-app-grid').innerHTML = groups.map(g => `
+        <div class="home-group" style="--gc:${g.color};--gk:${g.ink}">
+            <h3 class="home-group-h">${escapeHTML(g.label)}</h3>
+            <div class="home-group-apps">${g.apps.map(app => `
+                <a class="home-app" href="${hrefFor(app)}">
+                    <span class="home-app-ic" aria-hidden="true"><svg viewBox="0 0 28 28">${APP_ICONS[app.key] || APP_ICONS.plugin}</svg></span>
+                    <span class="home-app-label">${escapeHTML(app.label)}</span>
+                </a>`).join('')}
+            </div>
+        </div>`).join('');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

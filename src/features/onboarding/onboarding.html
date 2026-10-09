@@ -20,7 +20,7 @@
      their egg hatches - db.js's _onboardingGate() sends other pages here.
      ?practice=1 (Settings > Developer) plays it without saving anything. -->
 
-<div class="gift" id="gift" hidden role="button" tabindex="0" aria-label="A gift from the developer. Tap to continue.">
+<div class="gift" id="gift" hidden role="button" tabindex="0" aria-label="A note from the developer. Tap to go on.">
  <div class="gift-in">
   <svg class="gift-logo" viewBox="0 0 100 100" aria-hidden="true">
  <defs>
@@ -50,9 +50,7 @@
   <path d="M45 75 H55 C53.8 77.6 52.2 80 50 82.5 C47.8 80 46.2 77.6 45 75Z"/>
  </g>
 </svg>
-  <h1>A gift from the developer.</h1>
-  <p>Take care of it.</p>
-  <small>Tap to continue</small>
+  <div class="gift-slides" id="giftSlides" aria-live="polite"></div>
  </div>
 </div>
 
@@ -116,7 +114,7 @@
  <h2>🐝 Habits unlocked</h2>
  <p>Habits are the small things you do again and again. They build who you are.</p>
  <p>Tap <b style="color:#ffd76a">+</b> when you do a good one. Tap <b style="color:#ff6a5a">−</b> when a bad one slips in. Good habits feed your egg. Bad ones drain it, a little. Reality waits on no one.</p>
- <p>Now make one of your own.</p>
+ <p id="introDock">Habits is now on your bottom bar. It works exactly like it will after your egg hatches.</p>
  <div class="row2"><button class="btn ghost" id="introLater">Later</button><button class="btn" id="introMake">Make my own habit</button></div>
 </div></div>
 

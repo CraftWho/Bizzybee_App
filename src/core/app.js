@@ -106,12 +106,12 @@ const DOCK_TABS = [
       icon: '<path d="M8 4h13a3 3 0 0 1 3 3a2 2 0 0 1-2 2h-2v13a3 3 0 0 1-3 3H7"/><path d="M7 25a3 3 0 0 1-3-3v-2h12v2a3 3 0 0 0 3 3"/><path d="M8 4a3 3 0 0 0-3 3v13M11 10h6M11 14h6"/>' }
 ];
 // Which dock tab a page belongs to, and what its + creates.
-const DOCK_PAGE_TAB = { habits: 'habits', 'create-habit': 'habits', dailies: 'dailies', 'create-daily': 'dailies', todos: 'todos', 'create-todo': 'todos', quests: 'quests' };
+const DOCK_PAGE_TAB = { habits: 'habits', 'create-habit': 'habits', dailies: 'dailies', 'create-daily': 'dailies', todos: 'todos', 'create-todo': 'todos', quests: 'quests', quest: 'quests', 'create-quest': 'quests' };
 const CREATE_TARGETS = {
     habits: { label: 'Habit', href: 'src/plugins/habits/create-habit.html' },
     dailies: { label: 'Daily', href: 'src/features/dailies/create-daily.html' },
     todos: { label: 'To-Do', href: 'src/plugins/todos/create-todo.html' },
-    quests: { label: 'Quest', href: 'src/features/quests/quests.html#new-quest' }
+    quests: { label: 'Quest', href: 'src/features/quests/create-quest.html' }
 };
 const SHELL_HEX = '36,5 67,23 67,57 36,75 5,57 5,23';
 
@@ -217,6 +217,10 @@ const AppShell = {
     // Re-reads the save into the top bar. Runs after Vault.init() and
     // (batched) after every save, so a + or check-off anywhere moves the bar.
     refresh() {
+        if (typeof Vault !== 'undefined' && Vault.state && typeof Vault.isOnboarding === 'function' && Vault.isOnboarding()) {
+            this.applyOnboarding();
+            return;
+        }
         if (!this.head || typeof Vault === 'undefined' || !Vault.state) return;
         const user = Vault.getUser();
         const bar = Vault.getCharacterLevelBar();
@@ -313,7 +317,7 @@ const AppShell = {
 
     injectDock() {
         const active = DOCK_PAGE_TAB[this.key] || null;
-        const tab = (t) => `<a class="ad-tab${t.key === active ? ' on' : ''}" href="${this.url(t.href)}"${t.key === active ? ' aria-current="page"' : ''}>
+        const tab = (t) => `<a class="ad-tab${t.key === active ? ' on' : ''}" data-tab="${t.key}" href="${this.url(t.href)}"${t.key === active ? ' aria-current="page"' : ''}>
                 <svg viewBox="0 0 28 28" aria-hidden="true">${t.icon}</svg><span>${t.label}</span></a>`;
         const target = CREATE_TARGETS[active];
         const dock = document.createElement('nav');
@@ -349,7 +353,7 @@ const AppShell = {
         sheet.className = 'app-create-sheet';
         sheet.innerHTML = `<div class="acs-card" role="dialog" aria-label="Create">
             <h3>CREATE</h3>
-            <div class="acs-grid">${Object.entries(CREATE_TARGETS).map(([k, t]) => `
+            <div class="acs-grid">${Object.entries(CREATE_TARGETS).filter(([k]) => !this.obTabs || this.obTabs.includes(k)).map(([k, t]) => `
                 <a class="acs-opt" href="${this.url(t.href)}"><svg viewBox="0 0 28 28" aria-hidden="true">${icons[k]}</svg>${t.label}</a>`).join('')}
             </div></div>`;
         document.body.appendChild(sheet);
@@ -364,6 +368,75 @@ const AppShell = {
         if (sheet) sheet.remove();
         if (this.dock) this.dock.classList.remove('open');
         if (this._esc) document.removeEventListener('keydown', this._esc);
+    },
+
+    // ---- Onboarding mode (2026-10-09) ----
+    // While the egg is being raised, the dock shows only the tabs unlocked
+    // so far, and those tabs' real pages get a guide bar on top (instead
+    // of the royal top bar) with the next tutorial step and a way back to
+    // the egg. The steps themselves live in db.js (ONBOARDING_STEPS).
+    obTabs: null,
+
+    // The egg page has no top bar, just the dock (once a tab is unlocked).
+    mountOnboardingDock(rootPrefix) {
+        this.root = rootPrefix;
+        this.key = 'onboarding';
+        this.injectDock();
+        this.watchVault();
+        this.applyOnboarding();
+    },
+
+    applyOnboarding() {
+        const tabs = Vault.getOnboardingTabs();
+        const firstTime = this.obTabs === null;
+        const added = firstTime ? [] : tabs.filter(t => !this.obTabs.includes(t));
+        if (!firstTime && this.obTabs.length === 0 && tabs.length > 0 && this.dock) {
+            this.dock.classList.remove('ob-arrive'); void this.dock.offsetWidth; this.dock.classList.add('ob-arrive');
+        }
+        this.obTabs = tabs;
+        document.body.classList.add('ob-mode');
+        document.body.classList.toggle('ob-nodock', tabs.length === 0);
+        if (this.dock) {
+            this.dock.querySelectorAll('.ad-tab').forEach(a => {
+                const open = tabs.includes(a.dataset.tab);
+                a.classList.toggle('ob-locked', !open);
+                a.setAttribute('aria-hidden', String(!open));
+                a.tabIndex = open ? 0 : -1;
+                if (added.includes(a.dataset.tab)) { a.classList.remove('ob-new'); void a.offsetWidth; a.classList.add('ob-new'); }
+            });
+        }
+        if (this.head) this.renderGuideBar();
+    },
+
+    renderGuideBar() {
+        const tab = DOCK_PAGE_TAB[this.key];
+        let bar = this.head.querySelector('.ob-bar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'ob-bar';
+            this.head.appendChild(bar);
+        }
+        const steps = (typeof ONBOARDING_STEPS !== 'undefined' && ONBOARDING_STEPS[tab]) || [];
+        const status = tab ? Vault.onboardingStepStatus(tab) : {};
+        const doneCount = steps.filter(st => status[st.key]).length;
+        const next = steps.find(st => !status[st.key]);
+        const label = (DOCK_TABS.find(t => t.key === tab) || {}).label || 'Bizzybee';
+        const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const egg = '<svg viewBox="0 0 24 30" aria-hidden="true"><path d="M12 2C6.5 2 3 11 3 18a9 9 0 0 0 18 0C21 11 17.5 2 12 2z"/><path d="M8 14l2.5 2 3-3 2.5 2" fill="none"/></svg>';
+        bar.innerHTML = `
+            <div class="ob-in">
+                <span class="ob-egg">${egg}</span>
+                <div class="ob-text">
+                    <span class="ob-tag">${tab ? `LEARNING ${esc(label.toUpperCase())}` : 'RAISING YOUR EGG'} <i>${steps.map(st => `<b class="${status[st.key] ? 'on' : ''}"></b>`).join('')}</i></span>
+                    ${!tab
+                        ? `<span class="ob-step">Your egg is waiting</span><span class="ob-why">It's still growing. Head back whenever you're ready.</span>`
+                        : next
+                        ? `<span class="ob-step">${esc(next.title)}</span><span class="ob-why">${esc(next.why)}</span>`
+                        : `<span class="ob-step">✓ You've learned ${esc(label)}</span><span class="ob-why">Go back to your egg. It felt every bit of it.</span>`}
+                </div>
+                <a class="ob-back${next ? '' : ' ready'}" href="${this.url('src/features/onboarding/onboarding.html')}">Back to egg</a>
+            </div>`;
+        bar.dataset.done = String(doneCount === steps.length);
     }
 };
 
@@ -587,6 +660,8 @@ class CodexSystem {
         if (path.includes('home.html')) return 'home';
         if (path.includes('dashboard.html')) return 'dashboard';
         if (path.includes('quests.html')) return 'quests';
+        if (path.includes('create-quest.html')) return 'create-quest';
+        if (path.includes('quest.html')) return 'quest';
         if (path.includes('skills.html')) return 'skills';
         if (path.includes('dictionary.html')) return 'dictionary';
         if (path.includes('profile.html')) return 'profile';
@@ -711,6 +786,81 @@ class CodexSystem {
         document.body.appendChild(footer);
     }
 }
+
+// ---------------------------------------------------------------------------
+// App opening (2026-10-09, Craft): a crimson line draws out from the middle
+// of the screen, then the screen opens top and bottom like a scroll - the
+// two halves carry the line away, echoing the red lines on the top bar and
+// the dock. Plays on the login page (after the gold launch logo) and on the
+// first app page of each visit. The cover stays up until the save has
+// loaded, so nothing flashes underneath (like Home before the egg).
+// ---------------------------------------------------------------------------
+const AppOpen = {
+    el: null,
+    played: false,
+
+    // Puts the cover up right away (call before the page paints).
+    cover() {
+        if (this.el) return this.el;
+        const el = document.createElement('div');
+        el.className = 'app-open';
+        el.setAttribute('aria-hidden', 'true');
+        el.innerHTML = '<div class="ao-half ao-top"></div><div class="ao-half ao-bot"></div><div class="ao-line"></div>';
+        (document.body || document.documentElement).appendChild(el);
+        this.el = el;
+        return el;
+    },
+
+    // Line, then open. Resolves when the page is fully revealed.
+    // Optional centre piece (the launch logo) that fades before the line.
+    setCenter(html) {
+        const el = this.cover();
+        let c = el.querySelector('.ao-center');
+        if (!c) { c = document.createElement('div'); c.className = 'ao-center'; el.appendChild(c); }
+        c.innerHTML = html;
+    },
+
+    open() {
+        if (this.played) return Promise.resolve();
+        this.played = true;
+        const el = this.cover();
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const lead = el.querySelector('.ao-center') ? (reduce ? 50 : 520) : 0;
+        if (lead) el.classList.add('fade-center');
+        return new Promise(resolve => {
+            setTimeout(() => requestAnimationFrame(() => {
+                el.classList.add('draw');
+                setTimeout(() => el.classList.add('open'), reduce ? 50 : 760);
+                setTimeout(() => { el.remove(); this.el = null; resolve(); }, reduce ? 400 : 2100);
+            }), lead);
+        });
+    },
+
+    // First app page of this visit? (sessionStorage; private mode just skips it)
+    firstOfVisit() {
+        try {
+            if (sessionStorage.getItem('bizzybee_opened')) return false;
+            sessionStorage.setItem('bizzybee_opened', '1');
+            return true;
+        } catch (e) { return false; }
+    }
+};
+
+(function setupAppOpen() {
+    const path = window.location.pathname;
+    const isApp = (path.includes('/features/') || path.includes('/plugins/')) && !path.includes('/onboarding/');
+    if (!isApp || !localStorage.getItem('bizzybee_session') || !AppOpen.firstOfVisit()) return;
+    AppOpen.cover();
+    let done = false;
+    const go = () => { if (!done) { done = true; AppOpen.open(); } };
+    // Open once the save has loaded (and the page had a beat to draw).
+    if (typeof Vault !== 'undefined' && typeof Vault.init === 'function' && !Vault.__openWatched) {
+        Vault.__openWatched = true;
+        const init = Vault.init.bind(Vault);
+        Vault.init = (...args) => init(...args).then((state) => { setTimeout(go, 250); return state; });
+    }
+    setTimeout(go, 3000);   // never stay covered if a page doesn't load the save
+})();
 
 // Boot up the system globally
 const bizzybeeApp = new CodexSystem();

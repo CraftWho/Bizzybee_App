@@ -14,8 +14,19 @@ function renderHabits() {
         : `<p class="quest-empty-state">No habits yet. Tap the + below to make one.</p>`;
 }
 
+function renderQuote() {
+    const q = quoteOfTheWeek();
+    document.getElementById('habits-quote-text').textContent = q.text;
+    const by = document.getElementById('habits-quote-by');
+    by.textContent = '\u2014 ';
+    const name = document.createElement('b');
+    name.textContent = q.by;
+    by.append(name, `, ${q.source}${q.note ? ` \u00b7 ${q.note}` : ''}`);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
+    renderQuote();
 
     // Same "renders even if reached directly without installing first"
     // courtesy as the Calendar/Study plugins - see study.js.

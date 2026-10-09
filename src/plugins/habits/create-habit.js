@@ -184,6 +184,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         editingHabitId = null;
         TagPicker.render(document.getElementById('habit-tags-list'), []);
+        // ?bad=1 (from the egg's "Add a bad habit" step) starts on − only.
+        if (new URLSearchParams(window.location.search).get('bad') === '1') {
+            habitPositiveEnabled = false;
+            habitNegativeEnabled = true;
+            document.getElementById('habit-title-input').placeholder = 'e.g. Scrolling in bed';
+        }
     }
 
     renderDifficulty();

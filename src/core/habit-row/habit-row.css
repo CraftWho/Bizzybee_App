@@ -61,3 +61,5 @@ button.hr-btn:hover { transform: none; box-shadow: none; }
 .hr-row.lifted { z-index: 5; box-shadow: 0 18px 40px rgba(0, 0, 0, .75), 0 0 0 2px var(--dc); transition: box-shadow .2s; cursor: grabbing; }
 .hr-list.sorting .hr-row:not(.lifted) { transition: transform .22s cubic-bezier(.3, .9, .3, 1); }
 @media (prefers-reduced-motion: reduce) { .hr-pop svg, .hr-ripple, .hr-float { animation: none; } }
+.hr-notes q { quotes: "\201C" "\201D"; }
+.hr-credit { display: block; margin-top: 2px; font-size: .72rem; color: #8a7e62; }

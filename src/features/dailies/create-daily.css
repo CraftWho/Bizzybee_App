@@ -1,279 +1,53 @@
-.create-daily-container {
-    width: 100%;
-    max-width: 640px;
-    margin: 20px auto 100px;
-    padding: 0 25px;
-    box-sizing: border-box;
-}
+/* Create / edit daily - the parts only Dailies has (scheduling, streak).
+   The shared form look (top bar, fields, difficulty, checklist, reminders,
+   tags, .hf-box) is in src/core/task-form/. */
 
-.create-daily-container .panel {
-    margin-bottom: 20px;
-}
-
-/* --- One continuous panel now (see create-daily.html) - every internal
-   section is separated only by its own <h3>, same convention as
-   dictionary.css. The first <h3> gets the default full-bleed bar (see
-   global.css's ".panel h3"); every section after it needs its top margin
-   overridden back to positive so it doesn't try to pull up into the
-   content above it. --- */
-.daily-section-heading {
-    margin-top: 30px !important;
-}
-
-/* --- TITLE PRIVACY NOTE - a dismissible reminder that titles/notes sync
-   to the cloud account, toggled open/closed next to the label. Same
-   pattern as create-habit.css's habit-title-tip-*. --- */
-.daily-title-label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.daily-title-tip-btn {
-    background: transparent;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold-start);
-    border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 0.78rem;
-    cursor: pointer;
-}
-
-.daily-title-tip-btn:hover {
-    background: var(--gold-dim);
-}
-
-.daily-title-tip-text {
-    margin: 6px 0 0;
-    color: #999;
-    font-size: 0.82rem;
-    font-style: italic;
-}
-
-/* --- Shared field styling - same recipe Calendar's event modal already
-   uses (dark fill, thin border, gold on focus) so this page's inputs read
-   as the same app rather than a bolted-on new style. --- */
-.form-label {
-    display: block;
-    color: var(--gold-start);
-    font-size: 0.85rem;
-    font-weight: bold;
-    margin: 14px 0 6px;
-}
-
-.daily-text-input,
-.daily-notes-input {
-    width: 100%;
-    box-sizing: border-box;
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 10px 12px;
-    color: #eee;
-    font-family: inherit;
-    font-size: 0.95rem;
-}
-
-.daily-text-input:focus,
-.daily-notes-input:focus {
-    outline: none;
-    border-color: var(--gold-start);
-}
-
-.daily-notes-input {
-    min-height: 90px;
-    resize: vertical;
-    margin-top: 10px;
-}
-
-/* --- DP DISPLAY (Eevee-assessed, no manual input any more) --- */
-.daily-dp-row {
-    margin-top: 16px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
-}
-
-.daily-dp-display {
-    display: flex;
-    flex-direction: column;
-}
-
-.daily-dp-value {
-    color: var(--gold-start);
-    font-size: 1.6rem;
-    font-weight: 800;
-}
-
-.daily-ask-eevee-btn {
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-.daily-dp-note {
-    margin: 10px 0 0;
-    color: #666;
-    font-size: 0.78rem;
-    font-style: italic;
-}
-
-/* --- SCHEDULING --- */
-.daily-schedule-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-top: 14px;
-}
-
-.daily-every-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.daily-every-row .daily-text-input {
-    width: 70px;
-}
-
-.daily-every-unit {
-    color: #999;
-    font-size: 0.9rem;
-}
-
-.daily-days-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-}
-
-.daily-day-toggle {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: #1a1a1a;
-    border: 1px solid #333;
-    color: #999;
-    font-weight: bold;
-    padding: 0;
-}
-
-.daily-day-toggle--selected {
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-    border-color: var(--gold-start);
-    color: var(--obsidian);
-}
-
-.daily-schedule-summary {
-    margin: 14px 0 0;
-    color: #999;
-    font-size: 0.85rem;
-    line-height: 1.5;
-}
-
-.daily-schedule-summary strong {
-    color: var(--gold-start);
-}
-
-/* --- REMINDERS --- */
-.daily-reminders-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.daily-reminder-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #151515;
-    border: 1px solid #333;
-    border-left: 3px solid var(--gold-start);
-    border-radius: 6px;
-    padding: 10px 14px;
-}
-
-.daily-reminder-time {
-    color: var(--gold-start);
-    font-weight: bold;
-    font-size: 0.9rem;
-}
-
-.daily-reminder-remove {
-    background: transparent;
-    border: none;
-    color: #888;
-    font-size: 1rem;
-    padding: 0 4px;
-    box-shadow: none;
-}
-
-.daily-reminder-remove:hover {
-    color: var(--crimson);
-    transform: none;
-    box-shadow: none;
-}
-
-.daily-add-reminder-row {
-    display: flex;
-    gap: 10px;
-}
-
-.daily-add-reminder-row .daily-text-input {
+/* scheduling */
+.hf-box + .df-two { margin-top: 10px; }
+.df-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.df-every { display: flex; align-items: baseline; gap: 8px; }
+.df-every input { flex: 1; min-width: 0; }
+.df-every b { font: 600 .95rem var(--hf-sans); color: var(--hf-muted); }
+.df-days { display: flex; justify-content: space-between; gap: 6px; margin-top: 14px; }
+.df-days[hidden] { display: none; }
+.hf button.df-day {
     flex: 1;
+    max-width: 46px;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 2px solid #3a3222;
+    border-radius: 50%;
+    background: none;
+    color: var(--hf-muted);
+    font: 700 .95rem var(--hf-sans);
+    cursor: pointer;
+    transition: background .2s, border-color .2s, color .2s;
 }
+.hf button.df-day.on { background: var(--dc); border-color: var(--dc); color: var(--dk); }
+.hf button.df-day:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.df-summary { margin: 14px 2px 0; font-size: .9rem; line-height: 1.45; color: var(--hf-muted); }
+.df-summary b { color: var(--hf-text); font-weight: 600; }
 
-.daily-add-reminder-btn {
-    flex-shrink: 0;
-    white-space: nowrap;
+/* adjust streak */
+.df-streak { display: flex; align-items: stretch; gap: 10px; }
+.df-streak-box { flex: 1; text-align: center; }
+.df-streak-box small { text-align: center; }
+.df-streak-box input { text-align: center; font-size: 1.4rem; }
+.hf button.df-step {
+    flex: none;
+    width: 56px;
+    border: 0;
+    border-radius: 14px;
+    background: #1d1810;
+    color: var(--dc);
+    font: 600 1.6rem var(--hf-sans);
+    cursor: pointer;
+    transition: color .35s;
 }
+.hf button.df-step:hover { background: #262013; }
+.hf button.df-step:active { transform: scale(.94); }
 
-.daily-reminder-note {
-    margin: 10px 0 0;
-    color: #666;
-    font-size: 0.78rem;
-    font-style: italic;
-}
-
-/* --- TAGS - the chip list/dismiss mechanics are shared (see
-   src/core/tag-picker); this note's wording (which known-term sources it
-   draws from) is page-specific so it stays here. --- */
-.daily-tags-note {
-    margin: 4px 0 0;
-    color: #666;
-    font-size: 0.78rem;
-    font-style: italic;
-}
-
-/* --- SAVE / CANCEL --- */
-.daily-form-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-bottom: 40px;
-}
-
-.daily-cancel-btn {
-    background: transparent;
-    color: #999;
-    border: 2px solid #555;
-}
-
-.daily-cancel-btn:hover {
-    background: #333;
-    color: #fff;
-    box-shadow: none;
-}
-
-@media (max-width: 480px) {
-    .daily-schedule-row {
-        grid-template-columns: 1fr;
-    }
-    .daily-form-actions {
-        flex-direction: column-reverse;
-    }
-}
+/* hide the number spinners - the − / + buttons do that job */
+.df-streak-box input::-webkit-outer-spin-button,
+.df-streak-box input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.df-streak-box input { -moz-appearance: textfield; appearance: textfield; }

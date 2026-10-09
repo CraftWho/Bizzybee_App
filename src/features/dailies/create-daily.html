@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
     <link rel="manifest" href="../../../manifest.json">
-    <meta name="theme-color" content="#ffd700">
+    <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>☀️ Create Daily</title>
 
@@ -17,91 +17,91 @@
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/clock-picker/clock-picker.css">
-    <link rel="stylesheet" href="../../core/checklist-editor/checklist-editor.css">
     <link rel="stylesheet" href="../../core/tag-picker/tag-picker.css">
-    <link rel="stylesheet" href="../../core/difficulty-picker/difficulty-picker.css">
+    <link rel="stylesheet" href="../../core/task-form/task-form.css">
     <link rel="stylesheet" href="./create-daily.css">
 </head>
-<body>
+<body class="task-form-page">
 
-    <main class="create-daily-container">
-        <div class="panel page-header-panel">
-            <h2 class="page-title" id="create-daily-heading">☀️ <span class="gold-gradient-text">CREATE DAILY</span></h2>
-            <p class="page-subtitle" id="create-daily-subtitle">Set it up once - title, checklist, difficulty, schedule, reminders, tags.</p>
-        </div>
-
-        <!-- One continuous panel - every section below is separated only by
-             its own crimson-accented <h3> title bar (see global.css's
-             ".panel h3" rule), same convention Dictionary uses. No more
-             separate boxed .panels per section. -->
-        <section class="panel create-daily-panel">
-            <h3>📝 Task Details</h3>
-            <div class="daily-title-label-row">
-                <label class="form-label" for="daily-title-input">Task Title</label>
-                <button type="button" class="daily-title-tip-btn" id="daily-title-tip-btn" aria-expanded="false">🔒 Privacy</button>
+    <main class="hf" id="hf">
+        <section class="hf-top">
+            <div class="hf-bar">
+                <button type="button" class="hf-icon" id="hf-back" aria-label="Back">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7M8 12h12"/></svg>
+                </button>
+                <h1 class="hf-heading" id="hf-heading">Create Daily</h1>
+                <button type="button" class="hf-act" id="hf-delete" hidden>DELETE</button>
+                <button type="button" class="hf-act" id="hf-save">CREATE</button>
             </div>
-            <input type="text" id="daily-title-input" class="daily-text-input" placeholder="e.g. Morning stretch">
-            <p class="daily-title-tip-text" id="daily-title-tip-text" hidden>For your privacy, avoid entering sensitive personal information here. Task titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
-
-            <label class="form-label" for="daily-notes-input">Notes</label>
-            <textarea id="daily-notes-input" class="daily-notes-input" placeholder="Optional details..."></textarea>
-
-            <h3 class="daily-section-heading">✅ Checklist</h3>
-            <div class="daily-checklist" id="daily-checklist"></div>
-
-            <h3 class="daily-section-heading">⭐ Difficulty &amp; DP</h3>
-            <div class="daily-difficulty-grid difficulty-grid" id="daily-difficulty-grid"></div>
-
-            <div class="daily-dp-row">
-                <div class="daily-dp-display">
-                    <span class="form-label">DP Reward</span>
-                    <span class="daily-dp-value" id="daily-dp-value">20</span>
-                </div>
-                <button type="button" id="daily-ask-eevee-btn" class="daily-ask-eevee-btn">🐝 Ask Eevee</button>
+            <div class="hf-tip-row">
+                <button type="button" class="hf-tip-btn" id="hf-tip-btn" aria-expanded="false">🔒 Avoid sensitive info</button>
             </div>
-            <p class="daily-dp-note">Defaults to this tier's baseline DP. Ask Eevee to judge it from your title, notes, and difficulty instead.</p>
-
-            <h3 class="daily-section-heading">📅 Scheduling</h3>
-            <label class="form-label" for="daily-start-date">Start Date</label>
-            <input type="date" id="daily-start-date" class="daily-text-input">
-
-            <div class="daily-schedule-row">
-                <div class="daily-schedule-field">
-                    <label class="form-label" for="daily-repeats-select">Repeats</label>
-                    <select id="daily-repeats-select" class="daily-text-input">
-                        <option value="daily">Daily</option>
-                        <option value="weekly" selected>Weekly</option>
-                    </select>
-                </div>
-                <div class="daily-schedule-field" id="daily-every-wrap">
-                    <label class="form-label" for="daily-every-input">Every</label>
-                    <div class="daily-every-row">
-                        <input type="number" id="daily-every-input" class="daily-text-input" min="1" value="1">
-                        <span class="daily-every-unit">Weeks</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="daily-days-row" id="daily-days-row"></div>
-            <p class="daily-schedule-summary" id="daily-schedule-summary"></p>
-
-            <h3 class="daily-section-heading">🔔 Reminders</h3>
-            <div class="daily-reminders-list" id="daily-reminders-list"></div>
-
-            <div id="daily-clock-mount"></div>
-            <button type="button" id="daily-add-reminder-btn" class="daily-add-reminder-btn">+ Add reminder</button>
-            <p class="daily-reminder-note">Fires a real browser notification, but only while a Bizzybee tab is open somewhere.</p>
-
-            <h3 class="daily-section-heading">🏷️ Tags</h3>
-            <div class="daily-tags-list" id="daily-tags-list"></div>
-            <p class="daily-tags-note">Automatic - detected from your title &amp; notes against Dictionary terms, existing Daily tags, and Quest tasks. Click × to dismiss one.</p>
+            <p class="hf-tip" id="hf-tip" hidden>For your privacy, avoid entering sensitive personal information here. Daily titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
+            <label class="hf-field">
+                <small>Task Title</small>
+                <input type="text" id="daily-title-input" maxlength="120" placeholder="e.g. Morning stretch" autocomplete="off">
+            </label>
+            <label class="hf-field hf-notes">
+                <small>Notes</small>
+                <textarea id="daily-notes-input" rows="2" placeholder="Optional details"></textarea>
+            </label>
         </section>
 
-        <div class="daily-form-actions">
-            <button type="button" id="daily-cancel-btn" class="daily-cancel-btn">Cancel</button>
-            <button type="button" id="daily-save-btn" class="daily-save-btn">💾 Create Daily</button>
-        </div>
+        <section class="hf-body">
+            <h2 class="hf-h">Checklist</h2>
+            <ul class="df-cl" id="df-checklist"></ul>
+            <button type="button" class="df-add" id="df-cl-add">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New checklist entry
+            </button>
+
+            <h2 class="hf-h">Difficulty <small id="hf-dp-note"></small></h2>
+            <div class="hf-diff" id="hf-diff" role="radiogroup" aria-label="Difficulty"></div>
+            <button type="button" class="hf-eevee" id="daily-ask-eevee-btn">🐝 Ask Eevee for the DP</button>
+
+            <h2 class="hf-h">Scheduling</h2>
+            <label class="hf-box">
+                <small>Start Date</small>
+                <input type="date" id="daily-start-date">
+            </label>
+            <div class="df-two">
+                <label class="hf-box">
+                    <small>Repeats</small>
+                    <select id="daily-repeats-select">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </label>
+                <label class="hf-box">
+                    <small>Every</small>
+                    <span class="df-every"><input type="number" id="daily-every-input" min="1" max="99" inputmode="numeric" value="1"><b id="daily-every-unit">Weeks</b></span>
+                </label>
+            </div>
+            <div class="df-days" id="df-days" role="group" aria-label="Repeat on"></div>
+            <p class="df-summary" id="df-summary"></p>
+
+            <h2 class="hf-h">Adjust Streak</h2>
+            <div class="df-streak">
+                <button type="button" class="df-step" id="df-streak-down" aria-label="Lower streak">−</button>
+                <label class="hf-box df-streak-box">
+                    <small>Streak <span aria-hidden="true">🔥</span></small>
+                    <input type="number" id="df-streak" min="0" inputmode="numeric" value="0">
+                </label>
+                <button type="button" class="df-step" id="df-streak-up" aria-label="Raise streak">+</button>
+            </div>
+            <p class="hf-hint hf-hint-left">Due days in a row you've done it. It grows each due day you finish, and resets if you miss one.</p>
+
+            <h2 class="hf-h">Reminders</h2>
+            <ul class="df-rem" id="df-reminders"></ul>
+            <button type="button" class="df-add" id="df-rem-add">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New reminder
+            </button>
+            <p class="hf-hint hf-hint-left">Sends a notification on due days, while Bizzybee is open in a tab.</p>
+
+            <h2 class="hf-h">Tags</h2>
+            <div class="hf-tags" id="daily-tags-list"></div>
+            <p class="hf-hint hf-hint-left">Found automatically from your title and notes. Tap × to remove one.</p>
+        </section>
     </main>
 
     <script src="../../core/db.js"></script>
@@ -112,11 +112,10 @@
     <script src="../../core/toast/toast.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
-    <script src="../../core/clock-picker/clock-picker.js"></script>
-    <script src="../../core/checklist-editor/checklist-editor.js"></script>
     <script src="../../core/tag-picker/tag-picker.js"></script>
-    <script src="../../core/difficulty-picker/difficulty-picker.js"></script>
 
+    <script src="../../core/habit-row/habit-row.js"></script>
+    <script src="../../core/task-form/task-form.js"></script>
     <script src="./create-daily.js"></script>
 </body>
 </html>

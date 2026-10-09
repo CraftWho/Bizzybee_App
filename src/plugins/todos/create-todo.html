@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
     <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
     <link rel="manifest" href="../../../manifest.json">
-    <meta name="theme-color" content="#ffd700">
+    <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>📝 Create To-Do</title>
 
@@ -17,68 +17,73 @@
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/clock-picker/clock-picker.css">
-    <link rel="stylesheet" href="../../core/checklist-editor/checklist-editor.css">
     <link rel="stylesheet" href="../../core/tag-picker/tag-picker.css">
-    <link rel="stylesheet" href="../../core/difficulty-picker/difficulty-picker.css">
+    <link rel="stylesheet" href="../../core/task-form/task-form.css">
     <link rel="stylesheet" href="./create-todo.css">
 </head>
-<body>
+<body class="task-form-page">
 
-    <main class="create-todo-container">
-        <div class="panel page-header-panel">
-            <h2 class="page-title" id="create-todo-heading">📝 <span class="gold-gradient-text">CREATE TO-DO</span></h2>
-            <p class="page-subtitle" id="create-todo-subtitle">Set it up once - title, checklist, difficulty, due date, reminders, tags.</p>
-        </div>
-
-        <section class="panel create-todo-panel">
-            <h3>📝 Task Details</h3>
-            <div class="todo-title-label-row">
-                <label class="form-label" for="todo-title-input">Task Title</label>
-                <button type="button" class="todo-title-tip-btn" id="todo-title-tip-btn" aria-expanded="false">🔒 Privacy</button>
+    <main class="hf" id="hf">
+        <section class="hf-top">
+            <div class="hf-bar">
+                <button type="button" class="hf-icon" id="hf-back" aria-label="Back">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7M8 12h12"/></svg>
+                </button>
+                <h1 class="hf-heading" id="hf-heading">Create To-Do</h1>
+                <button type="button" class="hf-act" id="hf-delete" hidden>DELETE</button>
+                <button type="button" class="hf-act" id="hf-save">CREATE</button>
             </div>
-            <input type="text" id="todo-title-input" class="todo-text-input" placeholder="e.g. Renew car registration">
-            <p class="todo-title-tip-text" id="todo-title-tip-text" hidden>For your privacy, avoid entering sensitive personal information here. Task titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
-
-            <label class="form-label" for="todo-notes-input">Notes</label>
-            <textarea id="todo-notes-input" class="todo-notes-input" placeholder="Optional details..."></textarea>
-
-            <h3 class="todo-section-heading">✅ Checklist</h3>
-            <div class="todo-checklist" id="todo-checklist"></div>
-
-            <h3 class="todo-section-heading">⭐ Difficulty &amp; DP</h3>
-            <div class="todo-difficulty-grid difficulty-grid" id="todo-difficulty-grid"></div>
-
-            <div class="todo-dp-row">
-                <div class="todo-dp-display">
-                    <span class="form-label">DP Reward</span>
-                    <span class="todo-dp-value" id="todo-dp-value">30</span>
-                </div>
-                <button type="button" id="todo-ask-eevee-btn" class="todo-ask-eevee-btn">🐝 Ask Eevee</button>
+            <div class="hf-tip-row">
+                <button type="button" class="hf-tip-btn" id="hf-tip-btn" aria-expanded="false">🔒 Avoid sensitive info</button>
             </div>
-            <p class="todo-dp-note">One-off, so DP runs higher than a Daily/Habit of the same tier. Ask Eevee to judge it from your title, notes, and difficulty instead.</p>
-
-            <h3 class="todo-section-heading">📅 Due Date</h3>
-            <label class="form-label" for="todo-due-date">Due (optional)</label>
-            <input type="date" id="todo-due-date" class="todo-text-input">
-            <p class="todo-due-date-note">Leave blank for a to-do with no deadline. Past due shows an overdue badge on the list.</p>
-
-            <h3 class="todo-section-heading">🔔 Reminders</h3>
-            <div class="todo-reminders-list" id="todo-reminders-list"></div>
-
-            <div id="todo-clock-mount"></div>
-            <button type="button" id="todo-add-reminder-btn" class="todo-add-reminder-btn">+ Add reminder</button>
-            <p class="todo-reminder-note">Fires a real browser notification on your due date, but only while a Bizzybee tab is open somewhere.</p>
-
-            <h3 class="todo-section-heading">🏷️ Tags</h3>
-            <div class="todo-tags-list" id="todo-tags-list"></div>
-            <p class="todo-tags-note">Automatic - detected from your title &amp; notes against Dictionary terms, existing Daily/To-Do tags, and Quest tasks. Click × to dismiss one.</p>
+            <p class="hf-tip" id="hf-tip" hidden>For your privacy, avoid entering sensitive personal information here. To-do titles and notes sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
+            <label class="hf-field">
+                <small>Task Title</small>
+                <input type="text" id="todo-title-input" maxlength="120" placeholder="e.g. Renew car registration" autocomplete="off">
+            </label>
+            <label class="hf-field hf-notes">
+                <small>Notes</small>
+                <textarea id="todo-notes-input" rows="2" placeholder="Optional details"></textarea>
+            </label>
         </section>
 
-        <div class="todo-form-actions">
-            <button type="button" id="todo-cancel-btn" class="todo-cancel-btn">Cancel</button>
-            <button type="button" id="todo-save-btn" class="todo-save-btn">💾 Create To-Do</button>
-        </div>
+        <section class="hf-body">
+            <h2 class="hf-h">Checklist</h2>
+            <ul class="df-cl" id="todo-checklist"></ul>
+            <button type="button" class="df-add" id="todo-cl-add">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New checklist entry
+            </button>
+
+            <h2 class="hf-h">Difficulty <small id="hf-dp-note"></small></h2>
+            <div class="hf-diff" id="hf-diff" role="radiogroup" aria-label="Difficulty"></div>
+            <button type="button" class="hf-eevee" id="todo-ask-eevee-btn">🐝 Ask Eevee for the DP</button>
+
+            <h2 class="hf-h">Due Date</h2>
+            <div class="tf-due">
+                <label class="hf-box">
+                    <small>Due</small>
+                    <input type="date" id="todo-due-date">
+                </label>
+                <button type="button" class="df-x tf-due-clear" id="todo-due-clear" aria-label="Clear due date">×</button>
+            </div>
+            <div class="tf-quick" id="todo-due-quick">
+                <button type="button" data-days="0">Today</button>
+                <button type="button" data-days="1">Tomorrow</button>
+                <button type="button" data-days="7">Next week</button>
+            </div>
+            <p class="hf-hint hf-hint-left" id="todo-due-hint">Optional. Leave it blank for a to-do with no deadline.</p>
+
+            <h2 class="hf-h">Reminders</h2>
+            <ul class="df-rem" id="todo-reminders"></ul>
+            <button type="button" class="df-add" id="todo-rem-add">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New reminder
+            </button>
+            <p class="hf-hint hf-hint-left" id="todo-rem-hint">Sends a notification on the due date, while Bizzybee is open in a tab.</p>
+
+            <h2 class="hf-h">Tags</h2>
+            <div class="hf-tags" id="todo-tags-list"></div>
+            <p class="hf-hint hf-hint-left">Found automatically from your title and notes. Tap × to remove one.</p>
+        </section>
     </main>
 
     <script src="../../core/db.js"></script>
@@ -89,11 +94,10 @@
     <script src="../../core/toast/toast.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../../features/llm-engine/llm-engine.js"></script>
-    <script src="../../core/clock-picker/clock-picker.js"></script>
-    <script src="../../core/checklist-editor/checklist-editor.js"></script>
     <script src="../../core/tag-picker/tag-picker.js"></script>
-    <script src="../../core/difficulty-picker/difficulty-picker.js"></script>
 
+    <script src="../../core/habit-row/habit-row.js"></script>
+    <script src="../../core/task-form/task-form.js"></script>
     <script src="./create-todo.js"></script>
 </body>
 </html>

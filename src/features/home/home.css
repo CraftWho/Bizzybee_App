@@ -1,6 +1,7 @@
-/* Home (rebuilt 2026-10-08). The royal + level bar live in the app's top
-   bar (global.css "APP SHELL"); this page is the hive strip, the Today
-   dropdown and the app grid. */
+/* Home (rebuilt 2026-10-08, refreshed 2026-10-09). The royal + level bar
+   live in the app's top bar (global.css "APP SHELL"); this page is the hive
+   strip, the Today dropdown (same cards as the tabs: task-row.css,
+   habit-row.css, quest-common.css) and the grouped app grid. */
 .home-container {
     --h-honey: #ffcc00;
     --h-honey-hi: #fff2b0;
@@ -45,16 +46,15 @@
 .home-rise { opacity: 0; transform: translateY(14px); animation: homeRise .7s cubic-bezier(.2, .8, .2, 1) forwards; animation-delay: calc(var(--i, 0) * 110ms + 80ms); }
 @keyframes homeRise { to { opacity: 1; transform: none; } }
 
-/* ---- hive strip ---- */
-.home-hive { display: grid; grid-template-columns: repeat(3, 1fr) auto; align-items: center; padding: 12px 8px 12px 6px; text-decoration: none; color: inherit; transition: border-color .2s; }
-.home-hive:hover { border-color: rgba(255, 204, 0, .35); }
-.home-hive-stat { text-align: center; border-right: 1px solid rgba(255, 204, 0, .1); }
-.home-hive-stat:nth-child(3) { border-right: 0; }
-.home-hive-stat b { display: block; font: 700 1.15rem/1.1 var(--font-main); color: var(--h-honey); font-variant-numeric: tabular-nums; }
-.home-hive-stat b.is-bad { color: #ff5a4a; }
-.home-hive-stat small { font-size: .72rem; color: var(--h-muted); }
-.home-hive-go { color: var(--h-honey); font-size: 1.3rem; padding: 0 8px; transition: transform .2s; }
-.home-hive:hover .home-hive-go { transform: translateX(3px); }
+/* ---- hive strip: four stats, each its own link ---- */
+.home-hive { display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px; }
+.home-stat { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px 9px; border-radius: 14px; text-decoration: none; color: inherit; transition: background .2s; }
+.home-stat + .home-stat::before { content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 1px; background: rgba(255, 204, 0, .1); }
+.home-stat:hover { background: color-mix(in srgb, var(--sc) 8%, transparent); }
+.home-stat:focus-visible { outline: 2px solid var(--sc); outline-offset: -2px; }
+.home-stat svg { width: 20px; height: 20px; fill: none; stroke: var(--sc); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--sc) 45%, transparent)); }
+.home-stat b { font: 700 1.12rem/1.15 var(--font-main); color: var(--h-text); font-variant-numeric: tabular-nums; }
+.home-stat small { font-size: .68rem; color: var(--h-muted); text-align: center; line-height: 1.2; }
 
 /* ---- Today (dropdown, closed by default) ---- */
 .home-today-head {
@@ -99,67 +99,47 @@
 .home-panel { position: relative; min-height: 120px; padding: 8px 8px 0; }
 .home-enter { animation: homeIn .35s ease; }
 @keyframes homeIn { from { opacity: 0; transform: translateX(var(--dx, 12px)); } to { opacity: 1; transform: none; } }
-.home-list { list-style: none; margin: 0; padding: 0; }
-.home-row { position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 10px; border-radius: 12px; transition: background .2s; }
-.home-row:hover { background: rgba(255, 204, 0, .04); }
-.home-row-text { flex: 1; min-width: 0; font-size: .95rem; line-height: 1.3; }
-.home-row-text span { overflow-wrap: anywhere; }
-.home-row-text small { display: block; margin-top: 2px; font-size: .74rem; color: var(--h-muted); }
-.home-row.done .home-row-text { color: #8a826e; }
-.home-row.done .home-row-text span { text-decoration: line-through; text-decoration-color: rgba(255, 204, 0, .5); }
-.home-dp { flex: none; font: 600 .74rem var(--font-main); color: var(--h-honey); opacity: .85; }
-.home-row.done .home-dp { opacity: .35; }
-.home-due { flex: none; font-size: .7rem; padding: 3px 7px; border-radius: 999px; background: rgba(220, 20, 60, .16); color: #ff8a9a; border: 1px solid rgba(220, 20, 60, .35); }
-.home-due.soon { background: rgba(255, 204, 0, .1); color: #e9cf7a; border-color: rgba(255, 204, 0, .3); }
-.home-quest-title { margin: 6px 10px 2px; font: 700 .95rem var(--font-main); color: var(--crimson); }
+.home-cards { padding: 4px 0 6px; }
+.home-cards .hr-row { min-height: 62px; }
+.home-cards .dr-side { width: 58px; }
+.home-cards button.dr-check { width: 40px; height: 44px; }
+.home-quest { padding: 4px 2px 8px; }
+.home-quest .qa-card { box-shadow: none; }
 .home-habits { padding: 2px 0 4px; }
 .home-habits .hr-row { min-height: 62px; }
 .home-habits .hr-side { width: 56px; }
 .home-empty { padding: 26px 16px; text-align: center; color: var(--h-muted); font-size: .88rem; }
 .home-empty b { display: block; font-size: 1.6rem; margin-bottom: 6px; }
 
-/* hex check: an empty cell that fills with honey */
-.home-check { flex: none; width: 30px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: none; cursor: pointer; }
-.home-check svg { width: 100%; height: 100%; overflow: visible; }
-.hc-cell { fill: #120c03; stroke: #8a6a1a; stroke-width: 1.6; transition: stroke .25s; }
-.hc-fill { fill: #ffcc00; transform-origin: 50% 100%; transform: scaleY(0); transition: transform .35s cubic-bezier(.3, .9, .3, 1.2); }
-.hc-tick { fill: none; stroke: #2a1600; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .3s .15s ease; }
-.home-row.done .hc-fill { transform: scaleY(1); }
-.home-row.done .hc-tick { stroke-dashoffset: 0; }
-.home-row.done .hc-cell, .home-check:hover .hc-cell { stroke: var(--h-honey); }
-.home-check:focus-visible { outline: 2px solid var(--h-honey); outline-offset: 2px; }
-.home-pop { animation: homePop .45s cubic-bezier(.3, 1.6, .4, 1); }
-@keyframes homePop { 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
-.home-ripple { position: absolute; left: 25px; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid var(--h-honey); pointer-events: none; animation: homeRipple .6s ease-out forwards; }
-@keyframes homeRipple { to { transform: scale(6); opacity: 0; } }
-.home-float { position: absolute; right: 14px; top: 6px; font: 700 .85rem var(--font-main); pointer-events: none; animation: homeFloat 1.1s ease-out forwards; }
-.home-float.good { color: var(--h-honey); text-shadow: 0 0 8px rgba(255, 204, 0, .6); }
-.home-float.bad { color: #ff5a4a; }
-@keyframes homeFloat { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px); } }
 .home-today-foot { display: flex; align-items: center; padding: 8px 16px 12px; margin-top: 6px; border-top: 1px solid rgba(255, 204, 0, .08); }
 .home-today-foot a { color: var(--h-honey); text-decoration: none; font-weight: 600; font-size: .85rem; }
 .home-today-foot a:hover { text-decoration: underline; }
 
-/* ---- app grid: frosted hexagons + frosted name pills over the honeycomb ---- */
-.home-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 2px 4px; }
-.home-app { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 8px 2px; border-radius: 14px; text-decoration: none; transition: transform .2s; }
+/* ---- app grid: groups of coloured hexagons with line icons ---- */
+.home-apps { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 6px; }
+.home-group-h { display: flex; align-items: center; gap: 10px; margin: 0 4px 6px; padding: 0; border: 0; background: none; font: 700 .72rem var(--font-main); letter-spacing: .18em; text-transform: uppercase; color: var(--gc); text-align: left; }
+.home-group-h::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, var(--gc) 45%, transparent), transparent); }
+.home-group-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.home-app { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 6px 2px; border-radius: 14px; text-decoration: none; transition: transform .2s; }
 .home-app:active { transform: scale(.95); }
 .home-app-ic {
     position: relative;
-    width: 64px;
-    height: 70px;
+    width: 62px;
+    height: 68px;
     display: grid;
     place-items: center;
-    font-size: 1.95rem;
     clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-    background: radial-gradient(circle at 50% 35%, rgba(78, 54, 10, .86), rgba(10, 6, 1, .92));
-    -webkit-backdrop-filter: blur(10px) saturate(1.2);
-    backdrop-filter: blur(10px) saturate(1.2);
-    transition: transform .25s cubic-bezier(.3, 1.4, .4, 1), background .25s;
+    background:
+        radial-gradient(circle at 50% 28%, rgba(255, 255, 255, .38), transparent 55%),
+        linear-gradient(180deg, color-mix(in srgb, var(--gc) 92%, #fff), var(--gc) 45%, color-mix(in srgb, var(--gc) 62%, #000));
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .55));
+    transition: transform .25s cubic-bezier(.3, 1.4, .4, 1), filter .25s;
 }
-.home-app:hover .home-app-ic { transform: translateY(-2px) scale(1.06); background: radial-gradient(circle at 50% 35%, rgba(130, 90, 12, .9), rgba(14, 9, 1, .94)); }
+.home-app-ic::after { content: ""; position: absolute; inset: 3px; clip-path: inherit; background: transparent; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .25); }
+.home-app-ic svg { width: 30px; height: 30px; fill: none; stroke: var(--gk); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.home-app:hover .home-app-ic { transform: translateY(-2px) scale(1.06); filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--gc) 40%, transparent)); }
 .home-app-label { padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, .82); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #f3e6bd; font-size: .74rem; font-weight: 600; text-align: center; line-height: 1.15; }
-.home-app:focus-visible { outline: 2px solid var(--h-honey); outline-offset: 2px; }
+.home-app:focus-visible { outline: 2px solid var(--gc); outline-offset: 2px; }
 
 @media (min-width: 860px) {
     .home-container { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "hive hive" "today apps"; align-items: start; gap: 18px; margin-top: 22px; }
@@ -168,5 +148,5 @@
     .home-apps { grid-area: apps; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .home-rise, .home-enter, .home-pop, .home-ripple, .home-float { animation: none !important; opacity: 1; transform: none; }
+    .home-rise, .home-enter { animation: none !important; opacity: 1; transform: none; }
 }

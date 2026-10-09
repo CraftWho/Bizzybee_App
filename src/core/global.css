@@ -1017,3 +1017,97 @@ body.has-app-head .install-fab-btn { left: auto; right: 70px; bottom: auto; top:
 body:not(.has-app-dock).has-app-head .back-fab-btn { left: 12px; bottom: 16px; }
 body.is-home .back-fab-btn { display: none; }
 body:has(.install-fab-btn:not([hidden])) .ah-in { padding-right: 116px; }
+
+/* ==========================================================================
+   ONBOARDING MODE (2026-10-09) - while the egg is being raised, the dock
+   only shows unlocked tabs and the top bar becomes a guide bar (AppShell).
+   ========================================================================== */
+body.ob-mode .app-head .ah-in { display: none; }
+body.ob-mode .app-head { background: linear-gradient(180deg, rgba(14, 10, 4, .98), rgba(8, 6, 2, .95)); }
+body.ob-mode.has-app-head button.mobile-waggle-btn,
+body.ob-mode .waggle-menu,
+body.ob-mode .install-fab-btn { display: none !important; }
+body.ob-nodock .app-dock { display: none; }
+.ad-tab.ob-locked { visibility: hidden; pointer-events: none; }
+.ad-tab.ob-new { animation: obTabIn 1.6s cubic-bezier(.2, .9, .3, 1.2); }
+.ad-tab.ob-new svg { animation: obTabGlow 2.4s ease-in-out 3; }
+@keyframes obTabIn { 0% { opacity: 0; transform: translateY(26px) scale(.6); } 60% { opacity: 1; transform: translateY(-6px) scale(1.12); } 100% { transform: none; } }
+@keyframes obTabGlow { 50% { color: #ffcc00; filter: drop-shadow(0 0 10px rgba(255, 204, 0, .9)); } }
+.app-dock.ob-arrive { animation: obDockIn 1.2s cubic-bezier(.2, .9, .3, 1); }
+@keyframes obDockIn { from { transform: translateY(110%); } }
+
+.ob-bar { max-width: 760px; margin: 0 auto; padding: 10px 14px 12px; box-sizing: border-box; font-family: var(--shell-sans); }
+.ob-in { display: flex; align-items: center; gap: 12px; }
+.ob-egg { flex: none; width: 40px; height: 48px; display: grid; place-items: center; border-radius: 14px; background: radial-gradient(circle at 50% 40%, rgba(255, 204, 0, .25), transparent 70%); }
+.ob-egg svg { width: 26px; height: 32px; fill: #f6e3a4; stroke: #8a6000; stroke-width: 1.2; animation: obEggBob 3s ease-in-out infinite; }
+.ob-egg svg path + path { stroke: #c9a64a; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes obEggBob { 50% { transform: translateY(-2px) rotate(-3deg); } }
+.ob-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ob-tag { display: flex; align-items: center; gap: 8px; font: 700 .64rem var(--font-main); letter-spacing: .12em; color: #c9a64a; }
+.ob-tag i { display: inline-flex; gap: 3px; }
+.ob-tag b { width: 14px; height: 4px; border-radius: 2px; background: #3a3222; }
+.ob-tag b.on { background: #ffcc00; box-shadow: 0 0 6px rgba(255, 204, 0, .6); }
+.ob-step { font-weight: 700; font-size: .98rem; color: var(--shell-text); }
+.ob-why { font-size: .78rem; line-height: 1.35; color: var(--shell-muted); }
+.ob-back { flex: none; padding: 9px 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .35); color: #ffcc00; font: 700 .8rem var(--shell-sans); text-decoration: none; white-space: nowrap; }
+.ob-back:hover { background: rgba(255, 204, 0, .1); }
+.ob-back.ready { background: linear-gradient(180deg, #ffd84a, #e0a800); color: #2a1a00; border-color: #ffcc00; animation: obPulse 1.8s ease-in-out infinite; }
+@keyframes obPulse { 50% { box-shadow: 0 0 16px rgba(255, 204, 0, .7); } }
+@media (prefers-reduced-motion: reduce) { .ad-tab.ob-new, .ad-tab.ob-new svg, .ob-egg svg, .ob-back.ready, .app-dock.ob-arrive { animation: none; } }
+
+/* ==========================================================================
+   APP OPENING (2026-10-09) - a crimson line draws out from the middle, then
+   the screen opens top and bottom like a scroll (AppOpen in app.js).
+   ========================================================================== */
+.app-open { position: fixed; inset: 0; z-index: 5000; pointer-events: auto; }
+.ao-half {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 50.5%;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34.64' height='60' viewBox='0 0 34.64 60'%3E%3Cpath d='M17.32 60V40L0 30V10L17.32 0l17.32 10v20L17.32 40' fill='none' stroke='%23d9b968' stroke-width='.8' opacity='.07'/%3E%3C/svg%3E") 0 0 / 34.64px 60px,
+        radial-gradient(80% 60% at 50% 100%, #1a1206, #050402 70%);
+    transition: transform 1.25s cubic-bezier(.7, 0, .2, 1);
+}
+.ao-top { top: 0; }
+.ao-bot { bottom: 0; transform-origin: top; background-position: 0 0, 0 0; }
+.ao-bot { background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34.64' height='60' viewBox='0 0 34.64 60'%3E%3Cpath d='M17.32 60V40L0 30V10L17.32 0l17.32 10v20L17.32 40' fill='none' stroke='%23d9b968' stroke-width='.8' opacity='.07'/%3E%3C/svg%3E") 0 0 / 34.64px 60px,
+        radial-gradient(80% 60% at 50% 0%, #1a1206, #050402 70%); }
+/* each half's inner edge carries half of the line once it splits */
+.ao-top::after, .ao-bot::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--crimson) 18%, #ff4a5e 50%, var(--crimson) 82%, transparent);
+    box-shadow: 0 0 14px rgba(220, 20, 60, .8), 0 0 40px rgba(220, 20, 60, .35);
+    opacity: 0;
+}
+.ao-top::after { bottom: 0; }
+.ao-bot::after { top: 0; }
+.ao-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: linear-gradient(90deg, transparent, var(--crimson) 18%, #ff4a5e 50%, var(--crimson) 82%, transparent);
+    box-shadow: 0 0 16px rgba(220, 20, 60, .9), 0 0 50px rgba(220, 20, 60, .4);
+    transform: scaleX(0);
+    transition: transform .72s cubic-bezier(.6, 0, .2, 1);
+}
+.ao-line::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff2f4; box-shadow: 0 0 18px 6px rgba(255, 74, 94, .8); opacity: 0; transition: opacity .3s; }
+.app-open.draw .ao-line { transform: scaleX(1); }
+.app-open.draw .ao-line::after { opacity: 1; }
+.app-open.open .ao-line { opacity: 0; transition: opacity .15s; }
+.app-open.open .ao-top::after, .app-open.open .ao-bot::after { opacity: 1; }
+.app-open.open .ao-top { transform: translateY(-101%); }
+.app-open.open .ao-bot { transform: translateY(101%); }
+.app-open.open { pointer-events: none; }
+
+.ao-center { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .5s ease, transform .5s ease; }
+.app-open.fade-center .ao-center { opacity: 0; transform: scale(.96); }

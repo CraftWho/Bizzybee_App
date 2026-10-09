@@ -1,23 +1,107 @@
 .habits-container {
     width: 100%;
     max-width: 700px;
-    margin: 20px auto 60px;
-    padding: 0 25px;
+    margin: 14px auto 0;
+    padding: 0 16px;
     box-sizing: border-box;
 }
 
-.habits-title {
-    text-align: center;
-    margin: 0 0 8px;
-    font-size: 2rem;
-    font-weight: 800;
+/* Page header box with the Quote of the Week (2026-10-09). Same card look
+   as Home's cards. */
+.habits-head {
+    position: relative;
+    margin: 0 0 14px;
+    padding: 16px 16px 14px;
+    border-radius: 18px;
+    background: rgba(14, 11, 6, .9);
+    border: 1px solid rgba(255, 204, 0, .18);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+    overflow: hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-.habits-subtitle {
-    text-align: center;
-    color: #999;
-    font-size: 0.9rem;
-    margin: 0 0 25px;
+.habits-head::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--crimson) 20%, var(--crimson) 80%, transparent);
+}
+
+.habits-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    font: 700 1.35rem var(--font-main);
+    letter-spacing: .1em;
+    color: var(--gold-start);
+    text-align: left;
+}
+
+.habits-title small {
+    margin-left: auto;
+    font: 500 .75rem system-ui, sans-serif;
+    letter-spacing: 0;
+    color: #a69a80;
+}
+
+.habits-quote {
+    position: relative;
+    margin: 14px 0 0;
+    padding: 14px 14px 12px 44px;
+    border-radius: 14px;
+    background: #0a0703;
+    border: 1px solid rgba(255, 204, 0, .14);
+}
+
+.habits-quote::before {
+    content: "\201C";
+    position: absolute;
+    left: 12px;
+    top: 2px;
+    font: 700 2.6rem/1 Georgia, serif;
+    color: #d9b968;
+    opacity: .85;
+}
+
+.habits-quote p {
+    margin: 0;
+    font: italic 500 1.02rem/1.45 Georgia, "Times New Roman", serif;
+    color: #efe6cf;
+}
+
+.habits-quote footer {
+    margin-top: 8px;
+    font-size: .78rem;
+    color: #a69a80;
+}
+
+.habits-quote footer b {
+    color: #e9cf7a;
+    font-weight: 600;
+}
+
+.habits-quote-tag {
+    position: absolute;
+    right: 10px;
+    top: -9px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #1d1608;
+    border: 1px solid rgba(255, 204, 0, .25);
+    font: 600 .62rem var(--font-main);
+    letter-spacing: .12em;
+    color: #d9b968;
+}
+
+.habits-tip {
+    margin: 10px 2px 0;
+    font-size: .76rem;
+    color: #7d725b;
 }
 
 .habits-not-installed {
