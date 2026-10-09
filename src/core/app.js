@@ -96,11 +96,11 @@ const AppLock = {
 // / Quests; the + creates whatever the current tab makes, and asks which on
 // any other page. Dashboard, Map and the rest live in Home's app grid.
 const DOCK_TABS = [
-    { key: 'habits', label: 'Habits', href: 'src/plugins/habits/habits.html',
+    { key: 'habits', label: 'Habits', href: 'src/features/habits/habits.html',
       icon: '<rect x="3" y="7" width="10" height="14" rx="2.5"/><rect x="15" y="7" width="10" height="14" rx="2.5"/><path d="M8 11.5v5M5.5 14h5M17.5 14h5"/>' },
     { key: 'dailies', label: 'Dailies', href: 'src/features/dailies/dailies.html',
       icon: '<rect x="4" y="6" width="20" height="18" rx="3"/><path d="M4 11h20M9 3.5v5M19 3.5v5"/><path d="M9 15.5h2M13 15.5h2M17 15.5h2M9 19.5h2M13 19.5h2"/>' },
-    { key: 'todos', label: 'To-Dos', href: 'src/plugins/todos/todos.html',
+    { key: 'todos', label: 'To-Dos', href: 'src/features/todos/todos.html',
       icon: '<circle cx="14" cy="14" r="10"/><path d="M9.5 14.5l3 3 6-6.5"/>' },
     { key: 'quests', label: 'Quests', href: 'src/features/quests/quests.html',
       icon: '<path d="M8 4h13a3 3 0 0 1 3 3a2 2 0 0 1-2 2h-2v13a3 3 0 0 1-3 3H7"/><path d="M7 25a3 3 0 0 1-3-3v-2h12v2a3 3 0 0 0 3 3"/><path d="M8 4a3 3 0 0 0-3 3v13M11 10h6M11 14h6"/>' }
@@ -108,9 +108,9 @@ const DOCK_TABS = [
 // Which dock tab a page belongs to, and what its + creates.
 const DOCK_PAGE_TAB = { habits: 'habits', 'create-habit': 'habits', dailies: 'dailies', 'create-daily': 'dailies', todos: 'todos', 'create-todo': 'todos', quests: 'quests', quest: 'quests', 'create-quest': 'quests' };
 const CREATE_TARGETS = {
-    habits: { label: 'Habit', href: 'src/plugins/habits/create-habit.html' },
+    habits: { label: 'Habit', href: 'src/features/habits/create-habit.html' },
     dailies: { label: 'Daily', href: 'src/features/dailies/create-daily.html' },
-    todos: { label: 'To-Do', href: 'src/plugins/todos/create-todo.html' },
+    todos: { label: 'To-Do', href: 'src/features/todos/create-todo.html' },
     quests: { label: 'Quest', href: 'src/features/quests/create-quest.html' }
 };
 const SHELL_HEX = '36,5 67,23 67,57 36,75 5,57 5,23';
@@ -236,10 +236,17 @@ const AppShell = {
             this._royalKind = kind;
         }
         q('.ah-royal').setAttribute('aria-label', royal ? `${royal.name}, your ${kind === 'king' ? 'King' : 'Queen'}` : 'Your hive');
-        q('.ah-name').textContent = user.name || 'Beekeeper';
-        q('.ah-line').innerHTML = royal
-            ? `👑 ${kind === 'king' ? 'King' : 'Queen'} <b>${esc(royal.name)}</b> rules your hive`
-            : '🐝 Your hive awaits';
+        // Your name is the big line; the title (King/Queen) sits small
+        // under it (Craft, 2026-10-09). "Worker Bee" is only the blueprint's
+        // placeholder, so a named royal wins over it.
+        const title = kind === 'king' ? 'King' : 'Queen';
+        const name = Vault.state.displayName || (royal && royal.name) || user.name || 'Beekeeper';
+        q('.ah-name').textContent = name;
+        q('.ah-line').innerHTML = !royal
+            ? '🐝 Your hive awaits'
+            : royal.name && royal.name !== name
+                ? `👑 ${title} <b>${esc(royal.name)}</b> rules your hive`
+                : `👑 <b>${title}</b> of the hive`;
         q('.ah-chip').textContent = `LV ${bar.level}`;
         q('.ah-bar i').style.width = `${Math.max(0, Math.min(100, bar.percentage))}%`;
         q('.ah-dp').innerHTML = `<b>${bar.dpIntoLevel}</b> / ${bar.cap} DP`;
@@ -454,20 +461,32 @@ class CodexSystem {
         this.loadLocalDevTools();
     }
 
-    // Local dev tools (src/local/admin.local.js) are in .gitignore, so they
-    // only exist on Craft's own computer. Only asked for on localhost / a
-    // local network address, so the live site never even requests the file.
+    // Dev tools (Craft, 2026-10-09).
+    //  - This computer: src/local/admin.local.js (gitignored) adds the
+    //    Hacker / password login; once signed in that way, the 🛠 panel
+    //    (src/core/dev-tools/dev-tools.js) loads on every page.
+    //  - Live site: the 🛠 panel loads only when signed in to Cloud Sync
+    //    with the owner's account (DevTools.isOwner checks a SHA-256 of the
+    //    email, so the address itself isn't in the code). On live, every
+    //    tool works on a separate test save that never syncs.
     loadLocalDevTools() {
         const host = window.location.hostname;
         const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
             || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
-        if (!isLocal) return;
         const path = window.location.pathname;
         const nested = path.includes('features') || path.includes('plugins');
-        const script = document.createElement('script');
-        script.src = `${nested ? '../../..' : '.'}/src/local/admin.local.js`;
-        script.onerror = () => script.remove();
-        document.body.appendChild(script);
+        const root = nested ? '../../..' : '.';
+        const add = (src) => {
+            const script = document.createElement('script');
+            script.src = `${root}/${src}`;
+            script.onerror = () => script.remove();
+            document.body.appendChild(script);
+        };
+        if (isLocal) add('src/local/admin.local.js');
+        if (!nested) return;   // no panel on the login page
+        const localDev = isLocal && localStorage.getItem('bizzybee_dev') === '1';
+        const maybeOwner = localStorage.getItem('bizzybee_session') === 'identity' && !!localStorage.getItem('gotrue.user');
+        if (localDev || maybeOwner || localStorage.getItem('bizzybee_dev_test') === '1') add('src/core/dev-tools/dev-tools.js');
     }
 
     renderGlobalUI() {
@@ -613,6 +632,7 @@ class CodexSystem {
     // also includes this script statically for its own UI - the guard
     // below skips re-injecting it there.
     initFolderBackupAuto() {
+        if (typeof Vault !== 'undefined' && Vault.devTest) return;   // dev test save never backs up
         const path = window.location.pathname;
         const isNestedPage = path.includes('features') || path.includes('plugins');
         if (!isNestedPage) return;
@@ -624,6 +644,7 @@ class CodexSystem {
 
     initCloudSyncAuto() {
         if (localStorage.getItem('bizzybee_session') !== 'identity') return;
+        if (typeof Vault !== 'undefined' && Vault.devTest) return;   // dev test save never syncs
 
         const path = window.location.pathname;
         const isNestedPage = path.includes('features') || path.includes('plugins');

@@ -19,6 +19,7 @@ const CloudSyncAuto = (() => {
         lastError = message;
     }
     function sameAccount() {
+        if (Vault.devTest) return false;   // dev test save never syncs (dev-tools.js)
         return netlifyIdentity.currentUser()?.id === accountId && localStorage.getItem('bizzybee_cloud_owner') === accountId && localStorage.getItem('bizzybee_session') === 'identity';
     }
     async function request(path, body) {

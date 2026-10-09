@@ -713,8 +713,12 @@ button:hover {
     background: linear-gradient(180deg, rgba(20, 14, 5, .97), rgba(10, 7, 2, .94));
     border-bottom: 1px solid rgba(255, 204, 0, .22);
     box-shadow: 0 10px 26px rgba(0, 0, 0, .55);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    /* No backdrop-filter here or on the dock: Samsung Internet (Note 20
+       Ultra, 2026-10-09) paints a blurred fixed/sticky bar as a solid black
+       box over its own contents. The bars are ~95% opaque, so the blur
+       added nothing anyway. translateZ(0) gives each bar its own layer. */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
 .app-head::after {
     content: "";
@@ -777,8 +781,8 @@ button:hover {
 .ah-info { min-width: 0; }
 .ah-hello { margin: 0; color: var(--shell-muted); font-size: .86rem; }
 .ah-name {
-    margin: 2px 0 4px;
-    font: 700 1.55rem/1.15 var(--font-main);
+    margin: 2px 0 3px;
+    font: 700 1.8rem/1.12 var(--font-main);
     color: var(--shell-honey);
     text-shadow: 0 0 18px rgba(255, 204, 0, .25);
     white-space: nowrap;
@@ -786,7 +790,7 @@ button:hover {
     text-overflow: ellipsis;
     transition: font-size .35s cubic-bezier(.3, .9, .3, 1), margin .35s;
 }
-.ah-line { margin: 0 0 12px; font-size: .84rem; color: #d9c79a; }
+.ah-line { margin: 0 0 12px; font-size: .76rem; letter-spacing: .04em; color: #bfae86; }
 .ah-line b { color: var(--shell-honey); font-weight: 600; }
 .ah-hello, .ah-line, .ah-meta { max-height: 40px; overflow: hidden; transition: opacity .25s, max-height .35s, margin .35s; }
 .ah-lvl { display: flex; align-items: center; gap: 10px; }
@@ -884,12 +888,13 @@ button:hover {
     padding: 0 6px env(safe-area-inset-bottom);
     box-sizing: border-box;
     font-family: var(--shell-sans);
-    background: linear-gradient(180deg, rgba(18, 13, 5, .94), rgba(6, 4, 1, .98));
+    background: linear-gradient(180deg, #120d05, #060401);
     border-top: 1px solid rgba(255, 204, 0, .25);
     box-shadow: 0 -8px 24px rgba(0, 0, 0, .6);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
+.app-dock > * { position: relative; z-index: 1; }
 .app-dock::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--crimson), transparent); opacity: .7; }
 .ad-tab {
     position: relative;
@@ -945,9 +950,7 @@ button:hover {
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    background: rgba(0, 0, 0, .55);
-    -webkit-backdrop-filter: blur(3px);
-    backdrop-filter: blur(3px);
+    background: rgba(0, 0, 0, .72);
     animation: acsFade .25s ease;
 }
 @keyframes acsFade { from { opacity: 0; } }
