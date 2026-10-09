@@ -37,13 +37,27 @@ const HabitRow = {
         return `${parts.join('  |  ')} ${this.PERIOD_LABEL[habit.resetCounter] || 'today'}`;
     },
 
+    // The "Read a motivational quote" habit shows the Quote of the Week
+    // (src/core/habit-quotes/, when that file is loaded) with its credit.
+    isQuoteHabit(habit) {
+        return habit.quoteOfWeek === true || habit.label === 'Read a motivational quote';
+    },
+
+    notesHTML(habit) {
+        if (this.isQuoteHabit(habit) && typeof quoteOfTheWeek === 'function') {
+            const q = quoteOfTheWeek();
+            return `<span class="hr-notes"><q>${this.esc(q.text)}</q><span class="hr-credit">\u2014 ${this.esc(quoteCredit(q))}</span></span>`;
+        }
+        return habit.notes ? `<span class="hr-notes">${this.esc(habit.notes)}</span>` : '';
+    },
+
     html(habit) {
         const s = this.style(habit);
         return `<li class="hr-row" data-habit-id="${this.esc(habit.id)}" style="--dc:${s.color};--dk:${s.ink}">
             <div class="hr-side${habit.positive ? ' lit' : ''}">${this.hexButton(habit, 'positive')}</div>
             <div class="hr-mid" data-hr="edit" role="button" tabindex="0" aria-label="Edit ${this.esc(habit.label)}">
                 <span class="hr-title">${this.esc(habit.label)}</span>
-                ${habit.notes ? `<span class="hr-notes">${this.esc(habit.notes)}</span>` : ''}
+                ${this.notesHTML(habit)}
                 <span class="hr-count">${this.counts(habit)}</span>
             </div>
             <div class="hr-side${habit.negative ? ' lit' : ''}">${this.hexButton(habit, 'negative')}</div>
@@ -92,6 +106,8 @@ const HabitRow = {
     },
 
     // Touch and hold (or click and hold) a card, then drag it up or down.
+    // Also used by the Dailies list (rows carry data-row-id; anything marked
+    // data-no-hold, like a check button, never starts a hold).
     enableReorder(container, { onMoved }) {
         if (container.__hrReorder) return;
         container.__hrReorder = true;
@@ -116,7 +132,7 @@ const HabitRow = {
 
         container.addEventListener('pointerdown', (event) => {
             const row = event.target.closest('[data-reorder] .hr-row');
-            if (!row || event.target.closest('.hr-btn') || event.button > 0) return;
+            if (!row || event.target.closest('.hr-btn, [data-no-hold]') || event.button > 0) return;
             const list = row.parentNode;
             hold = { row, x: event.clientX, y: event.clientY, timer: setTimeout(() => startDrag(row, list, event.clientY), HOLD_MS) };
             row.classList.add('pressing');
@@ -155,7 +171,7 @@ const HabitRow = {
             drag = null;
             window.__hrJustDragged = true;
             setTimeout(() => { window.__hrJustDragged = false; }, 60);
-            if (from !== to && onMoved) onMoved(row.dataset.habitId, to);
+            if (from !== to && onMoved) onMoved(row.dataset.habitId || row.dataset.rowId, to);
         };
         document.addEventListener('pointerup', end);
         document.addEventListener('pointercancel', end);

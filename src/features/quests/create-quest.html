@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>📜 New Quest</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/task-form/task-form.css">
+    <link rel="stylesheet" href="./create-quest.css">
+</head>
+<body class="task-form-page">
+
+    <main class="hf" id="hf">
+        <section class="hf-top">
+            <div class="hf-bar">
+                <button type="button" class="hf-icon" id="hf-back" aria-label="Back">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7M8 12h12"/></svg>
+                </button>
+                <h1 class="hf-heading" id="hf-heading">New Quest</h1>
+                <button type="button" class="hf-act" id="hf-delete" hidden>DELETE</button>
+                <button type="button" class="hf-act" id="hf-save">CREATE</button>
+            </div>
+            <div class="hf-tip-row">
+                <button type="button" class="hf-tip-btn" id="hf-tip-btn" aria-expanded="false">🔒 Avoid sensitive info</button>
+            </div>
+            <p class="hf-tip" id="hf-tip" hidden>For your privacy, avoid entering sensitive personal information here. Quest titles, objectives and tasks sync to your encrypted cloud account along with everything else in Bizzybee, so you can pick up where you left off on any device.</p>
+            <label class="hf-field">
+                <small>Quest Title</small>
+                <input type="text" id="quest-title-input" maxlength="120" placeholder="e.g. Learn React Hooks" autocomplete="off">
+            </label>
+            <label class="hf-field hf-notes">
+                <small>Objective</small>
+                <textarea id="quest-objective-input" rows="3" placeholder="What does finishing this actually look like?"></textarea>
+            </label>
+        </section>
+
+        <section class="hf-body">
+            <h2 class="hf-h">Type</h2>
+            <div class="hf-seg cq-type" id="cq-type" role="radiogroup" aria-label="Quest type">
+                <button type="button" data-cat="main" role="radio"><b>Main</b><small>A big goal</small></button>
+                <button type="button" data-cat="side" role="radio"><b>Side</b><small>A smaller goal</small></button>
+            </div>
+
+            <h2 class="hf-h">Tasks <small id="cq-total"></small></h2>
+            <ul class="df-cl" id="cq-tasks"></ul>
+            <button type="button" class="df-add" id="cq-task-add">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New task
+            </button>
+            <p class="hf-hint hf-hint-left">Steps you can finish in a day or two. Tap a task's difficulty to change it. The quest is done when every task is.</p>
+
+            <h2 class="hf-h">Source <small>optional</small></h2>
+            <label class="hf-box">
+                <small>Name</small>
+                <input type="text" id="cq-source-label" maxlength="120" placeholder="e.g. Scrimba React course" autocomplete="off">
+            </label>
+            <label class="hf-box cq-gap">
+                <small>Link</small>
+                <input type="url" id="cq-source-url" placeholder="https://" autocomplete="off" inputmode="url">
+            </label>
+
+            <label class="cq-switch" id="cq-focus-row">
+                <input type="checkbox" id="cq-focus">
+                <span class="cq-switch-ui" aria-hidden="true"></span>
+                <span><b>Focus on this quest</b><small>Pins it to the top of Quests and to Home.</small></span>
+            </label>
+
+            <p class="hf-hint hf-hint-left" id="cq-more" hidden>Ghost logs, side quests and unlocks live on the quest's own page.</p>
+        </section>
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+    <script src="../../core/hive-mind/nano-bee.js"></script>
+    <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="../../core/habit-row/habit-row.js"></script>
+    <script src="../../core/task-form/task-form.js"></script>
+    <script src="./quest-common.js"></script>
+    <script src="./create-quest.js"></script>
+</body>
+</html>

@@ -1,134 +1,56 @@
 console.log("/// TO-DOS PLUGIN PROTOCOLS INITIALIZED ///");
 
-function escapeTodoHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str == null ? '' : str;
-    return div.innerHTML;
+// To-Dos list (rebuilt 2026-10-09 to match Dailies and Habits). Each to-do
+// is a card with a hexagon check in its difficulty colour. Tap the hexagon
+// to finish it, tap the card to edit, hold to move (Active tab). Tabs:
+// Active (everything not done), Scheduled (has a due date, soonest first)
+// and Done (newest first, tap the hexagon to bring one back). The box on
+// the right is the checklist count; tap it to tick lines here.
+// The card itself is TaskRow.todoHTML (src/core/task-row/), shared with
+// Home's Today panel.
+
+const openChecklists = new Set();
+let currentTab = 'active';
+try { currentTab = sessionStorage.getItem('bizzybee_todos_tab') || 'active'; } catch (e) { /* storage off */ }
+
+function tabLists() {
+    const all = Vault.getTodos();
+    const active = all.filter(t => !t.completed);
+    const scheduled = active.filter(t => t.dueDate).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    const done = all.filter(t => t.completed).sort((a, b) => (b.completedDate || '').localeCompare(a.completedDate || ''));
+    return { all, active, scheduled, done };
 }
 
-function escapeTodoAttr(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
-function checklistProgressHTML(checklist) {
-    if (!checklist || checklist.length === 0) return '';
-    const done = checklist.filter(item => item.done).length;
-    return `<small class="quest-task-checklist-badge">✅ ${done}/${checklist.length}</small>`;
-}
-
-function tagsHTML(tags) {
-    if (!tags || tags.length === 0) return '';
-    return `<span class="quest-task-tags">${tags.map(tag => `<span class="quest-task-tag">${escapeTodoHTML(tag)}</span>`).join('')}</span>`;
-}
-
-// Same mapping dailies.js/quests.js use for their own difficulty badge.
-const TODO_DIFFICULTY_DOT_COLOR = { trivial: 'gray', easy: 'green', medium: 'yellow', hard: 'red' };
-
-// Local YYYY-MM-DD "today", same reasoning as create-daily.js's
-// todayISOLocal - a native <input type="date"> and any local-date
-// comparison need this, not Vault's UTC-based todayISO().
-function todayISOLocal() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
-
-function formatDueDate(dueDate) {
-    if (!dueDate) return '';
-    const [y, m, d] = dueDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function dueBadgeHTML(todo) {
-    if (!todo.dueDate) return '';
-    const overdue = !todo.completed && todo.dueDate < todayISOLocal();
-    return `<small class="quest-task-due-badge${overdue ? ' quest-task-due-badge--overdue' : ''}">${overdue ? '⚠️ Overdue' : '📅'} ${escapeTodoHTML(formatDueDate(todo.dueDate))}</small>`;
-}
-
-function todoRowHTML(todo) {
-    return `
-        <li class="quest-task-item${todo.completed ? ' quest-task-item--done' : ''}" data-todo-id="${todo.id}">
-            <div class="quest-task-accent quest-task-accent--${TODO_DIFFICULTY_DOT_COLOR[(todo.difficulty || '').toLowerCase()] || 'gray'}"></div>
-            <div class="quest-task-body">
-                <div class="quest-task-top">
-                    <input type="checkbox" class="quest-task-checkbox" data-role="toggle" ${todo.completed ? 'checked' : ''}>
-                    <span class="quest-task-label">${escapeTodoHTML(todo.label)}</span>
-                    <button class="quest-task-more-btn" data-role="more" aria-label="More actions">⋯</button>
-                </div>
-                <div class="quest-task-meta">
-                    <small class="quest-task-dp">+${todo.dp} DP</small>
-                    ${todo.difficulty ? `<small class="quest-task-difficulty quest-task-difficulty--${escapeTodoAttr(todo.difficulty.toLowerCase())}">${StatusDot.html(TODO_DIFFICULTY_DOT_COLOR[todo.difficulty.toLowerCase()] || 'gray')}${escapeTodoHTML(todo.difficulty)}</small>` : ''}
-                    ${dueBadgeHTML(todo)}
-                    ${checklistProgressHTML(todo.checklist)}
-                    ${tagsHTML(todo.tags)}
-                </div>
-            </div>
-            <div class="quest-task-more-menu" data-role="more-menu">
-                ${todo.completed ? '' : '<button type="button" data-role="edit">✏️ Edit</button>'}
-                <button type="button" data-role="remove">🗑️ Remove</button>
-            </div>
-        </li>
-    `;
-}
+const EMPTY = {
+    active: 'Nothing to do. Tap the + below to add a to-do.',
+    scheduled: 'No to-dos with a due date. Give one a due date to see it here.',
+    done: 'Nothing finished yet. Check off a to-do and it lands here.'
+};
 
 function renderTodos() {
-    const allTodos = Vault.getTodos();
-    const active = allTodos.filter(t => !t.completed);
-    const completed = allTodos.filter(t => t.completed);
+    const lists = tabLists();
+    const today = TaskRow.localISO(new Date());
+    const overdue = lists.active.filter(t => t.dueDate && t.dueDate < today).length;
+    const dueToday = lists.active.filter(t => t.dueDate === today).length;
 
-    const activeList = document.getElementById('todo-task-list');
-    activeList.innerHTML = active.length > 0
-        ? active.map(todoRowHTML).join('')
-        : `<p class="quest-empty-state">No to-dos yet - use the honeycomb button below to add one.</p>`;
+    document.getElementById('td-n-active').textContent = lists.active.length;
+    document.getElementById('td-n-scheduled').textContent = lists.scheduled.length;
+    document.getElementById('td-n-done').textContent = lists.done.length;
+    const sum = [`<b>${lists.active.length}</b> to go`];
+    if (dueToday) sum.push(`<span class="today">${dueToday} due today</span>`);
+    if (overdue) sum.push(`<span class="over">${overdue} overdue</span>`);
+    document.getElementById('td-sum').innerHTML = sum.join('<i>·</i>');
 
-    const completedList = document.getElementById('todo-completed-list');
-    completedList.innerHTML = completed.map(todoRowHTML).join('');
-    document.getElementById('todos-completed-heading').textContent = `✅ Completed (${completed.length})`;
-    document.getElementById('todos-completed-section').hidden = completed.length === 0;
+    document.querySelectorAll('.td-tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === currentTab)));
+    document.getElementById('td-hold').hidden = currentTab !== 'active';
+    document.getElementById('td-tip').textContent = currentTab === 'done'
+        ? 'Tap the hexagon to bring one back. Its DP comes off again.'
+        : "Tap the hexagon when it's done. Tap a to-do to edit it.";
 
-    [...active, ...completed].forEach(todo => {
-        const row = activeList.querySelector(`[data-todo-id="${todo.id}"]`) || completedList.querySelector(`[data-todo-id="${todo.id}"]`);
-        if (!row) return;
-
-        row.querySelector('[data-role="toggle"]').addEventListener('change', () => {
-            const willComplete = !todo.completed;
-            const levelBefore = Vault.getUser().level;
-            Vault.toggleTodoComplete(todo.id);
-            const levelAfter = Vault.getUser().level;
-
-            Toast.show(willComplete ? `🐝 +${todo.dp} DP` : `➖ ${todo.dp} DP`, willComplete ? 'positive' : 'negative');
-            if (levelAfter > levelBefore) Toast.show(`🎉 LEVEL UP! Lv. ${levelAfter}`, 'positive');
-
-            renderTodos();
-        });
-
-        row.querySelector('[data-role="more"]').addEventListener('click', (event) => {
-            event.stopPropagation();
-            const menu = row.querySelector('[data-role="more-menu"]');
-            const willOpen = !menu.classList.contains('quest-task-more-menu--open');
-            document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
-            if (willOpen) menu.classList.add('quest-task-more-menu--open');
-        });
-
-        const editBtn = row.querySelector('[data-role="edit"]');
-        if (editBtn) {
-            editBtn.addEventListener('click', () => {
-                window.location.href = `./create-todo.html?id=${encodeURIComponent(todo.id)}`;
-            });
-        }
-
-        row.querySelector('[data-role="remove"]').addEventListener('click', () => {
-            if (!confirm(`Remove to-do "${todo.label}"?`)) return;
-            if (Vault.removeTodo(todo.id)) renderTodos();
-        });
-    });
+    const shown = lists[currentTab];
+    document.getElementById('todo-task-list').innerHTML = shown.length
+        ? `<ul class="hr-list"${currentTab === 'active' ? ' data-reorder="1"' : ''}>${shown.map(x => TaskRow.todoHTML(x, openChecklists.has(x.id))).join('')}</ul>`
+        : `<p class="dl-empty">${EMPTY[currentTab]}</p>`;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -137,19 +59,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('todos');
     document.getElementById('todos-not-installed').hidden = installed;
     document.getElementById('todos-app').hidden = !installed;
-
+    document.querySelector('.td-tabs').hidden = !installed;
     if (!installed) return;
 
     renderTodos();
 
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.quest-task-more-menu--open').forEach(m => m.classList.remove('quest-task-more-menu--open'));
+    document.querySelector('.td-tabs').addEventListener('click', (event) => {
+        const b = event.target.closest('[data-tab]');
+        if (!b) return;
+        currentTab = b.dataset.tab;
+        try { sessionStorage.setItem('bizzybee_todos_tab', currentTab); } catch (e) { /* storage off */ }
+        renderTodos();
     });
 
-    document.getElementById('todos-completed-toggle').addEventListener('click', () => {
-        const section = document.getElementById('todos-completed-section');
-        const isCollapsed = section.classList.toggle('todos-completed-section--collapsed');
-        document.getElementById('todos-completed-toggle').setAttribute('aria-expanded', String(!isCollapsed));
+    const list = document.getElementById('todo-task-list');
+    list.addEventListener('click', (event) => {
+        if (window.__hrJustDragged) return;
+        const el = event.target.closest('[data-act]');
+        if (!el) return;
+        const row = el.closest('.dr-row');
+        const todo = Vault.getTodos().find(t => t.id === row.dataset.rowId);
+        if (!todo) return;
+        const act = el.dataset.act;
+        if (act === 'edit') {
+            window.location.href = `./create-todo.html?id=${encodeURIComponent(todo.id)}`;
+        } else if (act === 'check') {
+            const nowDone = !todo.completed;
+            Vault.toggleTodoComplete(todo.id);
+            TaskRow.animateCheck(row, nowDone, todo.dp);
+            row.classList.add(nowDone ? 'leaving' : 'returning');
+            setTimeout(renderTodos, 700);
+        } else if (act === 'list') {
+            if (openChecklists.has(todo.id)) openChecklists.delete(todo.id); else openChecklists.add(todo.id);
+            renderTodos();
+        } else if (act === 'item') {
+            Vault.toggleTodoChecklistItem(todo.id, el.dataset.item);
+            renderTodos();
+        }
+    });
+    list.addEventListener('keydown', (event) => {
+        const main = event.target.closest('.dr-main');
+        if (main && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); main.click(); }
+    });
+
+    // Moves within the Active tab. The drop spot is another active to-do,
+    // so move next to that one in the full list (done ones stay put).
+    HabitRow.enableReorder(list, {
+        onMoved: (todoId, toIndex) => {
+            const active = Vault.getTodos().filter(t => !t.completed);
+            const target = active[toIndex];
+            if (target) Vault.moveTodo(todoId, Vault.getTodos().findIndex(t => t.id === target.id));
+            renderTodos();
+        }
     });
 
     Waggle.setActions([

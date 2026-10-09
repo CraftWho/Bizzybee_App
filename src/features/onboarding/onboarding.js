@@ -5,11 +5,18 @@ console.log("/// ONBOARDING: THE EGG GIFT ///");
 // EGG_ORIGIN_STORY_SPEC.md; the approved demo it was built from lives in
 // workshop/concepts/2026-10-onboarding/egg-opening.html.
 //
-//   gift note -> egg (hold to bond) -> egg care habits -> Habits unlock
-//   -> egg full: 10 taps to crack -> LARVA (To-Dos unlock) -> larva full
-//   -> PUPA (sealed, 1 real hour) -> wax cap: 10 taps -> "Are you male or
-//   female?" -> silhouette at sunrise -> name it -> colour + crowning ->
-//   QUEEN / KING -> founder card -> Home.
+//   gift note (a slow slideshow) -> egg (hold to bond) -> egg care habits
+//   -> Habits unlock -> egg full: 10 taps to crack -> LARVA (To-Dos
+//   unlock) -> larva full -> PUPA (sealed, 1 real hour; Dailies then
+//   Quests unlock) -> wax cap: 10 taps -> "Are you male or female?" ->
+//   silhouette at sunrise -> name it -> colour + crowning -> QUEEN / KING
+//   -> founder card -> Home.
+//
+// Since 2026-10-09 every unlock adds that tab to the real bottom bar
+// (AppShell onboarding mode), and its tutorial is done on the REAL pages:
+// the steps (ONBOARDING_STEPS in db.js) are checked against what you
+// actually made. Coming back to the egg turns that work into energy (or,
+// while sealed, minutes off the wait) - see reconcile() below.
 //
 // Everything that matters is saved in Vault.state.onboarding (see
 // freshOnboardingRecord in db.js) on every step, so closing the app never
@@ -39,6 +46,7 @@ const dayKey = () => (typeof todayISO === 'function' ? todayISO() : localISO());
 const HOLD = { seconds: 5, drain: 0.7, grace: 0.25 };
 const MAX_E = 100;
 const GAIN = { starter: 15, tut: 10, plus: 10, larvaTut: 15, todo: 10 };
+const SHAVE_MINUTES = 5;   // each Dailies / Quests step while sealed
 const DRAIN = 5, PLUS_CAP = 3, TODO_CAP = 5;
 const CRACK_TAPS = 10, WAX_TAPS = 10;
 const STRETCH_SECONDS = 180, PUPA_SECONDS = 3600;
@@ -199,6 +207,7 @@ function bond(instant) {
         egg.setAttribute('aria-label', 'Your egg. Tap it.');
         if (!F.bonded) { F.bonded = true; save(); }
         if (F.stage === 'egg') startFeeding(instant);
+        if (!F.askedName) setTimeout(askPlayerName, instant ? 300 : 1600);
     }, instant ? 0 : 1500);
 }
 
@@ -273,7 +282,11 @@ function eggTap() {
 function finishStarter(key) {
     if (F.done[key]) return;
     F.done[key] = true;
-    if (key === 'quote' && !F.unlocked) { F.unlocked = true; setTimeout(() => { $('introSheet').hidden = false; }, 900); }
+    if (key === 'quote' && !F.unlocked) {
+        F.unlocked = true;
+        unlockTab('habits');
+        setTimeout(() => { $('introSheet').hidden = false; }, 900);
+    }
     addEnergy(GAIN.starter);
     renderLog(true);
 }
@@ -369,7 +382,9 @@ function renderLog(focus) {
             count: running ? `<span id="stretchLeft">${fmtTime(Math.max(0, Math.ceil((T.stretchEnd - Date.now()) / 1000)))}</span>` : '',
             acts: running ? `<button class="btn ghost" data-a="stretchStop">Stop</button>` : `<button class="btn" data-a="stretchGo">Start 3:00 timer</button>` });
     }
-    if (F.unlocked) {
+    if (F.unlocked && !PRACTICE) {
+        h += tabGuideHTML('habits');
+    } else if (F.unlocked) {
         const U = F.tut;
         h += `<div class="sec">Learn Habits</div>`;
         h += item({ key: 't1', title: 'Make your own habit', done: U.make, active: !U.make, why: 'Pick something small you want to do more of.',
@@ -379,7 +394,7 @@ function renderLog(focus) {
             why: 'Be honest. If it slips in, tap −. It drains a little energy. Reality waits on no one.',
             acts: `<button class="btn ghost" data-a="makeBad">− New bad habit</button>` });
     }
-    h += habitsHTML();
+    if (PRACTICE) h += habitsHTML();
     $('qlog').innerHTML = h;
     if (F.step === 'crack') $('qlog').scrollTop = 0;
     else if (focus) { const a = $('qlog').querySelector('.q.active'); if (a) a.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
@@ -391,16 +406,27 @@ function renderLater(focus) {
     if (F.stage === 'larva') {
         h += F.energy >= MAX_E ? `<p class="qlog-msg"><b style="color:#ffd76a">The larva is full.</b> It's sealing itself in…</p>`
             : `<p class="qlog-msg">It's a larva now, and it's always hungry. To-Dos help it grow.</p>`;
+        if (!PRACTICE) h += tabGuideHTML('todos', 'Larva care: learn To-Dos');
+        else {
         h += `<div class="sec">Larva care</div>`;
         h += item({ key: 'l1', title: 'Add your first To-Do', done: L.add, active: !L.add, why: "Get it out of your head. Once it's written down, you don't have to keep remembering it.",
             acts: `<button class="btn" data-a="newTodo">+ New To-Do</button>` });
         h += item({ key: 'l2', title: 'Give a To-Do a due date', done: L.due, active: L.add && !L.due, why: "A due date turns 'someday' into a plan." });
         h += item({ key: 'l3', title: 'Break a To-Do into steps', done: L.steps, active: L.add && !L.steps, why: 'Big jobs feel smaller one step at a time.' });
         h += item({ key: 'l4', title: 'Check off a To-Do', done: L.check, active: L.add && !L.check, why: 'Finishing feels good. It feeds the larva too.' });
+        }
+        if (!PRACTICE && !stepsDone('habits')) h += tabGuideHTML('habits', 'Still to learn: Habits');
     } else if (F.stage === 'pupa') {
-        h += `<p class="qlog-msg">It has sealed itself in. It doesn't need food now.</p>
+        const waiting = F.pupaEnd <= Date.now() && !sealedLessonsDone();
+        h += waiting
+            ? `<p class="qlog-msg"><b style="color:#ffd76a">It's ready to come out.</b> Finish learning ${stepsDone('dailies') ? 'Quests' : 'Dailies and Quests'} to let it out.</p>`
+            : `<p class="qlog-msg">It has sealed itself in. It doesn't need food now. While it sleeps, learn the rest of your hive. Every step takes ${SHAVE_MINUTES} minutes off the wait.</p>
             <div class="q active"><div class="q-top"><span class="box">⏳</span><span class="qt">Hatching in</span><span class="qc" id="pupaLeft">${fmtTime(Math.max(0, Math.ceil((F.pupaEnd - Date.now()) / 1000)))}</span></div>
-            <p class="why">Come back soon. You can close the app - it keeps going while you're away.</p></div>`;
+            <p class="why">You can close the app - it keeps going while you're away.</p></div>`;
+        // The one still being learned goes first.
+        const dl = tabGuideHTML('dailies', 'Learn Dailies');
+        const qu = unlockedTabs().includes('quests') ? tabGuideHTML('quests', 'Learn Quests') : '';
+        h += stepsDone('dailies') ? qu + dl : dl + qu;
     } else if (F.stage === 'ready') {
         h += `<p class="qlog-msg"><b style="color:#ffd76a">Something is breaking through the wax.</b> Keep tapping to help it out.</p>${tapsRow(F.readyTaps, WAX_TAPS)}`;
     } else if (F.stage === 'hatched') {
@@ -408,9 +434,14 @@ function renderLater(focus) {
         h += F.revealed ? `<p class="qlog-msg"><b style="color:#ffd76a">${esc(F.name || A.label)}</b> the ${A.label} has hatched. Welcome to the hive.</p>`
             : `<p class="qlog-msg">Something has hatched. It's looking at you.</p>`;
     }
-    if (F.stage === 'larva' || F.stage === 'pupa') h += todosHTML() + habitsHTML();
+    if (PRACTICE && (F.stage === 'larva' || F.stage === 'pupa')) h += todosHTML() + habitsHTML();
+    else if (F.stage === 'pupa') {
+        if (!stepsDone('todos')) h += tabGuideHTML('todos', 'Still to learn: To-Dos');
+        if (!stepsDone('habits')) h += tabGuideHTML('habits', 'Still to learn: Habits');
+    }
     $('qlog').innerHTML = h;
-    if (F.stage !== 'larva' || F.energy >= MAX_E) $('qlog').scrollTop = 0;
+    if (F.stage === 'pupa' && focus) { const a = $('qlog').querySelector('.q.active:not(:first-of-type)'); $('qlog').scrollTop = 0; if (a) a.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    else if (F.stage !== 'larva' || F.energy >= MAX_E) $('qlog').scrollTop = 0;
     else if (focus) { const a = $('qlog').querySelector('.q.active'); if (a) a.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 }
 
@@ -433,6 +464,7 @@ $('qlog').addEventListener('click', e => {
     }
     else if (a === 'minus') { S.bump(id, 'negative'); addEnergy(-DRAIN); renderLog(); }
     else if (a === 'newTodo') openTodo();
+    else if (a === 'practiceStep') { creditStep(b.dataset.tab, b.dataset.key, 0); renderLog(true); }
     else if (a === 'todoCheck') checkTodo(id);
     else if (a === 'step') {
         const t = S.todos().find(x => x.id === id); if (!t) return;
@@ -440,6 +472,115 @@ $('qlog').addEventListener('click', e => {
         S.setChecklist(id, list); renderLog();
     }
 });
+
+// ---------------------------------------------------------------------------
+// Dock tabs: unlock, guide steps, and turning real-page work into energy
+// ---------------------------------------------------------------------------
+const TAB_LINKS = {
+    habits: { list: '../../plugins/habits/habits.html', make: '../../plugins/habits/create-habit.html' },
+    todos: { list: '../../plugins/todos/todos.html', make: '../../plugins/todos/create-todo.html' },
+    dailies: { list: '../dailies/dailies.html', make: '../dailies/create-daily.html' },
+    quests: { list: '../quests/quests.html', make: '../quests/create-quest.html' }
+};
+const STEP_ACTS = {
+    habits: { make: ['make', '+ New habit'], plus: ['list', 'Open Habits'], bad: ['bad', '− New bad habit'] },
+    todos: { add: ['make', '+ New To-Do'], due: ['list', 'Open To-Dos'], steps: ['list', 'Open To-Dos'], check: ['list', 'Open To-Dos'] },
+    dailies: { add: ['make', '+ New daily'], days: ['list', 'Open Dailies'], check: ['list', 'Open Dailies'] },
+    quests: { make: ['make', '+ New quest'], focus: ['list', 'Open Quests'], check: ['list', 'Open Quests'] }
+};
+const CREDIT = { habits: 'tut', todos: 'ltut', dailies: 'dtut', quests: 'qtut' };
+const TAB_NAMES = { habits: 'Habits', todos: 'To-Dos', dailies: 'Dailies', quests: 'Quests' };
+let practiceTabs = [];
+
+const unlockedTabs = () => PRACTICE ? practiceTabs : Vault.getOnboardingTabs();
+function unlockTab(tab) {
+    if (PRACTICE) { if (!practiceTabs.includes(tab)) practiceTabs.push(tab); return; }
+    if (Vault.getOnboardingTabs().includes(tab) && Array.isArray(F.tabs)) return;
+    Vault.unlockOnboardingTab(tab);
+}
+const stepsDone = tab => ONBOARDING_STEPS[tab].every(st => F[CREDIT[tab]][st.key]);
+const sealedLessonsDone = () => stepsDone('dailies') && stepsDone('quests');
+
+function tabGuideHTML(tab, heading) {
+    const got = F[CREDIT[tab]];
+    let h = `<div class="sec">${heading || 'Learn ' + TAB_NAMES[tab]}</div>`;
+    let firstOpen = true;
+    ONBOARDING_STEPS[tab].forEach(st => {
+        const done = !!got[st.key], active = !done && firstOpen;
+        if (!done) firstOpen = false;
+        let acts = '';
+        if (active && PRACTICE) acts = `<button class="btn" data-a="practiceStep" data-tab="${tab}" data-key="${st.key}">Mark done (practice)</button>`;
+        else if (active) {
+            const [kind, label] = STEP_ACTS[tab][st.key];
+            const href = kind === 'bad' ? `${TAB_LINKS[tab].make}?bad=1` : TAB_LINKS[tab][kind];
+            acts = `<a class="btn${kind === 'list' ? ' ghost' : ''}" href="${href}">${label}</a>`;
+        }
+        h += item({ key: `${tab}:${st.key}`, title: st.title, why: st.why, done, active, acts });
+    });
+    return h;
+}
+
+// Credits one tutorial step: energy while it's an egg or larva, minutes
+// off the wait while it's sealed.
+function creditStep(tab, key, delay) {
+    const got = F[CREDIT[tab]];
+    if (got[key]) return;
+    got[key] = true;
+    const reward = () => {
+        if (F.stage === 'pupa') shave(SHAVE_MINUTES);
+        else addEnergy(tab === 'todos' ? GAIN.larvaTut : GAIN.tut);
+    };
+    setTimeout(reward, delay);
+    if (tab === 'dailies' && stepsDone('dailies') && !unlockedTabs().includes('quests')) setTimeout(unlockQuests, delay + 1600);
+}
+function shave(minutes) {
+    if (F.stage !== 'pupa') return;
+    F.pupaEnd = Math.max(Date.now(), F.pupaEnd - minutes * 60000);
+    floatText(`−${minutes}:00`, 'good'); pulse(1.03);
+    save();
+    const el = $('pupaLeft'); if (el) el.textContent = fmtTime(Math.max(0, Math.ceil((F.pupaEnd - Date.now()) / 1000)));
+}
+function unlockQuests() {
+    unlockTab('quests');
+    story(`<h2>📜 Quests unlocked</h2>
+        <p>Some goals take longer than a day. Those are quests.</p>
+        <p>Give it a title and break it into tasks. Put one quest in focus 🎯 and it sits on top of Quests and on Home, so you always know your next step.</p>
+        <p>Quests is the last tab on your bottom bar. Learn it, and your hive is complete.</p>
+        <div class="row2"><button class="btn ghost" data-s="close">Later</button><button class="btn" data-s="quest">${PRACTICE ? 'OK' : 'Start my first quest'}</button></div>`);
+    renderLog(true);
+}
+
+// Reads what you did on the real pages and pays it out here: tutorial
+// steps, + taps (3 a day per habit), − taps, and To-Dos checked off today
+// (5 a day). Runs on load and whenever you come back to this page.
+function reconcile() {
+    if (PRACTICE || !F || F.stage === 'gift') return;
+    const tabs = Vault.getOnboardingTabs();
+    let delay = 300;
+    const next = () => { const d = delay; delay += 550; return d; };
+    tabs.forEach(tab => {
+        const status = Vault.onboardingStepStatus(tab);
+        ONBOARDING_STEPS[tab].forEach(st => { if (status[st.key] && !F[CREDIT[tab]][st.key]) creditStep(tab, st.key, next()); });
+    });
+    const today = dayKey();
+    if (tabs.includes('habits') && ['egg', 'larva'].includes(F.stage)) {
+        Vault.onboardingNewItems('habits').forEach(hb => {
+            const c = todayCounts(hb);
+            const used = plusUsed(hb.id), want = Math.min(PLUS_CAP, c.plus);
+            if (want > used) { F.plusLog[hb.id] = { date: today, count: want }; const n = want - used; setTimeout(() => addEnergy(GAIN.plus * n), next()); }
+            const neg = F.negLog[hb.id] && F.negLog[hb.id].date === today ? F.negLog[hb.id].count : 0;
+            if (c.minus > neg) { F.negLog[hb.id] = { date: today, count: c.minus }; const n = c.minus - neg; setTimeout(() => addEnergy(-DRAIN * n), next()); }
+        });
+    }
+    if (tabs.includes('todos') && F.stage === 'larva') {
+        const checked = Math.min(TODO_CAP, Vault.onboardingNewItems('todos').filter(t => t.completed && t.completedDate === today).length);
+        const credited = F.todoChecks && F.todoChecks.date === today ? F.todoChecks.count : 0;
+        if (checked > credited) { F.todoChecks = { date: today, count: checked }; const n = checked - credited; setTimeout(() => { addEnergy(GAIN.todo * n); larvaBounce(); }, next()); }
+    }
+    save();
+    renderLog();
+    setTimeout(() => renderLog(true), delay);
+}
 
 // ---- make a habit ----
 let makePos = true, makeNeg = false;
@@ -469,7 +610,10 @@ $('makeSave').onclick = () => {
 };
 $('habitName').addEventListener('keydown', e => { if (e.key === 'Enter') $('makeSave').onclick(); });
 $('introLater').onclick = () => { $('introSheet').hidden = true; };
-$('introMake').onclick = () => { $('introSheet').hidden = true; openMake('good'); };
+$('introMake').onclick = () => {
+    $('introSheet').hidden = true;
+    if (PRACTICE) openMake('good'); else location.href = TAB_LINKS.habits.make;
+};
 [$('introSheet'), $('makeSheet')].forEach(sh => sh.addEventListener('click', e => { if (e.target === sh) sh.hidden = true; }));
 
 // ---------------------------------------------------------------------------
@@ -599,11 +743,13 @@ function startLarva(instant) {
     showEnergy();
     egg.setAttribute('aria-label', 'Your larva. Tap it.');
     renderLog(true);
+    unlockTab('todos');
     if (!F.ltut.intro) {
         setTimeout(() => story(`<h2>📝 To-Dos unlocked</h2>
             <p>It's a larva now, and it's always hungry.</p>
             <p>To-Dos are one-time tasks. Write it down, then check it off when it's done. Give the bigger ones a due date so they don't slip.</p>
             <p>Finishing To-Dos feeds the larva. Your habits still count too.</p>
+            ${PRACTICE ? '' : '<p>To-Dos is now on your bottom bar, next to Habits.</p>'}
             <div class="row2"><button class="btn ghost" data-s="close">Later</button><button class="btn" data-s="todo">Add my first To-Do</button></div>`), instant ? 50 : 1500);
         F.ltut.intro = true; save();
     }
@@ -650,11 +796,20 @@ function startPupa(instant) {
     const svg = $('cellSvg'); svg.innerHTML = cellSVG('pupa'); egg.classList.add('cellmode');
     if (!instant) { svg.classList.add('sealing'); setTimeout(() => svg.classList.remove('sealing'), 1700); }
     egg.setAttribute('aria-label', 'A sealed cell.');
+    if (!unlockedTabs().includes('dailies')) {
+        unlockTab('dailies');
+        setTimeout(() => story(`<h2>📅 Dailies unlocked</h2>
+            <p>It has sealed itself in to change. It will sleep for an hour.</p>
+            <p>Dailies are the routine you keep. Pick the days, and each one resets every morning. Do it, check it off, and build a streak.</p>
+            <p>Every step you learn now takes ${SHAVE_MINUTES} minutes off the wait.</p>
+            <div class="row2"><button class="btn ghost" data-s="close">Later</button><button class="btn" data-s="daily">${PRACTICE ? 'OK' : 'Make my first daily'}</button></div>`), instant ? 50 : 1900);
+    }
     clearInterval(T.pupaT);
     const tick = () => {
         const left = Math.max(0, Math.ceil((F.pupaEnd - Date.now()) / 1000));
         const el = $('pupaLeft'); if (el) el.textContent = fmtTime(left);
-        if (left <= 0) { clearInterval(T.pupaT); T.pupaT = null; makeReady(false); }
+        if (left <= 0 && sealedLessonsDone()) { clearInterval(T.pupaT); T.pupaT = null; makeReady(false); }
+        else if (left <= 0 && !T.waitShown) { T.waitShown = true; renderLog(); }
     };
     T.pupaT = setInterval(tick, 500);
     renderLog();
@@ -753,6 +908,21 @@ function finish() {
     location.href = '../home/home.html';
 }
 
+// ---- your name (asked once, right after the bond) ----
+function askPlayerName() {
+    if (F.askedName || !$('story').hidden) return;
+    story(`<h2>It knows you're here</h2><p>What should it call you?</p>
+        <input type="text" id="playerName" maxlength="30" placeholder="Your name" autocomplete="given-name">
+        <div class="row2"><button class="btn" data-s="me">That's me</button></div>`, true);
+}
+function savePlayerName() {
+    const name = ($('playerName').value || '').trim();
+    if (!name) { $('playerName').focus(); return; }
+    if (!PRACTICE) Vault.setDisplayName(name);
+    F.askedName = true; save();
+    $('story').hidden = true;
+}
+
 // ---- one reusable story popup ----
 function story(html, locked) {
     $('storyCard').innerHTML = html; $('story').dataset.locked = locked ? '1' : ''; $('story').hidden = false;
@@ -763,26 +933,65 @@ $('story').addEventListener('click', e => {
     const b = e.target.closest('[data-s]'); if (!b) return;
     const a = b.dataset.s;
     if (a === 'close') $('story').hidden = true;
-    else if (a === 'todo') { $('story').hidden = true; openTodo(); }
+    else if (a === 'todo') { $('story').hidden = true; if (PRACTICE) openTodo(); else location.href = TAB_LINKS.todos.make; }
+    else if (a === 'daily') { $('story').hidden = true; if (!PRACTICE) location.href = TAB_LINKS.dailies.make; }
+    else if (a === 'quest') { $('story').hidden = true; if (!PRACTICE) location.href = TAB_LINKS.quests.make; }
     else if (a === 'queen' || a === 'king') { $('story').hidden = true; hatch(a, false); }
     else if (a === 'named') { F.name = ($('royalName').value || '').trim(); reveal(); }
     else if (a === 'done') finish();
+    else if (a === 'me') savePlayerName();
 });
-$('story').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'royalName') { F.name = e.target.value.trim(); reveal(); } });
+$('story').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'royalName') { F.name = e.target.value.trim(); reveal(); }
+    if (e.key === 'Enter' && e.target.id === 'playerName') savePlayerName();
+});
 
 // ---------------------------------------------------------------------------
 // Gift note + practice bar + start / resume
 // ---------------------------------------------------------------------------
+// The developer's note, one sentence at a time - slow enough for anyone
+// to read (Craft 2026-10-09). Tap moves on to the next sentence. The last
+// one fades into the egg slowly.
+const GIFT_SLIDES = [
+    'Thank you for your interest in this project.',
+    'I wish to share with you a journey that started out as an idea.',
+    "And now, it's in the palm of your hand.",
+    'A gift, to you.',
+    'Care for it, and it will care for you.'
+];
 function showGift() {
-    const g = $('gift'); g.hidden = false; g.focus();
-    let ready = false; setTimeout(() => { ready = true; }, 1200);
-    const go = () => {
-        if (!ready) return;
-        g.classList.add('leaving'); setTimeout(() => { g.hidden = true; }, 1200);
-        F.stage = 'egg'; save();
+    const g = $('gift'), box = $('giftSlides');
+    g.hidden = false; g.focus();
+    box.innerHTML = GIFT_SLIDES.map((t, i) => `<p class="gift-slide${i === GIFT_SLIDES.length - 1 ? ' last' : ''}">${esc(t)}</p>`).join('') +
+        `<div class="gift-dots" aria-hidden="true">${GIFT_SLIDES.map(() => '<i></i>').join('')}</div>`;
+    const slides = [...box.querySelectorAll('.gift-slide')], dots = [...box.querySelectorAll('.gift-dots i')];
+    const FADE_IN = reduce ? 200 : 1600, FADE_OUT = reduce ? 200 : 1300;
+    const readMs = t => Math.max(3400, t.split(/\s+/).length * 520);   // ~115 words a minute, never under 3.4s
+    let i = -1, timer = null, busy = false, leaving = false;
+    const next = () => {
+        clearTimeout(timer);
+        if (i >= 0) { slides[i].classList.remove('in'); slides[i].classList.add('out'); }
+        i++;
+        if (i >= slides.length) return leave();
+        busy = true;
+        setTimeout(() => {
+            slides[i].classList.add('in');
+            dots.forEach((d, k) => d.classList.toggle('on', k <= i));
+            box.querySelector('.gift-dots').classList.add('show');
+            setTimeout(() => { busy = false; }, FADE_IN);
+            timer = setTimeout(next, FADE_IN + readMs(GIFT_SLIDES[i]) + (i === slides.length - 1 ? 1200 : 0));
+        }, i === 0 ? 2000 : FADE_OUT);
     };
-    g.addEventListener('click', go);
-    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    const leave = () => {
+        if (leaving) return; leaving = true;
+        F.stage = 'egg'; save();
+        g.classList.add('leaving');
+        setTimeout(() => { g.hidden = true; }, reduce ? 300 : 3400);
+    };
+    const tap = () => { if (!busy && !leaving) next(); };
+    g.addEventListener('click', tap);
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tap(); } });
+    next();
 }
 
 function setupPractice() {
@@ -815,10 +1024,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     if (!PRACTICE && !Vault.isOnboarding()) { location.replace('../home/home.html'); return; }
     S = makeStore(); F = S.rec;
-    ['done', 'tut', 'ltut', 'plusLog'].forEach(k => { if (!F[k] || typeof F[k] !== 'object') F[k] = {}; });
+    ['done', 'tut', 'ltut', 'dtut', 'qtut', 'plusLog', 'negLog'].forEach(k => { if (!F[k] || typeof F[k] !== 'object') F[k] = {}; });
     if (PRACTICE) setupPractice();
+    else {
+        // Older saves: open the tabs they'd already reached (keeps their record).
+        Vault.getOnboardingTabs().forEach(tab => { if (!(F.base && F.base[tab])) Vault.unlockOnboardingTab(tab); });
+        AppShell.mountOnboardingDock('../../..');
+        addEventListener('pageshow', e => { if (e.persisted) reconcile(); });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) reconcile(); });
+    }
     (() => { let h = ''; for (let i = 0; i < 26; i++) h += `<i style="left:${Math.random() * 100}%;top:${20 + Math.random() * 80}%;--d:${7 + Math.random() * 7}s;--dl:${-Math.random() * 10}s;--o:${(.15 + Math.random() * .35).toFixed(2)}"></i>`; $('motes').innerHTML = h; })();
     paintEgg();
     restore();
+    reconcile();
     requestAnimationFrame(frame);
 });
