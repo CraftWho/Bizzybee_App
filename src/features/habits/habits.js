@@ -28,14 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     renderQuote();
 
-    // Same "renders even if reached directly without installing first"
-    // courtesy as the Calendar/Study plugins - see study.js.
-    const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('habits');
-    document.getElementById('habits-not-installed').hidden = installed;
-    document.getElementById('habits-app').hidden = !installed;
-
-    if (!installed) return;
-
     renderHabits();
 
     const list = document.getElementById('habit-list');

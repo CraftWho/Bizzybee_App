@@ -169,12 +169,6 @@ function saveHabit() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('habits');
-    if (!installed) {
-        window.location.href = './habits.html';
-        return;
-    }
-
     Waggle.setActions(baseWaggleActions());
 
     editingHabitId = new URLSearchParams(window.location.search).get('id');

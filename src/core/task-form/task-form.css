@@ -5,7 +5,7 @@
    and the ink that reads on it (set by the page script). */
 
 body.habit-form-page, body.task-form-page { padding-bottom: 0; }
-:is(body.habit-form-page, body.task-form-page) :is(.app-head, .back-fab-btn, .global-footer, .mobile-waggle-btn, .waggle-menu) { display: none !important; }
+:is(body.habit-form-page, body.task-form-page) :is(.app-head, .back-fab-btn, .mobile-waggle-btn, .waggle-menu) { display: none !important; }
 
 .hf {
     --dc: #34c77b;

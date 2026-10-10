@@ -130,12 +130,6 @@ function saveTodo() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('todos');
-    if (!installed) {
-        window.location.href = './todos.html';
-        return;
-    }
-
     Waggle.setActions(baseWaggleActions());
 
     checklistEditor = TaskForm.checklist(document.getElementById('todo-checklist'), document.getElementById('todo-cl-add'));
