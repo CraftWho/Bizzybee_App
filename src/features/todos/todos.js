@@ -56,12 +56,6 @@ function renderTodos() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('todos');
-    document.getElementById('todos-not-installed').hidden = installed;
-    document.getElementById('todos-app').hidden = !installed;
-    document.querySelector('.td-tabs').hidden = !installed;
-    if (!installed) return;
-
     renderTodos();
 
     document.querySelector('.td-tabs').addEventListener('click', (event) => {

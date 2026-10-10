@@ -3,8 +3,6 @@
    Full-screen and immersive: the global header/footer/floating buttons
    that app.js injects are hidden on this page only (the App Lock overlay
    still works). */
-body.onboarding-page .global-header,
-body.onboarding-page .global-footer,
 body.onboarding-page .back-fab-btn,
 body.onboarding-page .install-fab-btn { display: none !important; }
 :root{--crimson:#d42a1e;--gold:#ffd700;--honey:#ffc44a;--brass:#e8c25a;--ink:#000}

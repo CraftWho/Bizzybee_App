@@ -324,20 +324,20 @@ const AppShell = {
 
     injectDock() {
         const active = DOCK_PAGE_TAB[this.key] || null;
-        const tab = (t) => `<a class="ad-tab${t.key === active ? ' on' : ''}" data-tab="${t.key}" href="${this.url(t.href)}"${t.key === active ? ' aria-current="page"' : ''}>
+        const tab = (t) => `<a class="dk-tab${t.key === active ? ' on' : ''}" data-tab="${t.key}" href="${this.url(t.href)}"${t.key === active ? ' aria-current="page"' : ''}>
                 <svg viewBox="0 0 28 28" aria-hidden="true">${t.icon}</svg><span>${t.label}</span></a>`;
         const target = CREATE_TARGETS[active];
         const dock = document.createElement('nav');
         dock.className = 'app-dock';
         dock.setAttribute('aria-label', 'Main');
-        dock.innerHTML = `${tab(DOCK_TABS[0])}${tab(DOCK_TABS[1])}<span class="ad-gap"></span>${tab(DOCK_TABS[2])}${tab(DOCK_TABS[3])}
-            <button type="button" class="ad-add" aria-label="${target ? `New ${target.label}` : 'Create new'}">
+        dock.innerHTML = `${tab(DOCK_TABS[0])}${tab(DOCK_TABS[1])}<span class="dk-gap"></span>${tab(DOCK_TABS[2])}${tab(DOCK_TABS[3])}
+            <button type="button" class="dk-add" aria-label="${target ? `New ${target.label}` : 'Create new'}">
                 <svg viewBox="0 0 72 80" aria-hidden="true">
-                    <defs><linearGradient id="adAddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#ffcc00"/><stop offset="1" stop-color="#d08a00"/></linearGradient></defs>
-                    <polygon class="ad-glow" points="36,3 69,22 69,58 36,77 3,58 3,22"/>
-                    <polygon class="ad-body" points="${SHELL_HEX}"/>
-                    <polygon class="ad-hi" points="36,9 63,25 63,40 36,24 9,40 9,25"/>
-                    <path class="ad-plus" d="M36 26v28M22 40h28"/>
+                    <defs><linearGradient id="dkAddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#ffcc00"/><stop offset="1" stop-color="#d08a00"/></linearGradient></defs>
+                    <polygon class="dk-glow" points="36,3 69,22 69,58 36,77 3,58 3,22"/>
+                    <polygon class="dk-body" points="${SHELL_HEX}"/>
+                    <polygon class="dk-hi" points="36,9 63,25 63,40 36,24 9,40 9,25"/>
+                    <path class="dk-plus" d="M36 26v28M22 40h28"/>
                 </svg>
             </button>`;
         document.body.appendChild(dock);
@@ -351,7 +351,7 @@ const AppShell = {
         dock.addEventListener('pointerdown', () => { stopHold(); holdTimer = setTimeout(() => this.dockReport(), 2000); });
         ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => dock.addEventListener(t, stopHold));
 
-        dock.querySelector('.ad-add').addEventListener('click', () => {
+        dock.querySelector('.dk-add').addEventListener('click', () => {
             if (active === 'quests' && typeof CreateQuestModal !== 'undefined') { CreateQuestModal.open(); return; }
             if (target) { window.location.href = this.url(target.href); return; }
             this.openChooser();
@@ -375,7 +375,7 @@ const AppShell = {
             `docks in page: ${docks.length} · children: ${d ? d.children.length : '-'} · onboarding: ${typeof Vault !== 'undefined' && Vault.isOnboarding ? Vault.isOnboarding() : '?'}`,
             d ? `dock ${r(d)} ${cs(d)}` : 'no dock',
             ...(d ? [...d.children].map(c => `${name(c)} ${r(c)} ${cs(c)}`) : []),
-            ...(d ? [...d.querySelectorAll('.ad-tab, .ad-add')].map(c => { const b = c.getBoundingClientRect(); const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return `top@${c.dataset.tab || 'add'}: ${name(top)}`; }) : [])
+            ...(d ? [...d.querySelectorAll('.dk-tab, .dk-add')].map(c => { const b = c.getBoundingClientRect(); const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return `top@${c.dataset.tab || 'add'}: ${name(top)}`; }) : [])
         ];
         const old = document.getElementById('dock-report');
         if (old) old.remove();
@@ -441,7 +441,7 @@ const AppShell = {
         document.body.classList.add('ob-mode');
         document.body.classList.toggle('ob-nodock', tabs.length === 0);
         if (this.dock) {
-            this.dock.querySelectorAll('.ad-tab').forEach(a => {
+            this.dock.querySelectorAll('.dk-tab').forEach(a => {
                 const open = tabs.includes(a.dataset.tab);
                 a.classList.toggle('ob-locked', !open);
                 a.setAttribute('aria-hidden', String(!open));
@@ -560,7 +560,6 @@ class CodexSystem {
             this.injectBackButton();
         }
 
-        this.injectFooter();
     }
 
     // --- App Lock ---------------------------------------------------------
@@ -832,17 +831,6 @@ class CodexSystem {
         document.body.appendChild(btn);
     }
 
-    injectFooter() {
-        const footer = document.createElement('footer');
-        footer.className = 'global-footer';
-
-        footer.innerHTML = `
-            <span class="footer-brand">🐝 BIZZYBEE</span>
-            <span class="footer-version">v0.1.0</span>
-        `;
-
-        document.body.appendChild(footer);
-    }
 }
 
 // ---------------------------------------------------------------------------

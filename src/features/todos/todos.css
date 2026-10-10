@@ -43,8 +43,5 @@
 .td-row.leaving, .td-row.returning { animation: tdOut .4s .3s ease-in forwards; }
 @keyframes tdOut { to { opacity: 0; transform: translateX(24px); } }
 
-.todos-not-installed { text-align: center; padding: 30px 20px; }
-.todos-install-link { display: inline-block; margin-top: 10px; color: var(--gold-start); font-weight: bold; text-decoration: none; }
-.todos-install-link:hover { text-decoration: underline; }
 
 @media (prefers-reduced-motion: reduce) { .td-row.leaving, .td-row.returning { animation: none; } }
