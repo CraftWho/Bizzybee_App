@@ -96,11 +96,11 @@ const AppLock = {
 // / Quests; the + creates whatever the current tab makes, and asks which on
 // any other page. Dashboard, Map and the rest live in Home's app grid.
 const DOCK_TABS = [
-    { key: 'habits', label: 'Habits', href: 'src/plugins/habits/habits.html',
+    { key: 'habits', label: 'Habits', href: 'src/features/habits/habits.html',
       icon: '<rect x="3" y="7" width="10" height="14" rx="2.5"/><rect x="15" y="7" width="10" height="14" rx="2.5"/><path d="M8 11.5v5M5.5 14h5M17.5 14h5"/>' },
     { key: 'dailies', label: 'Dailies', href: 'src/features/dailies/dailies.html',
       icon: '<rect x="4" y="6" width="20" height="18" rx="3"/><path d="M4 11h20M9 3.5v5M19 3.5v5"/><path d="M9 15.5h2M13 15.5h2M17 15.5h2M9 19.5h2M13 19.5h2"/>' },
-    { key: 'todos', label: 'To-Dos', href: 'src/plugins/todos/todos.html',
+    { key: 'todos', label: 'To-Dos', href: 'src/features/todos/todos.html',
       icon: '<circle cx="14" cy="14" r="10"/><path d="M9.5 14.5l3 3 6-6.5"/>' },
     { key: 'quests', label: 'Quests', href: 'src/features/quests/quests.html',
       icon: '<path d="M8 4h13a3 3 0 0 1 3 3a2 2 0 0 1-2 2h-2v13a3 3 0 0 1-3 3H7"/><path d="M7 25a3 3 0 0 1-3-3v-2h12v2a3 3 0 0 0 3 3"/><path d="M8 4a3 3 0 0 0-3 3v13M11 10h6M11 14h6"/>' }
@@ -108,9 +108,9 @@ const DOCK_TABS = [
 // Which dock tab a page belongs to, and what its + creates.
 const DOCK_PAGE_TAB = { habits: 'habits', 'create-habit': 'habits', dailies: 'dailies', 'create-daily': 'dailies', todos: 'todos', 'create-todo': 'todos', quests: 'quests', quest: 'quests', 'create-quest': 'quests' };
 const CREATE_TARGETS = {
-    habits: { label: 'Habit', href: 'src/plugins/habits/create-habit.html' },
+    habits: { label: 'Habit', href: 'src/features/habits/create-habit.html' },
     dailies: { label: 'Daily', href: 'src/features/dailies/create-daily.html' },
-    todos: { label: 'To-Do', href: 'src/plugins/todos/create-todo.html' },
+    todos: { label: 'To-Do', href: 'src/features/todos/create-todo.html' },
     quests: { label: 'Quest', href: 'src/features/quests/create-quest.html' }
 };
 const SHELL_HEX = '36,5 67,23 67,57 36,75 5,57 5,23';
@@ -343,12 +343,49 @@ const AppShell = {
         document.body.appendChild(dock);
         document.body.classList.add('has-app-dock');
         this.dock = dock;
+        if (/[?&]dockdebug\b/.test(location.search)) setTimeout(() => this.dockReport(), 3000);
+        // Same report from the installed app (no address bar): press and
+        // hold the dock for 2 seconds.
+        let holdTimer = null;
+        const stopHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+        dock.addEventListener('pointerdown', () => { stopHold(); holdTimer = setTimeout(() => this.dockReport(), 2000); });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => dock.addEventListener(t, stopHold));
 
         dock.querySelector('.ad-add').addEventListener('click', () => {
             if (active === 'quests' && typeof CreateQuestModal !== 'undefined') { CreateQuestModal.open(); return; }
             if (target) { window.location.href = this.url(target.href); return; }
             this.openChooser();
         });
+    },
+
+    // Bug hunt (2026-10-09): the dock's buttons don't draw on Craft's
+    // Samsung Note 20 Ultra. Add ?dockdebug=1 to any page's address and,
+    // after 3 seconds, a report of what the phone sees in the dock shows
+    // at the top of the screen. Remove once the bug is fixed.
+    dockReport() {
+        const r = (el) => { const b = el.getBoundingClientRect(); return `${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}`; };
+        const cs = (el) => { const c = getComputedStyle(el); return `d:${c.display} v:${c.visibility} o:${c.opacity} col:${c.color} t:${c.transform === 'none' ? '-' : c.transform.slice(0, 30)}`; };
+        const name = (el) => el ? `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''}` : 'null';
+        const docks = document.querySelectorAll('.app-dock');
+        const d = this.dock;
+        const lines = [
+            `UA: ${navigator.userAgent}`,
+            `view ${innerWidth}x${innerHeight} vv ${window.visualViewport ? Math.round(visualViewport.width) + 'x' + Math.round(visualViewport.height) : '-'} dpr ${devicePixelRatio} standalone ${matchMedia('(display-mode: standalone)').matches}`,
+            `body: ${document.body.className}`,
+            `docks in page: ${docks.length} · children: ${d ? d.children.length : '-'} · onboarding: ${typeof Vault !== 'undefined' && Vault.isOnboarding ? Vault.isOnboarding() : '?'}`,
+            d ? `dock ${r(d)} ${cs(d)}` : 'no dock',
+            ...(d ? [...d.children].map(c => `${name(c)} ${r(c)} ${cs(c)}`) : []),
+            ...(d ? [...d.querySelectorAll('.ad-tab, .ad-add')].map(c => { const b = c.getBoundingClientRect(); const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return `top@${c.dataset.tab || 'add'}: ${name(top)}`; }) : [])
+        ];
+        const old = document.getElementById('dock-report');
+        if (old) old.remove();
+        const box = document.createElement('pre');
+        box.id = 'dock-report';
+        lines.push('', '(Screenshot this. Tap the box to close.)');
+        box.textContent = lines.join('\n');
+        box.style.cssText = 'position:fixed;left:4px;right:4px;top:4px;z-index:99999;margin:0;padding:8px;max-height:70vh;overflow:auto;background:#0a2a6a;color:#fff;font:10px/1.35 monospace;white-space:pre-wrap;word-break:break-all;border:2px solid #fff;border-radius:6px';
+        box.addEventListener('click', () => box.remove());
+        document.body.appendChild(box);
     },
 
     openChooser() {
