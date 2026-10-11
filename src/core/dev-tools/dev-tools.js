@@ -112,6 +112,8 @@
         const royal = Vault.getRoyalBee();
         if (!royal) { toast('No royal yet - skip the egg first'); return; }
         royal.royal = kind;
+        // Swap the dev placeholder name with the gender, keep a real name.
+        if (/^(King|Queen)( Dev)?$/.test(royal.name || '')) royal.name = kind === 'king' ? 'King Dev' : 'Queen Dev';
         Vault.save();
         reload();
     }

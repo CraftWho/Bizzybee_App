@@ -3941,14 +3941,21 @@ class DatabaseManager {
 
     // The hatch: adds the founder (Royal) bee, keeps the starter habits as
     // real Habits, and opens the app. Safe to call twice - it never adds a
-    // second royal or duplicate starter habits.
+    // second royal or duplicate starter habits. If a royal already exists
+    // (the egg was restarted), it takes the gender and name just chosen -
+    // before 2026-10-11 it kept the old one, so a Queen hatch on a save
+    // that once had a King still showed the King.
     completeOnboarding({ royal, name } = {}) {
         if (!this.state || !this.state.onboarding) return null;
         const kind = royal === 'king' ? 'king' : 'queen';
         const label = kind === 'king' ? 'King' : 'Queen';
         if (!this.state.colony) this.state.colony = { bees: [] };
         const bees = this.state.colony.bees || (this.state.colony.bees = []);
-        if (!bees.some(b => b.rarity === 'Royal')) {
+        const existing = bees.find(b => b.rarity === 'Royal');
+        if (existing) {
+            existing.royal = kind;
+            existing.name = (String(name || '').trim().slice(0, 24)) || label;
+        } else {
             bees.push({
                 id: 'bee-royal',
                 name: (String(name || '').trim().slice(0, 24)) || label,
