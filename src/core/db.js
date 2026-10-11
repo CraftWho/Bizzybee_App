@@ -387,11 +387,13 @@ function computeDailyStreak(task, today) {
 // never true for a 0-weight entry). The ONLY way to get a Named Beast is
 // unwrapTicket() below, which builds one directly and skips this table's
 // weighting entirely.
+// Oct 2026: rare tiers made almost non-existent (Common 92%, Rare 7%,
+// Epic 0.9%, Legendary 0.1%) - the grind is in a bee's stats now.
 const BEE_RARITIES = [
-    { rarity: 'Common', weight: 60, color: '#aaaaaa' },
-    { rarity: 'Rare', weight: 25, color: '#4aa3ff' },
-    { rarity: 'Epic', weight: 12, color: '#b06bff' },
-    { rarity: 'Legendary', weight: 3, color: 'var(--gold-start)' },
+    { rarity: 'Common', weight: 920, color: '#aaaaaa' },
+    { rarity: 'Rare', weight: 70, color: '#4aa3ff' },
+    { rarity: 'Epic', weight: 9, color: '#b06bff' },
+    { rarity: 'Legendary', weight: 1, color: 'var(--gold-start)' },
     { rarity: 'Named', weight: 0, color: '#ff2d78' },
     // Royal: the Queen/King hatched in onboarding (the egg gift). Never
     // rolled (weight 0), never evolved, combined or destroyed - one per save.
@@ -641,7 +643,7 @@ const SKILL_TREE_CATALOG = [
 // applied to it - separate from (and in addition to) TRAIT_GRANT_CHANCE
 // above, since the item always attempts the trait roll regardless of
 // rarity, but only attempts THIS roll when there's actually room to climb.
-const STORE_EVOLVE_TO_EPIC_CHANCE = 0.4;
+const STORE_EVOLVE_TO_EPIC_CHANCE = 0.05;   // was 0.4 - rare tiers stay rare (Oct 2026)
 
 // Whole days between two YYYY-MM-DD (or ISO) date strings - the finest
 // grain Quest's dateStarted/dateCompleted actually store, so "fast" is
@@ -666,13 +668,10 @@ const QUEST_SPEED_INSTANT_BONUS_ROLLS = 2;
 const QUEST_SPEED_FAST_DAYS = 2;
 const QUEST_SPEED_FAST_BONUS_ROLLS = 1;
 
-// Escalating level-up bee reward: the first level-up (reaching level 2)
-// awards 1 bee, and each level after that awards 0.5 more than the last
-// (1, 1.5, 2, 2.5, 3, 3.5...) - rounded to a whole bee since you can't
-// award half of one. Higher levels reward more bees per level-up, not just
-// a flat 1 each time.
+// Level-up bee reward: a flat 1 bee per level-up (Oct 2026 - it used to
+// grow 1, 1.5, 2, 2.5... per level, which flooded the hive).
 function beesForLevel(level) {
-    return Math.max(1, Math.round(1 + (level - 2) * 0.5));
+    return 1;
 }
 
 function rollBeeRarity() {
@@ -695,7 +694,7 @@ function rollBeeRarity() {
 // on each individual stat wise" follow-up referenced in BEE_CLASSES above -
 // surfaced on the flip side of the bee's trading card (see bee-card.js).
 const BEE_STAT_RANGES = {
-    Common: { hp: [20, 40], offense: [5, 12], defense: [5, 12], speed: [5, 12], power: [5, 12] },
+    Common: { hp: [20, 40], offense: [4, 14], defense: [4, 14], speed: [4, 14], power: [4, 14] },
     Rare: { hp: [35, 55], offense: [10, 18], defense: [10, 18], speed: [10, 18], power: [10, 18] },
     Epic: { hp: [50, 75], offense: [16, 26], defense: [16, 26], speed: [16, 26], power: [16, 26] },
     Legendary: { hp: [70, 100], offense: [24, 36], defense: [24, 36], speed: [24, 36], power: [24, 36] },
@@ -706,9 +705,14 @@ function rollStatValue([min, max]) {
     return Math.floor(min + Math.random() * (max - min + 1));
 }
 
+// Every bee also rolls a FOCUS (one stat x1.5) and a WEAK spot (another
+// stat x0.7), like a Pokemon nature - so two Commons really differ: a
+// fast one, a tough one, a hard hitter. The card's theme follows the top
+// stat (bee-card.js dominantStatKey), so the difference shows.
+const BEE_SKILL_STATS = ['offense', 'defense', 'speed', 'power'];
 function rollBeeStats(rarity) {
     const ranges = BEE_STAT_RANGES[rarity] || BEE_STAT_RANGES.Common;
-    return {
+    const stats = {
         level: 1,
         hp: rollStatValue(ranges.hp),
         offense: rollStatValue(ranges.offense),
@@ -716,6 +720,18 @@ function rollBeeStats(rarity) {
         speed: rollStatValue(ranges.speed),
         power: rollStatValue(ranges.power)
     };
+    const focus = BEE_SKILL_STATS[Math.floor(Math.random() * 4)];
+    const others = BEE_SKILL_STATS.filter(k => k !== focus);
+    const weak = others[Math.floor(Math.random() * 3)];
+    stats[focus] = Math.round(stats[focus] * 1.5);
+    stats[weak] = Math.max(1, Math.round(stats[weak] * 0.7));
+    return stats;
+}
+
+// How high merging can push a stat: 1.6x the best fresh roll of the tier.
+function beeStatCap(rarity, key) {
+    const ranges = BEE_STAT_RANGES[rarity] || BEE_STAT_RANGES.Common;
+    return Math.round(ranges[key][1] * 1.6);
 }
 
 // Flavor stat for the BeeDex strip on the card front (bee-card.js) - the
@@ -949,10 +965,11 @@ const RARITY_ORDER = ['Common', 'Rare', 'Epic', 'Legendary'];
 // rollMaterialDrop above), just guaranteed instead of a per-task chance.
 const DESTROY_LOOT_COUNT = { Common: 1, Rare: 1, Epic: 2, Legendary: 2, Named: 3 };
 
-// Combining always consumes both bees and always produces a new one -
-// this is the odds that the result climbs one rarity tier above the
-// higher of the two inputs, rather than landing on that same tier.
-const COMBINE_UPGRADE_CHANCE = 0.5;
+// Combining always consumes both bees and always produces a new one.
+// Oct 2026: it's mostly about STATS now - the result keeps the best of
+// each stat from both parents plus a small boost (see combineBees). A
+// rarity climb is a small chance, by the higher parent's tier:
+const COMBINE_UPGRADE_CHANCE = { Common: 0.04, Rare: 0.015, Epic: 0.004, Legendary: 0 };
 
 // Pure, stateless: derives level/currentXP/nextLevelXP from a total XP
 // figure. Recomputed fresh every call instead of stored, for the same
@@ -1678,6 +1695,12 @@ class DatabaseManager {
 
         let expectedBees = 0;
         for (let lvl = 2; lvl <= level; lvl++) expectedBees += beesForLevel(lvl);
+        // Oct 2026 rate change: saves that got more bees under the old,
+        // faster formula keep them, and still get 1 bee on their next level.
+        if (!this.state.colony.beeRateOct2026) {
+            this.state.colony.levelUpBeesAwarded = Math.min(this.state.colony.levelUpBeesAwarded, expectedBees);
+            this.state.colony.beeRateOct2026 = true;
+        }
         const beeDeficit = expectedBees - this.state.colony.levelUpBeesAwarded;
 
         // 1 ticket per level-up - simpler cadence than the escalating bee
@@ -2802,10 +2825,11 @@ class DatabaseManager {
         return { removed, loot };
     }
 
-    // Consumes two bees and produces one new one - a coin flip (see
-    // COMBINE_UPGRADE_CHANCE) on whether the result climbs one rarity
-    // tier above the higher of the two inputs, or lands on that same
-    // tier. Never produces a Named Beast (see RARITY_ORDER's comment).
+    // Consumes two bees and produces one stronger one: each stat = the
+    // better parent's + a small boost, capped per tier (beeStatCap). A
+    // small chance (COMBINE_UPGRADE_CHANCE) to climb one rarity tier.
+    // Keeps the stronger parent's element (and name, if you named it).
+    // Never produces a Named Beast (see RARITY_ORDER's comment).
     // Returns null on an invalid pick (missing bee, or the same bee
     // picked for both slots) so the caller can guard the UI on it.
     combineBees(beeIdA, beeIdB) {
@@ -2823,28 +2847,44 @@ class DatabaseManager {
         };
         const baseIndex = Math.max(indexOf(beeA.rarity), indexOf(beeB.rarity));
 
-        const upgraded = baseIndex < RARITY_ORDER.length - 1 && Math.random() < COMBINE_UPGRADE_CHANCE;
+        const baseRarity = RARITY_ORDER[baseIndex];
+        const upgraded = baseIndex < RARITY_ORDER.length - 1 && Math.random() < (COMBINE_UPGRADE_CHANCE[baseRarity] || 0);
         const resultRarity = RARITY_ORDER[upgraded ? baseIndex + 1 : baseIndex];
+
+        const sa = beeA.stats || {}, sb = beeB.stats || {};
+        const total = s => BEE_SKILL_STATS.reduce((n, k) => n + (Number(s[k]) || 0), 0) + (Number(s.hp) || 0) / 4;
+        const lead = total(sa) >= total(sb) ? beeA : beeB;
+        const before = Math.max(total(sa), total(sb));
+        const fresh = upgraded ? rollBeeStats(resultRarity) : {};
+        const stats = { level: Math.max(Number(sa.level) || 1, Number(sb.level) || 1) };
+        ['hp', ...BEE_SKILL_STATS].forEach(k => {
+            const best = Math.max(Number(sa[k]) || 0, Number(sb[k]) || 0, Number(fresh[k]) || 0);
+            const boost = k === 'hp' ? rollStatValue([1, 4]) : rollStatValue([0, 2]);
+            stats[k] = Math.min(beeStatCap(resultRarity, k), best + boost);
+        });
 
         this.state.colony.bees = bees.filter(b => b.id !== beeIdA && b.id !== beeIdB);
 
         const dexNumber = this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
+        const keepName = lead.customNamed && lead.rarity === resultRarity;
         const newBee = {
             id: generateBeeId(),
-            name: `${resultRarity} Bee #${dexNumber}`,
+            name: keepName ? lead.name : `${resultRarity} Bee #${dexNumber}`,
             rarity: resultRarity,
-            class: null,
+            class: lead.class || null,
             obtainedAt: new Date().toISOString(),
             source: 'combine',
-            stats: rollBeeStats(resultRarity),
-            weight: rollBeeWeight(resultRarity),
+            stats,
+            weight: Math.round(Math.max(Number(beeA.weight) || 0, Number(beeB.weight) || 0, rollBeeWeight(resultRarity)) * 10) / 10,
             dexNumber,
-            element: rollBeeElement(),
-            customNamed: false
+            element: lead.element || rollBeeElement(),
+            traits: [...new Set([...(beeA.traits || []), ...(beeB.traits || [])])],
+            merges: (Number(beeA.merges) || 0) + (Number(beeB.merges) || 0) + 1,
+            customNamed: !!keepName
         };
 
         this.addColonyBee(newBee); // also saves - persists the consumption + the new bee together
-        return { newBee, upgraded };
+        return { newBee, upgraded, statGain: Math.round(total(stats) - before) };
     }
 
     // 5h. Logic: Daily Tasks (a Habitica-style "Dailies" checklist, distinct
