@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDeviceBackups();
     initFolderBackup();
     initPasswordReset();
+    initPhoneReminders();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
         const conversations = Vault.getConversations();
@@ -170,3 +171,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '../../../index.html';
     });
 });
+
+// Phone reminders (src/core/push/push.js).
+function initPhoneReminders() {
+    const toggle = document.getElementById('push-toggle');
+    const names = document.getElementById('push-names-toggle');
+    const test = document.getElementById('push-test-btn');
+    const status = document.getElementById('push-status');
+    if (!toggle || typeof BizzyPush === 'undefined') return;
+    const render = (message) => {
+        toggle.checked = BizzyPush.isOn();
+        names.checked = BizzyPush.showNames();
+        test.disabled = !BizzyPush.isOn();
+        if (message) status.textContent = message;
+        else if (!BizzyPush.supported()) status.textContent = 'This browser can\'t do phone notifications. Try Chrome.';
+        else status.textContent = BizzyPush.isOn() ? 'On. Reminders arrive even when the app is closed.' : 'Off.';
+    };
+    render();
+    toggle.addEventListener('change', async () => {
+        toggle.disabled = true;
+        try {
+            if (toggle.checked) {
+                const out = await BizzyPush.enable();
+                render(`On. ${out.upcoming || 0} reminder${out.upcoming === 1 ? '' : 's'} coming up in the next 10 days.`);
+                Toast.show('🔔 Phone reminders on.', 'positive');
+            } else {
+                await BizzyPush.disable();
+                render();
+            }
+        } catch (error) {
+            await BizzyPush.disable().catch(() => {});
+            render(error.message);
+            Toast.show(error.message, 'negative');
+        } finally {
+            toggle.disabled = false;
+        }
+    });
+    names.addEventListener('change', () => BizzyPush.setShowNames(names.checked));
+    test.addEventListener('click', async () => {
+        test.disabled = true;
+        try { await BizzyPush.test(); Toast.show('🔔 Test sent.', 'positive'); }
+        catch (error) { Toast.show(error.message, 'negative'); }
+        finally { test.disabled = !BizzyPush.isOn(); }
+    });
+}

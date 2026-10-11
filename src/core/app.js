@@ -497,6 +497,20 @@ class CodexSystem {
         this.injectInstallButton();
         this.loadLocalDevTools();
         this.loadHabiticaSync();
+        this.loadPhoneReminders();
+    }
+
+    // Phone reminders (src/core/push/push.js) - loads on every app page once
+    // they're turned on in Settings, so reminder times stay up to date.
+    loadPhoneReminders() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/')) return;
+        if (localStorage.getItem('bizzybee_push_on') !== '1' || localStorage.getItem('bizzybee_dev_test') === '1') return;
+        if (document.querySelector('script[src*="push/push.js"]')) return;
+        const script = document.createElement('script');
+        script.src = '../../../src/core/push/push.js';
+        document.body.appendChild(script);
     }
 
     // Habitica two-way sync (src/core/habitica-sync/) - loads on every app
