@@ -668,6 +668,26 @@ const QUEST_SPEED_INSTANT_BONUS_ROLLS = 2;
 const QUEST_SPEED_FAST_DAYS = 2;
 const QUEST_SPEED_FAST_BONUS_ROLLS = 1;
 
+// #word capture (Oct 2026): typing #Closure (or #event-loop) in any task's
+// title, notes or checklist adds that term to the Dictionary plugin, under
+// the task's first skill tag (or General), definition left to fill in.
+// Only words NEW to that text count, so deleting a term from the
+// Dictionary doesn't bring it back on the next edit.
+function findHashtags(text) {
+    const out = [];
+    const re = /(^|[\s(\[,;:])#([A-Za-z][A-Za-z0-9_+.\-]{0,39})/g;
+    let m;
+    while ((m = re.exec(String(text || '')))) {
+        const name = m[2].replace(/[.\-_]+$/, '').replace(/[-_]+/g, ' ').trim();
+        if (name) out.push(name);
+    }
+    return out;
+}
+function hashtagTextOf(item) {
+    if (!item) return '';
+    return [item.label, item.notes, ...(item.checklist || []).map(c => c && (c.text || c.label))].filter(Boolean).join(' \n ');
+}
+
 // Level-up bee reward: a flat 1 bee per level-up (Oct 2026 - it used to
 // grow 1, 1.5, 2, 2.5... per level, which flooded the hive).
 function beesForLevel(level) {
@@ -2082,6 +2102,7 @@ class DatabaseManager {
             link: null,
             difficulty: difficulty || null
         });
+        this._captureHashtags(quest.tasks[quest.tasks.length - 1]);
 
         this._updateQuestCompletionState(quest);
         this.save();
@@ -3027,6 +3048,7 @@ class DatabaseManager {
             tags: Array.isArray(tags) ? tags : [],
             completedDates: []
         });
+        this._captureHashtags(this.state.dailyTasks[this.state.dailyTasks.length - 1]);
 
         this.save();
         return this.state.dailyTasks;
@@ -3037,6 +3059,7 @@ class DatabaseManager {
 
         const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
         if (!task) return null;
+        const textBefore = hashtagTextOf(task);
 
         if (label !== undefined) task.label = label;
         if (xp !== undefined) task.xp = Number(xp) || 0;
@@ -3050,6 +3073,7 @@ class DatabaseManager {
         if (JSON.stringify([task.startDate, task.repeats]) !== schedBefore) delete task.habiticaDue;
         if (reminders !== undefined) task.reminders = Array.isArray(reminders) ? reminders : [];
         if (tags !== undefined) task.tags = Array.isArray(tags) ? tags : [];
+        this._captureHashtags(task, textBefore);
 
         this.save();
         return task;
@@ -3148,6 +3172,7 @@ class DatabaseManager {
             resetCounter: resetCounter || 'daily',
             history: []
         });
+        this._captureHashtags(this.state.habits[this.state.habits.length - 1]);
 
         this.save();
         return this.state.habits;
@@ -3158,6 +3183,7 @@ class DatabaseManager {
 
         const habit = (this.state.habits || []).find(h => h.id === habitId);
         if (!habit) return null;
+        const textBefore = hashtagTextOf(habit);
 
         if (label !== undefined) habit.label = label;
         if (xp !== undefined) habit.xp = Number(xp) || 0;
@@ -3170,6 +3196,7 @@ class DatabaseManager {
         // Same "can't have neither" guard as addHabit, re-checked after
         // applying whichever of positive/negative was just passed in.
         if (habit.positive === false && habit.negative === false) { habit.positive = true; habit.negative = true; }
+        this._captureHashtags(habit, textBefore);
 
         this.save();
         return habit;
@@ -3274,6 +3301,7 @@ class DatabaseManager {
             completed: false,
             completedDate: null
         });
+        this._captureHashtags(this.state.todos[this.state.todos.length - 1]);
 
         this.save();
         return this.state.todos;
@@ -3284,6 +3312,7 @@ class DatabaseManager {
 
         const todo = (this.state.todos || []).find(t => t.id === todoId);
         if (!todo) return null;
+        const textBefore = hashtagTextOf(todo);
 
         if (label !== undefined) todo.label = label;
         if (xp !== undefined) todo.xp = Number(xp) || 0;
@@ -3293,6 +3322,7 @@ class DatabaseManager {
         if (dueDate !== undefined) todo.dueDate = dueDate || null;
         if (reminders !== undefined) todo.reminders = Array.isArray(reminders) ? reminders : [];
         if (tags !== undefined) todo.tags = Array.isArray(tags) ? tags : [];
+        this._captureHashtags(todo, textBefore);
 
         this.save();
         return todo;
@@ -3451,6 +3481,33 @@ class DatabaseManager {
     // its own.
     getDictionaryTerms() {
         return this.state ? (this.state.dictionary || []) : [];
+    }
+
+    // See findHashtags above. `beforeText` = the item's text before this
+    // edit (empty for a new item). Doesn't save - the caller does.
+    _captureHashtags(item, beforeText = '') {
+        if (!this.state || !this.state.plugins || !this.state.plugins.dictionary || !item) return [];
+        const was = new Set(findHashtags(beforeText).map(n => n.toLowerCase()));
+        if (!this.state.dictionary) this.state.dictionary = [];
+        const have = new Set(this.state.dictionary.map(t => String(t.name || '').toLowerCase()));
+        const category = (item.tags || []).find(t => t && String(t).trim()) || 'General';
+        const added = [];
+        for (const name of findHashtags(hashtagTextOf(item))) {
+            const key = name.toLowerCase();
+            if (was.has(key) || have.has(key)) continue;
+            have.add(key);
+            const term = {
+                id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                name, definition: '', category: String(category).trim(),
+                createdAt: new Date().toISOString(), source: 'hashtag'
+            };
+            this.state.dictionary.push(term);
+            added.push(term);
+        }
+        if (added.length && typeof Toast !== 'undefined') {
+            Toast.show(`📖 Added to Dictionary: ${added.map(t => t.name).join(', ')}`, 'positive');
+        }
+        return added;
     }
 
     addDictionaryTerm({ name, definition, category }) {
