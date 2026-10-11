@@ -240,9 +240,10 @@ function handleCombine() {
         return;
     }
 
+    const gain = result.statGain > 0 ? ` Stats +${result.statGain}.` : '';
     document.getElementById('gacha-combine-result').textContent = result.upgraded
-        ? `✨ Upgraded into ${result.newBee.name} (${result.newBee.rarity})!`
-        : `${result.newBee.name} (${result.newBee.rarity}) emerged.`;
+        ? `✨ Upgraded into ${result.newBee.name} (${result.newBee.rarity})!${gain}`
+        : `${result.newBee.name} (${result.newBee.rarity}) emerged.${gain}`;
 
     renderRefineSelects();
     renderCollectionCounters();
