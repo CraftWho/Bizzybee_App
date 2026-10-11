@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./dictionary.css">
 </head>
 <body>
@@ -25,6 +25,11 @@
         <div class="panel page-header-panel">
             <h2 class="page-title">📖 <span class="gold-gradient-text">DICTIONARY</span></h2>
             <p class="page-subtitle">Terms you define here feed the Skill Mastery matrix on your Dashboard - matched against your Dailies' tags and against any completed Quest whose title, objective, or task mentions the term by name.</p>
+        </div>
+
+        <div id="dictionary-not-installed" class="panel dictionary-not-installed" hidden>
+            <p>The Dictionary plugin isn't installed.</p>
+            <a href="../../features/plugin-hub/plugin-hub.html" class="dictionary-install-link">🧩 Go to Plugin Hub →</a>
         </div>
 
         <section class="panel dictionary-panel">
@@ -53,7 +58,7 @@
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../features/llm-engine/llm-engine.js"></script>
 
     <script src="./dictionary.js"></script>
 </body>

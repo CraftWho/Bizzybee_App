@@ -18,3 +18,9 @@
   from = "/src/plugins/todos/*"
   to = "/src/features/todos/:splat"
   status = 301
+
+# Dictionary became a plugin on 2026-10-11 (src/features/ -> src/plugins/).
+[[redirects]]
+  from = "/src/features/dictionary/*"
+  to = "/src/plugins/dictionary/:splat"
+  status = 301

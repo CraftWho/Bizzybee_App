@@ -1810,6 +1810,16 @@ class DatabaseManager {
             this.state.habitsTodosDefaultInstalled = true;
             changed = true;
         }
+        // Dictionary became a plugin on 2026-10-11 (it was core). Saves that
+        // already existed keep it installed; new players start without it
+        // and can turn it on in Plugin Hub. One-time flag, same reason as
+        // habitsTodosDefaultInstalled above.
+        if (!this.state.dictionaryPluginMigrated) {
+            const existingSave = !!this.state.dictionarySeeded || (this.state.dictionary || []).length > 0;
+            if (this.state.plugins.dictionary === undefined) this.state.plugins.dictionary = existingSave;
+            this.state.dictionaryPluginMigrated = true;
+            changed = true;
+        }
         if (changed) this.save();
     }
 
@@ -3383,7 +3393,7 @@ class DatabaseManager {
         return removed;
     }
 
-    // 5k. Logic: Dictionary Terms (src/features/dictionary/) - each term:
+    // 5k. Logic: Dictionary Terms (src/plugins/dictionary/ - a plugin since 2026-10-11) - each term:
     // { id, name, definition, category, createdAt }. `category` is what
     // actually ties a term to the skill mastery matrix (see
     // computeSkillMatrixXP above) - defining a term under "CSS" is the

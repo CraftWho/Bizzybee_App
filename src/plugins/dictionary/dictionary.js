@@ -86,10 +86,18 @@ function highlightTermFromURL() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
+    Waggle.setActions(baseWaggleActions());
+
+    // A plugin since 2026-10-11 (it was core). Reached while uninstalled
+    // (an old bookmark, a quest's term link): point to Plugin Hub instead.
+    const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('dictionary');
+    document.getElementById('dictionary-not-installed').hidden = installed;
+    document.querySelectorAll('.dictionary-container > section').forEach(s => { s.hidden = !installed; });
+    if (!installed) return;
+
     renderDictionaryList();
     refreshCategoryDatalist();
     highlightTermFromURL();
-    Waggle.setActions(baseWaggleActions());
 
     document.getElementById('add-term-btn').addEventListener('click', () => {
         const nameInput = document.getElementById('term-name-input');

@@ -30,6 +30,13 @@ const PLUGIN_CATALOG = [
         description: 'A real calendar view of your quests, dailies, and deadlines - see the whole week at a glance instead of just a list. Month/Week/Day views, plus your own events.'
     },
     {
+        id: 'dictionary',
+        icon: '📖',
+        label: 'Dictionary',
+        status: 'available',
+        description: 'Your own glossary of terms. Terms feed the Skill Mastery matrix on your Dashboard - matched against your Dailies\' tags and any completed Quest that mentions them.'
+    },
+    {
         id: 'study',
         icon: '🎓',
         label: 'Study',
