@@ -320,13 +320,20 @@ body.colony-inside #colony-interior .page-header-panel {
     50% { opacity: .8; }
 }
 
+/* No blend mode: a full-screen blend over moving bees is re-blended
+   every frame (part of the Oct 2026 stutter). */
 .ci-warm {
-    mix-blend-mode: screen;
+    opacity: .75;
 }
 
+/* Fog stays still - moving blurred shapes are re-blurred every frame. */
 .ci-fog {
-    animation: ci-fog var(--d) ease-in-out infinite alternate;
-    animation-delay: var(--dl);
+    animation: none;
+}
+
+/* Idle bees rest in their open cell: no wing flutter, no movement. */
+.ci-idle-bee .mb-wing {
+    animation: none;
 }
 
 @keyframes ci-fog {
