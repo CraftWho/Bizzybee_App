@@ -8,7 +8,7 @@ function escapeDictHTML(str) {
 
 // Renders every term grouped by category, sorted alphabetically within
 // each group, categories sorted alphabetically too - browsing order, not
-// DP order (that's the Dashboard's job).
+// XP order (that's the Dashboard's job).
 function renderDictionaryList() {
     const container = document.getElementById('dictionary-list');
     const terms = Vault.getDictionaryTerms();
@@ -49,7 +49,7 @@ function renderDictionaryList() {
             const row = btn.closest('.dictionary-term-row');
             const term = terms.find(t => t.id === row.dataset.termId);
             if (!term) return;
-            if (!confirm(`Remove term "${term.name}"? Its DP history moves to a category named after any tag still using it.`)) return;
+            if (!confirm(`Remove term "${term.name}"? Its XP history moves to a category named after any tag still using it.`)) return;
             Vault.removeDictionaryTerm(term.id);
             renderDictionaryList();
             refreshCategoryDatalist();

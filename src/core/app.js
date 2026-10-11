@@ -162,7 +162,7 @@ const AppShell = {
                         <button type="button" class="ah-chip" aria-label="Level">LV 1</button>
                         <div class="ah-bar"><i></i></div>
                     </div>
-                    <div class="ah-meta"><span class="ah-dp"></span><span class="ah-next"></span></div>
+                    <div class="ah-meta"><span class="ah-xp"></span><span class="ah-next"></span></div>
                     <button type="button" class="ah-levelup">LEVEL UP ✦</button>
                 </div>
             </div>`;
@@ -249,8 +249,8 @@ const AppShell = {
                 : `👑 <b>${title}</b> of the hive`;
         q('.ah-chip').textContent = `LV ${bar.level}`;
         q('.ah-bar i').style.width = `${Math.max(0, Math.min(100, bar.percentage))}%`;
-        q('.ah-dp').innerHTML = `<b>${bar.dpIntoLevel}</b> / ${bar.cap} DP`;
-        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.dpIntoLevel)} DP to Level ${bar.level + 1}`;
+        q('.ah-xp').innerHTML = `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
+        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to Level ${bar.level + 1}`;
         q('.ah-chip').classList.toggle('ready', !!bar.maxed);
         q('.ah-levelup').classList.toggle('show', !!bar.maxed && this.isHome);
     },

@@ -7,10 +7,10 @@ console.log("/// CREATE DAILY PROTOCOLS INITIALIZED ///");
 // difficulty colour. Creating shows CREATE; editing shows DELETE and SAVE.
 
 const DAILY_DIFFICULTY_TIERS = [
-    { level: 'Trivial', dp: 10 },
-    { level: 'Easy', dp: 20 },
-    { level: 'Medium', dp: 60 },
-    { level: 'Hard', dp: 120 }
+    { level: 'Trivial', xp: 10 },
+    { level: 'Easy', xp: 20 },
+    { level: 'Medium', xp: 60 },
+    { level: 'Hard', xp: 120 }
 ];
 
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Sun..Sat, matches Date#getDay()
@@ -18,7 +18,7 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const EVERY_UNIT = { daily: ['Day', 'Days'], weekly: ['Week', 'Weeks'], monthly: ['Month', 'Months'] };
 
 let selectedDifficulty = 'Easy';
-let selectedDP = 20;
+let selectedXP = 20;
 let repeatsType = 'weekly';
 let selectedDays = [0, 1, 2, 3, 4, 5, 6];
 let editingTaskId = null;
@@ -53,7 +53,7 @@ function rescanTags() {
 
 function renderDifficulty() {
     TaskForm.renderDifficulty(document.getElementById('hf-diff'), DAILY_DIFFICULTY_TIERS, selectedDifficulty, document.getElementById('hf'));
-    document.getElementById('hf-dp-note').textContent = `${selectedDP} DP when done`;
+    document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
 }
 
 // ---- scheduling ----
@@ -100,7 +100,7 @@ function loadExistingTask(task) {
     document.getElementById('daily-title-input').value = task.label || '';
     document.getElementById('daily-notes-input').value = task.notes || '';
     selectedDifficulty = DAILY_DIFFICULTY_TIERS.some(t => t.level === task.difficulty) ? task.difficulty : 'Easy';
-    selectedDP = Number(task.dp) || DAILY_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
+    selectedXP = Number(task.xp) || DAILY_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).xp;
     document.getElementById('daily-start-date').value = task.startDate || TaskForm.todayISOLocal();
 
     const repeats = task.repeats || { type: 'daily', every: 1, daysOfWeek: [] };
@@ -142,7 +142,7 @@ function saveDaily() {
 
     const payload = {
         label,
-        dp: selectedDP,
+        xp: selectedXP,
         difficulty: selectedDifficulty,
         notes: document.getElementById('daily-notes-input').value.trim(),
         checklist: checklistEditor.get().map(i => ({ id: i.id, text: i.text, done: false, ...(i.doneOn ? { doneOn: i.doneOn } : {}) })),
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const b = event.target.closest('.hf-d');
         if (!b) return;
         selectedDifficulty = b.dataset.level;
-        selectedDP = DAILY_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
+        selectedXP = DAILY_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).xp;
         renderDifficulty();
     });
 
@@ -240,9 +240,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.textContent = '🐝 Buzzing...';
         btn.disabled = true;
         try {
-            selectedDP = await Eevee.assessDailyDP(title, notes, selectedDifficulty);
-            document.getElementById('hf-dp-note').textContent = `${selectedDP} DP when done`;
-            Toast.show(`🐝 Eevee set this at ${selectedDP} DP.`, 'positive');
+            selectedXP = await Eevee.assessDailyXP(title, notes, selectedDifficulty);
+            document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
+            Toast.show(`🐝 Eevee set this at ${selectedXP} XP.`, 'positive');
         } catch (error) {
             Toast.show(`⚠️ ${error.message} Keeping the ${selectedDifficulty} default.`, 'negative');
         } finally {

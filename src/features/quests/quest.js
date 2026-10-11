@@ -51,7 +51,7 @@ function statsHTML(quest) {
     return `<section class="qd-stats">
         ${QuestUI.ring(p.pct, 84)}
         <div class="qd-stat"><b>${p.done}<small>/${p.total}</small></b><span>Tasks</span></div>
-        <div class="qd-stat"><b>${p.earned}<small>/${p.max}</small></b><span>DP</span></div>
+        <div class="qd-stat"><b>${p.earned}<small>/${p.max}</small></b><span>XP</span></div>
         <div class="qd-stat"><b>${QuestUI.daysIn(quest) || '—'}</b><span>${quest.status === 'completed' ? `Days · done ${esc(QuestUI.shortDate(quest.dateCompleted))}` : `Days · since ${esc(QuestUI.shortDate(quest.dateStarted)) || '—'}`}</span></div>
     </section>`;
 }
@@ -61,7 +61,7 @@ function tasksHTML(quest) {
     const p = QuestUI.progress(quest);
     const diffButtons = QUEST_DIFFICULTY_TIERS.map(t => {
         const st = HABIT_DIFFICULTY_STYLE[t.level];
-        return `<button type="button" class="qd-seg${t.level === newTaskDifficulty ? ' on' : ''}" data-diff="${t.level}" style="--c:${st.color};--k:${st.ink}">${t.level} <small>${t.dp}</small></button>`;
+        return `<button type="button" class="qd-seg${t.level === newTaskDifficulty ? ' on' : ''}" data-diff="${t.level}" style="--c:${st.color};--k:${st.ink}">${t.level} <small>${t.xp}</small></button>`;
     }).join('');
     return `<section class="qd-sec">
         <h2 class="qd-h">Tasks <span>${p.done} of ${p.total} done</span></h2>
@@ -95,13 +95,13 @@ function ghostHTML(quest) {
         <h2 class="qd-h">👻 Ghost Logs <span>Challenges you try without help</span></h2>
         ${logs.length ? `<ul class="qd-ghosts">${logs.map(g => `
             <li class="qd-ghost s-${esc(g.status)}" data-ghost-id="${esc(g.id)}">
-                <div class="qd-ghost-top"><span class="qd-ghost-name">${esc(g.name)}</span><span class="dr-dp">+${g.dp} DP</span>
+                <div class="qd-ghost-top"><span class="qd-ghost-name">${esc(g.name)}</span><span class="dr-xp">+${g.xp} XP</span>
                     <button type="button" class="qd-x${armedGhost === g.id ? ' armed' : ''}" data-act="ghost-remove" aria-label="Remove ${esc(g.name)}">${armedGhost === g.id ? 'Tap again' : '×'}</button></div>
                 <div class="qd-ghost-states" role="radiogroup" aria-label="Result">${GHOST_STATES.map(s => `<button type="button" role="radio" aria-checked="${g.status === s.key}" class="g-${s.key}${g.status === s.key ? ' on' : ''}" data-act="ghost-status" data-status="${s.key}" title="${s.label}">${s.short}</button>`).join('')}</div>
             </li>`).join('')}</ul>` : '<p class="qd-muted">None yet. Add a challenge, then mark how it went: tried, partial or full.</p>'}
         ${addingGhost ? `<div class="qd-add-form" id="qd-ghost-form">
             <input type="text" id="qd-ghost-name" placeholder="Challenge name" maxlength="140" autocomplete="off">
-            <input type="number" id="qd-ghost-dp" placeholder="DP" min="0" inputmode="numeric">
+            <input type="number" id="qd-ghost-xp" placeholder="XP" min="0" inputmode="numeric">
             <div class="qd-form-acts"><button type="button" class="qd-btn" id="qd-ghost-cancel">Cancel</button><button type="button" class="qd-btn primary" id="qd-ghost-save">Add</button></div>
         </div>` : '<button type="button" class="qd-add" id="qd-ghost-add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New ghost log</button>'}
     </section>`;
@@ -132,7 +132,7 @@ function extrasHTML(quest) {
         parts.push(`<h2 class="qd-h">🛠️ Repo task</h2><div class="qd-box">
             <p><b>File:</b> ${esc(r.file)}</p>
             ${(r.requirements || []).length ? `<ul>${r.requirements.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-            <p class="qd-muted">+${esc(r.dp)} DP · ${r.dateCompleted ? `done ${esc(QuestUI.shortDate(r.dateCompleted))}` : 'not done yet'}</p></div>`);
+            <p class="qd-muted">+${esc(r.xp)} XP · ${r.dateCompleted ? `done ${esc(QuestUI.shortDate(r.dateCompleted))}` : 'not done yet'}</p></div>`);
     }
     if (quest.quizChallenge) {
         const z = quest.quizChallenge;
@@ -178,7 +178,7 @@ function saveNewTask() {
     const label = input.value.trim();
     if (!label) { input.focus(); return; }
     const tier = QUEST_DIFFICULTY_TIERS.find(t => t.level === newTaskDifficulty) || QUEST_DIFFICULTY_TIERS[0];
-    Vault.addTask(questId, { label, dp: tier.dp, difficulty: tier.level });
+    Vault.addTask(questId, { label, xp: tier.xp, difficulty: tier.level });
     Toast.show(`➕ Task added: ${label}`, 'positive');
     render(); // stays open for the next one
 }
@@ -186,7 +186,7 @@ function saveNewTask() {
 function saveNewGhost() {
     const name = document.getElementById('qd-ghost-name').value.trim();
     if (!name) { document.getElementById('qd-ghost-name').focus(); return; }
-    Vault.addGhostLog(questId, { name, dp: document.getElementById('qd-ghost-dp').value });
+    Vault.addGhostLog(questId, { name, xp: document.getElementById('qd-ghost-xp').value });
     addingGhost = false;
     render();
 }
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     root.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter') return;
         if (event.target.id === 'qd-task-input') saveNewTask();
-        if (event.target.id === 'qd-ghost-name' || event.target.id === 'qd-ghost-dp') saveNewGhost();
+        if (event.target.id === 'qd-ghost-name' || event.target.id === 'qd-ghost-xp') saveNewGhost();
     });
 
     Waggle.setActions([

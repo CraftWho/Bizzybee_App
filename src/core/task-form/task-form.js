@@ -36,7 +36,7 @@ const TaskForm = {
             `<path d="M${x} ${y - 6}Q${x + 1} ${y - 1} ${x + 6} ${y}Q${x + 1} ${y + 1} ${x} ${y + 6}Q${x - 1} ${y + 1} ${x - 6} ${y}Q${x - 1} ${y - 1} ${x} ${y - 6}Z"/>`).join('')}</svg>`;
     },
 
-    // Sparkle tiles. tiers = [{ level, dp }]. Also paints the form and the
+    // Sparkle tiles. tiers = [{ level, xp }]. Also paints the form and the
     // phone's status bar in the chosen difficulty colour.
     renderDifficulty(grid, tiers, selected, form) {
         grid.innerHTML = tiers.map(tier => {

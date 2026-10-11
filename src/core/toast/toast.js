@@ -3,7 +3,7 @@ console.log("/// TOAST MODULE ONLINE ///");
 // Generic, quest-agnostic notification bubble - anything can call
 // Toast.show('some message', 'positive' | 'negative') for a brief,
 // self-dismissing pop-up. Stacks vertically if more than one is active
-// at once (e.g. a DP award followed immediately by a level-up).
+// at once (e.g. an XP award followed immediately by a level-up).
 const Toast = {
     activeCount: 0,
 

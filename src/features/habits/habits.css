@@ -123,7 +123,7 @@
    a running +/- tally) than a checkbox ever needed. --- */
 /* --- Compact Habitica-style habit row ---
    A colored accent stripe (by difficulty, gray if none set) + a title line
-   with the +/- buttons and a "..." menu, then a small meta line (DP,
+   with the +/- buttons and a "..." menu, then a small meta line (XP,
    difficulty, all-time tally, tags) underneath - replaces the old single
    flex row that put everything on one line. Edit/Remove move into the
    "..." menu instead of sitting as two more icons in that row. */
@@ -198,7 +198,7 @@
     line-height: 1;
 }
 
-.habit-item-dp {
+.habit-item-xp {
     color: var(--gold-start);
     font-weight: bold;
     white-space: nowrap;

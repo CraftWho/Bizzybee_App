@@ -25,7 +25,7 @@ function characterLevelBarToRows(bar) {
         icon: '⚡',
         label: 'Character Level',
         levelBadge: `Lv. ${bar.level}`,
-        dpIntoLevel: bar.dpIntoLevel,
+        xpIntoLevel: bar.xpIntoLevel,
         cap: bar.cap,
         percentage: bar.percentage,
         maxed: bar.maxed,
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('user-class').textContent = user.class;
     document.getElementById('user-level').textContent = user.level;
     document.getElementById('user-title').textContent = user.title;
-    document.getElementById('user-dp').textContent = user.totalDP.toLocaleString();
+    document.getElementById('user-xp').textContent = user.totalXP.toLocaleString();
 
     applyAvatarImage();
 

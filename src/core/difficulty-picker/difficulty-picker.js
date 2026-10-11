@@ -2,7 +2,7 @@ console.log("/// DIFFICULTY PICKER MODULE ONLINE ///");
 
 // Reusable difficulty-tier tile grid. The tier VALUES are deliberately
 // different per page (create-daily.js's DIFFICULTY_TIERS vs
-// create-habit.js's HABIT_DIFFICULTY_TIERS - different DP economics per
+// create-habit.js's HABIT_DIFFICULTY_TIERS - different XP economics per
 // task type) and stay page-owned, passed in at render() time rather than
 // hardcoded here.
 //
@@ -16,10 +16,10 @@ console.log("/// DIFFICULTY PICKER MODULE ONLINE ///");
 const DifficultyPicker = {
     _instances: new WeakMap(),
 
-    // `tiers`: array of `{ level, dp, icon }`. `selected`: the initially
+    // `tiers`: array of `{ level, xp, icon }`. `selected`: the initially
     // selected tier's `level`. `onSelect(tier)`: called whenever the
     // worker bee picks a different tile, so the page can update its own
-    // selectedDifficulty/selectedDP state and DP-value display - this
+    // selectedDifficulty/selectedXP state and XP-value display - this
     // component only owns which tile looks selected, not what a
     // selection means to the page.
     render(container, tiers, selected, onSelect) {

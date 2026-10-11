@@ -22,14 +22,14 @@
             "category": "main",
             "status": "active",
             "title": "Calibrate Your Hive",
-            "objective": "Get familiar with your Hive Mind terminal - work through the tasks below to see how DP, leveling, and quest completion work.",
+            "objective": "Get familiar with your Hive Mind terminal - work through the tasks below to see how XP, leveling, and quest completion work.",
             "source": null,
             "dateStarted": null,
             "dateCompleted": null,
             "tasks": [
-                { "id": "welcome-t1", "label": "Check off this first calibration step", "dp": 50, "completed": false, "dateCompleted": null, "link": null },
-                { "id": "welcome-t2", "label": "Open the Hive Mind menu (🏰 button) and visit the Colony page", "dp": 30, "completed": false, "dateCompleted": null, "link": null },
-                { "id": "welcome-t3", "label": "Complete every task on this quest to see it auto-complete", "dp": 40, "completed": false, "dateCompleted": null, "link": null }
+                { "id": "welcome-t1", "label": "Check off this first calibration step", "xp": 50, "completed": false, "dateCompleted": null, "link": null },
+                { "id": "welcome-t2", "label": "Open the Hive Mind menu (🏰 button) and visit the Colony page", "xp": 30, "completed": false, "dateCompleted": null, "link": null },
+                { "id": "welcome-t3", "label": "Complete every task on this quest to see it auto-complete", "xp": 40, "completed": false, "dateCompleted": null, "link": null }
             ]
         },
         {
@@ -42,13 +42,13 @@
             "dateStarted": null,
             "dateCompleted": null,
             "tasks": [
-                { "id": "side-t1", "label": "Set this quest as your active quest from the Quests page", "dp": 20, "completed": false, "dateCompleted": null, "link": null },
-                { "id": "side-t2", "label": "Add a brand new task to this quest", "dp": 20, "completed": false, "dateCompleted": null, "link": null }
+                { "id": "side-t1", "label": "Set this quest as your active quest from the Quests page", "xp": 20, "completed": false, "dateCompleted": null, "link": null },
+                { "id": "side-t2", "label": "Add a brand new task to this quest", "xp": 20, "completed": false, "dateCompleted": null, "link": null }
             ]
         }
     ],
     "dailyTasks": [
-        { "id": "daily-01", "label": "Check in on your active quest", "dp": 10, "completedDates": [] },
-        { "id": "daily-02", "label": "Try checking off a Daily and see it track today's date", "dp": 10, "completedDates": [] }
+        { "id": "daily-01", "label": "Check in on your active quest", "xp": 10, "completedDates": [] },
+        { "id": "daily-02", "label": "Try checking off a Daily and see it track today's date", "xp": 10, "completedDates": [] }
     ]
 }

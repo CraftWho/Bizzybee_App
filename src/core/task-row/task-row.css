@@ -51,7 +51,7 @@
 .dr-notes { font-size: .8rem; line-height: 1.3; color: #a69a80; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .dr-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; font: 600 .72rem var(--font-main); color: #7d725b; }
 .dr-streak { color: #ffb347; }
-.dr-dp { color: #b99a3c; }
+.dr-xp { color: #b99a3c; }
 .dr-next { color: #8a7e62; }
 
 /* the hexagon check */

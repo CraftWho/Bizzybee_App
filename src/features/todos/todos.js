@@ -44,7 +44,7 @@ function renderTodos() {
     document.querySelectorAll('.td-tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === currentTab)));
     document.getElementById('td-hold').hidden = currentTab !== 'active';
     document.getElementById('td-tip').textContent = currentTab === 'done'
-        ? 'Tap the hexagon to bring one back. Its DP comes off again.'
+        ? 'Tap the hexagon to bring one back. Its XP comes off again.'
         : "Tap the hexagon when it's done. Tap a to-do to edit it.";
 
     const shown = lists[currentTab];
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (act === 'check') {
             const nowDone = !todo.completed;
             Vault.toggleTodoComplete(todo.id);
-            TaskRow.animateCheck(row, nowDone, todo.dp);
+            TaskRow.animateCheck(row, nowDone, todo.xp);
             row.classList.add(nowDone ? 'leaving' : 'returning');
             setTimeout(renderTodos, 700);
         } else if (act === 'list') {

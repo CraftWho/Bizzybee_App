@@ -124,7 +124,7 @@ const TaskRow = {
     dailyHTML(task, open) {
         const meta = [];
         if (task.streak > 0) meta.push(`<span class="dr-streak" title="Streak">🔥 ${task.streak}</span>`);
-        meta.push(`<span class="dr-dp">+${task.dp} DP</span>`);
+        meta.push(`<span class="dr-xp">+${task.xp} XP</span>`);
         meta.push(this.reminderChip(task.reminders));
         if (!task.dueToday) meta.push(`<span class="dr-next">Next: ${this.esc(this.nextDueLabel(task))}</span>`);
         const cls = ['hr-row', 'dr-row', task.completedToday ? 'done' : '', task.dueToday ? '' : 'off'].filter(Boolean).join(' ');
@@ -137,13 +137,13 @@ const TaskRow = {
         const meta = [];
         if (todo.completed) meta.push(`<span class="td-done-on">Done${todo.completedDate ? ` ${this.esc(this.shortDate(todo.completedDate))}` : ''}</span>`);
         else { meta.push(this.dueChip(todo)); if (todo.dueDate) meta.push(this.reminderChip(todo.reminders)); }
-        meta.push(`<span class="dr-dp">+${todo.dp} DP</span>`);
+        meta.push(`<span class="dr-xp">+${todo.xp} XP</span>`);
         const cls = ['hr-row', 'dr-row', 'td-row', todo.completed ? 'done' : '', overdue ? 'overdue' : ''].filter(Boolean).join(' ');
         return this._card(todo, { cls, done: !!todo.completed, meta, open });
     },
 
-    // Flip the row's look right away, with the pop / ripple / +DP float.
-    animateCheck(row, nowDone, dp) {
+    // Flip the row's look right away, with the pop / ripple / +XP float.
+    animateCheck(row, nowDone, xp) {
         const btn = row.querySelector('.dr-check');
         row.classList.toggle('done', nowDone);
         btn.setAttribute('aria-pressed', String(nowDone));
@@ -157,7 +157,7 @@ const TaskRow = {
         }
         const f = document.createElement('span');
         f.className = `hr-float ${nowDone ? 'good' : 'bad'}`;
-        f.textContent = `${nowDone ? '+' : '−'}${dp} DP`;
+        f.textContent = `${nowDone ? '+' : '−'}${xp} XP`;
         row.appendChild(f);
         setTimeout(() => f.remove(), 1100);
     }

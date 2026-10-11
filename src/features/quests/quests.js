@@ -15,7 +15,7 @@ function questCardHTML(quest, activeId) {
     const isActive = quest.id === activeId;
     const done = quest.status === 'completed';
     const sideCount = Vault.getSideQuestsFor(quest.id).length;
-    const meta = [`<span><b>${p.done}</b>/${p.total} tasks</span>`, `<span class="q-dp">${p.earned}/${p.max} DP</span>`];
+    const meta = [`<span><b>${p.done}</b>/${p.total} tasks</span>`, `<span class="q-xp">${p.earned}/${p.max} XP</span>`];
     if (done) meta.push(`<span>Done ${QuestUI.esc(QuestUI.shortDate(quest.dateCompleted))}</span>`);
     else if (quest.dateStarted) meta.push(`<span>Day ${QuestUI.daysIn(quest)}</span>`);
     if (sideCount) meta.push(`<span>🧩 ${sideCount}</span>`);

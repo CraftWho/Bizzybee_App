@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import vm from 'node:vm';
 
-const sample = () => ({ schemaVersion: 7, user: { name: 'Cloud Bee' }, quests: [{ id: 'q', tasks: [{ id: 't', dp: 75, completed: true }] }], profilePhoto: 'photo-data', colony: { bees: [] } });
+const sample = () => ({ schemaVersion: 8, user: { name: 'Cloud Bee' }, quests: [{ id: 'q', tasks: [{ id: 't', xp: 75, completed: true }] }], profilePhoto: 'photo-data', colony: { bees: [] } });
 function directory(files, prefix = '', failWrite = '') {
     return {
         async getFileHandle(name, options = {}) {
@@ -30,7 +30,7 @@ test('cloud download uses exact project path and backs up the original before re
     const files = new Map([['package.json', '{"name":"bizzybee-app"}'], ['src/core/data.personal.json', 'old-local-data']]);
     await downloader().saveToProject(directory(files), { data: JSON.stringify(sample()) });
     const installed = JSON.parse(files.get('src/core/data.personal.json'));
-    assert.equal(installed.quests[0].tasks[0].dp, 75);
+    assert.equal(installed.quests[0].tasks[0].xp, 75);
     assert.equal(installed.profilePhoto, 'photo-data');
     assert.equal(installed.blueprintSource, 'personal');
     assert.ok(installed._localCloudTransfer.id);

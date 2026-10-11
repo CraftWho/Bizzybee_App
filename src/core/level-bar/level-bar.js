@@ -31,7 +31,7 @@ const LevelBar = {
     //                           celebrate a real claim.
     // options.emptyMessage   -> string shown when getRows() returns [].
     //
-    // Row:    { key, icon, label, levelBadge, dpIntoLevel, cap, percentage,
+    // Row:    { key, icon, label, levelBadge, xpIntoLevel, cap, percentage,
     //           maxed, gradient, shadow }
     // Reward: { title: string, lines: string[] } - `lines` are already
     //         fully-formatted, pre-escaped display strings (e.g.
@@ -55,7 +55,7 @@ const LevelBar = {
             <div class="level-bar-row">
                 <div class="level-bar-labels">
                     <span>${row.icon || ''} ${row.label}${row.levelBadge ? ` <span class="level-bar-badge">${row.levelBadge}</span>` : ''}</span>
-                    <span class="text-gold">${row.dpIntoLevel} / ${row.cap}</span>
+                    <span class="text-gold">${row.xpIntoLevel} / ${row.cap}</span>
                 </div>
                 <div class="level-bar-track-wrap">
                     <div class="hive-progress-track">

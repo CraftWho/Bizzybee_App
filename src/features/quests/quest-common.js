@@ -10,11 +10,11 @@ const QUEST_STYLE = {
     side: { color: '#4fb3d9', ink: '#04202b', label: 'Side' }
 };
 
-// One-off task DP anchors - same scale as Eevee's quest prompt.
+// One-off task XP anchors - same scale as Eevee's quest prompt.
 const QUEST_DIFFICULTY_TIERS = [
-    { level: 'Easy', dp: 25 },
-    { level: 'Medium', dp: 60 },
-    { level: 'Hard', dp: 120 }
+    { level: 'Easy', xp: 25 },
+    { level: 'Medium', xp: 60 },
+    { level: 'Hard', xp: 120 }
 ];
 
 const QuestUI = {
@@ -34,8 +34,8 @@ const QuestUI = {
     progress(quest) {
         const tasks = quest.tasks || [];
         const done = tasks.filter(t => t.completed);
-        const max = tasks.reduce((sum, t) => sum + (Number(t.dp) || 0), 0);
-        const earned = done.reduce((sum, t) => sum + (Number(t.dp) || 0), 0);
+        const max = tasks.reduce((sum, t) => sum + (Number(t.xp) || 0), 0);
+        const earned = done.reduce((sum, t) => sum + (Number(t.xp) || 0), 0);
         return {
             done: done.length,
             total: tasks.length,
@@ -94,7 +94,7 @@ const QuestUI = {
             ${quest.objective ? `<p class="qa-obj">${this.esc(quest.objective)}</p>` : ''}
             <div class="qa-prog">
                 <div class="qa-bar"><i style="width:${p.pct}%"></i></div>
-                <div class="qa-nums"><span><b>${p.done}</b> of ${p.total} tasks</span><span><b>${p.earned}</b> / ${p.max} DP</span></div>
+                <div class="qa-nums"><span><b>${p.done}</b> of ${p.total} tasks</span><span><b>${p.earned}</b> / ${p.max} XP</span></div>
             </div>
             ${done
                 ? '<p class="qa-done">🏆 Every task is done. Pick your next quest to focus on.</p>'
@@ -114,7 +114,7 @@ const QuestUI = {
         const label = task.link
             ? `<a class="qt-label" href="${this.esc(task.link)}" target="_blank" rel="noopener noreferrer" data-no-hold>${this.esc(task.label)} <span aria-hidden="true">↗</span></a>`
             : `<span class="qt-label">${this.esc(task.label)}</span>`;
-        const meta = [`<span class="dr-dp">+${task.dp} DP</span>`];
+        const meta = [`<span class="dr-xp">+${task.xp} XP</span>`];
         if (!compact && task.difficulty) meta.unshift(`<span class="qt-diff">${this.esc(task.difficulty)}</span>`);
         if (!compact && task.completed && task.dateCompleted) meta.push(`<span class="qt-when">✓ ${this.esc(this.shortDate(task.dateCompleted))}</span>`);
         return `<li class="qt dr-row${task.completed ? ' done' : ''}" data-task-id="${this.esc(task.id)}" style="--dc:${s.color};--dk:${s.ink}">
@@ -123,7 +123,7 @@ const QuestUI = {
         </li>`;
     },
 
-    // Check a task off (or back on), with the shared pop / +DP float.
+    // Check a task off (or back on), with the shared pop / +XP float.
     // Returns the fresh quest. Toasts when the whole quest finishes.
     toggleTask(questId, taskId, rowEl) {
         const before = Vault.getQuests().find(q => q.id === questId);
@@ -132,7 +132,7 @@ const QuestUI = {
         const wasDone = before.status === 'completed';
         const nowDone = !task.completed;
         const quest = Vault.toggleTask(questId, taskId);
-        if (rowEl) TaskRow.animateCheck(rowEl, nowDone, task.dp);
+        if (rowEl) TaskRow.animateCheck(rowEl, nowDone, task.xp);
         if (quest && !wasDone && quest.status === 'completed') {
             Toast.show(`🏆 Quest complete: ${quest.title}`, 'positive');
             if (navigator.vibrate) navigator.vibrate([30, 40, 60]);

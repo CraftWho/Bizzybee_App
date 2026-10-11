@@ -128,7 +128,7 @@
 .qd-ghost.s-green { border-left-color: #34c77b; }
 .qd-ghost-top { display: flex; align-items: center; gap: 10px; }
 .qd-ghost-name { flex: 1; min-width: 0; font-size: .95rem; overflow-wrap: anywhere; }
-.qd-ghost .dr-dp { font: 600 .72rem var(--font-main); }
+.qd-ghost .dr-xp { font: 600 .72rem var(--font-main); }
 .qd button.qd-x { min-width: 34px; height: 30px; padding: 0 8px; border: 0; border-radius: 8px; background: none; box-shadow: none; color: #8a7e62; font: 400 1.2rem/1 system-ui, sans-serif; cursor: pointer; }
 .qd button.qd-x.armed { background: rgba(227, 48, 74, .18); color: #ff6a78; font-size: .75rem; font-weight: 700; }
 .qd-ghost-states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }

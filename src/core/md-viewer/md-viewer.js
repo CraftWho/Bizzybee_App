@@ -102,7 +102,7 @@ const MDViewer = {
     },
 
     // Splits raw text at the first "---" divider. Everything up to and
-    // including it is "locked" (title, ID, DP, status, dates); everything
+    // including it is "locked" (title, ID, XP, status, dates); everything
     // after is the editable narrative.
     splitFriendlyRegions(text) {
         const dividerMatch = text.match(/\n-{3,}\s*\n/);

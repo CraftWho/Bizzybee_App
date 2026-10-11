@@ -9,16 +9,16 @@ console.log("/// CREATE HABIT PROTOCOLS INITIALIZED ///");
 
 // Same 4-tier scale Dailies uses - a habit repeats at least as often (often
 // MORE often, since it can be clicked several times a day), so it shares
-// Dailies' modest DP anchors rather than Quest's one-off anchors.
+// Dailies' modest XP anchors rather than Quest's one-off anchors.
 const HABIT_DIFFICULTY_TIERS = [
-    { level: 'Trivial', dp: 10, sparks: 1 },
-    { level: 'Easy', dp: 20, sparks: 2 },
-    { level: 'Medium', dp: 60, sparks: 3 },
-    { level: 'Hard', dp: 120, sparks: 4 }
+    { level: 'Trivial', xp: 10, sparks: 1 },
+    { level: 'Easy', xp: 20, sparks: 2 },
+    { level: 'Medium', xp: 60, sparks: 3 },
+    { level: 'Hard', xp: 120, sparks: 4 }
 ];
 
 let selectedDifficulty = 'Easy';
-let selectedDP = 20;
+let selectedXP = 20;
 let editingHabitId = null;
 let habitPositiveEnabled = true;
 let habitNegativeEnabled = false;
@@ -72,7 +72,7 @@ function renderDifficulty() {
         return `<button type="button" class="hf-d${on ? ' on' : ''}" role="radio" aria-checked="${on}" data-level="${tier.level}" style="--c:${s.color};--k:${s.ink}">
             ${sparksSVG(tier.sparks)}<span>${tier.level}</span></button>`;
     }).join('');
-    document.getElementById('hf-dp-note').textContent = `${selectedDP} DP each tap`;
+    document.getElementById('hf-xp-note').textContent = `${selectedXP} XP each tap`;
     renderColour();
 }
 
@@ -107,7 +107,7 @@ function loadExistingHabit(existing) {
     document.getElementById('habit-title-input').value = existing.label || '';
     document.getElementById('habit-notes-input').value = existing.notes || '';
     selectedDifficulty = HABIT_DIFFICULTY_TIERS.some(t => t.level === existing.difficulty) ? existing.difficulty : 'Easy';
-    selectedDP = Number(existing.dp) || HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
+    selectedXP = Number(existing.xp) || HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).xp;
     TagPicker.render(document.getElementById('habit-tags-list'), existing.tags || []);
     // Absent on a habit saved before this toggle existed - default both on,
     // same "both, always" behavior it already had (see Vault.getHabits).
@@ -140,7 +140,7 @@ function saveHabit() {
 
     const payload = {
         label,
-        dp: selectedDP,
+        xp: selectedXP,
         difficulty: selectedDifficulty,
         notes: document.getElementById('habit-notes-input').value.trim(),
         tags: TagPicker.getTags(document.getElementById('habit-tags-list')),
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const b = event.target.closest('.hf-d');
         if (!b) return;
         selectedDifficulty = b.dataset.level;
-        selectedDP = HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
+        selectedXP = HABIT_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).xp;
         renderDifficulty();
     });
 
@@ -241,9 +241,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.textContent = '🐝 Buzzing...';
         btn.disabled = true;
         try {
-            selectedDP = await Eevee.assessHabitDP(title, notes, selectedDifficulty);
-            document.getElementById('hf-dp-note').textContent = `${selectedDP} DP each tap`;
-            Toast.show(`🐝 Eevee set this at ${selectedDP} DP.`, 'positive');
+            selectedXP = await Eevee.assessHabitXP(title, notes, selectedDifficulty);
+            document.getElementById('hf-xp-note').textContent = `${selectedXP} XP each tap`;
+            Toast.show(`🐝 Eevee set this at ${selectedXP} XP.`, 'positive');
         } catch (error) {
             Toast.show(`⚠️ ${error.message} Keeping the ${selectedDifficulty} default.`, 'negative');
         } finally {

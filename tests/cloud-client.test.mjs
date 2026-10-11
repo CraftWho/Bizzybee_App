@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
-const fixture = () => ({ schemaVersion: 7, user: { name: 'Bee' }, quests: [], profilePhoto: 'photo-data' });
+const fixture = () => ({ schemaVersion: 8, user: { name: 'Bee' }, quests: [], profilePhoto: 'photo-data' });
 async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', remote = fixture(), auto = true, failLoad = false } = {}) {
     const key = 'bizzybee_user_data:alice';
     const state = fixture();

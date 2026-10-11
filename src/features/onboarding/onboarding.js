@@ -67,13 +67,13 @@ function makeStore() {
             save() { Vault.updateOnboarding({}); },
             habits: () => Vault.getHabits(),
             addHabit: ({ label, positive, negative }) => {
-                Vault.addHabit({ label, dp: 20, difficulty: 'Easy', notes: 'Made while raising your egg.', positive, negative });
+                Vault.addHabit({ label, xp: 20, difficulty: 'Easy', notes: 'Made while raising your egg.', positive, negative });
                 const all = Vault.getHabits(); return all[all.length - 1];
             },
             bump: (id, dir) => Vault.bumpHabit(id, dir),
             todos: () => Vault.getTodos(),
             addTodo: ({ label, dueDate, checklist }) => {
-                Vault.addTodo({ label, dp: 20, difficulty: 'Easy', dueDate, checklist });
+                Vault.addTodo({ label, xp: 20, difficulty: 'Easy', dueDate, checklist });
                 const all = Vault.getTodos(); return all[all.length - 1];
             },
             completeTodo: id => { const t = Vault.getTodos().find(x => x.id === id); if (t && !t.completed) Vault.toggleTodoComplete(id); },

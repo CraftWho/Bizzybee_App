@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = `./create-daily.html?id=${encodeURIComponent(task.id)}`;
         } else if (act === 'check') {
             Vault.toggleDailyTask(task.id);
-            TaskRow.animateCheck(row, !task.completedToday, task.dp);
+            TaskRow.animateCheck(row, !task.completedToday, task.xp);
             setTimeout(renderDailyTasks, 650);
         } else if (act === 'list') {
             if (openChecklists.has(task.id)) openChecklists.delete(task.id); else openChecklists.add(task.id);

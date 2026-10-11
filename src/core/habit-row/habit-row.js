@@ -91,7 +91,7 @@ const HabitRow = {
             setTimeout(() => ripple.remove(), 600);
             const float = document.createElement('span');
             float.className = `hr-float ${positive ? 'good' : 'bad'}`;
-            float.textContent = `${positive ? '+' : '−'}${habit.dp} DP`;
+            float.textContent = `${positive ? '+' : '−'}${habit.xp} XP`;
             row.appendChild(float);
             setTimeout(() => float.remove(), 1100);
             if (navigator.vibrate) navigator.vibrate(positive ? 25 : [20, 30, 20]);

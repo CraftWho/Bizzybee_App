@@ -3,7 +3,7 @@ console.log("/// DASHBOARD PROTOCOLS INITIALIZED ///");
 // Real skill breakdown now: Vault.getSkillMatrix() derives categories fresh
 // from Dictionary terms x completed/tagged Dailies AND completed Quest work
 // whose title/objective/task label mentions a Dictionary term by name (see
-// computeSkillMatrixDP in db.js). No fixed category list - the palette
+// computeSkillMatrixXP in db.js). No fixed category list - the palette
 // below just rotates by row position so a brand-new category still gets a
 // distinct look without needing a hand-picked entry.
 //
@@ -39,7 +39,7 @@ function skillMatrixToRows(matrix) {
         icon: SKILL_ICONS[i % SKILL_ICONS.length],
         label: escapeSkillHTML(skill.category),
         levelBadge: `Lv. ${skill.level}`,
-        dpIntoLevel: skill.dpIntoLevel,
+        xpIntoLevel: skill.xpIntoLevel,
         cap: skill.cap,
         percentage: skill.percentage,
         maxed: skill.maxed,
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = Vault.getUser();
 
     if (user) {
-        document.getElementById('dash-total-dp').textContent = user.totalDP.toLocaleString();
+        document.getElementById('dash-total-xp').textContent = user.totalXP.toLocaleString();
         document.getElementById('dash-level').textContent = user.level;
     }
 
