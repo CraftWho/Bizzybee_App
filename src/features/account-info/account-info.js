@@ -185,36 +185,23 @@ function tinyDelay() {
     return new Promise(resolve => setTimeout(resolve, 2));
 }
 
-// One-time cleanup for accounts that ran an earlier version of this
-// import: that version put every Habitica Habit into Bizzybee's Dailies
-// (marked by a "Imported from Habitica (habit)." note) and every Habitica
-// To-Do into a standing "Imported from Habitica" quest, instead of
-// Bizzybee's own Habits/To-Dos. This finds anything still sitting in
-// either wrong spot, moves it to where it actually belongs (preserving a
-// To-Do's completed state), and removes the now-empty quest. Cheap no-op
-// once nothing old is left to find, so it's safe to run on every import.
+// Old imports that landed in the wrong tab (Habits in Dailies, To-Dos in a
+// quest) are sorted by Vault._sortHabiticaImports() - on every app load,
+// with no network needed. It used to happen here, deleting the misplaced
+// habits BEFORE Habitica was asked for them again, so a failed request
+// could lose them. (Craft, 2026-10-10)
 function migrateMisplacedHabiticaImports() {
-    let migratedHabits = 0;
-    for (const task of Vault.getDailyTasks()) {
-        if (task.notes && task.notes.startsWith('Imported from Habitica (habit).')) {
-            Vault.removeDailyTask(task.id);
-            migratedHabits++;
-        }
-    }
+    const r = Vault._sortHabiticaImports();
+    return { migratedHabits: r.habits, migratedTodos: r.todos };
+}
 
-    let migratedTodos = 0;
-    const oldQuest = Vault.getQuests().find(q => q.id === HABITICA_IMPORT_QUEST_ID);
-    if (oldQuest) {
-        for (const task of [...(oldQuest.tasks || [])]) {
-            const todos = Vault.addTodo({ label: task.label, dp: task.dp, notes: 'Imported from Habitica (todo).' });
-            const newTodo = todos[todos.length - 1];
-            if (task.completed && newTodo) Vault.toggleTodoComplete(newTodo.id);
-            migratedTodos++;
-        }
-        Vault.removeQuest(oldQuest.id);
-    }
-
-    return { migratedHabits, migratedTodos };
+// Habitica priority (0.1 / 1 / 1.5 / 2) -> Bizzybee difficulty.
+function habiticaPriorityToDifficulty(task) {
+    const priority = task.priority;
+    if (priority >= 2) return 'Hard';
+    if (priority >= 1.5) return 'Medium';
+    if (priority >= 1) return 'Easy';
+    return 'Trivial';
 }
 
 // Pulls the account's current Habits/Dailies/To-Dos and adds whatever
@@ -229,9 +216,17 @@ function migrateMisplacedHabiticaImports() {
 // straight through any HabiticaAPI error (network/auth/CORS) for the
 // caller to catch and display.
 async function importFromHabitica(userId, apiToken) {
+    // Ask Habitica first: if that fails, nothing here has changed.
+    const tasks = await HabiticaAPI.getTasks(userId, apiToken);
     const migration = migrateMisplacedHabiticaImports();
 
-    const tasks = await HabiticaAPI.getTasks(userId, apiToken);
+    // Skip anything already here under the same name (an older import
+    // tracked Habitica habits under a different key, so the id check alone
+    // would bring them in twice).
+    const nameKey = (text) => String(text || '').trim().toLowerCase();
+    const haveHabit = new Set(Vault.getHabits().map(h => nameKey(h.label)));
+    const haveDaily = new Set(Vault.getDailyTasks().map(d => nameKey(d.label)));
+    const haveTodo = new Set((Vault.getTodos ? Vault.getTodos() : []).map(t => nameKey(t.label)));
 
     const alreadyImported = new Set(Vault.getHabiticaImportedIds());
     const habits = tasks.filter(t => t.type === 'habit');
@@ -246,12 +241,15 @@ async function importFromHabitica(userId, apiToken) {
     for (const task of habits) {
         const key = `habit:${task._id}`;
         if (alreadyImported.has(key)) continue;
+        if (haveHabit.has(nameKey(task.text))) { newlyImportedIds.push(key); continue; }
+        haveHabit.add(nameKey(task.text));
 
         // Habitica's own up/down flags say which button a Habit shows;
         // missing means "on" there too, matching addHabit's own default.
         Vault.addHabit({
             label: task.text,
             dp: habiticaPriorityToDp(task),
+            difficulty: habiticaPriorityToDifficulty(task),
             notes: `Imported from Habitica (habit).${task.notes ? ' ' + task.notes : ''}`,
             positive: task.up !== false,
             negative: task.down !== false
@@ -264,10 +262,13 @@ async function importFromHabitica(userId, apiToken) {
     for (const task of dailies) {
         const key = `daily:${task._id}`;
         if (alreadyImported.has(key)) continue;
+        if (haveDaily.has(nameKey(task.text))) { newlyImportedIds.push(key); continue; }
+        haveDaily.add(nameKey(task.text));
 
         Vault.addDailyTask({
             label: task.text,
             dp: habiticaPriorityToDp(task),
+            difficulty: habiticaPriorityToDifficulty(task),
             notes: `Imported from Habitica (daily).${task.notes ? ' ' + task.notes : ''}`,
             repeats: habiticaRepeatToBizzybee(task)
         });
@@ -279,10 +280,13 @@ async function importFromHabitica(userId, apiToken) {
     for (const task of todos) {
         const key = `todo:${task._id}`;
         if (alreadyImported.has(key)) continue;
+        if (haveTodo.has(nameKey(task.text))) { newlyImportedIds.push(key); continue; }
+        haveTodo.add(nameKey(task.text));
 
         Vault.addTodo({
             label: task.text,
             dp: habiticaPriorityToDp(task),
+            difficulty: habiticaPriorityToDifficulty(task),
             notes: `Imported from Habitica (todo).${task.notes ? ' ' + task.notes : ''}`
         });
         newlyImportedIds.push(key);
@@ -297,7 +301,7 @@ async function importFromHabitica(userId, apiToken) {
     const totalSeen = habits.length + dailies.length + todos.length;
     return {
         importedHabits, importedDailies, importedTodos,
-        skipped: totalSeen - newlyImportedIds.length,
+        skipped: totalSeen - (importedHabits + importedDailies + importedTodos),
         migratedHabits: migration.migratedHabits,
         migratedTodos: migration.migratedTodos
     };

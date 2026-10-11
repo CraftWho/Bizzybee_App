@@ -9,6 +9,17 @@ console.log("/// VAULT (DB) INITIALIZED ///");
 // like everything else, so data.json/data.personal.json stay properly split.
 const VAULT_SCHEMA_VERSION = 7;
 
+// Habitica difficulty -> Bizzybee difficulty. The Habitica import stores
+// DP 25/50/75/100 for Habitica's trivial/easy/medium/hard (account-info.js's
+// habiticaPriorityToDp), so the DP alone says which one it was.
+function habiticaDifficultyFromDp(dp) {
+    const n = Number(dp) || 0;
+    if (n >= 100) return 'Hard';
+    if (n >= 75) return 'Medium';
+    if (n >= 50) return 'Easy';
+    return 'Trivial';
+}
+
 // Pure, stateless: total DP is always the live sum of every completed
 // task's current dp value, across every quest - never a stored running
 // total. This means editing a task's dp (even after it's been completed),
@@ -1102,6 +1113,8 @@ class DatabaseManager {
         // Gives every save the egg gift record once (new and existing
         // players alike) - no-ops after that. See freshOnboardingRecord.
         this._ensureOnboardingData();
+        // One-time sort of an old Habitica import into the right tabs.
+        this._sortHabiticaImports();
         // Backfills state.dictionary onto any save from before the
         // Dictionary feature existed - no-ops once it's there.
         if (!this.state.dictionary) {
@@ -3692,6 +3705,84 @@ class DatabaseManager {
     // Habitica task, without needing to touch addTask/addDailyTask's own id
     // scheme at all. Local app state, not blueprint content - same
     // reasoning as state.plugins/state.calendarEvents.
+    // An early version of the Habitica import put every Habitica Habit into
+    // Dailies (note "Imported from Habitica (habit).") and every To-Do into
+    // a standing "Imported from Habitica" quest. This moves them where they
+    // belong - Habits and To-Dos - with no network needed, keeping each
+    // To-Do's done state. Imported items with no difficulty get one from
+    // their DP (the import set DP from Habitica's difficulty). Runs once per
+    // save (state.habiticaSorted), after a local backup. (Craft, 2026-10-10)
+    _sortHabiticaImports() {
+        if (!this.state || this.state.habiticaSorted) return { habits: 0, todos: 0 };
+        const fromHabitica = (item) => typeof item.notes === 'string' && item.notes.startsWith('Imported from Habitica');
+        const oldHabits = (this.state.dailyTasks || []).filter(t => typeof t.notes === 'string' && t.notes.startsWith('Imported from Habitica (habit).'));
+        const oldQuest = (this.state.quests || []).find(q => q.id === 'quest-habitica-import');
+        const needsDifficulty = ['habits', 'dailyTasks', 'todos'].some(k => (this.state[k] || []).some(t => fromHabitica(t) && !t.difficulty));
+        if (!oldHabits.length && !oldQuest && !needsDifficulty) {
+            this.state.habiticaSorted = true;
+            this.save();
+            return { habits: 0, todos: 0 };
+        }
+        this.createLocalBackup('Before sorting Habitica imports');
+        const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+        if (!this.state.habits) this.state.habits = [];
+        const haveHabit = new Set(this.state.habits.map(h => String(h.label).trim().toLowerCase()));
+        oldHabits.forEach(t => {
+            const key = String(t.label).trim().toLowerCase();
+            if (!haveHabit.has(key)) {
+                haveHabit.add(key);
+                this.state.habits.push({
+                    id: `habit-${uid()}`,
+                    label: t.label,
+                    dp: Number(t.dp) || 0,
+                    difficulty: t.difficulty || habiticaDifficultyFromDp(t.dp),
+                    notes: t.notes,
+                    tags: Array.isArray(t.tags) ? t.tags : [],
+                    positive: true,
+                    negative: true,
+                    resetCounter: 'daily',
+                    history: []
+                });
+            }
+        });
+        const moved = new Set(oldHabits.map(t => t.id));
+        this.state.dailyTasks = (this.state.dailyTasks || []).filter(t => !moved.has(t.id));
+
+        let todos = 0;
+        if (oldQuest) {
+            if (!this.state.todos) this.state.todos = [];
+            const haveTodo = new Set(this.state.todos.map(t => String(t.label).trim().toLowerCase()));
+            (oldQuest.tasks || []).forEach(t => {
+                const key = String(t.label).trim().toLowerCase();
+                if (haveTodo.has(key)) return;
+                haveTodo.add(key);
+                this.state.todos.push({
+                    id: `todo-${uid()}`,
+                    label: t.label,
+                    dp: Number(t.dp) || 0,
+                    difficulty: t.difficulty || habiticaDifficultyFromDp(t.dp),
+                    notes: 'Imported from Habitica (todo).',
+                    checklist: [], dueDate: null, reminders: [], tags: [],
+                    completed: !!t.completed,
+                    completedDate: t.completed ? (t.dateCompleted || todayISO()) : null
+                });
+                todos++;
+            });
+            this.state.quests = this.state.quests.filter(q => q.id !== oldQuest.id);
+            if (this.state.activeQuestId === oldQuest.id) this.state.activeQuestId = null;
+        }
+
+        ['habits', 'dailyTasks', 'todos'].forEach(k => (this.state[k] || []).forEach(t => {
+            if (fromHabitica(t) && !t.difficulty) t.difficulty = habiticaDifficultyFromDp(t.dp);
+        }));
+
+        this.state.habiticaSorted = true;
+        this.save();
+        console.log(`Vault: sorted Habitica imports - ${oldHabits.length} habits out of Dailies, ${todos} quest tasks into To-Dos.`);
+        return { habits: oldHabits.length, todos };
+    }
+
     getHabiticaImportedIds() {
         return this.state ? (this.state.habiticaImportedIds || []) : [];
     }
