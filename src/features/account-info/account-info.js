@@ -141,206 +141,35 @@ function readPersonalInfoForm() {
     };
 }
 
-// --- Habitica Import ------------------------------------------------------
-
-// Habitica's task `priority` field: 0.1 trivial, 1 easy, 1.5 medium, 2 hard -
-// mapped onto roughly the same DP scale the rest of this app already uses
-// for difficulty (see llm-engine.js's own DP anchors), not a 1:1 formula,
-// just a reasonable analogous scale.
-function habiticaPriorityToDp(task) {
-    const priority = task.priority;
-    if (priority >= 2) return 100;
-    if (priority >= 1.5) return 75;
-    if (priority >= 1) return 50;
-    return 25;
+// --- Habitica sync -------------------------------------------------------
+// The two-way sync itself lives in src/core/habitica-sync/ and runs on
+// every page. This page only hands it the key: your Habitica User ID and
+// API Token stay encrypted here under your PIN, and after you unlock, a
+// copy is kept on this device (not in your save, not in the cloud) so the
+// sync can run without the PIN. "Disconnect this device" removes that copy.
+function connectHabiticaFromInfo(info) {
+    if (typeof HabiticaSync === 'undefined') return;
+    if (info && info.habiticaUserId && info.habiticaApiToken) HabiticaSync.connect(info.habiticaUserId, info.habiticaApiToken);
+    renderHabiticaStatus();
 }
 
-// Habitica's weekly Daily repeat shape ({ su, m, t, w, th, f, s }, each a
-// bool) mapped onto Bizzybee's own { type, every, daysOfWeek } shape
-// (db.js's isDailyDueOn - 0=Sun..6=Sat, matching Date#getDay()). Habits
-// don't carry this at all, so they always import as a plain every-day
-// Bizzybee daily - there's no real Habitica equivalent of a habit's own
-// schedule to translate.
-function habiticaRepeatToBizzybee(task) {
-    if (task.type !== 'daily' || !task.repeat) {
-        return { type: 'daily', every: 1, daysOfWeek: [] };
-    }
-    const order = ['su', 'm', 't', 'w', 'th', 'f', 's'];
-    const daysOfWeek = order.map((key, i) => (task.repeat[key] ? i : null)).filter(i => i !== null);
-    return { type: 'weekly', every: task.everyX || 1, daysOfWeek };
+function renderHabiticaStatus() {
+    const el = document.getElementById('habitica-import-status');
+    const btn = document.getElementById('habitica-disconnect-btn');
+    if (!el || typeof HabiticaSync === 'undefined') return;
+    const connected = HabiticaSync.isConnected();
+    if (btn) btn.hidden = !connected;
+    const st = HabiticaSync.getStatus();
+    if (!connected) { el.textContent = 'Not connected on this device.'; el.hidden = false; return; }
+    el.textContent = st ? `${st.ok ? '✅' : '⚠️'} ${st.message} (${new Date(st.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })})` : 'Connected. First sync starting...';
+    el.hidden = false;
 }
-
-// Only kept to find (and migrate away from) an earlier version's standing
-// import quest - see migrateMisplacedHabiticaImports below. No longer
-// created for new imports.
-const HABITICA_IMPORT_QUEST_ID = 'quest-habitica-import';
-
-// addTask/addDailyTask/addHabit/addTodo all generate their own id from
-// Date.now() with no collision-avoidance - fine for a single manual click,
-// but this import can add many tasks back-to-back synchronously. A tiny
-// delay between writes is a simple, low-risk way to guarantee each gets a
-// distinct millisecond without touching any of those shared methods' id
-// schemes (all used elsewhere in the app too).
-function tinyDelay() {
-    return new Promise(resolve => setTimeout(resolve, 2));
-}
-
-// Old imports that landed in the wrong tab (Habits in Dailies, To-Dos in a
-// quest) are sorted by Vault._sortHabiticaImports() - on every app load,
-// with no network needed. It used to happen here, deleting the misplaced
-// habits BEFORE Habitica was asked for them again, so a failed request
-// could lose them. (Craft, 2026-10-10)
-function migrateMisplacedHabiticaImports() {
-    const r = Vault._sortHabiticaImports();
-    return { migratedHabits: r.habits, migratedTodos: r.todos };
-}
-
-// Habitica priority (0.1 / 1 / 1.5 / 2) -> Bizzybee difficulty.
-function habiticaPriorityToDifficulty(task) {
-    const priority = task.priority;
-    if (priority >= 2) return 'Hard';
-    if (priority >= 1.5) return 'Medium';
-    if (priority >= 1) return 'Easy';
-    return 'Trivial';
-}
-
-// Pulls the account's current Habits/Dailies/To-Dos and adds whatever
-// isn't already here (tracked via Vault.getHabiticaImportedIds/
-// markHabiticaImported, keyed by Habitica's own stable task _id - not
-// Bizzybee's own generated ids, which aren't guaranteed unique enough for
-// this - see tinyDelay above). Each Habitica task type lands in its
-// matching Bizzybee feature: Habits into Habits (carrying over which of
-// +/- is enabled), Dailies into Dailies, To-Dos into To-Dos - no more
-// bucketing Habits under Dailies or To-Dos under a synthetic quest.
-// Returns a small summary object for the caller to show the user; throws
-// straight through any HabiticaAPI error (network/auth/CORS) for the
-// caller to catch and display.
-async function importFromHabitica(userId, apiToken) {
-    // Ask Habitica first: if that fails, nothing here has changed.
-    const tasks = await HabiticaAPI.getTasks(userId, apiToken);
-    const migration = migrateMisplacedHabiticaImports();
-
-    // Skip anything already here under the same name (an older import
-    // tracked Habitica habits under a different key, so the id check alone
-    // would bring them in twice).
-    const nameKey = (text) => String(text || '').trim().toLowerCase();
-    const haveHabit = new Set(Vault.getHabits().map(h => nameKey(h.label)));
-    const haveDaily = new Set(Vault.getDailyTasks().map(d => nameKey(d.label)));
-    const haveTodo = new Set((Vault.getTodos ? Vault.getTodos() : []).map(t => nameKey(t.label)));
-
-    const alreadyImported = new Set(Vault.getHabiticaImportedIds());
-    const habits = tasks.filter(t => t.type === 'habit');
-    const dailies = tasks.filter(t => t.type === 'daily');
-    const todos = tasks.filter(t => t.type === 'todo' && !t.completed);
-
-    const newlyImportedIds = [];
-    let importedHabits = 0;
-    let importedDailies = 0;
-    let importedTodos = 0;
-
-    for (const task of habits) {
-        const key = `habit:${task._id}`;
-        if (alreadyImported.has(key)) continue;
-        if (haveHabit.has(nameKey(task.text))) { newlyImportedIds.push(key); continue; }
-        haveHabit.add(nameKey(task.text));
-
-        // Habitica's own up/down flags say which button a Habit shows;
-        // missing means "on" there too, matching addHabit's own default.
-        Vault.addHabit({
-            label: task.text,
-            dp: habiticaPriorityToDp(task),
-            difficulty: habiticaPriorityToDifficulty(task),
-            notes: `Imported from Habitica (habit).${task.notes ? ' ' + task.notes : ''}`,
-            positive: task.up !== false,
-            negative: task.down !== false
-        });
-        newlyImportedIds.push(key);
-        importedHabits++;
-        await tinyDelay();
-    }
-
-    for (const task of dailies) {
-        const key = `daily:${task._id}`;
-        if (alreadyImported.has(key)) continue;
-        if (haveDaily.has(nameKey(task.text))) { newlyImportedIds.push(key); continue; }
-        haveDaily.add(nameKey(task.text));
-
-        Vault.addDailyTask({
-            label: task.text,
-            dp: habiticaPriorityToDp(task),
-            difficulty: habiticaPriorityToDifficulty(task),
-            notes: `Imported from Habitica (daily).${task.notes ? ' ' + task.notes : ''}`,
-            repeats: habiticaRepeatToBizzybee(task)
-        });
-        newlyImportedIds.push(key);
-        importedDailies++;
-        await tinyDelay();
-    }
-
-    for (const task of todos) {
-        const key = `todo:${task._id}`;
-        if (alreadyImported.has(key)) continue;
-        if (haveTodo.has(nameKey(task.text))) { newlyImportedIds.push(key); continue; }
-        haveTodo.add(nameKey(task.text));
-
-        Vault.addTodo({
-            label: task.text,
-            dp: habiticaPriorityToDp(task),
-            difficulty: habiticaPriorityToDifficulty(task),
-            notes: `Imported from Habitica (todo).${task.notes ? ' ' + task.notes : ''}`
-        });
-        newlyImportedIds.push(key);
-        importedTodos++;
-        await tinyDelay();
-    }
-
-    if (newlyImportedIds.length > 0) {
-        Vault.markHabiticaImported(newlyImportedIds);
-    }
-
-    const totalSeen = habits.length + dailies.length + todos.length;
-    return {
-        importedHabits, importedDailies, importedTodos,
-        skipped: totalSeen - (importedHabits + importedDailies + importedTodos),
-        migratedHabits: migration.migratedHabits,
-        migratedTodos: migration.migratedTodos
-    };
-}
+window.addEventListener('habitica-sync-status', renderHabiticaStatus);
 
 function showError(elId, message) {
     const el = document.getElementById(elId);
     el.textContent = message;
     el.hidden = false;
-}
-
-const HABITICA_AUTO_IMPORT_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const HABITICA_AUTO_IMPORT_KEY = 'bizzybee_habitica_last_auto_import';
-
-// Runs the same import the manual button does, but quietly and at most
-// once a day. Habitica credentials only ever decrypt while this page is
-// unlocked (see the PIN comment at the top of this file) - there's no way
-// to read an encrypted personalInfo field without it, by design - so
-// "automatic" here means "whenever you happen to open/unlock Account
-// Info," not a true background sync reachable from anywhere else in the
-// app. Failures are swallowed on purpose: this runs without a click, so a
-// network hiccup shouldn't interrupt the page with an error the user
-// didn't ask for. The manual Import button still surfaces failures as
-// normal.
-async function maybeAutoImportHabitica(info) {
-    if (!info.habiticaUserId || !info.habiticaApiToken) return;
-    const last = Number(localStorage.getItem(HABITICA_AUTO_IMPORT_KEY) || 0);
-    if (Date.now() - last < HABITICA_AUTO_IMPORT_INTERVAL_MS) return;
-
-    localStorage.setItem(HABITICA_AUTO_IMPORT_KEY, String(Date.now()));
-    try {
-        const result = await importFromHabitica(info.habiticaUserId, info.habiticaApiToken);
-        const changed = result.importedHabits + result.importedDailies + result.importedTodos + result.migratedHabits + result.migratedTodos;
-        if (changed > 0) {
-            Toast.show(`🎮 Habitica auto-sync: ${changed} item${changed === 1 ? '' : 's'} updated.`, 'positive');
-        }
-    } catch (error) {
-        console.warn('Habitica auto-import skipped:', error.message);
-    }
 }
 
 function showUnlockedContent(info, pin) {
@@ -352,7 +181,7 @@ function showUnlockedContent(info, pin) {
     populatePersonalInfoForm(info);
     applyAccountAvatarPreview();
     updateAvatarMigrateButton();
-    maybeAutoImportHabitica(info);
+    connectHabiticaFromInfo(info);
 }
 
 // First-time setup - only reachable while Vault.hasAccountPin() is false.
@@ -524,49 +353,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('habitica-import-btn').addEventListener('click', async () => {
-        const statusEl = document.getElementById('habitica-import-status');
         const errorEl = document.getElementById('habitica-import-error');
         const btn = document.getElementById('habitica-import-btn');
-        statusEl.hidden = true;
         errorEl.hidden = true;
 
         const userId = document.getElementById('pi-habiticaUserId').value.trim();
         const apiToken = document.getElementById('pi-habiticaApiToken').value.trim();
-
         if (!userId || !apiToken) {
-            errorEl.textContent = 'Both Habitica User ID and API Token are required to import.';
+            errorEl.textContent = 'Both Habitica User ID and API Token are required.';
             errorEl.hidden = false;
             return;
         }
 
+        // Keep the credentials (encrypted, same PIN) so they don't have to
+        // be re-typed - the whole form is saved, like the Save button does.
+        const data = readPersonalInfoForm();
+        if (data.alias) await Vault.setPersonalInfo(data, unlockedPin);
+
         btn.disabled = true;
-        btn.textContent = '🔄 Importing...';
-
-        try {
-            const result = await importFromHabitica(userId, apiToken);
-
-            // Persist the credentials alongside the rest of Personal
-            // Information (same encrypted blob, same PIN) so they don't
-            // have to be re-typed next time - the whole form gets saved
-            // here, not just the two Habitica fields, matching how the
-            // Save button above behaves.
-            const data = readPersonalInfoForm();
-            if (data.alias) {
-                await Vault.setPersonalInfo(data, unlockedPin);
-            }
-
-            const migratedTotal = result.migratedHabits + result.migratedTodos;
-            statusEl.textContent = `✅ Imported ${result.importedHabits} habit${result.importedHabits === 1 ? '' : 's'}, ${result.importedDailies} daily${result.importedDailies === 1 ? '' : 's'}, and ${result.importedTodos} to-do${result.importedTodos === 1 ? '' : 's'}.` +
-                (result.skipped > 0 ? ` (${result.skipped} already imported, skipped.)` : '') +
-                (migratedTotal > 0 ? ` Also moved ${migratedTotal} item${migratedTotal === 1 ? '' : 's'} from an earlier import that landed in the wrong place.` : '');
-            statusEl.hidden = false;
-            Toast.show('🎮 Habitica import complete.', 'positive');
-        } catch (error) {
-            errorEl.textContent = error.message || 'Import failed - check your User ID and API Token.';
+        btn.textContent = '🔄 Syncing...';
+        HabiticaSync.connect(userId, apiToken);
+        const result = await HabiticaSync.run({ manual: true });
+        const st = HabiticaSync.getStatus();
+        if (!result && !(st && !st.ok)) {
+            // A failure already shows in the status line; this is the "busy" case.
+            errorEl.textContent = 'Sync is already running - try again in a moment.';
             errorEl.hidden = false;
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '🔄 Import';
         }
+        renderHabiticaStatus();
+        btn.disabled = false;
+        btn.textContent = '🔄 Sync now';
+    });
+
+    document.getElementById('habitica-disconnect-btn').addEventListener('click', () => {
+        HabiticaSync.disconnect();
+        renderHabiticaStatus();
+        Toast.show('Habitica disconnected on this device.', 'positive');
     });
 });

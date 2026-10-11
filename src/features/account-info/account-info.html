@@ -147,8 +147,8 @@
             </section>
 
             <section class="panel">
-                <h3>🎮 Habitica Import</h3>
-                <p class="account-info-intro">Optional - link your Habitica account to pull your Habits, Dailies, and To-Dos into Bizzybee. Find both values on habitica.com under Settings &gt; API. Your Token is stored right here, encrypted with the same PIN as everything else on this page - never in plain Settings. Re-running Import only adds tasks that aren't already here.</p>
+                <h3>🎮 Habitica Sync</h3>
+                <p class="account-info-intro">Optional - keeps your Habits, Dailies and To-Dos in step with Habitica, both ways: check-offs, new tasks, edits and deletes. It syncs when the app opens, every 5 minutes, and right after you change something. Find both values on habitica.com under Settings &gt; API. They're stored here encrypted with your PIN; after you unlock, this device keeps a copy so syncing works without the PIN.</p>
 
                 <div class="personal-info-grid">
                     <label class="personal-info-field">
@@ -166,10 +166,17 @@
 
                 <div class="settings-action-row">
                     <div class="settings-action-info">
-                        <strong>Import Tasks</strong>
-                        <p>Pulls your current Habits/Dailies/To-Dos in as new Bizzybee Dailies and Quest tasks, and saves your User ID/Token here.</p>
+                        <strong>Sync now</strong>
+                        <p>Connects this device and syncs right away. Turns on automatic syncing.</p>
                     </div>
-                    <button id="habitica-import-btn">🔄 Import</button>
+                    <button id="habitica-import-btn">🔄 Sync now</button>
+                </div>
+                <div class="settings-action-row">
+                    <div class="settings-action-info">
+                        <strong>Disconnect this device</strong>
+                        <p>Stops syncing here and removes the device copy of your key. Your tasks stay.</p>
+                    </div>
+                    <button id="habitica-disconnect-btn" hidden>Disconnect</button>
                 </div>
             </section>
 
@@ -182,6 +189,7 @@
     <script src="../../core/crypto-lite.js"></script>
     <script src="../../core/auth.js"></script>
     <script src="../../core/habitica-api.js"></script>
+    <script src="../../core/habitica-sync/habitica-sync.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>

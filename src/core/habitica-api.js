@@ -1,7 +1,7 @@
 console.log("/// HABITICA API CLIENT ONLINE ///");
 
-// Thin wrapper around Habitica's public v3 REST API - read-only calls used
-// by src/features/account-info/'s "Import from Habitica" panel. No SDK, no
+// Thin wrapper around Habitica's public v3 REST API, used by
+// src/core/habitica-sync/ (two-way sync) and Account Info's Habitica panel. No SDK, no
 // build step, just fetch() with the three headers Habitica's docs require:
 //   x-api-user  - the player's Habitica User ID
 //   x-api-key   - the player's Habitica API Token (found on habitica.com
@@ -35,15 +35,15 @@ const HabiticaAPI = {
     },
 
     // Wraps fetch + Habitica's {success, data} / {success:false, message}
-    // response envelope into one place, so both getUser/getTasks below
-    // throw a real, readable Error instead of each having to duplicate
-    // this response-shape handling.
-    async _get(path, userId, apiToken) {
+    // response envelope into one place, so every call below throws a real,
+    // readable Error instead of each handling the response shape itself.
+    async _request(method, path, userId, apiToken, body) {
         let response;
         try {
             response = await fetch(`${HabiticaAPI.BASE_URL}${path}`, {
-                method: 'GET',
-                headers: HabiticaAPI._headers(userId, apiToken)
+                method,
+                headers: HabiticaAPI._headers(userId, apiToken),
+                body: body === undefined ? undefined : JSON.stringify(body)
             });
         } catch (error) {
             // Network failure OR a CORS rejection both land here - fetch()
@@ -52,18 +52,24 @@ const HabiticaAPI = {
             throw new Error('Could not reach Habitica - check your connection, or Habitica may be blocking this request.');
         }
 
-        let body;
+        let parsed;
         try {
-            body = await response.json();
+            parsed = await response.json();
         } catch (error) {
             throw new Error(`Habitica returned an unreadable response (HTTP ${response.status}).`);
         }
 
-        if (!response.ok || body.success === false) {
-            throw new Error(body.message || `Habitica rejected the request (HTTP ${response.status}). Check your User ID and API Token.`);
+        if (!response.ok || parsed.success === false) {
+            const err = new Error(parsed.message || `Habitica rejected the request (HTTP ${response.status}). Check your User ID and API Token.`);
+            err.status = response.status;
+            throw err;
         }
 
-        return body.data;
+        return parsed.data;
+    },
+
+    _get(path, userId, apiToken) {
+        return HabiticaAPI._request('GET', path, userId, apiToken);
     },
 
     // GET /user - profile, stats (level/class/hp/mp/gp), preferences, items.
@@ -77,5 +83,37 @@ const HabiticaAPI = {
     // own `type` field tells them apart: 'habit' | 'daily' | 'todo' | 'reward').
     async getTasks(userId, apiToken) {
         return HabiticaAPI._get('/tasks/user', userId, apiToken);
+    },
+
+    // ---- Two-way sync (src/core/habitica-sync/, 2026-10-10) ----
+
+    // Completed To-Dos are NOT in getTasks - they come from this list.
+    // Needed so a To-Do finished on Habitica isn't mistaken for a deleted one.
+    async getCompletedTodos(userId, apiToken) {
+        return HabiticaAPI._get('/tasks/user?type=completedTodos', userId, apiToken);
+    },
+
+    // needsCron: Habitica hasn't started the player's new day yet. Its own
+    // apps run cron on open; scoring before that lands on the old day.
+    async getCronState(userId, apiToken) {
+        return HabiticaAPI._get('/user?userFields=needsCron', userId, apiToken);
+    },
+    async runCron(userId, apiToken) {
+        return HabiticaAPI._request('POST', '/cron', userId, apiToken);
+    },
+
+    // tasks: one task object or an array (one request either way).
+    async createTasks(userId, apiToken, tasks) {
+        return HabiticaAPI._request('POST', '/tasks/user', userId, apiToken, tasks);
+    },
+    async updateTask(userId, apiToken, taskId, changes) {
+        return HabiticaAPI._request('PUT', `/tasks/${encodeURIComponent(taskId)}`, userId, apiToken, changes);
+    },
+    async deleteTask(userId, apiToken, taskId) {
+        return HabiticaAPI._request('DELETE', `/tasks/${encodeURIComponent(taskId)}`, userId, apiToken);
+    },
+    // direction 'up' = complete / + ; 'down' = un-complete / -
+    async scoreTask(userId, apiToken, taskId, direction) {
+        return HabiticaAPI._request('POST', `/tasks/${encodeURIComponent(taskId)}/score/${direction === 'down' ? 'down' : 'up'}`, userId, apiToken);
     }
 };
