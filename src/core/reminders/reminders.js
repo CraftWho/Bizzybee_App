@@ -21,7 +21,13 @@ const Reminders = {
             Toast.show('This browser doesn\'t support reminder notifications.', 'negative');
             return;
         }
-        if (Notification.permission === 'granted') return;
+        if (Notification.permission === 'granted') {
+            if (localStorage.getItem('bizzybee_push_on') !== '1' && !sessionStorage.getItem('bizzybee_push_hint')) {
+                sessionStorage.setItem('bizzybee_push_hint', '1');
+                Toast.show('Tip: turn on Phone Reminders in Settings to get reminders while the app is closed.', 'positive');
+            }
+            return;
+        }
         if (Notification.permission === 'denied') {
             Toast.show('Notifications are blocked - enable them in your browser\'s site settings for reminders to fire.', 'negative');
             return;
@@ -66,6 +72,8 @@ const Reminders = {
     // reusable for whatever else Vault folds into that feed later.
     check() {
         if (typeof Vault === 'undefined' || !Vault.state) return;
+        // Phone reminders (push.js) deliver these instead - no doubles.
+        if (localStorage.getItem('bizzybee_push_on') === '1') return;
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
         const today = todayISO();

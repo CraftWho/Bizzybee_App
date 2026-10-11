@@ -72,6 +72,13 @@
 <button id="cloud-sync-logout-btn">Sign Out</button>
 </div></div></details>
 
+        <details class="panel settings-category"><summary>🔔 Phone Reminders</summary><div class="settings-category-body">
+            <p class="settings-intro">Get your Daily and To-Do reminders as phone notifications, even when the app is closed. Needs your cloud account. Your save stays encrypted - only the upcoming reminder times (and task names, if you allow it) go to the server.</p>
+            <div class="settings-action-row"><div class="settings-action-info"><strong>Phone reminders on this device</strong><p id="push-status" role="status" aria-live="polite">Checking…</p></div><label class="toggle-switch"><input type="checkbox" id="push-toggle" aria-label="Phone reminders on this device"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+            <div class="settings-action-row"><div class="settings-action-info"><strong>Show task names</strong><p>Off: notifications just say "You have a task reminder."</p></div><label class="toggle-switch"><input type="checkbox" id="push-names-toggle" aria-label="Show task names in notifications" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+            <div class="settings-action-row"><div class="settings-action-info"><strong>Send a test</strong><p>Arrives in a few seconds.</p></div><button id="push-test-btn" disabled>Send Test</button></div>
+        </div></details>
+
         <details class="panel settings-category"><summary>👤 Account</summary><div class="settings-category-body">
             <p class="settings-intro">Your photo and personal information - kept off this page entirely, on their own locked and encrypted screen, so it isn't just sitting here for anyone using this device to see.</p>
 
@@ -230,6 +237,7 @@
     <script src="../../core/account-recovery.js"></script>
 <script src="./cloud-controls.js"></script>
 <script src="./local-cloud-download.js"></script>
+<script src="../../core/push/push.js"></script>
 <script src="./settings.js"></script>
 </body>
 </html>
