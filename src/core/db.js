@@ -3697,14 +3697,6 @@ class DatabaseManager {
         return hash === this.state.accountPinHash;
     }
 
-    // 7e. Logic: Habitica import dedupe tracking (src/features/account-info/'s
-    // "Habitica Import" panel, src/core/habitica-api.js). A flat list of
-    // "<type>:<habiticaTaskId>" strings already pulled in - Habitica's own
-    // task _id is a stable UUID, so this is enough to guarantee re-running
-    // Import never creates duplicate Dailies or Quest tasks for the same
-    // Habitica task, without needing to touch addTask/addDailyTask's own id
-    // scheme at all. Local app state, not blueprint content - same
-    // reasoning as state.plugins/state.calendarEvents.
     // An early version of the Habitica import put every Habitica Habit into
     // Dailies (note "Imported from Habitica (habit).") and every To-Do into
     // a standing "Imported from Habitica" quest. This moves them where they
@@ -3783,17 +3775,10 @@ class DatabaseManager {
         return { habits: oldHabits.length, todos };
     }
 
-    getHabiticaImportedIds() {
-        return this.state ? (this.state.habiticaImportedIds || []) : [];
-    }
+    // 7e. Habitica: the old one-way import's id list (state.habiticaImportedIds)
+    // is no longer used - two-way sync keeps state.habiticaLinks instead
+    // (src/core/habitica-sync/). Old saves still carry the list; it's harmless.
 
-    markHabiticaImported(ids) {
-        if (!this.state) return;
-        const existing = new Set(this.state.habiticaImportedIds || []);
-        (ids || []).forEach(id => existing.add(id));
-        this.state.habiticaImportedIds = Array.from(existing);
-        this.save();
-    }
 
     // --- Onboarding (the egg gift) ------------------------------------------
     _ensureOnboardingData() {

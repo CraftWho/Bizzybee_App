@@ -496,6 +496,26 @@ class CodexSystem {
         this.initFolderBackupAuto();
         this.injectInstallButton();
         this.loadLocalDevTools();
+        this.loadHabiticaSync();
+    }
+
+    // Habitica two-way sync (src/core/habitica-sync/) - loads on every app
+    // page once this device has the Habitica key (Account Info saves it).
+    loadHabiticaSync() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/')) return;
+        if (!localStorage.getItem('bizzybee_habitica_link') || localStorage.getItem('bizzybee_dev_test') === '1') return;
+        const add = (src) => new Promise((resolve) => {
+            if (document.querySelector(`script[src*="${src.split("/").pop()}"]`)) { resolve(); return; }
+            const script = document.createElement('script');
+            script.src = `../../../${src}`;
+            script.onload = resolve;
+            script.onerror = resolve;
+            document.body.appendChild(script);
+        });
+        const apiReady = typeof HabiticaAPI !== 'undefined' ? Promise.resolve() : add('src/core/habitica-api.js');
+        apiReady.then(() => add('src/core/habitica-sync/habitica-sync.js'));
     }
 
     // Dev tools (Craft, 2026-10-09).
