@@ -177,14 +177,12 @@
 
     // Workshop pages only exist on this computer (gitignored).
     const LINKS = [
-        ['Egg demo', 'workshop/concepts/2026-10-onboarding/egg-opening.html'],
-        ['Home demo', 'workshop/concepts/2026-10-home-redesign/home-v3-demo.html'],
-        ['Hive inside (try ?lvl=20&n=12&lapses=5&fresh=1)', 'workshop/harnesses/colony-interior-harness.html'],
-        ['Hive outside', 'workshop/harnesses/colony-exterior-harness.html'],
-        ['Cards', 'workshop/harnesses/cards-harness.html'],
+        ['Hive inside · Queen', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=queen'],
+        ['Hive inside · King', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=king'],
+        ['Hive outside', 'workshop/harnesses/colony-exterior-harness.html?lvl=30'],
+        ['Cards (incl. Queen & King)', 'workshop/harnesses/cards-harness.html'],
         ['Bee Action Lab', 'workshop/test-pages/bee-lab/bee-lab.html'],
         ['Card Lab', 'workshop/test-pages/card-lab/card-lab.html'],
-        ['Card designs v2', 'workshop/concepts/2026-10-cards/bee-cards-v2.html'],
         ['Workshop README', 'workshop/README.md']
     ];
 
