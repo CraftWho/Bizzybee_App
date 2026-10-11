@@ -129,3 +129,8 @@
     0% { background: #2a2205; }
     100% { background: #151515; }
 }
+
+/* Shown when the plugin is off (Plugin Hub). */
+.dictionary-not-installed { text-align: center; padding: 30px 20px; }
+.dictionary-install-link { display: inline-block; margin-top: 10px; color: var(--gold-start); font-weight: bold; text-decoration: none; }
+.dictionary-install-link:hover { text-decoration: underline; }

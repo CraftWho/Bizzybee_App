@@ -251,7 +251,7 @@ const APP_ICONS = {
 // The order is kept in the save (state.homeAppOrder), so it follows you.
 const HOME_APPS = [
     { key: 'colony', label: 'Colony' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
-    { key: 'skills', label: 'Skills' }, { key: 'dictionary', label: 'Dictionary' }, { key: 'map', label: 'Map' },
+    { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
     { key: 'hive-archive', label: 'Hive Archive' }, { key: 'settings', label: 'Settings' }
 ];

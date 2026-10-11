@@ -84,7 +84,7 @@ function sourceHTML(quest) {
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
                 <span>${esc(quest.source.label)}<small>${esc(quest.source.url)}</small></span></a>` : ''}
         ${terms.length ? `<h2 class="qd-h">Related terms <span>${terms.length}</span></h2>
-            <div class="qd-terms">${terms.map(t => `<a href="../dictionary/dictionary.html?term=${encodeURIComponent(t.id)}">📖 ${esc(t.name)}</a>`).join('')}</div>` : ''}
+            <div class="qd-terms">${terms.map(t => `<a href="../../plugins/dictionary/dictionary.html?term=${encodeURIComponent(t.id)}">📖 ${esc(t.name)}</a>`).join('')}</div>` : ''}
         ${quest.queensDecree ? `<h2 class="qd-h">🐝 The Queen's Decree</h2><blockquote class="qd-decree">${esc(quest.queensDecree)}</blockquote>` : ''}
     </section>`;
 }
