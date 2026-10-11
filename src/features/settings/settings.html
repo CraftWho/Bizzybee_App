@@ -128,6 +128,8 @@
             <p class="settings-intro">Everything here lives only on this device/browser - nothing is sent anywhere unless you export a file yourself.</p>
             <p id="local-only-updated-row" class="settings-intro">📍 Last updated on this device: <strong id="local-only-updated">—</strong></p>
 
+            <div class="settings-action-row"><div class="settings-action-info"><strong>Import history file</strong><p>Adds old progress (like your Codex Career Terminal) as finished quests, dictionary terms, projects and a timeline. Nothing is replaced, and finished work adds no XP.</p><p id="history-import-status" role="status" aria-live="polite"></p></div><button id="history-import-btn">📥 Import</button><input type="file" id="history-import-file" accept=".json,application/json" hidden></div>
+
             <details class="settings-subcategory" open><summary>Device recovery copies</summary>
             <p>Keep up to three quick recovery copies on this device. These are unencrypted local snapshots, not cloud backups; clearing browser data removes them.</p>
             <div class="settings-action-row"><button id="local-backup-btn">Create Device Backup</button><button id="local-backup-refresh-btn">Refresh Recovery Copies</button></div>

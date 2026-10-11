@@ -1605,6 +1605,68 @@ class DatabaseManager {
 
     // Static profile content (projects/service record) - see the schema v7
     // note above VAULT_SCHEMA_VERSION for why this moved out of profile.html.
+    // History import (Oct 2026): merges a 'bizzybee-history' file - e.g. the
+    // old Codex Career Terminal, built by workshop/tools/build-codex-history.py
+    // - into this save. Never overwrites: quests with an existing id, and
+    // terms / projects / study items / timeline lines that already exist,
+    // are skipped. Finished work arrives with 0 XP (history only); its old
+    // value is kept on the task as historyXP. dryRun: just count.
+    importHistoryPack(pack, { dryRun = false } = {}) {
+        if (!this.state) return null;
+        if (!pack || pack.kind !== 'bizzybee-history' || !Array.isArray(pack.quests)) throw new Error('Not a Bizzybee history file.');
+        const s = this.state;
+        const low = (v) => String(v || '').trim().toLowerCase();
+        const counts = { quests: 0, tasks: 0, terms: 0, projects: 0, timeline: 0, titles: 0, study: 0, skipped: 0 };
+        const quests = s.quests || [];
+        const newQuests = [];
+        pack.quests.forEach(q => {
+            if (!q || !q.id || !q.title || quests.some(x => x.id === q.id)) { counts.skipped++; return; }
+            const tasks = (q.tasks || []).filter(t => t && t.label).map((t, i) => ({
+                id: t.id || `${String(q.id).toLowerCase()}-t${i + 1}`,
+                label: String(t.label),
+                xp: Number(t.xp) || 0,
+                historyXP: Number(t.historyXP) || 0,
+                completed: !!t.completed,
+                dateCompleted: t.dateCompleted || null,
+                link: t.link || null,
+                difficulty: t.difficulty || null
+            }));
+            counts.quests++; counts.tasks += tasks.length;
+            newQuests.push({ ...q, category: q.category === 'side' ? 'side' : 'main', status: q.status === 'completed' ? 'completed' : 'active', tasks, importedFrom: pack.source || 'history file' });
+        });
+        const dict = s.dictionary || [];
+        const terms = (pack.dictionary || []).filter(t => t && t.name && !dict.some(d => low(d.name) === low(t.name)));
+        counts.terms = terms.length;
+        const profile = s.profile || { projects: [], serviceRecord: [] };
+        const realProjects = (profile.projects || []).filter(p => p.name !== 'Your First Project');
+        const projects = (pack.projects || []).filter(p => p && p.name && !realProjects.some(x => low(x.name) === low(p.name)));
+        counts.projects = projects.length;
+        const record = (profile.serviceRecord || []).filter(r => r.date !== '—');
+        const lines = (pack.timeline || []).filter(t => t && t.date && t.note && !record.some(r => r.date === t.date && low(r.note) === low(t.note)));
+        counts.timeline = lines.length;
+        const haveTitles = s.titles || [];
+        const titles = (pack.titles || []).filter(t => t && t.title && !haveTitles.some(x => low(x.title) === low(t.title)));
+        counts.titles = titles.length;
+        const queue = s.studyQueue || [];
+        const study = (pack.studyQueue || []).filter(i => i && i.topic && !queue.some(x => low(x.topic) === low(i.topic)));
+        counts.study = study.length;
+        if (dryRun) return counts;
+
+        s.quests = [...quests, ...newQuests];
+        s.dictionary = [...dict, ...terms.map(t => ({ id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: String(t.name), definition: String(t.definition || ''), category: String(t.category || 'General'), createdAt: new Date().toISOString(), source: 'history' }))];
+        s.profile = {
+            ...profile,
+            projects: [...realProjects, ...projects.map(p => ({ name: p.name, status: p.status || '', liveLink: p.liveLink || null, repoLink: p.repoLink || null, tech: p.tech || [] }))],
+            serviceRecord: [...record, ...lines.map(t => ({ date: t.date, note: t.note }))].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+        };
+        s.titles = [...haveTitles, ...titles.map(t => ({ title: t.title, ability: t.ability || '', date: t.date || null }))];
+        s.studyQueue = [...queue, ...study.map(i => ({ id: `study-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, topic: i.topic, type: i.type || 'Article', priority: i.priority || 'Medium', status: i.status || 'Pending', link: i.link || null }))];
+        if (pack.activeQuestId && newQuests.some(q => q.id === pack.activeQuestId)) s.activeQuestId = pack.activeQuestId;
+        s.historyImports = [...(s.historyImports || []), { source: pack.source || 'history file', at: new Date().toISOString(), counts }];
+        this.save();
+        return counts;
+    }
+
     getProfileExtras() {
         return this.state && this.state.profile
             ? this.state.profile
