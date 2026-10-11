@@ -102,6 +102,69 @@ const HabiticaSync = (() => {
         const h = habit.history || [];
         return { up: h.filter(x => x.direction === 'positive').length, down: h.filter(x => x.direction === 'negative').length };
     }
+    // ---- daily schedules -------------------------------------------------
+    // Habitica keeps startDate as local midnight in UTC; Bizzybee keeps
+    // a plain local 'YYYY-MM-DD'.
+    const DAY_KEYS = ['su', 'm', 't', 'w', 'th', 'f', 's'];
+    const pad = (n) => String(n).padStart(2, '0');
+    function localDay(value) {
+        if (!value) return '';
+        const d = new Date(value);
+        if (isNaN(d)) return String(value).slice(0, 10);
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    const toHabiticaDate = (day) => new Date(`${day}T00:00:00`).toISOString();
+
+    // Habitica daily -> { repeats, startDate } for Bizzybee.
+    function scheduleFrom(task) {
+        const every = Math.max(1, Number(task.everyX) || 1);
+        let startDate = localDay(task.startDate) || undefined;
+        if (task.frequency === 'weekly') {
+            const r = task.repeat || {};
+            return { startDate, repeats: { type: 'weekly', every, daysOfWeek: DAY_KEYS.map((k, i) => (r[k] ? i : null)).filter(i => i !== null) } };
+        }
+        if (task.frequency === 'monthly') {
+            // Bizzybee's monthly day comes from startDate's day.
+            const dom = (task.daysOfMonth || [])[0];
+            if (dom && startDate) {
+                const [y, m] = startDate.split('-').map(Number);
+                const last = new Date(y, m, 0).getDate();
+                startDate = `${y}-${pad(m)}-${pad(Math.min(dom, last))}`;
+            }
+            return { startDate, repeats: { type: 'monthly', every, daysOfWeek: [] } };
+        }
+        return { startDate, repeats: { type: 'daily', every, daysOfWeek: [] } };
+    }
+    // One comparable string per schedule, for each side.
+    function schedOfLocal(item) {
+        const r = item.repeats || { type: 'daily', every: 1 };
+        const every = Math.max(1, Number(r.every) || 1);
+        const start = item.startDate || '';
+        if (r.type === 'weekly') return `weekly|${every}|${[...(r.daysOfWeek || [])].sort().join(',')}|${start}`;
+        if (r.type === 'monthly') return `monthly|${every}|${start ? Number(start.slice(8, 10)) : 1}|${start}`;
+        return `daily|${every}|${start}`;
+    }
+    const schedOfRemote = (task) => schedOfLocal(scheduleFrom(task));
+    function scheduleBody(item) {
+        const r = item.repeats || { type: 'daily', every: 1 };
+        const body = { everyX: Math.max(1, Number(r.every) || 1) };
+        if (item.startDate) body.startDate = toHabiticaDate(item.startDate);
+        if (r.type === 'weekly') {
+            body.frequency = 'weekly';
+            body.repeat = Object.fromEntries(DAY_KEYS.map((k, i) => [k, (r.daysOfWeek || []).includes(i)]));
+        } else if (r.type === 'monthly') {
+            body.frequency = 'monthly';
+            body.daysOfMonth = [item.startDate ? Number(item.startDate.slice(8, 10)) : 1];
+        } else {
+            body.frequency = 'daily';
+        }
+        return body;
+    }
+    // Habitica's own answer to "is this due today?".
+    function noteDue(item, task) {
+        if (typeof task.isDue === 'boolean') item.habiticaDue = { day: today(), due: task.isDue };
+    }
+
     function localDone(type, item) {
         if (type === 'daily') return (item.completedDates || []).includes(today());
         if (type === 'todo') return !!item.completed;
@@ -110,11 +173,13 @@ const HabiticaSync = (() => {
     function localFields(type, item) {
         const f = { text: item.label, notes: cleanNotes(item.notes), priority: priorityOf(item.difficulty || 'Easy') };
         if (type === 'habit') { f.up = item.positive !== false; f.down = item.negative !== false; }
+        if (type === 'daily') f.sched = schedOfLocal(item);
         return f;
     }
     function remoteFields(type, task) {
         const f = { text: task.text, notes: task.notes || '', priority: Number(task.priority) || 1 };
         if (type === 'habit') { f.up = task.up !== false; f.down = task.down !== false; }
+        if (type === 'daily') f.sched = schedOfRemote(task);
         return f;
     }
     function snapshot(type, item, task) {
@@ -134,24 +199,7 @@ const HabiticaSync = (() => {
         const body = { type, text: item.label, notes: cleanNotes(item.notes), priority: priorityOf(item.difficulty || 'Easy') };
         if (type === 'habit') { body.up = item.positive !== false; body.down = item.negative !== false; }
         if (type === 'todo' && item.dueDate) body.date = item.dueDate;
-        if (type === 'daily') {
-            const r = item.repeats || { type: 'daily', every: 1 };
-            const every = Math.max(1, Number(r.every) || 1);
-            if (item.startDate) body.startDate = item.startDate;
-            if (r.type === 'weekly') {
-                const keys = ['su', 'm', 't', 'w', 'th', 'f', 's'];
-                body.frequency = 'weekly';
-                body.everyX = every;
-                body.repeat = Object.fromEntries(keys.map((k, i) => [k, (r.daysOfWeek || []).includes(i)]));
-            } else if (r.type === 'monthly') {
-                body.frequency = 'monthly';
-                body.everyX = every;
-                body.daysOfMonth = [item.startDate ? new Date(`${item.startDate}T12:00:00`).getDate() : 1];
-            } else {
-                body.frequency = 'daily';
-                body.everyX = every;
-            }
-        }
+        if (type === 'daily') Object.assign(body, scheduleBody(item));
         return body;
     }
 
@@ -162,17 +210,9 @@ const HabiticaSync = (() => {
         let list;
         if (type === 'habit') list = Vault.addHabit({ ...base, positive: task.up !== false, negative: task.down !== false });
         else if (type === 'todo') list = Vault.addTodo({ ...base, dueDate: task.date ? String(task.date).slice(0, 10) : null });
-        else {
-            let repeats = { type: 'daily', every: Math.max(1, task.everyX || 1), daysOfWeek: [] };
-            if (task.frequency === 'weekly' && task.repeat) {
-                const keys = ['su', 'm', 't', 'w', 'th', 'f', 's'];
-                repeats = { type: 'weekly', every: Math.max(1, task.everyX || 1), daysOfWeek: keys.map((k, i) => (task.repeat[k] ? i : null)).filter(i => i !== null) };
-            } else if (task.frequency === 'monthly') {
-                repeats = { type: 'monthly', every: Math.max(1, task.everyX || 1), daysOfWeek: [] };
-            }
-            list = Vault.addDailyTask({ ...base, repeats, startDate: task.startDate ? String(task.startDate).slice(0, 10) : undefined });
-        }
+        else list = Vault.addDailyTask({ ...base, ...scheduleFrom(task) });
         const item = list && list[list.length - 1];
+        if (item && type === 'daily') noteDue(item, task);
         // addHabit's id is only per-millisecond; make it unique.
         if (item && type === 'habit') item.id = `habit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
         return item;
@@ -342,13 +382,21 @@ const HabiticaSync = (() => {
                 else if (key === 'priority') { local.difficulty = difficultyOf(rf.priority); local.xp = TIER_XP[type][local.difficulty]; }
                 else if (key === 'up') local.positive = rf.up;
                 else if (key === 'down') local.negative = rf.down;
+                else if (key === 'sched') Object.assign(local, scheduleFrom(task));
                 counts.pulled++;
             } else if (lc && !rc) {
                 push[key] = lf[key];
             }
         }
         if (type === 'habit' && local.positive === false && local.negative === false) { local.positive = true; local.negative = true; }
-        if (Object.keys(push).length) { await write('updateTask', link.hid, push); counts.pushed++; }
+        if (Object.keys(push).length) {
+            const body = { ...push };
+            if (body.sched) { delete body.sched; Object.assign(body, scheduleBody(local)); }
+            const updated = await write('updateTask', link.hid, body);
+            counts.pushed++;
+            if (type === 'daily' && updated && typeof updated === 'object') noteDue(local, updated);
+        }
+        if (type === 'daily' && !push.sched) noteDue(local, task);
 
         if (type === 'habit') {
             const c = habitCounts(local);
