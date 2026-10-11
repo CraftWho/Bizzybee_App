@@ -35,7 +35,7 @@ function renderDictionaryList() {
                     <div class="dictionary-term-row" data-term-id="${term.id}">
                         <div class="dictionary-term-main">
                             <span class="dictionary-term-name">${escapeDictHTML(term.name)}</span>
-                            ${term.definition ? `<p class="dictionary-term-definition">${escapeDictHTML(term.definition)}</p>` : ''}
+                            ${term.definition ? `<p class="dictionary-term-definition">${escapeDictHTML(term.definition)}</p>` : `<button type="button" class="dictionary-term-define" data-role="define-term">＋ Add a definition</button>`}
                         </div>
                         <button type="button" class="dictionary-term-remove" data-role="remove-term" aria-label="Remove term">🗑️</button>
                     </div>
@@ -43,6 +43,26 @@ function renderDictionaryList() {
             </div>
         `;
     }).join('');
+
+    // Terms added with #word start with no definition - fill it in here.
+    container.querySelectorAll('[data-role="define-term"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const row = btn.closest('.dictionary-term-row');
+            const form = document.createElement('form');
+            form.className = 'dictionary-term-define-form';
+            form.innerHTML = `<input type="text" class="dictionary-term-define-input" placeholder="What does it mean?" maxlength="400" aria-label="Definition"><button type="submit">Save</button>`;
+            btn.replaceWith(form);
+            const input = form.querySelector('input');
+            input.focus();
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const text = input.value.trim();
+                if (!text) return;
+                Vault.updateDictionaryTerm(row.dataset.termId, { definition: text });
+                renderDictionaryList();
+            });
+        });
+    });
 
     container.querySelectorAll('[data-role="remove-term"]').forEach(btn => {
         btn.addEventListener('click', () => {

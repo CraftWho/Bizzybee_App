@@ -134,3 +134,42 @@
 .dictionary-not-installed { text-align: center; padding: 30px 20px; }
 .dictionary-install-link { display: inline-block; margin-top: 10px; color: var(--gold-start); font-weight: bold; text-decoration: none; }
 .dictionary-install-link:hover { text-decoration: underline; }
+
+/* #word terms arrive without a definition (Oct 2026). */
+.dictionary-term-define {
+    margin-top: 4px;
+    padding: 3px 10px;
+    border: 1px dashed rgba(255, 204, 0, .55);
+    border-radius: 8px;
+    background: transparent;
+    color: #ffcc00;
+    font: inherit;
+    font-size: .8rem;
+    cursor: pointer;
+}
+.dictionary-term-define-form {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+.dictionary-term-define-input {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 204, 0, .4);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, .35);
+    color: inherit;
+    font: inherit;
+    font-size: .85rem;
+}
+.dictionary-term-define-form button {
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: #ffcc00;
+    color: #1a1200;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
