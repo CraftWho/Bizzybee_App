@@ -306,6 +306,10 @@ const DICTIONARY_STARTER_TERMS = [
 // matching week," anchored to whichever week startDate itself falls in.
 // Never due before its own startDate, regardless of type.
 function isDailyDueOn(daily, dateStr) {
+    // Synced from Habitica: its own "due today" answer wins for that day,
+    // so the two apps never disagree about what is grayed out.
+    const hd = daily.habiticaDue;
+    if (hd && hd.day === dateStr && typeof hd.due === 'boolean') return hd.due;
     const repeats = daily.repeats || { type: 'daily', every: 1, daysOfWeek: [] };
     const date = new Date(`${dateStr}T00:00:00`);
     const start = daily.startDate ? new Date(`${daily.startDate}T00:00:00`) : null;
@@ -2999,8 +3003,11 @@ class DatabaseManager {
         if (difficulty !== undefined) task.difficulty = difficulty || null;
         if (notes !== undefined) task.notes = notes;
         if (checklist !== undefined) task.checklist = Array.isArray(checklist) ? checklist : [];
+        const schedBefore = JSON.stringify([task.startDate, task.repeats]);
         if (startDate !== undefined) task.startDate = startDate;
         if (repeats !== undefined) task.repeats = repeats;
+        // Schedule changed here: Habitica's old "due today" no longer applies.
+        if (JSON.stringify([task.startDate, task.repeats]) !== schedBefore) delete task.habiticaDue;
         if (reminders !== undefined) task.reminders = Array.isArray(reminders) ? reminders : [];
         if (tags !== undefined) task.tags = Array.isArray(tags) ? tags : [];
 
