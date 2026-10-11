@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initFolderBackup();
     initPasswordReset();
     initPhoneReminders();
+    initHistoryImport();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
         const conversations = Vault.getConversations();
@@ -213,5 +214,33 @@ function initPhoneReminders() {
         try { await BizzyPush.test(); Toast.show('🔔 Test sent.', 'positive'); }
         catch (error) { Toast.show(error.message, 'negative'); }
         finally { test.disabled = !BizzyPush.isOn(); }
+    });
+}
+
+// History import (Vault.importHistoryPack).
+function initHistoryImport() {
+    const btn = document.getElementById('history-import-btn');
+    const file = document.getElementById('history-import-file');
+    const status = document.getElementById('history-import-status');
+    if (!btn || !file) return;
+    btn.addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+        const f = file.files && file.files[0];
+        file.value = '';
+        if (!f) return;
+        try {
+            const pack = JSON.parse(await f.text());
+            const c = Vault.importHistoryPack(pack, { dryRun: true });
+            const list = [`${c.quests} quests (${c.tasks} tasks)`, `${c.terms} dictionary terms`, `${c.projects} projects`, `${c.timeline} timeline entries`, `${c.titles} titles`, `${c.study} study items`];
+            if (!c.quests && !c.terms && !c.projects && !c.timeline && !c.titles && !c.study) { status.textContent = 'Nothing new in that file - it was already imported.'; return; }
+            if (!confirm(`Import from ${pack.source || 'this file'}?\n\n${list.join('\n')}\n\nNothing is replaced. A device backup is made first.`)) return;
+            if (typeof Vault.createLocalBackup === 'function') { try { Vault.createLocalBackup('before history import'); } catch (e) { /* best effort */ } }
+            Vault.importHistoryPack(pack);
+            status.textContent = `✅ Imported: ${list.join(', ')}.`;
+            Toast.show('📥 History imported.', 'positive');
+        } catch (error) {
+            status.textContent = error.message || 'Could not read that file.';
+            Toast.show(status.textContent, 'negative');
+        }
     });
 }
