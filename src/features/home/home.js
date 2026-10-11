@@ -8,7 +8,7 @@ console.log("/// HOME PROTOCOLS INITIALIZED ///");
 //   - Today: a dropdown with Dailies / Habits / To-Dos / Quest tabs, using
 //     the exact same cards as those tabs (TaskRow, HabitRow, QuestUI).
 //     Closed by default on phones, open on wide screens.
-//   - the app grid: every page that isn't in the bottom dock, grouped
+//   - the app grid: every page that isn't in the bottom dock, one grid
 //     (Hive / Grow / You / More), with gold line icons on coloured hexagons
 
 function escapeHTML(str) {
@@ -231,7 +231,7 @@ function setupToday() {
     });
 }
 
-// ---- app grid: everything that isn't in the bottom dock, in groups ----
+// ---- app grid: everything that isn't in the bottom dock ----
 const APP_ICONS = {
     colony: '<path d="M14 3.5 20.5 7.2v7.6L14 18.5l-6.5-3.7V7.2z"/><path d="M7.5 14.8 1.8 18v6.6l5.7 3.2 5.7-3.2V18M20.5 14.8l5.7 3.2v6.6l-5.7 3.2-5.7-3.2V18"/>',
     models: '<path d="M9 3c0 6 10 8 10 14S9 19 9 25M19 3c0 6-10 8-10 14s10 2 10 8"/><path d="M10.5 7h7M10.5 21h7M12 11.5h4M12 16.5h4"/>',
@@ -246,16 +246,17 @@ const APP_ICONS = {
     settings: '<circle cx="14" cy="14" r="3.6"/><path d="M14 3.5v3M14 21.5v3M24.5 14h-3M6.5 14h-3M21.4 6.6l-2.1 2.1M8.7 19.3l-2.1 2.1M21.4 21.4l-2.1-2.1M8.7 8.7 6.6 6.6"/><circle cx="14" cy="14" r="7.5"/>',
     plugin: '<path d="M14 3.5 23 8.7v10.6L14 24.5 5 19.3V8.7z"/><path d="M14 9v10M9 14h10"/>'
 };
-const APP_GROUPS = [
-    { key: 'hive', label: 'Hive', color: '#ffcc00', ink: '#2a1a00', apps: [
-        { key: 'colony', label: 'Colony' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' }] },
-    { key: 'grow', label: 'Grow', color: '#34c77b', ink: '#06210f', apps: [
-        { key: 'skills', label: 'Skills' }, { key: 'dictionary', label: 'Dictionary' }, { key: 'map', label: 'Map' }, { key: 'dashboard', label: 'Dashboard' }] },
-    { key: 'you', label: 'You', color: '#4fb3d9', ink: '#04202b', apps: [
-        { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' }, { key: 'hive-archive', label: 'Hive Archive' }, { key: 'settings', label: 'Settings' }] }
+// One grid, no categories (Craft, 2026-10-10) - like a phone's home
+// screen. Hold any app to rearrange (apps wiggle), drag, then tap Done.
+// The order is kept in the save (state.homeAppOrder), so it follows you.
+const HOME_APPS = [
+    { key: 'colony', label: 'Colony' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
+    { key: 'skills', label: 'Skills' }, { key: 'dictionary', label: 'Dictionary' }, { key: 'map', label: 'Map' },
+    { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
+    { key: 'hive-archive', label: 'Hive Archive' }, { key: 'settings', label: 'Settings' }
 ];
 // Habits and To-Dos are in the dock, so only the other installed plugins
-// (Calendar, Study...) join the grid, as their own "More" group.
+// (Calendar, Study...) join the grid.
 const DOCK_PLUGINS = ['habits', 'todos'];
 
 function installedPluginApps() {
@@ -269,20 +270,113 @@ function hrefFor(app) {
     return app.base === 'plugins' ? `../../plugins/${app.key}/${app.key}.html` : `../${app.key}/${app.key}.html`;
 }
 
+// Saved order first, then any app the order doesn't know yet (new plugin).
+function orderedApps() {
+    const all = [...HOME_APPS, ...installedPluginApps()];
+    const saved = (Vault.state && Array.isArray(Vault.state.homeAppOrder)) ? Vault.state.homeAppOrder : [];
+    const byKey = new Map(all.map(a => [a.key, a]));
+    const out = saved.filter(k => byKey.has(k)).map(k => byKey.get(k));
+    all.forEach(a => { if (!saved.includes(a.key)) out.push(a); });
+    return out;
+}
+
 function renderAppGrid() {
-    const groups = [...APP_GROUPS];
-    const extra = installedPluginApps();
-    if (extra.length) groups.push({ key: 'more', label: 'More', color: '#b18cff', ink: '#1a0b33', apps: extra });
-    document.getElementById('home-app-grid').innerHTML = groups.map(g => `
-        <div class="home-group" style="--gc:${g.color};--gk:${g.ink}">
-            <h3 class="home-group-h">${escapeHTML(g.label)}</h3>
-            <div class="home-group-apps">${g.apps.map(app => `
-                <a class="home-app" href="${hrefFor(app)}">
-                    <span class="home-app-ic" aria-hidden="true"><svg viewBox="0 0 28 28">${APP_ICONS[app.key] || APP_ICONS.plugin}</svg></span>
-                    <span class="home-app-label">${escapeHTML(app.label)}</span>
-                </a>`).join('')}
-            </div>
-        </div>`).join('');
+    const section = document.getElementById('home-app-grid');
+    section.innerHTML = `
+        <div class="home-apps-bar"><span class="home-apps-hint" id="home-apps-hint">Hold an app to move it</span>
+            <button type="button" class="home-apps-done" id="home-apps-done" hidden>Done</button></div>
+        <div class="home-app-grid" id="home-app-list">${orderedApps().map(app => `
+            <a class="home-app" data-key="${app.key}" href="${hrefFor(app)}" draggable="false">
+                <span class="home-app-ic" aria-hidden="true"><svg viewBox="0 0 28 28">${APP_ICONS[app.key] || APP_ICONS.plugin}</svg></span>
+                <span class="home-app-label">${escapeHTML(app.label)}</span>
+            </a>`).join('')}
+        </div>`;
+    setupAppGridEditing();
+}
+
+// Hold (0.45s) -> edit mode; drag to move (the others slide over); Done saves.
+function setupAppGridEditing() {
+    const grid = document.getElementById('home-app-list');
+    const done = document.getElementById('home-apps-done');
+    const hint = document.getElementById('home-apps-hint');
+    let editing = false, holdTimer = null, drag = null, held = false;
+
+    const save = () => {
+        Vault.state.homeAppOrder = [...grid.children].map(a => a.dataset.key);
+        Vault.save();
+    };
+    const startEditing = () => {
+        editing = true;
+        grid.classList.add('editing');
+        done.hidden = false;
+        hint.textContent = 'Drag apps to move them';
+        if (navigator.vibrate) navigator.vibrate(15);
+    };
+    const stopEditing = () => {
+        editing = false;
+        grid.classList.remove('editing');
+        done.hidden = true;
+        hint.textContent = 'Hold an app to move it';
+        save();
+    };
+    done.addEventListener('click', stopEditing);
+
+    // In edit mode (or right after a hold) a tap doesn't open the app.
+    grid.addEventListener('click', e => { if ((editing || held) && e.target.closest('.home-app')) { e.preventDefault(); held = false; } });
+    grid.addEventListener('contextmenu', e => { if (e.target.closest('.home-app')) e.preventDefault(); });
+    grid.addEventListener('dragstart', e => e.preventDefault());
+    document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
+
+    grid.addEventListener('pointerdown', e => {
+        const app = e.target.closest('.home-app');
+        if (!app) return;
+        held = false;
+        if (editing) { beginDrag(app, e); return; }
+        const start = { x: e.clientX, y: e.clientY };
+        holdTimer = setTimeout(() => { holdTimer = null; held = true; startEditing(); beginDrag(app, e); }, 450);
+        const cancel = (ev) => {
+            if (ev.type === 'pointermove' && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 8) return;
+            clearTimeout(holdTimer); holdTimer = null;
+            window.removeEventListener('pointermove', cancel); window.removeEventListener('pointerup', cancel);
+        };
+        window.addEventListener('pointermove', cancel); window.addEventListener('pointerup', cancel);
+    });
+
+    function beginDrag(app, e) {
+        const ghost = app.cloneNode(true);
+        ghost.classList.add('home-app-ghost');
+        ghost.style.left = `${e.clientX}px`; ghost.style.top = `${e.clientY}px`;
+        document.body.appendChild(ghost);
+        app.classList.add('lifted');
+        drag = { app, ghost };
+        window.addEventListener('pointermove', moveDrag);
+        window.addEventListener('pointerup', endDrag, { once: true });
+        window.addEventListener('pointercancel', endDrag, { once: true });
+    }
+    function moveDrag(e) {
+        if (!drag) return;
+        drag.ghost.style.left = `${e.clientX}px`; drag.ghost.style.top = `${e.clientY}px`;
+        const over = document.elementFromPoint(e.clientX, e.clientY);
+        const target = over && over.closest('#home-app-list .home-app');
+        if (!target || target === drag.app) return;
+        const apps = [...grid.children];
+        const before = new Map(apps.map(a => [a, a.getBoundingClientRect()]));
+        const from = apps.indexOf(drag.app), to = apps.indexOf(target);
+        grid.insertBefore(drag.app, to > from ? target.nextSibling : target);
+        apps.forEach(a => {
+            const b = before.get(a), n = a.getBoundingClientRect();
+            const dx = b.left - n.left, dy = b.top - n.top;
+            if (dx || dy) a.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.3,1.2,.4,1)' });
+        });
+    }
+    function endDrag() {
+        if (!drag) return;
+        drag.ghost.remove();
+        drag.app.classList.remove('lifted');
+        drag = null;
+        window.removeEventListener('pointermove', moveDrag);
+        save();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
