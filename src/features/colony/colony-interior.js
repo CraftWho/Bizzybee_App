@@ -6,7 +6,8 @@ console.log("/// HIVE INTERIOR ONLINE ///");
 //   lit cells      glowing honey. How many = the colony's honey (colony.js:
 //                  cards earned + level XP). Light spreads from the centre.
 //   brood cells    one per bee - a wax-capped cell with an element-coloured
-//                  ring. Tap one to open that bee's card.
+//                  ring. Tap one to open that bee's card. A bee with no job
+//                  (idleBees) sits still inside its OPEN cell - no animation.
 //   royal cell     the centre cell, crimson-capped. Tap = Queen summary.
 //   decayed cells  missed dailies, overdue to-dos and bad habits hollow out
 //                  random lit cells (cracked, crimson embers). They heal
@@ -21,7 +22,8 @@ console.log("/// HIVE INTERIOR ONLINE ///");
 //   const hive = ColonyInterior.mount(stageEl, {
 //       honey: { lit, capacity, decay, lapseIds },
 //       broodBees,            // bees that get a brood cell (all, newest last)
-//       crawlers,             // bees crawling inside
+//       crawlers,             // bees crawling inside (busy bees)
+//       idleBees,             // bees resting in their open cell
 //       lightY: 0.55,         // light centre, fraction of stage height
 //       assetBase: '../../assets/bees/queen/',
 //       royal: { kind: 'queen'|'king', name },   // optional: the player's royal
@@ -86,10 +88,19 @@ const ColonyInterior = (() => {
     function litCell(c, rnd, full) {
         let s = honeyBody(c, rnd);
         if (full && rnd() < .45) s += `<polygon points="${hexPts(c.x, c.y, R - 2.4)}" fill="url(#ci-cap)" opacity=".95"/>`;
-        if (rnd() < .3) {
+        if (rnd() < .12) {
             s += `<polygon class="ci-glow" points="${hexPts(c.x, c.y, R - 3)}" fill="#ffcf5a" opacity=".18" style="--d:${f(3 + rnd() * 3)}s;--dl:${f(-rnd() * 5)}s"/>`;
         }
         return s;
+    }
+    // Open cell with the bee resting inside, head out. Static.
+    function idleCell(c, bee) {
+        const col = ELEMENT[bee.element] || '#e0b02a';
+        const art = typeof MechBee !== 'undefined' ? MechBee.markup({ scale: .5, stripe: col }) : '';
+        return `<polygon points="${hexPts(c.x, c.y, R - .3)}" fill="url(#ci-wall)"/>
+<polygon points="${hexPts(c.x, c.y, R - 2.4)}" fill="url(#ci-cavity)"/>
+<polygon points="${hexPts(c.x, c.y, R - 4.2)}" fill="none" stroke="${col}" stroke-width="1.2" opacity=".55"/>
+<g class="ci-idle-bee" transform="translate(${f(c.x)} ${f(c.y + 1)}) rotate(${hash(bee.id || bee.name) % 2 ? -18 : 18})">${art}</g>`;
     }
     function broodCell(c, bee) {
         const col = ELEMENT[bee.element] || '#e0b02a';
@@ -128,7 +139,7 @@ ${crack(x1, y1)}${crack(...p(3))}
     }
 
     function mount(stage, opts) {
-        const o = Object.assign({ lightY: .55, crawlers: [], broodBees: [], honey: { lit: 0, capacity: 1, decay: 0, lapseIds: [] } }, opts);
+        const o = Object.assign({ lightY: .55, crawlers: [], idleBees: [], broodBees: [], honey: { lit: 0, capacity: 1, decay: 0, lapseIds: [] } }, opts);
         const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let raf = 0, destroyed = false, last = performance.now();
         let W, H, LX, LY, svg, cells, lightR, queenEl, beesG, fxG;
@@ -190,6 +201,7 @@ ${crack(x1, y1)}${crack(...p(3))}
             lightR = R * Math.sqrt(litN * 2.6 / Math.PI) * 1.15 + 34;
 
             // ---- markup ----
+            const idleIds = new Set(o.idleBees.map(b => b.id || b.name));
             let s = `<svg class="ci-svg" viewBox="0 0 ${f(W)} ${f(H)}" preserveAspectRatio="xMidYMid slice" xmlns="${NS}">${defs()}
 <radialGradient id="ci-warm" gradientUnits="userSpaceOnUse" cx="${f(LX)}" cy="${f(LY)}" r="${f(lightR * 1.4)}"><stop offset="0" stop-color="#ffcf6a" stop-opacity=".42"/><stop offset=".7" stop-color="#ff9a3a" stop-opacity=".12"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient>
 <rect x="-10" y="-10" width="${f(W + 20)}" height="${f(H + 20)}" fill="#0d0804"/>`;
@@ -197,6 +209,7 @@ ${crack(x1, y1)}${crack(...p(3))}
                 const r2 = seeded(c.i * 7 + 3);
                 let body = darkCell(c);
                 if (c.kind === 'lit') body += `<g class="ci-lit">${litCell(c, r2, full)}</g>`;
+                else if (c.kind === 'brood' && idleIds.has(c.bee.id || c.bee.name)) body += `<g class="ci-lit">${idleCell(c, c.bee)}</g>`;
                 else if (c.kind === 'brood') body += `<g class="ci-lit">${broodCell(c, c.bee)}</g>`;
                 else if (c.kind === 'royal') body += `<g class="ci-lit">${royalCell(c)}</g>`;
                 else if (c.kind === 'decayed') body += `<g class="ci-lit">${decayedCell(c, r2)}</g>`;
@@ -209,13 +222,14 @@ ${crack(x1, y1)}${crack(...p(3))}
 <mask id="ci-mask"><rect x="-10" y="-10" width="${f(W + 20)}" height="${f(H + 20)}" fill="#fff"/><circle cx="${f(LX)}" cy="${f(LY)}" r="${f(lightR)}" fill="#000" filter="url(#ci-fog)"/></mask>
 <g mask="url(#ci-mask)" pointer-events="none"><rect x="-10" y="-10" width="${f(W + 20)}" height="${f(H + 20)}" fill="#020100" opacity=".94"/>`;
             const fr = seeded(5);
-            for (let i = 0; i < 10; i++) {
+            // Fog is static: blurred shapes that move get re-blurred every frame.
+            for (let i = 0; i < 5; i++) {
                 s += `<ellipse class="ci-fog" cx="${f(fr() * W)}" cy="${f(fr() * H)}" rx="${f(70 + fr() * 90)}" ry="${f(40 + fr() * 50)}" fill="#3e4048" opacity="${f(.04 + fr() * .06)}" filter="url(#ci-fog)" style="--d:${f(9 + fr() * 8)}s;--dl:${f(-fr() * 9)}s;--fx:${f(fr() * 60 - 30)}px;--fy:${f(fr() * 30 - 15)}px"/>`;
             }
             s += `</g><g class="ci-dust" pointer-events="none">`;
             // Dust motes in the light: mostly gold, a few hive-blue and crimson sparks.
             const dr = seeded(23);
-            const motes = Math.round(10 + Math.min(1, litN / 120) * 26);
+            const motes = Math.round(6 + Math.min(1, litN / 120) * 8);
             for (let i = 0; i < motes; i++) {
                 const t = dr(), col = t < .14 ? '#5fd6ff' : t < .26 ? '#ff5a4a' : '#fff1c0';
                 const a = dr() * Math.PI * 2, rr = Math.sqrt(dr()) * lightR * .9;
@@ -377,21 +391,13 @@ ${crack(x1, y1)}${crack(...p(3))}
             });
             setTimeout(() => { ring.remove(); fxG.querySelectorAll('.ci-burst').forEach(p => p.remove()); }, 900);
             if (joinCrawl) { b.ang = -Math.PI / 2 + (Math.random() - .5); b.frozen = false; return; }
-            // An outside bee: flies up and out of the hive.
-            const sx = c.x, sy = c.y - 6, ex = sx + (Math.random() - .5) * W * .6, ey = -40;
-            const t1 = performance.now();
-            await new Promise(res => {
-                const step = now => {
-                    if (destroyed) return res();
-                    const t = Math.min(1, (now - t1) / (reduce ? 1 : 1600));
-                    const e = t * t;
-                    MechBee.place(b.actor, sx + (ex - sx) * e, sy + (ey - sy) * e, { faceRight: ex > sx, tilt: 20 });
-                    t < 1 ? requestAnimationFrame(step) : res();
-                };
-                requestAnimationFrame(step);
-            });
+            // No job yet: settles back into its now-open cell and waits.
+            await wait(500);
+            if (destroyed) return;
             b.actor.wrap.remove();
             crawl.splice(crawl.indexOf(b), 1);
+            g.querySelector('.ci-lit').innerHTML = idleCell(c, bee);
+            g.classList.remove('ci-hatching', 'ci-hatched');
         }
 
         let resizeT = 0;

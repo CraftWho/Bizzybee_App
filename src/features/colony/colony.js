@@ -160,10 +160,11 @@ function openColonyBeeCard(bee) {
 // ---------------------------------------------------------------------
 // INSIDE THE HIVE (colony-interior.js draws it; this decides what it shows)
 //
-// Honey = lit comb cells. Earned from:
-//   - cards: every bee you own adds COLONY_HONEY_PER_BEE cells
-//   - level: every level adds COLONY_HONEY_PER_LEVEL cells (plus the XP
-//     part-way into the current level)
+// Honey = lit comb cells. Level only (Oct 2026): COLONY_HONEY_BASE cells,
+//   plus COLONY_HONEY_PER_LEVEL per level (and the XP part-way into the
+//   current level). Never fewer than one home cell per bee.
+// Bees with a job (bee.class) crawl around. Bees without one sit still in
+//   their open cell, waiting for a command - no animation.
 // Decay = lapses in the last COLONY_DECAY_DAYS days hollow out lit cells:
 //   - a Daily that was due on a past day and not checked off
 //   - a To-Do that went past its due date and is still open
@@ -171,12 +172,12 @@ function openColonyBeeCard(bee) {
 // Lapses older than the window drop off, so decayed cells heal on their own.
 // ---------------------------------------------------------------------
 const COLONY_HIVE_CAPACITY = 320;
-const COLONY_HONEY_BASE = 6;
-const COLONY_HONEY_PER_BEE = 4;
+const COLONY_HONEY_BASE = 8;
 const COLONY_HONEY_PER_LEVEL = 3;
 const COLONY_DECAY_DAYS = 14;
 const COLONY_HATCHED_KEY = 'bizzybee_colony_hatched';
 const COLONY_HATCH_MAX = 3;
+const COLONY_MAX_CRAWLERS = 6;      // busy bees moving at once (keeps it smooth)
 // Queen art folder, resolved from this script's own URL so any page that
 // loads colony.js (the app page, or a test harness elsewhere) finds it.
 const COLONY_QUEEN_ASSETS = document.currentScript
@@ -228,7 +229,7 @@ function renderColonyHud(state) {
     const pct = Math.round(state.lit / state.capacity * 100);
     hud.innerHTML = `
         <span class="colony-hud-chip colony-hud-chip--honey" title="Lit honey cells">🍯 <b>${state.lit - state.decay}</b> cells<span class="colony-hud-extra"> · ${pct}%</span></span>
-        <span class="colony-hud-chip colony-hud-chip--bees" title="Bees (cards) - each adds ${COLONY_HONEY_PER_BEE} cells">🐝 <b>${state.bees}</b><span class="colony-hud-extra"> bees</span></span>
+        <span class="colony-hud-chip colony-hud-chip--bees" title="Bees - busy ones crawl, idle ones wait in their cell">🐝 <b>${state.bees}</b><span class="colony-hud-extra"> bees</span></span>
         <span class="colony-hud-chip colony-hud-chip--level" title="Level - each adds ${COLONY_HONEY_PER_LEVEL} cells">⭐ Lv <b>${state.level}</b></span>
         <span class="colony-hud-chip colony-hud-chip--decay${state.decay ? '' : ' is-zero'}" title="Missed dailies, overdue to-dos and bad habits in the last ${COLONY_DECAY_DAYS} days">🥀 <b>${state.decay}</b><span class="colony-hud-extra"> decayed</span></span>`;
 }
@@ -250,11 +251,10 @@ function openColonyQueenPanel(state, royal) {
             <div class="is-crimson"><b>${state.decay}</b><small>Decayed</small></div>
         </div>
         <ul class="colony-queen-panel-rules">
-            <li><span class="is-gold">+${state.fromCards}</span> from your ${state.bees} bee cards</li>
             <li><span class="is-gold">+${state.fromLevel}</span> from level ${state.level}</li>
             <li><span class="is-crimson">−${state.decay}</span> from ${state.lapses} lapse${state.lapses === 1 ? '' : 's'} (missed dailies, overdue to-dos, bad habits) in the last ${COLONY_DECAY_DAYS} days</li>
         </ul>
-        <p class="colony-queen-panel-note">Decayed cells heal after ${COLONY_DECAY_DAYS} days. New bees hatch from their cell.</p>
+        <p class="colony-queen-panel-note">Decayed cells heal after ${COLONY_DECAY_DAYS} days. Bees with no job wait in their cell.</p>
     </div>`;
     overlay.hidden = false;
 }
@@ -266,7 +266,9 @@ function renderInterior() {
 
     const state = colonyHoneyState();
     const allBees = colonyWorkerBees();
-    const inside = interiorSwarmBees();
+    // Busy bees (a job is set) crawl; the rest wait in their open cell.
+    const inside = allBees.filter(b => b.class).slice(-COLONY_MAX_CRAWLERS);
+    const insideIds = new Set(inside.map(b => b.id));
     const royal = colonyRoyal();
     const toHatch = colonyBeesToHatch(allBees);
     const hatchIds = new Set(toHatch.map(b => b.id));
@@ -277,6 +279,7 @@ function renderInterior() {
         broodBees: allBees,
         // Bees about to hatch aren't crawling yet - they come out of their cell.
         crawlers: inside.filter(b => !hatchIds.has(b.id)),
+        idleBees: allBees.filter(b => !insideIds.has(b.id) && !hatchIds.has(b.id)),
         lightY: colonyFitInterior(),
         assetBase: COLONY_QUEEN_ASSETS,
         royal,
@@ -284,13 +287,12 @@ function renderInterior() {
         onQueenClick: () => openColonyQueenPanel(state, royal)
     });
 
-    const insideIds = new Set(inside.map(b => b.id));
     (async () => {
         await new Promise(r => setTimeout(r, 1500));     // let the light spread first
         for (const bee of toHatch) {
             if (!colonyInterior || !colonyInterior.hasBrood(bee)) continue;
             if (typeof Toast !== 'undefined') Toast.show(`🐣 ${bee.name} hatched!`, 'positive');
-            await colonyInterior.hatch(bee, { joinCrawl: insideIds.has(bee.id) });
+            await colonyInterior.hatch(bee, { joinCrawl: insideIds.has(bee.id) });   // idle bees settle back in
             await new Promise(r => setTimeout(r, 500));
         }
     })();

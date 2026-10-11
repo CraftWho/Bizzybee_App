@@ -4010,7 +4010,9 @@ class DatabaseManager {
     //   decay  = missed dailies, overdue To-Dos and bad-habit clicks in the
     //            last 14 days; it can hollow at most half the honey.
     getHiveHoney() {
-        const CAP = 320, BASE = 6, PER_BEE = 4, PER_LEVEL = 3, DAYS = 14;
+        // Hive size comes from level only (Oct 2026): 8 cells + 3 per level.
+        // It never drops below one home cell per bee (+ the royal cell).
+        const CAP = 320, BASE = 8, PER_LEVEL = 3, DAYS = 14;
         const dayISO = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
         const user = this.getUser() || { level: 1, currentXP: 0, nextLevelXP: 1 };
         const bees = this.getColonyBees();
@@ -4035,9 +4037,9 @@ class DatabaseManager {
             });
         });
         const xpPart = user.nextLevelXP ? Math.min(1, user.currentXP / user.nextLevelXP) : 0;
-        const fromCards = bees.length * PER_BEE;
+        const fromCards = 0;
         const fromLevel = Math.floor(((user.level || 1) - 1 + xpPart) * PER_LEVEL);
-        const lit = Math.min(CAP, BASE + fromCards + fromLevel);
+        const lit = Math.min(CAP, Math.max(BASE + fromLevel, bees.length + 2));
         const decay = Math.min(ids.length, Math.floor(lit * 0.5));
         return { lit, capacity: CAP, fromCards, fromLevel, lapseIds: ids, lapses: ids.length, decay, level: user.level || 1, bees: bees.length };
     }
