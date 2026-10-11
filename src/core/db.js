@@ -7,74 +7,97 @@ console.log("/// VAULT (DB) INITIALIZED ///");
 // hardcoded directly in profile.html, which meant the real (personal)
 // content shipped in the tracked base template. Now it's blueprint content
 // like everything else, so data.json/data.personal.json stay properly split.
-const VAULT_SCHEMA_VERSION = 7;
+const VAULT_SCHEMA_VERSION = 8;
+
+// Schema 8 (2026-10-10, Craft): points were renamed from DP ("developer
+// points") to XP everywhere - in the code AND in saves. Saves from schema 7
+// and older store each task's points under the key "dp"; this renames that
+// key to "xp" anywhere in the save (habits, dailies, to-dos, quest tasks).
+// Runs on every way a save comes in - opening the app, a cloud download, a
+// backup restore, an imported file - via validateFullState below, so an old
+// save never reaches the rest of the app. Values are never changed, only
+// the key. Encrypted personal info is a string and is left alone.
+function upgradeLegacyPoints(state) {
+    const LEGACY = 'dp';
+    const walk = (node) => {
+        if (Array.isArray(node)) { node.forEach(walk); return; }
+        if (!node || typeof node !== 'object') return;
+        if (Object.prototype.hasOwnProperty.call(node, LEGACY)) {
+            if (!Object.prototype.hasOwnProperty.call(node, 'xp')) node.xp = node[LEGACY];
+            delete node[LEGACY];
+        }
+        Object.values(node).forEach(walk);
+    };
+    walk(state);
+    return state;
+}
 
 // Habitica difficulty -> Bizzybee difficulty. The Habitica import stores
-// DP 25/50/75/100 for Habitica's trivial/easy/medium/hard (account-info.js's
-// habiticaPriorityToDp), so the DP alone says which one it was.
-function habiticaDifficultyFromDp(dp) {
-    const n = Number(dp) || 0;
+// XP 25/50/75/100 for Habitica's trivial/easy/medium/hard (account-info.js's
+// habiticaPriorityToXp), so the XP alone says which one it was.
+function habiticaDifficultyFromXp(xp) {
+    const n = Number(xp) || 0;
     if (n >= 100) return 'Hard';
     if (n >= 75) return 'Medium';
     if (n >= 50) return 'Easy';
     return 'Trivial';
 }
 
-// Pure, stateless: total DP is always the live sum of every completed
-// task's current dp value, across every quest - never a stored running
-// total. This means editing a task's dp (even after it's been completed),
+// Pure, stateless: total XP is always the live sum of every completed
+// task's current xp value, across every quest - never a stored running
+// total. This means editing a task's xp (even after it's been completed),
 // adding a new quest, or a future conditionally-generated quest all just
 // work automatically, with no ledger to drift out of sync.
 // Ghost Log entries (optional, see 5m below) count the exact same way a
-// task does - any entry not sitting at 'pending' contributes its own dp,
-// same live-not-a-ledger philosophy, since a Ghost Log's own status/dp can
+// task does - any entry not sitting at 'pending' contributes its own xp,
+// same live-not-a-ledger philosophy, since a Ghost Log's own status/xp can
 // be edited after the fact too (correcting a partial-credit call, say) and
 // the total should just reflect that immediately.
-function computeTotalDP(quests) {
+function computeTotalXP(quests) {
     return (quests || []).reduce((sum, quest) => {
-        const taskDP = (quest.tasks || [])
+        const taskXP = (quest.tasks || [])
             .filter(t => t.completed)
-            .reduce((s, t) => s + t.dp, 0);
-        const ghostLogDP = (quest.ghostLogs || [])
+            .reduce((s, t) => s + t.xp, 0);
+        const ghostLogXP = (quest.ghostLogs || [])
             .filter(g => g.status && g.status !== 'pending')
-            .reduce((s, g) => s + (g.dp || 0), 0);
-        return sum + taskDP + ghostLogDP;
+            .reduce((s, g) => s + (g.xp || 0), 0);
+        return sum + taskXP + ghostLogXP;
     }, 0);
 }
 
-// Same "live, not a ledger" philosophy as computeTotalDP: a daily task's DP
+// Same "live, not a ledger" philosophy as computeTotalXP: a daily task's XP
 // contribution is however many days it's been checked off (completedDates
-// stores a list of "YYYY-MM-DD" strings) times its CURRENT dp value - so
-// editing a daily task's dp retroactively reflects across all its past
-// completions too, same as editing a quest task's dp does.
-function computeDailyDP(dailyTasks) {
+// stores a list of "YYYY-MM-DD" strings) times its CURRENT xp value - so
+// editing a daily task's xp retroactively reflects across all its past
+// completions too, same as editing a quest task's xp does.
+function computeDailyXP(dailyTasks) {
     return (dailyTasks || []).reduce((sum, task) => {
-        return sum + (task.completedDates || []).length * task.dp;
+        return sum + (task.completedDates || []).length * task.xp;
     }, 0);
 }
 
 // Same "live, not a ledger" philosophy again, just bidirectional: a
 // Habit's `history` is a permanent log of every +/- click (see
 // Vault.bumpHabit below) - this sums positive clicks and SUBTRACTS
-// negative ones, both at the habit's CURRENT dp value, so editing a
-// habit's dp later reflects across every past click, in both directions,
-// exactly like a Daily's completedDates does for its own dp.
-function computeHabitDP(habits) {
+// negative ones, both at the habit's CURRENT xp value, so editing a
+// habit's xp later reflects across every past click, in both directions,
+// exactly like a Daily's completedDates does for its own xp.
+function computeHabitXP(habits) {
     return (habits || []).reduce((sum, habit) => {
         const history = habit.history || [];
         const positive = history.filter(h => h.direction === 'positive').length;
         const negative = history.filter(h => h.direction === 'negative').length;
-        return sum + (positive - negative) * habit.dp;
+        return sum + (positive - negative) * habit.xp;
     }, 0);
 }
 
-// Same live-not-a-ledger philosophy as computeTotalDP's quest tasks: a
-// To-Do only ever contributes its CURRENT dp, and only once - the moment
+// Same live-not-a-ledger philosophy as computeTotalXP's quest tasks: a
+// To-Do only ever contributes its CURRENT xp, and only once - the moment
 // `completed` flips true (see Vault.toggleTodoComplete below). Unlike a
 // Daily/Habit there's no repeat count to multiply by; a To-Do happens
 // exactly once by definition.
-function computeTodoDP(todos) {
-    return (todos || []).filter(t => t.completed).reduce((sum, t) => sum + (t.dp || 0), 0);
+function computeTodoXP(todos) {
+    return (todos || []).filter(t => t.completed).reduce((sum, t) => sum + (t.xp || 0), 0);
 }
 
 function todayISO() {
@@ -84,7 +107,7 @@ function todayISO() {
 // Start-of-current-period ISO date for a Habit's Reset Counter cadence -
 // used only to derive a display-only "this period" tally (see getHabits
 // below). Purely additive: the permanent `history` log (and everything
-// computed from it - DP totals, Skill Matrix contributions) is never
+// computed from it - XP totals, Skill Matrix contributions) is never
 // filtered by this and never resets. Week starts Sunday, matching the
 // daysOfWeek 0=Sun convention Dailies already use elsewhere in this file.
 function habitPeriodStartISO(resetCounter, now = new Date()) {
@@ -100,7 +123,7 @@ function habitPeriodStartISO(resetCounter, now = new Date()) {
 }
 
 // Word-boundary-ish, case-insensitive "does this term appear in this text"
-// check - shared by computeSkillMatrixDP's Quest-matching pass below and
+// check - shared by computeSkillMatrixXP's Quest-matching pass below and
 // mirrored (independently, since this file has no DOM) by create-daily.js's
 // findMatchingTerms for auto-tagging Dailies. Terms under 3 characters are
 // skipped to avoid noisy single/double-letter false positives.
@@ -113,7 +136,7 @@ function textContainsTerm(text, term) {
 
 // Real skill-mastery matrix, derived live from your Dailies' tags AND your
 // completed Quest work rather than stored/incremented anywhere - same
-// "live, not a ledger" philosophy as computeTotalDP/computeDailyDP above,
+// "live, not a ledger" philosophy as computeTotalXP/computeDailyXP above,
 // and for the same reason: a tag's (or a term's) category can be
 // re-assigned later (edit a Dictionary term's category), and everything
 // downstream should just reflect that immediately rather than needing a
@@ -129,13 +152,13 @@ function textContainsTerm(text, term) {
 // exists.
 //
 // Quests don't have an explicit tags field (unlike Dailies), and most of
-// this app's real, historical DP lives in completed Quest tasks, not
+// this app's real, historical XP lives in completed Quest tasks, not
 // Dailies (a brand-new feature) - so counting Dailies alone left the
 // matrix empty despite plenty of already-earned mastery. This mirrors how
 // the original Codex tracker worked: tagging a Quest Log entry applied its
-// earned DP straight to the matching skill bars (see "Tags: [React, CSS]"
+// earned XP straight to the matching skill bars (see "Tags: [React, CSS]"
 // in leveling-system.md's Skill Proficiency Tracks) - here it's fully
-// automatic instead of hand-tagged: a completed task's DP counts toward
+// automatic instead of hand-tagged: a completed task's XP counts toward
 // every Dictionary term that appears as a whole word in its own quest's
 // title, objective, or the task's own label. Unlike Daily tags, an
 // unmatched word does NOT become its own category here - quest text is
@@ -143,7 +166,7 @@ function textContainsTerm(text, term) {
 // match counts (avoids turning entire sentences into bogus "categories").
 // Every individual contribution behind the matrix - one entry per (tag or
 // matched Dictionary term) x (completion), each carrying its own date. This
-// is the single source of truth computeSkillMatrixDP aggregates below AND
+// is the single source of truth computeSkillMatrixXP aggregates below AND
 // what getSkillContributionsSince (see the Vault class) filters by date to
 // hand Eevee a real batch of "what actually happened" for a level-up
 // assessment - keeping both in exact sync instead of two copies of the same
@@ -164,33 +187,33 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, 
         (task.tags || []).forEach(tag => {
             const category = categoryByTermName[tag.toLowerCase()] || tag;
             (task.completedDates || []).forEach(dateStr => {
-                contributions.push({ category, label: task.label, dp: task.dp || 0, date: dateStr, source: 'daily' });
+                contributions.push({ category, label: task.label, xp: task.xp || 0, date: dateStr, source: 'daily' });
             });
         });
     });
 
     // Habits: only POSITIVE clicks count toward the matrix - a negative
     // click is a lapse, not accomplishment, so it shouldn't read as
-    // "skill mastery work" even though it does subtract real DP overall
-    // (see computeHabitDP above). Each positive click contributes its own
+    // "skill mastery work" even though it does subtract real XP overall
+    // (see computeHabitXP above). Each positive click contributes its own
     // dated entry, same as a Daily's completedDates.
     (habits || []).forEach(habit => {
         (habit.tags || []).forEach(tag => {
             const category = categoryByTermName[tag.toLowerCase()] || tag;
             (habit.history || []).filter(h => h.direction === 'positive').forEach(entry => {
-                contributions.push({ category, label: habit.label, dp: habit.dp || 0, date: entry.date, source: 'habit' });
+                contributions.push({ category, label: habit.label, xp: habit.xp || 0, date: entry.date, source: 'habit' });
             });
         });
     });
 
     // To-Dos: tagged directly (like Dailies/Habits), not text-matched
     // (like Quests below) - only once completed, and only ever once,
-    // matching computeTodoDP's own one-shot counting.
+    // matching computeTodoXP's own one-shot counting.
     (todos || []).forEach(todo => {
         if (!todo.completed) return;
         (todo.tags || []).forEach(tag => {
             const category = categoryByTermName[tag.toLowerCase()] || tag;
-            contributions.push({ category, label: todo.label, dp: todo.dp || 0, date: todo.completedDate || null, source: 'todo' });
+            contributions.push({ category, label: todo.label, xp: todo.xp || 0, date: todo.completedDate || null, source: 'todo' });
         });
     });
 
@@ -207,7 +230,7 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, 
             });
 
             matchedCategories.forEach(category => {
-                contributions.push({ category, label: task.label, dp: task.dp || 0, date: task.dateCompleted || null, source: 'quest' });
+                contributions.push({ category, label: task.label, xp: task.xp || 0, date: task.dateCompleted || null, source: 'quest' });
             });
         });
     });
@@ -215,43 +238,43 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, 
     return contributions;
 }
 
-function computeSkillMatrixDP(dailyTasks, dictionaryTerms, quests, habits, todos) {
-    const dpByCategory = {};
+function computeSkillMatrixXP(dailyTasks, dictionaryTerms, quests, habits, todos) {
+    const xpByCategory = {};
     computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos).forEach(contribution => {
-        dpByCategory[contribution.category] = (dpByCategory[contribution.category] || 0) + contribution.dp;
+        xpByCategory[contribution.category] = (xpByCategory[contribution.category] || 0) + contribution.xp;
     });
 
-    return Object.entries(dpByCategory)
-        .map(([category, dp]) => ({ category, dp }))
-        .sort((a, b) => b.dp - a.dp);
+    return Object.entries(xpByCategory)
+        .map(([category, xp]) => ({ category, xp }))
+        .sort((a, b) => b.xp - a.xp);
 }
 
-// Flat 200 DP per skill level, forever - simple and predictable, and it
-// matches the DP-ceiling steps the Dashboard already showed before levels
+// Flat 200 XP per skill level, forever - simple and predictable, and it
+// matches the XP-ceiling steps the Dashboard already showed before levels
 // existed. Unlike character levels (which get harder further in), a
 // skill's mastery bar is meant to be a steady, always-achievable climb.
-const SKILL_LEVEL_DP_STEP = 200;
+const SKILL_LEVEL_XP_STEP = 200;
 
-// A skill's live totalDP (always recomputed, never stored - see
-// computeSkillMatrixDP above) can run ahead of the level the worker bee has
+// A skill's live totalXP (always recomputed, never stored - see
+// computeSkillMatrixXP above) can run ahead of the level the worker bee has
 // actually CELEBRATED (acknowledgedLevel, stored in Vault.state.skillLevels
 // - see levelUpSkill below). The bar only ever shows progress within the
-// acknowledged level's own 200 DP band; once totalDP fills that band, the
+// acknowledged level's own 200 XP band; once totalXP fills that band, the
 // bar reports maxed (shakes, offers the Level Up button) and STAYS at 100%
 // - it does not silently advance to the next band - until levelUpSkill()
 // is actually called. This is the same "does NOT increase automatically,
 // a specific action must break the seal" bottleneck the original Codex
 // tracker used for character-level Promotion Trials, just applied per skill.
-function computeSkillLevelState(totalDP, acknowledgedLevel) {
+function computeSkillLevelState(totalXP, acknowledgedLevel) {
     const level = acknowledgedLevel || 1;
-    const dpIntoLevel = Math.min(SKILL_LEVEL_DP_STEP, Math.max(0, totalDP - (level - 1) * SKILL_LEVEL_DP_STEP));
+    const xpIntoLevel = Math.min(SKILL_LEVEL_XP_STEP, Math.max(0, totalXP - (level - 1) * SKILL_LEVEL_XP_STEP));
 
     return {
         level,
-        dpIntoLevel,
-        cap: SKILL_LEVEL_DP_STEP,
-        percentage: Math.min(100, (dpIntoLevel / SKILL_LEVEL_DP_STEP) * 100),
-        maxed: totalDP >= level * SKILL_LEVEL_DP_STEP
+        xpIntoLevel,
+        cap: SKILL_LEVEL_XP_STEP,
+        percentage: Math.min(100, (xpIntoLevel / SKILL_LEVEL_XP_STEP) * 100),
+        maxed: totalXP >= level * SKILL_LEVEL_XP_STEP
     };
 }
 
@@ -262,7 +285,7 @@ function computeSkillLevelState(totalDP, acknowledgedLevel) {
 // CSS Fundamentals, JavaScript Essentials, DOM Manipulation, React,
 // WordPress - see skill-tree.md / the Genesis quest titles), so existing
 // completed Quest tasks that already mention these by name light up
-// immediately via computeSkillMatrixDP's Quest-matching pass above.
+// immediately via computeSkillMatrixXP's Quest-matching pass above.
 const DICTIONARY_STARTER_TERMS = [
     { name: 'HTML', category: 'HTML', definition: "HyperText Markup Language - the structural backbone of every web page." },
     { name: 'CSS', category: 'CSS', definition: 'Cascading Style Sheets - controls layout, color, and presentation.' },
@@ -437,12 +460,12 @@ function rollMaterialDrop() {
 // you with material toasts on every single checkbox.
 const COLLECTOR_DROP_CHANCE = 0.35;
 
-// A quest's total DP (sum of every task's dp) has to clear this to count
+// A quest's total XP (sum of every task's xp) has to clear this to count
 // as "accomplishes a great deal" and earn a gacha ticket on completion -
-// matches the upper end of llm-engine.js's own "Hard task" DP anchors
+// matches the upper end of llm-engine.js's own "Hard task" XP anchors
 // (90-180), so this is roughly "a whole quest's worth of hard work," not
 // any quest at all.
-const QUEST_TICKET_DP_THRESHOLD = 150;
+const QUEST_TICKET_XP_THRESHOLD = 150;
 
 // --- EVOLUTION ITEMS ------------------------------------------------------
 // A second, rarer loot category alongside MATERIAL_CATALOG above - these
@@ -630,10 +653,10 @@ function daysBetween(startISO, endISO) {
 }
 
 // Quest-completion loot scaling (see _awardLootOnQuestCompletion below):
-// 1 material roll per QUEST_LOOT_DP_DIVISOR of the quest's total DP
+// 1 material roll per QUEST_LOOT_XP_DIVISOR of the quest's total XP
 // (minimum 1), plus a speed bonus for finishing fast - same-day earns the
 // biggest bonus, within a few days still earns a smaller one.
-const QUEST_LOOT_DP_DIVISOR = 100;
+const QUEST_LOOT_XP_DIVISOR = 100;
 const QUEST_SPEED_INSTANT_DAYS = 0;
 const QUEST_SPEED_INSTANT_BONUS_ROLLS = 2;
 const QUEST_SPEED_FAST_DAYS = 2;
@@ -927,12 +950,12 @@ const DESTROY_LOOT_COUNT = { Common: 1, Rare: 1, Epic: 2, Legendary: 2, Named: 3
 // higher of the two inputs, rather than landing on that same tier.
 const COMBINE_UPGRADE_CHANCE = 0.5;
 
-// Pure, stateless: derives level/currentXP/nextLevelXP from a total DP
+// Pure, stateless: derives level/currentXP/nextLevelXP from a total XP
 // figure. Recomputed fresh every call instead of stored, for the same
-// reason as computeTotalDP above.
+// reason as computeTotalXP above.
 //
 // REBALANCED TWICE. v1 (original): starts at 1000, x1.5 compounding - by
-// level 20 that demands over 2 million DP for a single level, which is why
+// level 20 that demands over 2 million XP for a single level, which is why
 // leveling felt endless. v2: flat +75/level - fixed the explosion, but a
 // flat step isn't actually "progressive," it's linear - level 19->20 costs
 // the same marginal amount as level 2->3, which made later levels feel too
@@ -948,10 +971,10 @@ const COMBINE_UPGRADE_CHANCE = 0.5;
 const CHARACTER_LEVEL_BASE_THRESHOLD = 150;
 const CHARACTER_LEVEL_GROWTH_RATE = 1.15;
 
-function computeLevelProgress(totalDP) {
+function computeLevelProgress(totalXP) {
     let level = 1;
     let threshold = CHARACTER_LEVEL_BASE_THRESHOLD;
-    let remaining = totalDP;
+    let remaining = totalXP;
 
     while (remaining >= threshold) {
         remaining -= threshold;
@@ -963,31 +986,31 @@ function computeLevelProgress(totalDP) {
 }
 
 // Same curve as computeLevelProgress, but reports progress relative to a
-// specific `acknowledgedLevel` rather than whatever the live totalDP works
+// specific `acknowledgedLevel` rather than whatever the live totalXP works
 // out to - the character-level bar (Home/Profile) is gated exactly like
-// Skill Mastery: it can run ahead in real totalDP, but the bar and its
+// Skill Mastery: it can run ahead in real totalXP, but the bar and its
 // rewards only advance one level at a time, on purpose, via
 // levelUpCharacterBar() (see the Vault class below).
-function computeCharacterLevelBandState(totalDP, acknowledgedLevel) {
+function computeCharacterLevelBandState(totalXP, acknowledgedLevel) {
     const level = acknowledgedLevel || 1;
     let threshold = CHARACTER_LEVEL_BASE_THRESHOLD;
-    let cumulativeDP = 0;
+    let cumulativeXP = 0;
 
     for (let lvl = 1; lvl < level; lvl++) {
-        cumulativeDP += threshold;
+        cumulativeXP += threshold;
         threshold = Math.round(threshold * CHARACTER_LEVEL_GROWTH_RATE);
     }
-    // threshold is now this level's own cap (DP needed to clear it);
-    // cumulativeDP is the total DP required to have already reached `level`.
+    // threshold is now this level's own cap (XP needed to clear it);
+    // cumulativeXP is the total XP required to have already reached `level`.
 
-    const dpIntoLevel = Math.min(threshold, Math.max(0, totalDP - cumulativeDP));
+    const xpIntoLevel = Math.min(threshold, Math.max(0, totalXP - cumulativeXP));
 
     return {
         level,
-        dpIntoLevel,
+        xpIntoLevel,
         cap: threshold,
-        percentage: Math.min(100, (dpIntoLevel / threshold) * 100),
-        maxed: totalDP >= cumulativeDP + threshold
+        percentage: Math.min(100, (xpIntoLevel / threshold) * 100),
+        maxed: totalXP >= cumulativeXP + threshold
     };
 }
 
@@ -1238,7 +1261,7 @@ class DatabaseManager {
             this.state.eevee = { conversations: [] };
             // Same reasoning for the colony's gacha-pulled bees - these are
             // random results that can't be recomputed from a formula (unlike
-            // DP/level), so they have to actually be stored, but they're not
+            // XP/level), so they have to actually be stored, but they're not
             // blueprint content either. The colony always starts with the
             // Queen (a fixed, separate visual - see colony.js, never stored
             // here) plus exactly one Common Worker Bee, so the collection
@@ -1305,13 +1328,13 @@ class DatabaseManager {
             // Habits (core feature, src/features/habits/) - Habitica-style +/-
             // action buttons, own top-level array like dailyTasks (not
             // nested under studyQueue's shape - a habit's `history` log is
-            // its own thing, see computeHabitDP/bumpHabit). Ships empty,
+            // its own thing, see computeHabitXP/bumpHabit). Ships empty,
             // same "local content, only ever comes from adding it through
             // the page" reasoning as studyQueue above.
             this.state.habits = [];
             // To-Dos (core feature, src/features/todos/) - one-off tasks, same
             // shape family as dailyTasks (title/notes/checklist/
-            // difficulty/dp/tags/reminders) minus a repeat schedule, plus
+            // difficulty/xp/tags/reminders) minus a repeat schedule, plus
             // a due date and a `completed`/`completedDate` pair instead of
             // completedDates. Ships empty, same reasoning as habits above.
             this.state.todos = [];
@@ -1334,10 +1357,10 @@ class DatabaseManager {
     }
 
     // 2b. Merge: pulls in content changes (titles, objectives, sources,
-    // task labels/dp/links, new or removed quests/tasks) from the blueprint
+    // task labels/xp/links, new or removed quests/tasks) from the blueprint
     // while keeping your progress - task completion, dates, activeQuestId.
     // Blueprint is authoritative for "what exists and what it's called";
-    // localStorage is authoritative for "what you've done." DP/level need
+    // localStorage is authoritative for "what you've done." XP/level need
     // no merging at all since they're always derived live from task state.
     async syncFromBlueprint() {
         if (!this.state) return null;
@@ -1396,7 +1419,7 @@ class DatabaseManager {
             return mergedQuest;
         });
 
-        // Same merge philosophy as quests: blueprint wins for label/dp,
+        // Same merge philosophy as quests: blueprint wins for label/xp,
         // localStorage wins for completion history AND every field you can
         // only set from inside the app itself (notes/checklist/schedule/
         // reminders/tags) - none of that lives in the blueprint file, so
@@ -1471,6 +1494,8 @@ class DatabaseManager {
 
     validateFullState(parsed) {
         const object = value => value && typeof value === 'object' && !Array.isArray(value);
+        // Old saves (schema 7 and older) still say "dp" - rename to "xp" first.
+        if (object(parsed) && (parsed.schemaVersion == null || parsed.schemaVersion < 8)) upgradeLegacyPoints(parsed);
         if (!object(parsed) || !object(parsed.user) || !Array.isArray(parsed.quests)) throw new Error('That is not a Bizzybee save file.');
         if (parsed.schemaVersion != null && (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion > VAULT_SCHEMA_VERSION || parsed.schemaVersion < 1)) throw new Error('This save uses an unsupported schema version. Update the app before importing it.');
         for (const field of ['dailyTasks', 'habits', 'todos', 'dictionary', 'studyQueue', 'calendarEvents']) {
@@ -1478,7 +1503,7 @@ class DatabaseManager {
         }
         for (const quest of parsed.quests) {
             if (!object(quest) || typeof quest.id !== 'string' || !Array.isArray(quest.tasks)) throw new Error('Invalid quest in save.');
-            for (const task of quest.tasks) if (!object(task) || typeof task.dp !== 'number' || !Number.isFinite(task.dp)) throw new Error('Invalid task points in save.');
+            for (const task of quest.tasks) if (!object(task) || typeof task.xp !== 'number' || !Number.isFinite(task.xp)) throw new Error('Invalid task points in save.');
         }
         return parsed;
     }
@@ -1504,18 +1529,18 @@ class DatabaseManager {
     getUser() {
         if (!this.state) return null;
 
-        const totalDP = computeTotalDP(this.state.quests)
-            + computeDailyDP(this.state.dailyTasks)
-            + computeHabitDP(this.state.habits)
-            + computeTodoDP(this.state.todos);
-        const { level, currentXP, nextLevelXP } = computeLevelProgress(totalDP);
+        const totalXP = computeTotalXP(this.state.quests)
+            + computeDailyXP(this.state.dailyTasks)
+            + computeHabitXP(this.state.habits)
+            + computeTodoXP(this.state.todos);
+        const { level, currentXP, nextLevelXP } = computeLevelProgress(totalXP);
 
         return {
             ...this.state.user,
             // The name you gave while raising your egg wins over the
             // blueprint's placeholder ("Worker Bee").
             name: this.state.displayName || (this.state.user && this.state.user.name),
-            totalDP,
+            totalXP,
             level,
             currentXP,
             nextLevelXP
@@ -1573,7 +1598,7 @@ class DatabaseManager {
         }
     }
 
-    // 5. Logic: Toggle a quest's task. DP needs no updating here at all -
+    // 5. Logic: Toggle a quest's task. XP needs no updating here at all -
     // it's derived live in getUser() from whichever tasks are completed.
     // When every task on a quest is done, the quest auto-completes;
     // unchecking any task on a completed quest re-opens it.
@@ -1610,10 +1635,10 @@ class DatabaseManager {
     // to match the character level bar's ACKNOWLEDGED level - not the live
     // level. Character leveling is gated exactly like Skill Mastery now
     // (see computeCharacterLevelBandState above and levelUpCharacterBar
-    // below): totalDP can run ahead, but nothing is actually granted until
+    // below): totalXP can run ahead, but nothing is actually granted until
     // levelUpCharacterBar() advances acknowledgedLevel, which is the only
     // thing that changes the `level` this function syncs against. Still
-    // called on every init() and after anything that can change DP
+    // called on every init() and after anything that can change XP
     // (toggleTask/toggleDailyTask) as a defensive catch-up - it's a no-op
     // in the normal case since acknowledgedLevel doesn't move on its own,
     // but it's what backfills characterLevelBar itself on an existing save
@@ -1719,8 +1744,8 @@ class DatabaseManager {
             this.state.characterLevelBar = { acknowledgedLevel: this.getUser().level, leveledUpAt: null };
         }
 
-        const totalDP = this.getUser().totalDP;
-        const bandState = computeCharacterLevelBandState(totalDP, this.state.characterLevelBar.acknowledgedLevel);
+        const totalXP = this.getUser().totalXP;
+        const bandState = computeCharacterLevelBandState(totalXP, this.state.characterLevelBar.acknowledgedLevel);
         if (!bandState.maxed) return null;
 
         this.state.characterLevelBar.acknowledgedLevel += 1;
@@ -1738,7 +1763,7 @@ class DatabaseManager {
     }
 
     // The Home/Profile character-level bar reads this directly - same
-    // pre-merged shape as getSkillMatrix() (level/dpIntoLevel/cap/
+    // pre-merged shape as getSkillMatrix() (level/xpIntoLevel/cap/
     // percentage/maxed), just for the one character-level band instead of
     // a whole matrix of skill categories.
     getCharacterLevelBar() {
@@ -1747,7 +1772,7 @@ class DatabaseManager {
             this.state.characterLevelBar = { acknowledgedLevel: this.getUser().level, leveledUpAt: null };
             this.save();
         }
-        return computeCharacterLevelBandState(this.getUser().totalDP, this.state.characterLevelBar.acknowledgedLevel);
+        return computeCharacterLevelBandState(this.getUser().totalXP, this.state.characterLevelBar.acknowledgedLevel);
     }
 
     // Backfills state.plugins onto any save from before the plugin toggle
@@ -1808,7 +1833,7 @@ class DatabaseManager {
     // Same additive/backfill pattern as _ensurePluginData/_ensureSkillTreeData
     // - covers both a save from before the Create/Edit Daily page existed
     // (these fields missing entirely) and a fresh blueprint-authored daily
-    // task (which only ever ships label/dp/difficulty, never these).
+    // task (which only ever ships label/xp/difficulty, never these).
     _ensureDailyTaskScheduleData() {
         if (!this.state) return;
         let changed = false;
@@ -1911,12 +1936,12 @@ class DatabaseManager {
     }
 
     // Awards a gacha ticket when a quest transitions INTO completed and
-    // its total DP clears QUEST_TICKET_DP_THRESHOLD - "certain quests that
+    // its total XP clears QUEST_TICKET_XP_THRESHOLD - "certain quests that
     // accomplish a great deal," per Leo's own framing, not every quest.
     _awardQuestTicketIfSignificant(quest) {
         if (!this.state) return;
-        const totalDP = (quest.tasks || []).reduce((sum, t) => sum + t.dp, 0);
-        if (totalDP < QUEST_TICKET_DP_THRESHOLD) return;
+        const totalXP = (quest.tasks || []).reduce((sum, t) => sum + t.xp, 0);
+        if (totalXP < QUEST_TICKET_XP_THRESHOLD) return;
 
         if (!this.state.colony) this.state.colony = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
         if (typeof this.state.colony.tickets !== 'number') this.state.colony.tickets = 0;
@@ -1930,8 +1955,8 @@ class DatabaseManager {
 
     // Awards material (and, on a smaller chance, Evolution Item) loot
     // every time ANY quest transitions into completed - unlike the ticket
-    // above, this isn't gated behind a DP threshold, just SCALED by it:
-    // bigger quests drop more material rolls (QUEST_LOOT_DP_DIVISOR), and
+    // above, this isn't gated behind an XP threshold, just SCALED by it:
+    // bigger quests drop more material rolls (QUEST_LOOT_XP_DIVISOR), and
     // finishing fast (days between dateStarted/dateCompleted - the finest
     // grain a quest actually tracks) adds bonus rolls on top. This runs
     // alongside (not instead of) any Collector-bee drops that already
@@ -1944,8 +1969,8 @@ class DatabaseManager {
         if (!this.state.inventory.items) this.state.inventory.items = {};
         if (!this.state.inventory.fragments) this.state.inventory.fragments = {};
 
-        const totalDP = (quest.tasks || []).reduce((sum, t) => sum + t.dp, 0);
-        const baseRolls = Math.max(1, Math.floor(totalDP / QUEST_LOOT_DP_DIVISOR));
+        const totalXP = (quest.tasks || []).reduce((sum, t) => sum + t.xp, 0);
+        const baseRolls = Math.max(1, Math.floor(totalXP / QUEST_LOOT_XP_DIVISOR));
 
         const daysElapsed = daysBetween(quest.dateStarted, quest.dateCompleted);
         let speedBonusRolls = 0;
@@ -2004,7 +2029,7 @@ class DatabaseManager {
 
     // 5b. Logic: Task management (add/edit/remove) - the LLM or the user can
     // both shape a quest's tasks this way, not just check them off.
-    addTask(questId, { label, dp, difficulty }) {
+    addTask(questId, { label, xp, difficulty }) {
         if (!this.state) return null;
 
         const quest = (this.state.quests || []).find(q => q.id === questId);
@@ -2014,7 +2039,7 @@ class DatabaseManager {
         quest.tasks.push({
             id: `${questId.toLowerCase()}-t${Date.now()}`,
             label,
-            dp: Number(dp) || 0,
+            xp: Number(xp) || 0,
             completed: false,
             dateCompleted: null,
             link: null,
@@ -2026,7 +2051,7 @@ class DatabaseManager {
         return quest;
     }
 
-    updateTask(questId, taskId, { label, dp, difficulty }) {
+    updateTask(questId, taskId, { label, xp, difficulty }) {
         if (!this.state) return null;
 
         const quest = (this.state.quests || []).find(q => q.id === questId);
@@ -2036,7 +2061,7 @@ class DatabaseManager {
         if (!task) return null;
 
         if (label !== undefined) task.label = label;
-        if (dp !== undefined) task.dp = Number(dp) || 0;
+        if (xp !== undefined) task.xp = Number(xp) || 0;
         if (difficulty !== undefined) task.difficulty = difficulty || null;
 
         this.save();
@@ -2064,9 +2089,9 @@ class DatabaseManager {
     // Distinct from the main task checklist: a task is binary complete/
     // incomplete, but a Ghost Log entry can sit at partial credit - status
     // is one of 'pending' | 'red' | 'yellow' | 'green' (attempted / partial /
-    // full), each carrying its own dp value the author set for that entry
-    // (not auto-scaled from a "full" value - see computeTotalDP above for
-    // how a non-pending entry's dp counts toward the live total, same as a
+    // full), each carrying its own xp value the author set for that entry
+    // (not auto-scaled from a "full" value - see computeTotalXP above for
+    // how a non-pending entry's xp counts toward the live total, same as a
     // completed task). Optional field, absent entirely on quests that don't
     // use it - nothing renders or breaks for those.
     getGhostLogs(questId) {
@@ -2074,7 +2099,7 @@ class DatabaseManager {
         return quest ? (quest.ghostLogs || []) : [];
     }
 
-    addGhostLog(questId, { name, dp }) {
+    addGhostLog(questId, { name, xp }) {
         if (!this.state) return null;
         const quest = (this.state.quests || []).find(q => q.id === questId);
         if (!quest) return null;
@@ -2084,7 +2109,7 @@ class DatabaseManager {
             id: `${questId.toLowerCase()}-gl${Date.now()}`,
             name: name || 'Untitled Challenge',
             status: 'pending',
-            dp: Number(dp) || 0,
+            xp: Number(xp) || 0,
             dateCompleted: null
         };
         quest.ghostLogs.push(entry);
@@ -2292,11 +2317,11 @@ class DatabaseManager {
         quest.source = source && source.url ? { label: source.label || source.url, url: source.url } : null;
         quest.tasks = (tasks || []).map((row, index) => {
             const prev = row.id && old.find(t => t.id === row.id);
-            if (prev) return { ...prev, label: row.label, difficulty: row.difficulty || null, dp: Number(row.dp) || 0 };
+            if (prev) return { ...prev, label: row.label, difficulty: row.difficulty || null, xp: Number(row.xp) || 0 };
             return {
                 id: `${quest.id.toLowerCase()}-t${stamp}-${index}`,
                 label: row.label,
-                dp: Number(row.dp) || 0,
+                xp: Number(row.xp) || 0,
                 completed: false,
                 dateCompleted: null,
                 link: null,
@@ -2350,7 +2375,7 @@ class DatabaseManager {
     }
 
     // 5g. Logic: the colony's gacha-pulled bees (src/features/colony/). Each
-    // pull's rarity/name is random, so - unlike DP/level - there's no formula
+    // pull's rarity/name is random, so - unlike XP/level - there's no formula
     // to recompute it from; it has to be stored as its own fact.
     getColonyBees() {
         return this.state && this.state.colony ? (this.state.colony.bees || []) : [];
@@ -2810,7 +2835,7 @@ class DatabaseManager {
 
     // 5h. Logic: Daily Tasks (a Habitica-style "Dailies" checklist, distinct
     // from quest tasks - these reset every day rather than being one-off).
-    // Blueprint-authored (label/dp), like quests, but Vault tracks a running
+    // Blueprint-authored (label/xp), like quests, but Vault tracks a running
     // list of the dates each one was completed on. getDailyTasks() derives
     // "is this checked off today" live from that list rather than storing a
     // separate boolean, so there's nothing to reset at midnight - a new day
@@ -2833,7 +2858,7 @@ class DatabaseManager {
         }));
     }
 
-    // Tick or untick one checklist line on a daily (no DP - the daily
+    // Tick or untick one checklist line on a daily (no XP - the daily
     // itself is what pays out).
     toggleDailyChecklistItem(taskId, itemId) {
         if (!this.state) return null;
@@ -2923,13 +2948,13 @@ class DatabaseManager {
 
     // 5i. Logic: Daily Task management (add/edit/remove) - mirrors
     // addTask/updateTask/removeTask for quest tasks above. Expanded past
-    // just label/dp/difficulty to match the full Create/Edit Daily page
+    // just label/xp/difficulty to match the full Create/Edit Daily page
     // (see src/features/dailies/create-daily.js): notes, a checklist of
     // sub-items, a repeats schedule (see isDailyDueOn above), reminder
     // times, and free-text tags. Every new field has a safe fallback so
     // both callers can still pass just the original 3 fields if that's
     // all they have.
-    addDailyTask({ label, dp, difficulty, notes, checklist, startDate, repeats, reminders, tags }) {
+    addDailyTask({ label, xp, difficulty, notes, checklist, startDate, repeats, reminders, tags }) {
         if (!this.state) return null;
         if (!this.state.dailyTasks) this.state.dailyTasks = [];
 
@@ -2938,7 +2963,7 @@ class DatabaseManager {
         this.state.dailyTasks.push({
             id,
             label,
-            dp: Number(dp) || 0,
+            xp: Number(xp) || 0,
             difficulty: difficulty || null,
             notes: notes || '',
             checklist: Array.isArray(checklist) ? checklist : [],
@@ -2953,14 +2978,14 @@ class DatabaseManager {
         return this.state.dailyTasks;
     }
 
-    updateDailyTask(taskId, { label, dp, difficulty, notes, checklist, startDate, repeats, reminders, tags }) {
+    updateDailyTask(taskId, { label, xp, difficulty, notes, checklist, startDate, repeats, reminders, tags }) {
         if (!this.state) return null;
 
         const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
         if (!task) return null;
 
         if (label !== undefined) task.label = label;
-        if (dp !== undefined) task.dp = Number(dp) || 0;
+        if (xp !== undefined) task.xp = Number(xp) || 0;
         if (difficulty !== undefined) task.difficulty = difficulty || null;
         if (notes !== undefined) task.notes = notes;
         if (checklist !== undefined) task.checklist = Array.isArray(checklist) ? checklist : [];
@@ -2983,8 +3008,8 @@ class DatabaseManager {
 
     // 5i2. Logic: Habits (src/features/habits/) - a Habitica-style
     // +/- action button. No schedule, nothing "due" - just a permanent
-    // `history` log of every click (see computeHabitDP above for how that
-    // log turns into a live DP total, never affected by resetCounter).
+    // `history` log of every click (see computeHabitXP above for how that
+    // log turns into a live XP total, never affected by resetCounter).
     // Which of +/- shows is a per-habit toggle (positive/negative, default
     // both true) - so unlike Dailies there's no per-item "is this the
     // right kind of action today" check, just "is this direction turned
@@ -3006,7 +3031,7 @@ class DatabaseManager {
                 positiveCount: history.filter(h => h.direction === 'positive').length,
                 negativeCount: history.filter(h => h.direction === 'negative').length,
                 // Display-only tally for the current Reset Counter period -
-                // DP/totals above are still computed from the full history.
+                // XP/totals above are still computed from the full history.
                 periodPositiveCount: history.filter(h => h.direction === 'positive' && h.date >= periodStart).length,
                 periodNegativeCount: history.filter(h => h.direction === 'negative' && h.date >= periodStart).length
             };
@@ -3044,7 +3069,7 @@ class DatabaseManager {
         return habit;
     }
 
-    addHabit({ label, dp, difficulty, notes, tags, positive, negative, resetCounter }) {
+    addHabit({ label, xp, difficulty, notes, tags, positive, negative, resetCounter }) {
         if (!this.state) return null;
         if (!this.state.habits) this.state.habits = [];
 
@@ -3057,7 +3082,7 @@ class DatabaseManager {
         this.state.habits.push({
             id: `habit-${Date.now()}`,
             label,
-            dp: Number(dp) || 0,
+            xp: Number(xp) || 0,
             difficulty: difficulty || null,
             notes: notes || '',
             tags: Array.isArray(tags) ? tags : [],
@@ -3071,14 +3096,14 @@ class DatabaseManager {
         return this.state.habits;
     }
 
-    updateHabit(habitId, { label, dp, difficulty, notes, tags, positive, negative, resetCounter }) {
+    updateHabit(habitId, { label, xp, difficulty, notes, tags, positive, negative, resetCounter }) {
         if (!this.state) return null;
 
         const habit = (this.state.habits || []).find(h => h.id === habitId);
         if (!habit) return null;
 
         if (label !== undefined) habit.label = label;
-        if (dp !== undefined) habit.dp = Number(dp) || 0;
+        if (xp !== undefined) habit.xp = Number(xp) || 0;
         if (difficulty !== undefined) habit.difficulty = difficulty || null;
         if (notes !== undefined) habit.notes = notes;
         if (tags !== undefined) habit.tags = Array.isArray(tags) ? tags : [];
@@ -3110,7 +3135,7 @@ class DatabaseManager {
 
     // "Adjust Counter" on the edit screen: sets the current period's +/-
     // tally (the one the Reset Counter resets). Adds clicks dated today, or
-    // removes the newest clicks from this period. DP follows the clicks,
+    // removes the newest clicks from this period. XP follows the clicks,
     // same as tapping + or - yourself.
     setHabitPeriodCounts(habitId, { positive, negative } = {}) {
         if (!this.state) return null;
@@ -3175,14 +3200,14 @@ class DatabaseManager {
         return todo;
     }
 
-    addTodo({ label, dp, difficulty, notes, checklist, dueDate, reminders, tags }) {
+    addTodo({ label, xp, difficulty, notes, checklist, dueDate, reminders, tags }) {
         if (!this.state) return null;
         if (!this.state.todos) this.state.todos = [];
 
         this.state.todos.push({
             id: `todo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             label,
-            dp: Number(dp) || 0,
+            xp: Number(xp) || 0,
             difficulty: difficulty || null,
             notes: notes || '',
             checklist: Array.isArray(checklist) ? checklist : [],
@@ -3197,14 +3222,14 @@ class DatabaseManager {
         return this.state.todos;
     }
 
-    updateTodo(todoId, { label, dp, difficulty, notes, checklist, dueDate, reminders, tags }) {
+    updateTodo(todoId, { label, xp, difficulty, notes, checklist, dueDate, reminders, tags }) {
         if (!this.state) return null;
 
         const todo = (this.state.todos || []).find(t => t.id === todoId);
         if (!todo) return null;
 
         if (label !== undefined) todo.label = label;
-        if (dp !== undefined) todo.dp = Number(dp) || 0;
+        if (xp !== undefined) todo.xp = Number(xp) || 0;
         if (difficulty !== undefined) todo.difficulty = difficulty || null;
         if (notes !== undefined) todo.notes = notes;
         if (checklist !== undefined) todo.checklist = Array.isArray(checklist) ? checklist : [];
@@ -3224,7 +3249,7 @@ class DatabaseManager {
         return true;
     }
 
-    // Tick or untick one checklist line on a to-do (no DP - the to-do
+    // Tick or untick one checklist line on a to-do (no XP - the to-do
     // itself pays out). Unlike a daily's, these stay ticked.
     toggleTodoChecklistItem(todoId, itemId) {
         if (!this.state) return null;
@@ -3361,7 +3386,7 @@ class DatabaseManager {
     // 5k. Logic: Dictionary Terms (src/features/dictionary/) - each term:
     // { id, name, definition, category, createdAt }. `category` is what
     // actually ties a term to the skill mastery matrix (see
-    // computeSkillMatrixDP above) - defining a term under "CSS" is the
+    // computeSkillMatrixXP above) - defining a term under "CSS" is the
     // deliberate, curated action that makes that category real, rather
     // than every stray word you ever type anywhere silently becoming a
     // tracked skill. Create-Daily's auto-tagging only ever MATCHES against
@@ -3413,17 +3438,17 @@ class DatabaseManager {
     }
 
     // The Dashboard's Skill Matrix reads this directly - see
-    // computeSkillMatrixDP above for how the raw dp is derived, and
-    // computeSkillLevelState above for how that dp maps onto a level/bar.
+    // computeSkillMatrixXP above for how the raw xp is derived, and
+    // computeSkillLevelState above for how that xp maps onto a level/bar.
     // Each entry comes back pre-merged with its level info so the Dashboard
     // never has to cross-reference two separate calls per row.
     getSkillMatrix() {
         if (!this.state) return [];
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
-        return computeSkillMatrixDP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
+        return computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
             const stored = this.state.skillLevels[entry.category];
-            const levelState = computeSkillLevelState(entry.dp, stored ? stored.level : 1);
+            const levelState = computeSkillLevelState(entry.xp, stored ? stored.level : 1);
             return { ...entry, ...levelState };
         });
     }
@@ -3432,7 +3457,7 @@ class DatabaseManager {
     // (or ALL of them, if sinceISO is null/undefined - a skill's very first
     // level-up has no "since" yet). This is what gets handed to Eevee in
     // levelUpSkill below so her reward judgment is based on the real batch
-    // of work behind that level-up, not just a bare DP number. A
+    // of work behind that level-up, not just a bare XP number. A
     // contribution with no recorded date (can happen for an older Quest
     // task saved before dateCompleted was tracked) is included rather than
     // silently dropped - real work shouldn't vanish from her view just
@@ -3468,12 +3493,12 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
-        const matrixEntry = computeSkillMatrixDP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
+        const matrixEntry = computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
             .find(entry => entry.category === category);
-        const totalDP = matrixEntry ? matrixEntry.dp : 0;
+        const totalXP = matrixEntry ? matrixEntry.xp : 0;
 
         const stored = this.state.skillLevels[category] || { level: 1, leveledUpAt: null };
-        const levelState = computeSkillLevelState(totalDP, stored.level);
+        const levelState = computeSkillLevelState(totalXP, stored.level);
         if (!levelState.maxed) return null;
 
         const contributions = this.getSkillContributionsSince(category, stored.leveledUpAt);
@@ -3702,7 +3727,7 @@ class DatabaseManager {
     // a standing "Imported from Habitica" quest. This moves them where they
     // belong - Habits and To-Dos - with no network needed, keeping each
     // To-Do's done state. Imported items with no difficulty get one from
-    // their DP (the import set DP from Habitica's difficulty). Runs once per
+    // their XP (the import set XP from Habitica's difficulty). Runs once per
     // save (state.habiticaSorted), after a local backup. (Craft, 2026-10-10)
     _sortHabiticaImports() {
         if (!this.state || this.state.habiticaSorted) return { habits: 0, todos: 0 };
@@ -3727,8 +3752,8 @@ class DatabaseManager {
                 this.state.habits.push({
                     id: `habit-${uid()}`,
                     label: t.label,
-                    dp: Number(t.dp) || 0,
-                    difficulty: t.difficulty || habiticaDifficultyFromDp(t.dp),
+                    xp: Number(t.xp) || 0,
+                    difficulty: t.difficulty || habiticaDifficultyFromXp(t.xp),
                     notes: t.notes,
                     tags: Array.isArray(t.tags) ? t.tags : [],
                     positive: true,
@@ -3752,8 +3777,8 @@ class DatabaseManager {
                 this.state.todos.push({
                     id: `todo-${uid()}`,
                     label: t.label,
-                    dp: Number(t.dp) || 0,
-                    difficulty: t.difficulty || habiticaDifficultyFromDp(t.dp),
+                    xp: Number(t.xp) || 0,
+                    difficulty: t.difficulty || habiticaDifficultyFromXp(t.xp),
                     notes: 'Imported from Habitica (todo).',
                     checklist: [], dueDate: null, reminders: [], tags: [],
                     completed: !!t.completed,
@@ -3766,7 +3791,7 @@ class DatabaseManager {
         }
 
         ['habits', 'dailyTasks', 'todos'].forEach(k => (this.state[k] || []).forEach(t => {
-            if (fromHabitica(t) && !t.difficulty) t.difficulty = habiticaDifficultyFromDp(t.dp);
+            if (fromHabitica(t) && !t.difficulty) t.difficulty = habiticaDifficultyFromXp(t.xp);
         }));
 
         this.state.habiticaSorted = true;
@@ -3945,7 +3970,7 @@ class DatabaseManager {
             if (this.state.habits.some(x => x.label === h.label)) return;
             this.state.habits.push({
                 id: `habit-starter-${i}-${Date.now()}`,
-                label: h.label, dp: 20, difficulty: 'Easy', notes: h.notes, tags: [],
+                label: h.label, xp: 20, difficulty: 'Easy', notes: h.notes, tags: [],
                 positive: true, negative: false, resetCounter: 'daily', history: [],
                 ...(i === 0 ? { quoteOfWeek: true } : {})
             });

@@ -51,7 +51,7 @@ const HabiticaSync = (() => {
     // Bizzybee difficulty <-> Habitica priority, and the XP each difficulty
     // gives per type (same tiers as the Create pages).
     const PRIORITY = { Trivial: 0.1, Easy: 1, Medium: 1.5, Hard: 2 };
-    const TIER_DP = {
+    const TIER_XP = {
         habit: { Trivial: 10, Easy: 20, Medium: 60, Hard: 120 },
         daily: { Trivial: 10, Easy: 20, Medium: 60, Hard: 120 },
         todo: { Trivial: 15, Easy: 30, Medium: 70, Hard: 150 }
@@ -158,7 +158,7 @@ const HabiticaSync = (() => {
     // Bizzybee item from a Habitica task (for creating it here).
     function addLocalFrom(type, task) {
         const difficulty = difficultyOf(Number(task.priority) || 1);
-        const base = { label: task.text, dp: TIER_DP[type][difficulty], difficulty, notes: task.notes || '' };
+        const base = { label: task.text, xp: TIER_XP[type][difficulty], difficulty, notes: task.notes || '' };
         let list;
         if (type === 'habit') list = Vault.addHabit({ ...base, positive: task.up !== false, negative: task.down !== false });
         else if (type === 'todo') list = Vault.addTodo({ ...base, dueDate: task.date ? String(task.date).slice(0, 10) : null });
@@ -339,7 +339,7 @@ const HabiticaSync = (() => {
                 // Habitica changed it (wins if both did).
                 if (key === 'text') local.label = rf.text;
                 else if (key === 'notes') local.notes = rf.notes;
-                else if (key === 'priority') { local.difficulty = difficultyOf(rf.priority); local.dp = TIER_DP[type][local.difficulty]; }
+                else if (key === 'priority') { local.difficulty = difficultyOf(rf.priority); local.xp = TIER_XP[type][local.difficulty]; }
                 else if (key === 'up') local.positive = rf.up;
                 else if (key === 'down') local.negative = rf.down;
                 counts.pulled++;

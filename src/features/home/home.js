@@ -4,7 +4,7 @@ console.log("/// HOME PROTOCOLS INITIALIZED ///");
 //   - your royal + name + level bar live in the app's top bar (app.js
 //     AppShell), full size on this page - the Level Up button is there too
 //   - hive strip: four stats, each opening its own page (bees -> Colony,
-//     DP today -> Dashboard, best streak -> Dailies, focus quest -> Quests)
+//     XP today -> Dashboard, best streak -> Dailies, focus quest -> Quests)
 //   - Today: a dropdown with Dailies / Habits / To-Dos / Quest tabs, using
 //     the exact same cards as those tabs (TaskRow, HabitRow, QuestUI).
 //     Closed by default on phones, open on wide screens.
@@ -42,23 +42,23 @@ function todayData() {
     return { dailies, todos, quest, habits: pluginOn('habits') ? Vault.getHabits() : [] };
 }
 
-// DP earned today across everything (habits count + and −).
-function dpToday() {
+// XP earned today across everything (habits count + and −).
+function xpToday() {
     const today = todayISO();
-    let dp = 0;
-    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) dp += Number(t.dp) || 0; });
-    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) dp += Number(t.dp) || 0; });
-    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) dp += Number(t.dp) || 0; }));
+    let xp = 0;
+    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) xp += Number(t.xp) || 0; });
+    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) xp += Number(t.xp) || 0; });
+    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) xp += Number(t.xp) || 0; }));
     (Vault.getHabits ? Vault.getHabits() : []).forEach(h => (h.history || []).forEach(x => {
-        if (x.date === today) dp += (x.direction === 'positive' ? 1 : -1) * (Number(h.dp) || 0);
+        if (x.date === today) xp += (x.direction === 'positive' ? 1 : -1) * (Number(h.xp) || 0);
     }));
-    return dp;
+    return xp;
 }
 
 // ---- hive strip: four stats, each to its own page ----
 const STRIP_ICONS = {
     bees: '<path d="M12 6.5a3 3 0 1 1 0 .1"/><path d="M8.5 11h7l-.8 7.5a2.7 2.7 0 0 1-5.4 0z"/><path d="M8.8 14h6.4M9.2 16.8h5.6M8.5 11C5 8 3 9.5 4.2 11.8S8.2 13 8.5 11zM15.5 11c3.5-3 5.5-1.5 4.3.8S15.8 13 15.5 11z"/>',
-    dp: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
+    xp: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
     streak: '<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-8.3.7 1.9 1.8 3 3 3.4-.2-2.6.8-5.3 2.9-6.9.1 3.4 3.5 6 3.5 10.4C18.5 18.2 16 21 12 21z"/><path d="M12 21c-1.7 0-2.8-1.2-2.8-2.8 0-1.8 1.6-2.7 2.2-4.2.9 1.5 3.4 2.4 3.4 4.4 0 1.5-1.2 2.6-2.8 2.6z"/>',
     quest: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2"/>'
 };
@@ -68,10 +68,10 @@ function renderHive() {
     const streak = Vault.getDailyTasks().reduce((m, t) => Math.max(m, t.streak || 0), 0);
     const quest = Vault.getQuests().find(q => q.id === Vault.getActiveQuestId());
     const qp = quest && typeof QuestUI !== 'undefined' ? QuestUI.progress(quest).pct : null;
-    const dp = dpToday();
+    const xp = xpToday();
     const stats = [
         { key: 'bees', value: hive.bees, label: 'Bees', href: '../colony/colony.html', color: '#ffcc00' },
-        { key: 'dp', value: `${dp > 0 ? '+' : ''}${dp}`, label: 'DP today', href: '../dashboard/dashboard.html', color: '#34c77b' },
+        { key: 'xp', value: `${xp > 0 ? '+' : ''}${xp}`, label: 'XP today', href: '../dashboard/dashboard.html', color: '#34c77b' },
         { key: 'streak', value: streak, label: 'Best streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
         { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
     ];
@@ -190,14 +190,14 @@ function handlePanelClick(event) {
     if (kind === 'daily') {
         const task = Vault.getDailyTasks().find(t => t.id === id);
         if (!task) return;
-        if (act === 'check') { Vault.toggleDailyTask(id); TaskRow.animateCheck(row, !task.completedToday, task.dp); refreshAfterCheck(); }
+        if (act === 'check') { Vault.toggleDailyTask(id); TaskRow.animateCheck(row, !task.completedToday, task.xp); refreshAfterCheck(); }
         else if (act === 'edit') window.location.href = TAB_LINKS.dailies.edit + encodeURIComponent(id);
         else if (act === 'list') { if (openChecklists.has(id)) openChecklists.delete(id); else openChecklists.add(id); renderPanel(); }
         else if (act === 'item') { Vault.toggleDailyChecklistItem(id, el.dataset.item); renderPanel(); }
     } else if (kind === 'todo') {
         const todo = Vault.getTodos().find(t => t.id === id);
         if (!todo) return;
-        if (act === 'check') { Vault.toggleTodoComplete(id); TaskRow.animateCheck(row, !todo.completed, todo.dp); refreshAfterCheck(); }
+        if (act === 'check') { Vault.toggleTodoComplete(id); TaskRow.animateCheck(row, !todo.completed, todo.xp); refreshAfterCheck(); }
         else if (act === 'edit') window.location.href = TAB_LINKS.todos.edit + encodeURIComponent(id);
         else if (act === 'list') { if (openChecklists.has(id)) openChecklists.delete(id); else openChecklists.add(id); renderPanel(); }
         else if (act === 'item') { Vault.toggleTodoChecklistItem(id, el.dataset.item); renderPanel(); }

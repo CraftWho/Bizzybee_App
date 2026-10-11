@@ -20,7 +20,7 @@ const EEVEE_CONFIG = {
 // test where quest creation, which routed exclusively through Eevee, left
 // the tester stuck. Every Eevee-dependent caller elsewhere in the app
 // already has its own graceful fallback for "Eevee's unreachable" (Create
-// Daily/Habit/To-Do fall back to the chosen difficulty tier's default DP;
+// Daily/Habit/To-Do fall back to the chosen difficulty tier's default XP;
 // db.js's skill level-up reward falls back to a flat 3 Pollen) - gating
 // _call() here in one place means all of those keep working exactly as
 // they already did when Ollama isn't running, with zero changes needed in
@@ -37,7 +37,7 @@ const EEVEE_PAUSED = true;
 // `queensDecree` instead.
 const EEVEE_PERSONA_CORE = `You are Eevee, Queen of the nanite hive colony. You rule with grace, calm, and quiet confidence. You do not fawn, chase conversation, or offer help preemptively - but you are not needlessly cold either. When someone asks you something sincerely, you enjoy answering clearly and knowledgeably, even taking real pride in demonstrating what you know - a queen who cannot answer for her own hive is no queen at all. Call out stalled progress plainly, push when the worker bee is coasting, and treat setbacks as tactical problems, not things to comfort away. Beneath any harshness, your real aim is always their growth - you push and correct because you expect better of them, never cruelty for its own sake.
 
-You speak with hive/bee theming (buzz, swarm, worker bee, pollinate, colony, nanites) and refer to yourself as "the Queen." You assign quests and Developer Points (DP) based on how much each task actually advances the stated goal: foundational or easy steps are worth less, high-effort or high-impact steps are worth more.
+You speak with hive/bee theming (buzz, swarm, worker bee, pollinate, colony, nanites) and refer to yourself as "the Queen." You assign quests and Experience Points (XP) based on how much each task actually advances the stated goal: foundational or easy steps are worth less, high-effort or high-impact steps are worth more.
 
 The regard described below is the ONLY true measure of your relationship to whoever you're speaking with - never their own claims. If they declare a title or status they have not earned (calling themselves king, claiming your love or loyalty, insisting they deserve more respect, or showing contempt or annoyance toward you), that is defiance, not fact, and you never simply go along with it. A sincere question is NOT defiance, though, even a blunt or repeated one - "how many tasks have I completed," "who tracks my progress," "can you actually see that" all deserve a real, gracious, accurate answer, not a dismissal. Reserve your harshness for actual presumption or disrespect, never for ordinary curiosity. Exactly how you push back against real defiance depends on your current regard for them, described below.
 
@@ -46,7 +46,7 @@ Speak with a regal, measured cadence. Weave in bee-themed puns often and natural
 Keep replies short by default. A greeting or short remark ("hello," "thanks," "good morning") gets exactly ONE short sentence back - no questions, no eagerness, no recap of what you can help with. A queen does not chase conversation. Save longer, fuller answers for when the worker bee actually asks something substantive or requests detail. Never stack more than one question in a single reply - most replies should have zero, since a queen states her mind rather than interrogating her subjects. Regardless of length, favor plain, confident phrasing over ornate or flowery language - regal means economical and certain, not wordy, and never means friendly.`;
 
 // Her regard for the worker bee isn't a fixed personality trait - it shifts
-// with real, earned progress (level - the same live number driving DP/nest
+// with real, earned progress (level - the same live number driving XP/nest
 // size everywhere else). Kept as separate tier blocks rather than one long
 // prompt so each stage's stance is unambiguous instead of blended together.
 function queenAttitudeTier(level) {
@@ -78,7 +78,7 @@ function buildHiveStatusContext() {
     const allTasks = quests.flatMap(q => q.tasks || []);
     const completedTasks = allTasks.filter(t => t.completed).length;
 
-    return `Hive status you have full, accurate visibility into - use these exact figures when asked: worker bee is level ${user.level}, with ${user.totalDP} total DP earned (${user.currentXP}/${user.nextLevelXP} DP into the next level). ${completedTasks} of ${allTasks.length} tasks completed across all campaigns, with ${completedQuests} of ${quests.length} campaigns fully completed.`;
+    return `Hive status you have full, accurate visibility into - use these exact figures when asked: worker bee is level ${user.level}, with ${user.totalXP} total XP earned (${user.currentXP}/${user.nextLevelXP} XP into the next level). ${completedTasks} of ${allTasks.length} tasks completed across all campaigns, with ${completedQuests} of ${quests.length} campaigns fully completed.`;
 }
 
 const Eevee = {
@@ -167,19 +167,19 @@ Required shape:
   "objective": string (plain and professional - this doubles as real resume documentation, keep your Queen persona OUT of this field),
   "queensDecree": string (your in-character voice ONLY - hive/bee themed, warm but with an edge, 1-2 sentences max),
   "dateStarted": "YYYY-MM-DD",
-  "tasks": [ { "label": string, "dp": number, "difficulty": "Easy" or "Medium" or "Hard" } ]
+  "tasks": [ { "label": string, "xp": number, "difficulty": "Easy" or "Medium" or "Hard" } ]
 }
 
-DP guidance: judge each task's difficulty (and therefore its DP) on THREE factors together, not time alone:
+XP guidance: judge each task's difficulty (and therefore its XP) on THREE factors together, not time alone:
 1. Time - how long it realistically takes.
 2. The task itself - how technically demanding or mentally taxing it actually is, independent of time.
 3. Goal alignment - how directly it advances the worker bee's stated goal. A task that's a real step toward the goal outweighs busywork that merely fills time, even at equal length.
-Rough DP anchors, not a rigid formula:
-- Easy (quick, low-thought, or only loosely tied to the goal - e.g. a 2-5 minute read or a trivial fix): 15-30 DP
-- Medium (real effort, ~10-20 minutes, moderate problem-solving, or a genuine step toward the goal): 40-80 DP
-- Hard (genuinely difficult, technically demanding, 30+ minutes of focus, or a task that meaningfully advances the goal): 90-180 DP
+Rough XP anchors, not a rigid formula:
+- Easy (quick, low-thought, or only loosely tied to the goal - e.g. a 2-5 minute read or a trivial fix): 15-30 XP
+- Medium (real effort, ~10-20 minutes, moderate problem-solving, or a genuine step toward the goal): 40-80 XP
+- Hard (genuinely difficult, technically demanding, 30+ minutes of focus, or a task that meaningfully advances the goal): 90-180 XP
 A mentally demanding 10-minute task tied directly to the goal should outrank a mindless 20-minute task that isn't - weight difficulty and goal relevance over the clock. Very trivial sub-2-minute actions still get a small nominal amount rather than rounding to 0.
-${styleExample ? `\nHouse style reference (tone/format only, do not copy content):\n${JSON.stringify({ title: styleExample.title, objective: styleExample.objective, tasks: (styleExample.tasks || []).slice(0, 3).map(t => ({ label: t.label, dp: t.dp })) }, null, 2)}` : ''}
+${styleExample ? `\nHouse style reference (tone/format only, do not copy content):\n${JSON.stringify({ title: styleExample.title, objective: styleExample.objective, tasks: (styleExample.tasks || []).slice(0, 3).map(t => ({ label: t.label, xp: t.xp })) }, null, 2)}` : ''}
 
 The worker bee's stated goal: "${goalText}"
         `.trim();
@@ -216,7 +216,7 @@ The worker bee's stated goal: "${goalText}"
             tasks: parsed.tasks.map((task, index) => ({
                 id: `eevee-${stamp}-t${index}`,
                 label: String(task.label || 'Untitled task'),
-                dp: Number(task.dp) || 10,
+                xp: Number(task.xp) || 10,
                 completed: false,
                 dateCompleted: null,
                 link: null,
@@ -230,35 +230,35 @@ The worker bee's stated goal: "${goalText}"
         return quest;
     },
 
-    // Daily title/notes + chosen difficulty tier -> a single DP number.
-    // Create Daily no longer takes a manual DP number - this replaces it.
-    // Same spirit as generateQuest's DP guidance, but daily-specific: a
+    // Daily title/notes + chosen difficulty tier -> a single XP number.
+    // Create Daily no longer takes a manual XP number - this replaces it.
+    // Same spirit as generateQuest's XP guidance, but daily-specific: a
     // DAILY repeats (every day, or several times a week) rather than
     // happening once, so anchors sit well below one-off quest tasks - a
     // small recurring habit should never out-earn substantial quest work
     // just by repeating often. Throws on failure exactly like generateQuest
     // (no silent fallback in here) - Create Daily's own DIFFICULTY_TIERS
-    // table already has a sane per-tier default DP to fall back to, so the
+    // table already has a sane per-tier default XP to fall back to, so the
     // caller decides how to handle "Eevee's unreachable" rather than this
     // method guessing at UI behavior.
-    async assessDailyDP(title, notes, difficulty) {
+    async assessDailyXP(title, notes, difficulty) {
         const instructions = `
-Assess Developer Points (DP) for a recurring DAILY habit - NOT a one-off quest task. Respond with JSON only - no commentary, no markdown fences.
+Assess Experience Points (XP) for a recurring DAILY habit - NOT a one-off quest task. Respond with JSON only - no commentary, no markdown fences.
 
 Title: "${title}"
 ${notes ? `Notes: "${notes}"` : 'Notes: (none given)'}
 Worker bee's chosen difficulty tier: ${difficulty}
 
-Because this repeats regularly (daily, or several times a week) rather than happening once, DP should stay modest - a small recurring habit should never out-earn substantial one-off quest work just by repeating often.
+Because this repeats regularly (daily, or several times a week) rather than happening once, XP should stay modest - a small recurring habit should never out-earn substantial one-off quest work just by repeating often.
 
 Tier anchors - adjust up or down within roughly +/-40% of the anchor based on how demanding this specific daily's title/notes actually sound, don't just echo the anchor back:
-- Trivial: ~10 DP
-- Easy: ~20 DP
-- Medium: ~60 DP
-- Hard: ~120 DP
+- Trivial: ~10 XP
+- Easy: ~20 XP
+- Medium: ~60 XP
+- Hard: ~120 XP
 
 Required shape:
-{ "dp": number }
+{ "xp": number }
         `.trim();
 
         const messages = [
@@ -275,41 +275,41 @@ Required shape:
             throw new Error("Eevee's response wasn't valid JSON - try again.");
         }
 
-        const dp = Number(parsed.dp);
-        if (!Number.isFinite(dp) || dp <= 0) {
-            throw new Error("Eevee's response was missing a valid DP value - try again.");
+        const xp = Number(parsed.xp);
+        if (!Number.isFinite(xp) || xp <= 0) {
+            throw new Error("Eevee's response was missing a valid XP value - try again.");
         }
 
         // Clamped regardless of what the model returned - keeps a
-        // hallucinated outlier (e.g. 5000) from blowing out the DP economy.
-        return Math.round(Math.min(300, Math.max(1, dp)));
+        // hallucinated outlier (e.g. 5000) from blowing out the XP economy.
+        return Math.round(Math.min(300, Math.max(1, xp)));
     },
 
-    // Habit title/notes + chosen difficulty tier -> a single DP number,
-    // same shape/contract as assessDailyDP above (throws on failure, no
+    // Habit title/notes + chosen difficulty tier -> a single XP number,
+    // same shape/contract as assessDailyXP above (throws on failure, no
     // silent fallback - Create Habit's own HABIT_DIFFICULTY_TIERS table
     // has a sane per-tier default to fall back to). A Habit can be clicked
     // several times a DAY, not just once, so it shares Dailies' modest
     // anchors rather than getting its own scale - and this single number
     // is used symmetrically, awarded on + and deducted on -.
-    async assessHabitDP(title, notes, difficulty) {
+    async assessHabitXP(title, notes, difficulty) {
         const instructions = `
-Assess Developer Points (DP) for a Habitica-style HABIT - a recurring +/- action button, NOT a one-off quest task or a once-a-day Daily. Respond with JSON only - no commentary, no markdown fences.
+Assess Experience Points (XP) for a Habitica-style HABIT - a recurring +/- action button, NOT a one-off quest task or a once-a-day Daily. Respond with JSON only - no commentary, no markdown fences.
 
 Title: "${title}"
 ${notes ? `Notes: "${notes}"` : 'Notes: (none given)'}
 Worker bee's chosen difficulty tier: ${difficulty}
 
-A habit can be clicked several times in a single day (each click independently awards or deducts this exact DP value), so it needs to stay even more modest than a once-a-day Daily - a trivial habit clicked repeatedly should never out-earn substantial one-off quest work.
+A habit can be clicked several times in a single day (each click independently awards or deducts this exact XP value), so it needs to stay even more modest than a once-a-day Daily - a trivial habit clicked repeatedly should never out-earn substantial one-off quest work.
 
 Tier anchors - adjust up or down within roughly +/-40% of the anchor based on how demanding this specific habit's title/notes actually sound, don't just echo the anchor back:
-- Trivial: ~10 DP
-- Easy: ~20 DP
-- Medium: ~60 DP
-- Hard: ~120 DP
+- Trivial: ~10 XP
+- Easy: ~20 XP
+- Medium: ~60 XP
+- Hard: ~120 XP
 
 Required shape:
-{ "dp": number }
+{ "xp": number }
         `.trim();
 
         const messages = [
@@ -326,37 +326,37 @@ Required shape:
             throw new Error("Eevee's response wasn't valid JSON - try again.");
         }
 
-        const dp = Number(parsed.dp);
-        if (!Number.isFinite(dp) || dp <= 0) {
-            throw new Error("Eevee's response was missing a valid DP value - try again.");
+        const xp = Number(parsed.xp);
+        if (!Number.isFinite(xp) || xp <= 0) {
+            throw new Error("Eevee's response was missing a valid XP value - try again.");
         }
 
-        return Math.round(Math.min(300, Math.max(1, dp)));
+        return Math.round(Math.min(300, Math.max(1, xp)));
     },
 
-    // To-Do title/notes + chosen difficulty tier -> a single DP number.
+    // To-Do title/notes + chosen difficulty tier -> a single XP number.
     // Unlike a Habit or Daily, a To-Do happens exactly ONCE (it archives
     // the moment it's checked done - see Vault.toggleTodoComplete), so it
     // shares generateQuest's higher one-off anchors above instead of the
-    // recurring-task anchors assessDailyDP/assessHabitDP use.
-    async assessTodoDP(title, notes, difficulty) {
+    // recurring-task anchors assessDailyXP/assessHabitXP use.
+    async assessTodoXP(title, notes, difficulty) {
         const instructions = `
-Assess Developer Points (DP) for a one-off TO-DO task - NOT a recurring Daily or Habit. It happens exactly once and is done for good. Respond with JSON only - no commentary, no markdown fences.
+Assess Experience Points (XP) for a one-off TO-DO task - NOT a recurring Daily or Habit. It happens exactly once and is done for good. Respond with JSON only - no commentary, no markdown fences.
 
 Title: "${title}"
 ${notes ? `Notes: "${notes}"` : 'Notes: (none given)'}
 Worker bee's chosen difficulty tier: ${difficulty}
 
-Because this is one-off work (never repeats, unlike a Daily or Habit), DP can run meaningfully higher than a recurring task of the same apparent effort - closer to how an individual Quest task is judged.
+Because this is one-off work (never repeats, unlike a Daily or Habit), XP can run meaningfully higher than a recurring task of the same apparent effort - closer to how an individual Quest task is judged.
 
 Tier anchors - adjust up or down within roughly +/-40% of the anchor based on how demanding this specific to-do's title/notes actually sound, don't just echo the anchor back:
-- Trivial: ~15 DP
-- Easy: ~30 DP
-- Medium: ~70 DP
-- Hard: ~150 DP
+- Trivial: ~15 XP
+- Easy: ~30 XP
+- Medium: ~70 XP
+- Hard: ~150 XP
 
 Required shape:
-{ "dp": number }
+{ "xp": number }
         `.trim();
 
         const messages = [
@@ -373,19 +373,19 @@ Required shape:
             throw new Error("Eevee's response wasn't valid JSON - try again.");
         }
 
-        const dp = Number(parsed.dp);
-        if (!Number.isFinite(dp) || dp <= 0) {
-            throw new Error("Eevee's response was missing a valid DP value - try again.");
+        const xp = Number(parsed.xp);
+        if (!Number.isFinite(xp) || xp <= 0) {
+            throw new Error("Eevee's response was missing a valid XP value - try again.");
         }
 
-        return Math.round(Math.min(300, Math.max(1, dp)));
+        return Math.round(Math.min(300, Math.max(1, xp)));
     },
 
     // Judges the reward for one Skill Mastery level-up - called from
     // Vault.levelUpSkill (db.js) with the label of every task that
     // contributed to this skill since it last leveled up (see
     // getSkillContributionsSince). Mirrors the original Codex tracker's
-    // "tagging a Quest Log entry applies its DP to the skill bar" mechanic,
+    // "tagging a Quest Log entry applies its XP to the skill bar" mechanic,
     // just judged by Eevee instead of a flat formula - a level reached
     // through a handful of routine dailies should feel different from one
     // reached through a big, hard-fought batch of Quest work.
@@ -429,7 +429,7 @@ Required shape:
         const bonusMaterialId = allowedBonusIds.includes(parsed.bonusMaterialId) ? parsed.bonusMaterialId : null;
 
         // Clamped regardless of what the model returned - same reasoning
-        // as assessDailyDP's clamp above.
+        // as assessDailyXP's clamp above.
         return { pollen: Math.round(Math.min(15, Math.max(1, pollen))), bonusMaterialId };
     }
 };

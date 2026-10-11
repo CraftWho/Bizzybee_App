@@ -4,7 +4,7 @@ console.log("/// CREATE QUEST PROTOCOLS INITIALIZED ///");
 // Same coloured-top form as Habits / Dailies / To-Dos. The colour follows
 // the quest type (Main gold, Side blue - QUEST_STYLE in quest-common.js).
 // Fields: Title, Objective, Type, Tasks (each with its own difficulty and
-// DP), Source, and Focus. Editing keeps each task's done state; the rest
+// XP), Source, and Focus. Editing keeps each task's done state; the rest
 // of the quest (ghost logs, side quests, unlocks...) is never touched here.
 
 let editingQuestId = null;
@@ -32,15 +32,15 @@ function renderColour() {
 
 function renderTotal() {
     const items = taskEditor.all().filter(i => i.text.trim());
-    const dp = items.reduce((sum, i) => sum + (Number(i.dp) || 0), 0);
-    document.getElementById('cq-total').textContent = items.length ? `${items.length} task${items.length === 1 ? '' : 's'} · ${dp} DP` : '';
+    const xp = items.reduce((sum, i) => sum + (Number(i.xp) || 0), 0);
+    document.getElementById('cq-total').textContent = items.length ? `${items.length} task${items.length === 1 ? '' : 's'} · ${xp} XP` : '';
 }
 
 // The difficulty pill on each task row. Tap cycles Easy → Medium → Hard.
 function difficultyPill(item) {
     const s = HABIT_DIFFICULTY_STYLE[item.difficulty] || HABIT_DIFFICULTY_STYLE.Easy;
-    return `<button type="button" class="cq-diff" data-extra style="--c:${s.color};--k:${s.ink}" aria-label="Difficulty: ${item.difficulty}, ${item.dp} DP. Tap to change.">
-        ${item.completed ? '<span class="cq-done" title="Done">✓</span>' : ''}${item.difficulty}<small>${item.dp}</small></button>`;
+    return `<button type="button" class="cq-diff" data-extra style="--c:${s.color};--k:${s.ink}" aria-label="Difficulty: ${item.difficulty}, ${item.xp} XP. Tap to change.">
+        ${item.completed ? '<span class="cq-done" title="Done">✓</span>' : ''}${item.difficulty}<small>${item.xp}</small></button>`;
 }
 
 function loadExisting(quest) {
@@ -51,7 +51,7 @@ function loadExisting(quest) {
         id: t.id,
         text: t.label || '',
         difficulty: QUEST_DIFFICULTY_TIERS.some(x => x.level === t.difficulty) ? t.difficulty : 'Easy',
-        dp: Number(t.dp) || tierFor(t.difficulty).dp,
+        xp: Number(t.xp) || tierFor(t.difficulty).xp,
         completed: !!t.completed,
         existing: true
     })));
@@ -94,7 +94,7 @@ function saveQuest() {
         objective: document.getElementById('quest-objective-input').value.trim(),
         category,
         source: url ? { label: document.getElementById('cq-source-label').value.trim(), url } : null,
-        tasks: tasks.map(i => ({ id: i.existing ? i.id : null, label: i.text, difficulty: i.difficulty, dp: i.dp })),
+        tasks: tasks.map(i => ({ id: i.existing ? i.id : null, label: i.text, difficulty: i.difficulty, xp: i.xp })),
         makeActive: document.getElementById('cq-focus').checked
     });
     if (!document.getElementById('cq-focus').checked && editingQuestId && Vault.getActiveQuestId() === editingQuestId) {
@@ -110,12 +110,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     taskEditor = TaskForm.checklist(document.getElementById('cq-tasks'), document.getElementById('cq-task-add'), {
         placeholder: 'Task',
-        newItem: () => ({ difficulty: 'Easy', dp: tierFor('Easy').dp }),
+        newItem: () => ({ difficulty: 'Easy', xp: tierFor('Easy').xp }),
         extraHTML: difficultyPill,
         onExtra: (item) => {
             const order = QUEST_DIFFICULTY_TIERS.map(t => t.level);
             item.difficulty = order[(order.indexOf(item.difficulty) + 1) % order.length];
-            item.dp = tierFor(item.difficulty).dp;
+            item.xp = tierFor(item.difficulty).xp;
             setTimeout(renderTotal, 0);
             return true;
         }
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         editingQuestId = null;
         // A first quest gets focus by default; after that you choose.
         document.getElementById('cq-focus').checked = !Vault.getActiveQuestId();
-        taskEditor.set([{ text: '', difficulty: 'Easy', dp: tierFor('Easy').dp }]);
+        taskEditor.set([{ text: '', difficulty: 'Easy', xp: tierFor('Easy').xp }]);
         setTimeout(() => document.getElementById('quest-title-input').focus(), 300);
     }
     renderColour();

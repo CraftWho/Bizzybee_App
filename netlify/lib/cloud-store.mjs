@@ -14,13 +14,18 @@ export function validateSave(data) {
     if (Buffer.byteLength(data, 'utf8') > 4 * 1024 * 1024) throw new Error('Save exceeds the 4 MB cloud limit.');
     const parsed = JSON.parse(data);
     if (!parsed || !parsed.user || typeof parsed.user !== 'object' || Array.isArray(parsed.user) || !Array.isArray(parsed.quests)) throw new Error('Invalid Bizzybee save.');
-    if (parsed.schemaVersion != null && (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion < 1 || parsed.schemaVersion > 7)) throw new Error('Unsupported schema.');
+    if (parsed.schemaVersion != null && (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion < 1 || parsed.schemaVersion > 8)) throw new Error('Unsupported schema.');
     for (const field of ['dailyTasks', 'habits', 'todos', 'dictionary', 'studyQueue', 'calendarEvents']) {
         if (parsed[field] != null && !Array.isArray(parsed[field])) throw new Error('Invalid save collection.');
     }
     for (const quest of parsed.quests) {
         if (!quest || typeof quest.id !== 'string' || !Array.isArray(quest.tasks)) throw new Error('Invalid quest.');
-        for (const task of quest.tasks) if (!task || typeof task.dp !== 'number' || !Number.isFinite(task.dp)) throw new Error('Invalid task points.');
+        // Points are "xp" from schema 8; older saves (and older app versions
+        // still open somewhere) send "dp" - accept either.
+        for (const task of quest.tasks) {
+            const points = task ? (task.xp ?? task.dp) : undefined;
+            if (typeof points !== 'number' || !Number.isFinite(points)) throw new Error('Invalid task points.');
+        }
     }
     return data;
 }

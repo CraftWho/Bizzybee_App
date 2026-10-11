@@ -81,20 +81,20 @@
         skip: (kind) => { Vault.completeOnboarding({ royal: kind, name: kind === 'king' ? 'King Dev' : 'Queen Dev' }); go('src/features/home/home.html'); }
     };
 
-    // DP comes from finished work, so "add DP" adds a finished To-Do named
-    // "🛠 Dev DP" (easy to spot and remove with "Clear dev DP").
-    function addDP(amount) {
-        Vault.addTodo({ label: '🛠 Dev DP', dp: amount, difficulty: 'Easy', notes: 'Added by the dev panel.' });
+    // XP comes from finished work, so "add XP" adds a finished To-Do named
+    // "🛠 Dev XP" (easy to spot and remove with "Clear dev XP").
+    function addXP(amount) {
+        Vault.addTodo({ label: '🛠 Dev XP', xp: amount, difficulty: 'Easy', notes: 'Added by the dev panel.' });
         const id = Vault.getTodos()[Vault.getTodos().length - 1].id;
         Vault.toggleTodoComplete(id);
         reload();
     }
     function fillBar() {
         const bar = Vault.getCharacterLevelBar();
-        addDP(Math.max(1, bar.cap - bar.dpIntoLevel));
+        addXP(Math.max(1, bar.cap - bar.xpIntoLevel));
     }
-    function clearDevDP() {
-        Vault.getTodos().filter(t => t.label === '🛠 Dev DP').forEach(t => Vault.removeTodo(t.id));
+    function clearDevXP() {
+        Vault.getTodos().filter(t => t.label === '🛠 Dev XP').forEach(t => Vault.removeTodo(t.id));
         reload();
     }
 
@@ -120,12 +120,12 @@
         const today = new Date();
         const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const plus = (n) => { const d = new Date(today); d.setDate(d.getDate() + n); return iso(d); };
-        [['Trivial', 10, true, false], ['Easy', 20, true, false], ['Medium', 60, true, true], ['Hard', 120, false, true]].forEach(([difficulty, dp, positive, negative]) => {
-            Vault.addHabit({ label: `Sample ${difficulty} habit`, dp, difficulty, notes: 'Dev sample', positive, negative, resetCounter: 'daily' });
+        [['Trivial', 10, true, false], ['Easy', 20, true, false], ['Medium', 60, true, true], ['Hard', 120, false, true]].forEach(([difficulty, xp, positive, negative]) => {
+            Vault.addHabit({ label: `Sample ${difficulty} habit`, xp, difficulty, notes: 'Dev sample', positive, negative, resetCounter: 'daily' });
         });
-        Vault.addTodo({ label: 'Sample To-Do (today)', dp: 20, difficulty: 'Easy', dueDate: plus(0), checklist: [{ id: 'c1', text: 'Step one', done: false }, { id: 'c2', text: 'Step two', done: false }] });
-        Vault.addTodo({ label: 'Sample To-Do (tomorrow)', dp: 20, difficulty: 'Easy', dueDate: plus(1) });
-        Vault.addTodo({ label: 'Sample To-Do (overdue)', dp: 20, difficulty: 'Easy', dueDate: plus(-2) });
+        Vault.addTodo({ label: 'Sample To-Do (today)', xp: 20, difficulty: 'Easy', dueDate: plus(0), checklist: [{ id: 'c1', text: 'Step one', done: false }, { id: 'c2', text: 'Step two', done: false }] });
+        Vault.addTodo({ label: 'Sample To-Do (tomorrow)', xp: 20, difficulty: 'Easy', dueDate: plus(1) });
+        Vault.addTodo({ label: 'Sample To-Do (overdue)', xp: 20, difficulty: 'Easy', dueDate: plus(-2) });
         reload();
     }
 
@@ -211,7 +211,7 @@
         return [
             `Mode: ${localDev ? 'this computer (Hacker login)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
             `Save key: ${Vault.storageKey}`,
-            `Level ${bar.level} · ${bar.dpIntoLevel}/${bar.cap} DP · total ${user.totalDP}`,
+            `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
             `Royal: ${royal ? `${royal.royal} "${royal.name}"` : 'none'} · bees ${Vault.getColonyBees().length}`,
             `Habits ${Vault.getHabits().length} · To-Dos ${Vault.getTodos().length} · Dailies ${Vault.getDailyTasks().length}`
@@ -271,10 +271,10 @@
 
             <h3>LEVEL</h3>
             <div class="dev-row">
-                <button data-dev="dp-50">+50 DP</button>
-                <button data-dev="dp-150">+150 DP</button>
-                <button data-dev="dp-fill">Fill the bar</button>
-                <button data-dev="dp-clear" class="danger">Clear dev DP</button>
+                <button data-dev="xp-50">+50 XP</button>
+                <button data-dev="xp-150">+150 XP</button>
+                <button data-dev="xp-fill">Fill the bar</button>
+                <button data-dev="xp-clear" class="danger">Clear dev XP</button>
             </div>
 
             <h3>BEES</h3>
@@ -326,7 +326,7 @@
                 'egg-restart': EGG.restart, 'egg-nearly': EGG.nearlyFull, 'egg-crack': EGG.crack,
                 'egg-larva': EGG.larva, 'egg-pupa': EGG.pupa, 'egg-ready': EGG.ready,
                 'egg-skip-queen': () => EGG.skip('queen'), 'egg-skip-king': () => EGG.skip('king'),
-                'dp-50': () => addDP(50), 'dp-150': () => addDP(150), 'dp-fill': fillBar, 'dp-clear': clearDevDP,
+                'xp-50': () => addXP(50), 'xp-150': () => addXP(150), 'xp-fill': fillBar, 'xp-clear': clearDevXP,
                 bee: () => { addBee(b.dataset.r); open(); },
                 'royal-queen': () => setRoyal('queen'), 'royal-king': () => setRoyal('king'),
                 rehatch: () => { localStorage.setItem('bizzybee_colony_hatched', '[]'); toast('Bees will hatch again on the Hive page'); },

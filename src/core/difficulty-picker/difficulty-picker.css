@@ -4,7 +4,7 @@
    create-habit.css, which each carried a byte-for-byte identical copy of
    this block (both todo's and habit's own comments even said "duplicated
    from create-daily.css") - see the project-tuning pass before Hive
-   Defense. Each page's own DP-value display next to the grid (it reacts
+   Defense. Each page's own XP-value display next to the grid (it reacts
    to tier selection via this component's onSelect callback) stays
    page-owned, not part of this shared block - the tier VALUES
    (DIFFICULTY_TIERS / HABIT_DIFFICULTY_TIERS) are deliberately different

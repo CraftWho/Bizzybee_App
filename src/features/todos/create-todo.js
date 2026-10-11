@@ -6,18 +6,18 @@ console.log("/// CREATE TO-DO PROTOCOLS INITIALIZED ///");
 // src/core/task-form/task-form.js. Creating shows CREATE; editing shows
 // DELETE and SAVE.
 
-// One-off tiers - a To-Do happens once, so it uses Quest tasks' higher DP
+// One-off tiers - a To-Do happens once, so it uses Quest tasks' higher XP
 // anchors rather than Dailies/Habits' recurring ones (see llm-engine.js's
-// assessTodoDP for the guidance given to Eevee).
+// assessTodoXP for the guidance given to Eevee).
 const TODO_DIFFICULTY_TIERS = [
-    { level: 'Trivial', dp: 15 },
-    { level: 'Easy', dp: 30 },
-    { level: 'Medium', dp: 70 },
-    { level: 'Hard', dp: 150 }
+    { level: 'Trivial', xp: 15 },
+    { level: 'Easy', xp: 30 },
+    { level: 'Medium', xp: 70 },
+    { level: 'Hard', xp: 150 }
 ];
 
 let selectedDifficulty = 'Easy';
-let selectedDP = 30;
+let selectedXP = 30;
 let editingTodoId = null;
 let checklistEditor = null;
 let reminderEditor = null;
@@ -45,7 +45,7 @@ function rescanTags() {
 
 function renderDifficulty() {
     TaskForm.renderDifficulty(document.getElementById('hf-diff'), TODO_DIFFICULTY_TIERS, selectedDifficulty, document.getElementById('hf'));
-    document.getElementById('hf-dp-note').textContent = `${selectedDP} DP when done`;
+    document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
 }
 
 function isoPlusDays(n) {
@@ -78,7 +78,7 @@ function loadExistingTodo(todo) {
     document.getElementById('todo-title-input').value = todo.label || '';
     document.getElementById('todo-notes-input').value = todo.notes || '';
     selectedDifficulty = TODO_DIFFICULTY_TIERS.some(t => t.level === todo.difficulty) ? todo.difficulty : 'Easy';
-    selectedDP = Number(todo.dp) || TODO_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
+    selectedXP = Number(todo.xp) || TODO_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).xp;
     document.getElementById('todo-due-date').value = todo.dueDate || '';
     checklistEditor.set(todo.checklist || []);
     reminderEditor.set(todo.reminders || []);
@@ -106,7 +106,7 @@ function saveTodo() {
 
     const payload = {
         label,
-        dp: selectedDP,
+        xp: selectedXP,
         difficulty: selectedDifficulty,
         notes: document.getElementById('todo-notes-input').value.trim(),
         // Checklist ticks on a to-do stay ticked, so keep each item's done.
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const b = event.target.closest('.hf-d');
         if (!b) return;
         selectedDifficulty = b.dataset.level;
-        selectedDP = TODO_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).dp;
+        selectedXP = TODO_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).xp;
         renderDifficulty();
     });
 
@@ -185,9 +185,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.textContent = '🐝 Buzzing...';
         btn.disabled = true;
         try {
-            selectedDP = await Eevee.assessTodoDP(title, notes, selectedDifficulty);
-            document.getElementById('hf-dp-note').textContent = `${selectedDP} DP when done`;
-            Toast.show(`🐝 Eevee set this at ${selectedDP} DP.`, 'positive');
+            selectedXP = await Eevee.assessTodoXP(title, notes, selectedDifficulty);
+            document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
+            Toast.show(`🐝 Eevee set this at ${selectedXP} XP.`, 'positive');
         } catch (error) {
             Toast.show(`⚠️ ${error.message} Keeping the ${selectedDifficulty} default.`, 'negative');
         } finally {

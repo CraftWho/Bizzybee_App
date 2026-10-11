@@ -4,7 +4,7 @@ A shareable overview for contributors. What the app is, what's built, and where 
 
 ## What Bizzybee is
 
-A gamified productivity app with a gold-and-black honeycomb look. You finish real tasks, earn Developer Points (DP), level up, and grow a hive of collectible bees.
+A gamified productivity app with a gold-and-black honeycomb look. You finish real tasks, earn Experience Points (XP), level up, and grow a hive of collectible bees.
 
 - **Habits**: tap + when you do something good, − when you slip.
 - **Dailies**: repeating tasks with a schedule.

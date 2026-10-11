@@ -66,14 +66,14 @@ function buildEventIndex() {
         (quest.tasks || []).forEach(task => {
             if (task.completed && task.dateCompleted) {
                 const key = task.dateCompleted.slice(0, 10);
-                ensure(key).quests.push({ label: task.label, dp: task.dp, questTitle: quest.title });
+                ensure(key).quests.push({ label: task.label, xp: task.xp, questTitle: quest.title });
             }
         });
     });
 
     Vault.getDailyTasks().forEach(task => {
         (task.completedDates || []).forEach(key => {
-            ensure(key).dailies.push({ label: task.label, dp: task.dp });
+            ensure(key).dailies.push({ label: task.label, xp: task.xp });
         });
     });
 
@@ -170,8 +170,8 @@ function renderWeekView(board, anchorDate, index) {
         const key = gridDateKey(date);
         const day = index[key] || { quests: [], dailies: [], events: [] };
         const items = [
-            ...day.quests.map(q => ({ icon: '🐝', label: q.label, sub: `+${q.dp} DP` })),
-            ...day.dailies.map(dl => ({ icon: '☀️', label: dl.label, sub: `+${dl.dp} DP` })),
+            ...day.quests.map(q => ({ icon: '🐝', label: q.label, sub: `+${q.xp} XP` })),
+            ...day.dailies.map(dl => ({ icon: '☀️', label: dl.label, sub: `+${dl.xp} XP` })),
             ...day.events.map(e => ({ icon: '📌', label: e.title, sub: e.time || '', id: e.id, isEvent: true }))
         ];
         return `
@@ -211,14 +211,14 @@ function renderDayView(board, anchorDate, index) {
             <h4>🐝 Quest Tasks</h4>
             ${day.quests.length === 0
                 ? `<p class="empty-state">Nothing completed this day.</p>`
-                : day.quests.map(q => renderCalendarItem({ icon: '🐝', label: `${q.label} — ${q.questTitle}`, sub: `+${q.dp} DP` })).join('')}
+                : day.quests.map(q => renderCalendarItem({ icon: '🐝', label: `${q.label} — ${q.questTitle}`, sub: `+${q.xp} XP` })).join('')}
         </div>
 
         <div class="calendar-day-section">
             <h4>☀️ Dailies</h4>
             ${day.dailies.length === 0
                 ? `<p class="empty-state">None completed this day.</p>`
-                : day.dailies.map(dl => renderCalendarItem({ icon: '☀️', label: dl.label, sub: `+${dl.dp} DP` })).join('')}
+                : day.dailies.map(dl => renderCalendarItem({ icon: '☀️', label: dl.label, sub: `+${dl.xp} XP` })).join('')}
         </div>
 
         <div class="calendar-day-section">

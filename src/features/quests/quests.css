@@ -49,7 +49,7 @@ button.qc-main:focus-visible { outline: 2px solid #ffcc00; outline-offset: -3px;
 .qc-obj { font-size: .8rem; line-height: 1.3; color: #a69a80; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .qc-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 3px; font: 600 .72rem var(--font-main); color: #7d725b; }
 .qc-meta b { color: #c9bc9b; }
-.qc-meta .q-dp { color: #b99a3c; }
+.qc-meta .q-xp { color: #b99a3c; }
 button.qc-focus {
     flex: none;
     width: 56px;
