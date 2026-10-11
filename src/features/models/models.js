@@ -1,159 +1,95 @@
-console.log("/// BEE MODELS PROTOCOLS ONLINE ///");
+console.log("/// BEE MODELS ONLINE ///");
 
-// Renders every KEEPERDEX_ENTRIES row (db.js) as a big "model stage" -
-// see nano-bee.css's --model scene variant, built specifically for this
-// page. Deliberately NOT gated by ownership the way KeeperDex is (no
-// locked/"???" state) - the point here is to see every species regardless
-// of what you've unlocked, same "list the full catalog either way" spirit
-// MATERIAL_CATALOG already uses on Inventory.
-//
-// Each entry's `model` field (db.js) is the one thing this page and any
-// future card component share - see the comment on it there. Today
-// `ready` is always false, so every stage below falls back to the flat
-// NanoBee art plus a "not built yet" pill. Nothing here needs to change
-// when that flips true except this file eventually branching on it too.
-function renderModelsGrid() {
-    const grid = document.getElementById('models-grid');
-    if (!grid) return;
+// Bee Models (2026-10-11): every bee in Bizzybee, drawn with the real art
+// code - royals and brood cells (bee-art.js), eggs (egg-designs.js), card
+// bees (bee-card.js), hive bees (mech-bee.js), the 3D model (model-viewer).
+function renderBeeModels() {
+const ASSETS = BEE_ART_ASSETS;
+document.getElementById('royal-grid').innerHTML = ['queen', 'king'].map(k => `
+    <div class="bm-tile"><div class="rstage">${royalStack(k)}</div><b>${ROYAL_ART[k].label}</b><small>${k === 'queen' ? 'Female · 4 layers' : 'Male · 3 layers'}</small></div>`).join('');
+const rstate = { still: false, crown: true };
+document.querySelectorAll('[data-r]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.r === 'crown') rstate.crown = !rstate.crown; else rstate.still = b.dataset.r === 'still';
+    document.querySelectorAll('.rstack').forEach(s => { s.classList.toggle('still', rstate.still); s.classList.toggle('nocrown', !rstate.crown); });
+    document.querySelector('[data-r="fly"]').setAttribute('aria-pressed', String(!rstate.still));
+    document.querySelector('[data-r="still"]').setAttribute('aria-pressed', String(rstate.still));
+    const c = document.querySelector('[data-r="crown"]'); c.setAttribute('aria-pressed', String(rstate.crown)); c.textContent = rstate.crown ? 'Crown on' : 'Crown off';
+}));
 
-    grid.innerHTML = '';
-    KEEPERDEX_ENTRIES.forEach(entry => {
-        const card = document.createElement('div');
-        grid.appendChild(card);
-        renderModelCard(card, entry);
+// ---- Life cycle (brood cells: bee-art.js) ----
+const cell = (kind, sfx) => `<svg viewBox="0 0 120 150">${cellSVG(kind, sfx)}</svg>`;
+let eggStyle = 'hex', eggSeed = 4242;
+function renderLife() {
+    document.getElementById('life-grid').innerHTML = `
+        <div class="bm-tile"><span class="egg-wrap">${EggDesign.svg(eggSeed, { style: eggStyle, id: 'demo' })}</span><b>Egg</b><small>${eggStyle} pattern · seed ${eggSeed}</small></div>
+        <div class="bm-tile">${cell('larva', '-l')}<b>Larva</b><small>fed by To-Dos</small></div>
+        <div class="bm-tile">${cell('pupa', '-p')}<b>Pupa</b><small>sealed in wax · 1 hour</small></div>
+        <div class="bm-tile">${cell('ready', '-r')}<b>Ready</b><small>tap the wax cap to hatch</small></div>`;
+}
+document.getElementById('egg-styles').innerHTML = EggDesign.STYLES.map(s => `<button class="bm-chip" data-egg="${s}" aria-pressed="${s === eggStyle}">${s}</button>`).join('') + '<button class="bm-chip" data-egg="roll">🎲 New egg</button>';
+document.getElementById('egg-styles').addEventListener('click', e => {
+    const b = e.target.closest('[data-egg]'); if (!b) return;
+    if (b.dataset.egg === 'roll') eggSeed = 1 + Math.floor(Math.random() * 99999); else eggStyle = b.dataset.egg;
+    document.querySelectorAll('[data-egg]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.egg === eggStyle)));
+    renderLife();
+});
+renderLife();
+
+// ---- Workers (card bee art: bee-card.js) ----
+let workerEl = 'water';
+function renderWorkers() {
+    document.getElementById('worker-grid').innerHTML = ['Common', 'Rare', 'Epic', 'Legendary', 'Named', 'Royal'].map(r => `<div class="bm-tile" data-rar="${r}"><div class="host"></div><b>${r === 'Royal' ? 'Royal (Queen art)' : r}</b><small>${BEE_CARD_RARITY_SYMBOLS[r.toLowerCase()] || ''}</small></div>`).join('');
+    document.querySelectorAll('#worker-grid [data-rar]').forEach(t => {
+        const r = t.dataset.rar, host = t.querySelector('.host');
+        host.className = 'art-tile bc-tile';
+        const key = beeCardApplyTheme(host, r, r === 'Common' || r === 'Royal' ? null : workerEl);
+        host.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2, royal: r === 'Royal' ? 'queen' : null });
     });
 }
+document.getElementById('worker-els').innerHTML = Object.entries(BEE_ELEMENTS).map(([k, v]) => `<button class="bm-chip" data-el="${k}" aria-pressed="${k === workerEl}">${v.emoji} ${v.label}</button>`).join('');
+document.getElementById('worker-els').addEventListener('click', e => {
+    const b = e.target.closest('[data-el]'); if (!b) return; workerEl = b.dataset.el;
+    document.querySelectorAll('[data-el]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.el === workerEl))); renderWorkers();
+});
+renderWorkers();
 
-function renderModelCard(container, entry) {
-    const color = beeCardColor(entry.rarity);
-    const dexNo = String(entry.dexNumber).padStart(3, '0');
+// ---- Hive bees (MechBeeScene) ----
+(function () {
+    const svg = document.getElementById('hive-scene');
+    const scene = new MechBeeScene(svg, { front: svg.querySelector('.ch-fly-front'), back: svg.querySelector('.ch-fly-back'), timeScale: 1 });
+    ['', 'fire', 'water', 'earth', 'wind'].forEach((el, i) => scene.hover({ x: 50 + i * 75, y: 70 + (i % 2) * 50, bee: { scale: .8, stripe: MechBee.stripeFor(el) } }));
+    scene.orbit({ cx: 200, y: 100, rx: 170, ry: 40, speed: .7, bee: { scale: .55, stripe: MechBee.stripeFor('fire') } });
+    scene.start();
+})();
 
-    container.className = 'model-card';
-    container.innerHTML = `
-        <div class="model-card-stage" style="box-shadow: inset 0 0 40px ${color}33;">
-            <span class="model-card-icon"></span>
-        </div>
-        <div class="model-card-info">
-            <div class="model-card-top-row">
-                <span class="model-card-name">${entry.name}</span>
-                <span class="model-card-badge" style="background:${color};" title="${entry.rarity}">${entry.rarity.charAt(0)}</span>
-            </div>
-            <span class="model-card-species">No. ${dexNo} - ${entry.species}</span>
-            <span class="model-card-3d-pill ${entry.model.ready ? 'is-ready' : ''}">${entry.model.ready ? '🧊 3D model ready' : '🧊 3D model: not built yet'}</span>
-        </div>
-    `;
+// ---- Marks ----
+document.getElementById('marks-grid').innerHTML = `
+    <div class="bm-tile"><img class="mk-img" src="${ASSETS}bizzybee-logo.svg" alt=""><b>Gold logo</b><small>launch screen, egg mark</small></div>
+    <div class="bm-tile"><img class="mk-img" src="${ASSETS}bizzybee-badge.webp" alt=""><b>Badge</b><small>app badge</small></div>
+    <div class="bm-tile"><span class="mk-nano" id="nano"></span><b>Mini bee</b><small>the 🐝 button mascot</small></div>
+    <div class="bm-tile"><img class="mk-img" src="${ASSETS}starter-bee.svg" alt=""><b>Starter bee</b><small>first worker art</small></div>`;
+NanoBee.render(document.getElementById('nano'), 'model', { color: '#ffd700', hideCore: true, noFlight: true });
 
-    const iconEl = container.querySelector('.model-card-icon');
-    NanoBee.render(iconEl, 'model', { color, hideCore: true, noFlight: true });
+// ---- Species (KeeperDex catalog, card-bee art) ----
+document.getElementById('species-grid').innerHTML = KEEPERDEX_ENTRIES.map(e => `<div class="bm-tile" data-dex="${e.dexNumber}"><span class="sp-no">No.${String(e.dexNumber).padStart(3, '0')}</span><div class="host"></div><b>${e.name}</b><small>${e.rarity} · ${BEE_ELEMENTS[e.element] ? BEE_ELEMENTS[e.element].label : ''}</small></div>`).join('');
+document.querySelectorAll('#species-grid [data-dex]').forEach(t => {
+    const e = KEEPERDEX_ENTRIES.find(x => String(x.dexNumber) === t.dataset.dex);
+    const host = t.querySelector('.host'); host.className = 'art-tile bc-tile';
+    const key = beeCardApplyTheme(host, e.rarity, e.element);
+    host.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2 });
+});
 
-    container.addEventListener('click', () => openModelInspector(entry, color));
-}
-
-// Bigger stage + a working zoom slider + a drag-to-tilt preview. The
-// drag/zoom are real and do something today; the "rotation" is a flat
-// CSS rotateY on the same 2D art, an honest stand-in for what a real
-// rotatable model will do here later - the pill under the controls says
-// so explicitly rather than letting this pretend to be more than it is.
-function openModelInspector(entry, color) {
-    const dexNo = String(entry.dexNumber).padStart(3, '0');
-
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.innerHTML = `
-        <div class="modal-box model-inspector-modal">
-            <div class="modal-header">
-                <span class="modal-title">${entry.name} - No. ${dexNo}</span>
-                <button class="modal-close" aria-label="Close">✕</button>
-            </div>
-            <div class="modal-body model-inspector-body">
-                <div class="model-inspector-stage-wrap">
-                    <div class="model-inspector-stage" id="model-inspector-stage"></div>
-                </div>
-                <div class="model-inspector-controls">
-                    <label class="model-inspector-zoom-label">
-                        Zoom
-                        <input type="range" id="model-inspector-zoom" min="0.6" max="2.2" step="0.05" value="1">
-                    </label>
-                    <p class="model-inspector-drag-hint">drag left / right on the bee to preview rotation</p>
-                    <span class="model-inspector-3d-pill ${entry.model.ready ? 'is-ready' : ''}">
-                        ${entry.model.ready
-                            ? '🧊 Full 3D model ready - drag to rotate for real'
-                            : '🧊 Full 3D model coming soon - this is a flat preview standing in for it'}
-                    </span>
-                </div>
-                <p class="model-inspector-flavor">${entry.description}</p>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-
-    // NanoBee.render() turns whatever container it's given INTO the
-    // .nano-bee-scene element (adds the classes, replaces the innerHTML
-    // with .scene-inner + the rig) - so render straight onto the stage
-    // div itself rather than pre-building scene-inner by hand and handing
-    // render() a nested child, which would just get a second scene-inner
-    // rigged inside the first one.
-    const stageScene = overlay.querySelector('#model-inspector-stage');
-    NanoBee.render(stageScene, 'model', { color, hideCore: true, noFlight: true });
-    stageScene.classList.add('is-focused');
-    const sceneInner = stageScene.querySelector('.scene-inner');
-
-    const zoomInput = overlay.querySelector('#model-inspector-zoom');
-    // Matches nano-bee-scene--model.is-focused's own CSS scale(3.1) - once
-    // JS starts driving .scene-inner's transform directly (for the tilt),
-    // that inline style wins over the CSS rule, so the same base factor
-    // has to be repeated here or zoom's 1.0 default would suddenly look
-    // smaller than the static grid card did a moment ago.
-    const FOCUS_BASE_SCALE = 3.1;
-    let rotY = 0;
-    let dragging = false;
-    let lastX = 0;
-
-    const applyTilt = () => {
-        sceneInner.style.transform = `perspective(700px) rotateY(${rotY}deg) scale(${zoomInput.value * FOCUS_BASE_SCALE})`;
-    };
-    applyTilt();
-
-    zoomInput.addEventListener('input', applyTilt);
-
-    const onDragStart = (clientX) => { dragging = true; lastX = clientX; stageScene.classList.add('is-dragging'); };
-    const onDragMove = (clientX) => {
-        if (!dragging) return;
-        rotY += (clientX - lastX) * 0.6;
-        rotY = Math.max(-55, Math.min(55, rotY));
-        lastX = clientX;
-        applyTilt();
-    };
-    const onDragEnd = () => {
-        if (!dragging) return;
-        dragging = false;
-        stageScene.classList.remove('is-dragging');
-        rotY = 0;
-        applyTilt();
-    };
-
-    stageScene.addEventListener('mousedown', (e) => onDragStart(e.clientX));
-    window.addEventListener('mousemove', (e) => onDragMove(e.clientX));
-    window.addEventListener('mouseup', onDragEnd);
-    stageScene.addEventListener('touchstart', (e) => onDragStart(e.touches[0].clientX), { passive: true });
-    window.addEventListener('touchmove', (e) => onDragMove(e.touches[0].clientX), { passive: true });
-    window.addEventListener('touchend', onDragEnd);
-
-    const closeModal = () => {
-        overlay.remove();
-        window.removeEventListener('mousemove', onDragMove);
-        window.removeEventListener('mouseup', onDragEnd);
-        window.removeEventListener('touchmove', onDragMove);
-        window.removeEventListener('touchend', onDragEnd);
-    };
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-    overlay.querySelector('.modal-close').addEventListener('click', closeModal);
+// ---- tabs follow the scroll ----
+const tabs = [...document.querySelectorAll('#bm-tabs a')];
+const io = new IntersectionObserver(entries => entries.forEach(en => { if (en.isIntersecting) tabs.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-45% 0px -50% 0px' });
+document.querySelectorAll('.bm-sec').forEach(s => io.observe(s));
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
-
-    renderModelsGrid();
-
+    // Section tabs stick just under the top bar.
+    const head = document.getElementById('app-head');
+    if (head) document.documentElement.style.setProperty('--bm-top', `${head.offsetHeight}px`);
+    renderBeeModels();
     Waggle.setActions(baseWaggleActions());
 });

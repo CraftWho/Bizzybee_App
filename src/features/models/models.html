@@ -16,49 +16,84 @@
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
-    <link rel="stylesheet" href="../../core/modal/modal.css">
+    <link rel="stylesheet" href="../../core/mech-bee/mech-bee.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./models.css">
 </head>
 <body>
+<div class="bm">
+    <header class="bm-head">
+        <h1>🧬 BEE MODELS</h1>
+        <p>Every bee in Bizzybee, as it really looks in the app: your royals, the life cycle from egg to hatch, worker cards, the bees that fly around your hive, marks, the 3D model, and every species.</p>
+    </header>
 
-    <main class="models-container">
+    <nav class="bm-tabs" id="bm-tabs">
+        <a href="#royals" class="on">♛ Royals</a><a href="#life">🥚 Life cycle</a><a href="#workers">🐝 Workers</a>
+        <a href="#hive">🏰 Hive bees</a><a href="#marks">✦ Marks</a><a href="#model3d">🧊 3D</a><a href="#species">📖 Species</a>
+    </nav>
 
-        <div class="panel page-header-panel">
-            <h2 class="page-title">🧬 <span class="gold-gradient-text">BEE MODELS</span></h2>
-            <p class="page-subtitle">Every rarity and element, seen at a size that's actually easy to look at - not shrunk down for a card or an icon.</p>
+    <section class="bm-sec" id="royals">
+        <h2>Royals <small>Queen &amp; King · hatched from the egg gift</small></h2>
+        <p>Layered art: body, wings and crown are separate pieces, so the wings flap and the crown drops on at the end of the hatch.</p>
+        <div class="bm-grid two" id="royal-grid"></div>
+        <div class="bm-row">
+            <button class="bm-chip" data-r="fly" aria-pressed="true">Flying</button>
+            <button class="bm-chip" data-r="still" aria-pressed="false">Resting</button>
+            <button class="bm-chip" data-r="crown" aria-pressed="true">Crown on</button>
         </div>
+    </section>
 
-        <div class="panel models-intro-panel">
-            <p class="models-intro-text">
-                The bee everywhere else in the hive (the FAB, your cards, the Queen) is deliberately tiny -
-                it has to work at 26px just as well as 400px. This page exists to build and check the
-                <em>natural</em> form first, full size, before it gets shrunk down for everywhere else.
-            </p>
-            <p class="models-intro-text">
-                The plan is for every entry below to eventually be a real 3D model you can rotate and zoom,
-                the way Fallout 4 lets you turn an item over in your hands. None of that exists yet - what
-                you're looking at is still the flat NanoBee art, just given real room to breathe. Click any
-                bee to open it up bigger and try the rotate/zoom preview; it's a stand-in for the real thing,
-                not the real thing.
-            </p>
-        </div>
+    <section class="bm-sec lc" id="life">
+        <h2>Life cycle <small>egg → larva → pupa → hatch</small></h2>
+        <p>Every egg gets its own pattern from a number, so no two players' eggs match. Pick a style or roll a new one.</p>
+        <div class="bm-grid four" id="life-grid"></div>
+        <div class="bm-row" id="egg-styles"></div>
+    </section>
 
-        <div class="bee-card-grid models-grid" id="models-grid"></div>
+    <section class="bm-sec wk" id="workers">
+        <h2>Workers <small>the card bee · 5 rarities × 4 elements</small></h2>
+        <p>The bee on every card. Rarity sets the frame and glow; the element tints its gold.</p>
+        <div class="bm-grid three" id="worker-grid"></div>
+        <div class="bm-row" id="worker-els"></div>
+    </section>
 
-    </main>
+    <section class="bm-sec" id="hive">
+        <h2>Hive bees <small>the mech bees that fly around your hive</small></h2>
+        <p>Each bee's stripe shows its element. They orbit, forage, land on the deck and fly in and out of the hive.</p>
+        <svg class="hive-scene" id="hive-scene" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet"><g class="ch-fly-back"></g><g class="ch-fly-front"></g></svg>
+    </section>
+
+    <section class="bm-sec" id="marks">
+        <h2>Marks <small>logo, badge, mascot</small></h2>
+        <div class="bm-grid four" id="marks-grid"></div>
+    </section>
+
+    <section class="bm-sec" id="model3d">
+        <h2>3D model <small>work in progress</small></h2>
+        <model-viewer id="mv" src="../../assets/3d/bizzy-bee.glb" auto-rotate camera-controls shadow-intensity="1" exposure="1.1" alt="3D Bizzybee"></model-viewer>
+        <p class="m3d-note">Drag to spin. Not finished yet - it will replace the flat art on cards and here once it is.</p>
+    </section>
+
+    <section class="bm-sec sp-tile" id="species">
+        <h2>Species <small>the KeeperDex catalog</small></h2>
+        <p>Every species, shown with the card bee in its rarity and element - whether you've found it yet or not.</p>
+        <div class="bm-grid four" id="species-grid"></div>
+    </section>
+</div>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/bee-card/bee-card.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
-
+    <script src="../../core/bee-card/bee-card.js"></script>
+    <script src="../../core/mech-bee/mech-bee.js"></script>
+    <script src="../../core/bee-art/bee-art.js"></script>
+    <script src="../onboarding/egg-designs.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js"></script>
     <script src="./models.js"></script>
 </body>
 </html>
