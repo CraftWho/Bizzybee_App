@@ -210,7 +210,8 @@ test('failed reset keeps original progress and its recovery copy', async () => {
     h.context.fetch = async () => { throw new Error('offline'); };
     await assert.rejects(h.vault.forceReset());
     assert.equal(h.vault.exportFullState(), before);
-    assert.equal(h.vault.getLocalBackups().length, 1);
+    // (init may also keep a one-time "Before time-based XP" copy)
+    assert.equal(h.vault.getLocalBackups().filter(b => b.reason === 'Before reset').length, 1);
 });
 test('failed cloud import preserves the pre-existing pending-upload marker', () => {
     const h = vaultHarness(); h.data.set('bizzybee_user_data:dirty', 'true'); h.fail('bizzybee_user_data');
@@ -220,4 +221,42 @@ test('failed cloud import preserves the pre-existing pending-upload marker', () 
 test('a rejected Identity token cannot read a cloud save', async () => {
     globalThis.fetch = async () => new Response('', { status: 401 });
     assert.equal((await load(req('load-state', null, 'invalid'))).status, 401);
+});
+
+// ---- time-based XP (Oct 2026) ----
+test('time XP: minutes from titles, effort and the 10,000-hour level curve', async () => {
+    const h = vaultHarness(); await h.vault.init();
+    const g = (code) => vm.runInContext(code, h.context);
+    assert.equal(g('minutesFromText("Scrimba study for 20 minutes")'), 20);
+    assert.equal(g('minutesFromText("Study for 2 hours a day!")'), 120);
+    assert.equal(g('minutesFromText("HTML MASTER")'), null);
+    assert.equal(g('xpForMinutes(30, "Hard")'), 45);
+    assert.ok(g('xpForMinutes(3, "Trivial")') < g('xpForMinutes(15, "Easy")'));
+    assert.equal(g('computeLevelProgress(1200).level'), 5);          // 20 h -> level 5
+    assert.equal(g('computeLevelProgress(60 * 9900).level'), 100);   // ~10,000 h -> level 100
+});
+test('time XP: logged minutes change a completion, history counts, level never jumps on its own', async () => {
+    const old = JSON.parse(sample());
+    old.characterLevelBar = { acknowledgedLevel: 3 };
+    old.quests[0].tasks.push({ id: 'h', label: 'Old Codex lesson', xp: 0, historyXP: 600, completed: true });
+    old.dailyTasks = [{ id: 'd', label: 'Read for 10 minutes', difficulty: 'Easy', completedDates: [new Date().toISOString().slice(0, 10)] }];
+    const h = vaultHarness(JSON.stringify(old)); await h.vault.init();
+    const xp0 = h.vault.getUser().totalXP;
+    assert.ok(xp0 >= 600 + 10);
+    h.vault.logCompletionMinutes('daily', 'd', 40);
+    assert.equal(h.vault.getUser().totalXP, xp0 + 30);
+    assert.equal(h.vault.getCharacterLevelBar().level, Math.min(3, h.vault.getUser().level));
+    h.vault._ensureTimeXP();   // runs once only
+    assert.equal(h.vault.state.timeXPVersion, 1);
+});
+test('gacha: the 6th pull without a Rare is a guaranteed Rare or better; Named Beast costs 10 tickets', async () => {
+    const h = vaultHarness(); await h.vault.init();
+    vm.runInContext('Math.random = () => 0.01', h.context);   // always Common
+    h.vault.state.colony = { bees: [], tickets: 12, pity: 0 };
+    const pulls = Array.from({ length: 6 }, () => h.vault.pullWithTicket());
+    assert.deepEqual(pulls.map(p => p.bee.rarity !== 'Common'), [false, false, false, false, false, true]);
+    assert.equal(h.vault.unwrapTicket(), null);   // 6 left, not enough
+    h.vault.state.colony.tickets = 10;
+    assert.equal(h.vault.unwrapTicket().rarity, 'Named');
+    assert.equal(h.vault.getTicketCount(), 0);
 });

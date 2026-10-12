@@ -350,7 +350,8 @@ const HabiticaSync = (() => {
     }
 
     function finish(ok, counts, manual, note) {
-        try { Vault.save(); } catch {}
+        // XP comes from minutes now (db.js) - refresh what tasks show.
+        try { if (Vault._refreshTaskXP) Vault._refreshTaskXP(); Vault.save(); } catch {}
         const parts = [];
         if (counts.pulled) parts.push(`${counts.pulled} from Habitica`);
         if (counts.pushed) parts.push(`${counts.pushed} to Habitica`);

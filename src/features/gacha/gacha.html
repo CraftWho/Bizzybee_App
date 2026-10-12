@@ -27,20 +27,21 @@
 
         <div class="panel page-header-panel gacha-header-panel">
             <h2 class="page-title">🌼 <span class="gold-gradient-text">POLLINATION CHAMBER</span></h2>
-            <p class="page-subtitle">Pull for new bees, refine your collection, and unwrap tickets for Named Beasts.</p>
+            <p class="page-subtitle">Spend tickets to pull new bees, refine your collection, or save up for a Named Beast.</p>
             <div class="gacha-collection-counter" id="gacha-collection-counter"></div>
         </div>
 
         <section class="panel gacha-panel">
-            <h3>🧪 Pollinate <span class="gacha-test-badge">TEST</span></h3>
-            <p class="gacha-note">Placeholder mechanic — free for now, just testing how it feels before it's tied to a real cost.</p>
-            <button id="gacha-pollinate-btn">🌼 Pollinate for a New Bee</button>
+            <h3>🌼 Pollinate</h3>
+            <p class="gacha-note">Costs 1 🎟️ ticket. Every 6th pull without a Rare is a guaranteed Rare or better.</p>
+            <p class="gacha-note" id="gacha-pity"></p>
+            <button id="gacha-pollinate-btn" disabled>🌼 Pollinate · 1 🎟️</button>
             <p class="gacha-hint">Bee management (renaming, assigning work) now lives on the <a href="../inventory/inventory.html">Inventory</a> page — this room is just for pulling, refining, and unwrapping.</p>
         </section>
 
         <section class="panel gacha-ticket-panel">
             <h3>🎟️ Gacha Tickets <span id="gacha-ticket-count">0</span></h3>
-            <p class="gacha-ticket-note">Earned from leveling up and completing high-effort quests. Tap or swipe the card to tear it open — guaranteed Named Beast inside.</p>
+            <p class="gacha-ticket-note">Earned from leveling up (you and your skills) and big quests. Save 10 to tear open the card below — a guaranteed Named Beast inside.</p>
 
             <div class="gacha-foil-card">
                 <div class="gacha-foil-wrap is-empty" id="gacha-foil-wrap">

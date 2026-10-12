@@ -39,8 +39,8 @@ function skillMatrixToRows(matrix) {
         icon: SKILL_ICONS[i % SKILL_ICONS.length],
         label: escapeSkillHTML(skill.category),
         levelBadge: `Lv. ${skill.level}`,
-        xpIntoLevel: skill.xpIntoLevel,
-        cap: skill.cap,
+        xpIntoLevel: Math.round(skill.hoursIntoLevel * 10) / 10,
+        cap: `${skill.hoursCap} h`,
         percentage: skill.percentage,
         maxed: skill.maxed,
         gradient: SKILL_STYLES[i % SKILL_STYLES.length].gradient,
@@ -71,11 +71,13 @@ function renderSkillMatrix() {
             if (subtitle) subtitle.textContent = 'Live from Dictionary + Dailies + Quests';
 
             return {
-                title: `${escapeSkillHTML(reward.category)} reached Level ${reward.newLevel}!`,
+                title: `${escapeSkillHTML(reward.category)} reached Level ${reward.newLevel}${reward.stageUp ? ` · ${reward.stage}` : ''}!`,
                 lines: [
                     `🌼 +${reward.pollen} Pollen`,
+                    ...(reward.materials || []).map(id => `${materialDisplay(id)} +1`),
                     ...(reward.bonusMaterialId ? [`${materialDisplay(reward.bonusMaterialId)} +1`] : []),
-                    '🎟️ +1 Gacha Ticket - unwrap it from the Pollination Chamber'
+                    ...(reward.ticketsGranted ? [`🎟️ +${reward.ticketsGranted} Gacha Ticket${reward.ticketsGranted === 1 ? '' : 's'}`] : []),
+                    ...(reward.bees || []).map(b => `🐝 ${escapeSkillHTML(b.name)} joined your colony`)
                 ]
             };
         }

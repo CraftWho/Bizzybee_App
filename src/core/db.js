@@ -53,11 +53,55 @@ function habiticaDifficultyFromXp(xp) {
 // same live-not-a-ledger philosophy, since a Ghost Log's own status/xp can
 // be edited after the fact too (correcting a partial-credit call, say) and
 // the total should just reflect that immediately.
+// ---- TIME-BASED XP (Oct 2026) ------------------------------------------
+// XP is time now: 1 minute of practice = 1 XP, times an effort bonus.
+// Every Daily, Habit, To-Do and Quest task has PLANNED minutes (set on the
+// form, found in its title like "for 20 minutes", or a default by
+// difficulty). When you check one off you can log the REAL minutes; that
+// completion then counts what you logged. Skill mastery counts minutes
+// only (no effort bonus), so its hours stay honest.
+const TASK_DEFAULT_MINUTES = { Trivial: 3, Easy: 15, Medium: 45, Hard: 90 };
+const TASK_EFFORT = { Trivial: 0.75, Easy: 1, Medium: 1.25, Hard: 1.5 };
+const TASK_TIME_CHIPS = [2, 5, 15, 30, 45, 60, 90, 120];
+
+// "Scrimba study for 20 minutes" -> 20, "2 hours a day" -> 120, "1.5h" -> 90.
+function minutesFromText(text) {
+    const t = String(text || '').toLowerCase();
+    let m = t.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/);
+    if (m) return Math.min(600, Math.round(parseFloat(m[1]) * 60)) || null;
+    m = t.match(/(\d+)\s*(?:minutes?|mins?|m)\b/);
+    if (m) return Math.min(600, parseInt(m[1], 10)) || null;
+    return null;
+}
+
+// A task's planned minutes: set by you > in its title > imported history
+// (its old points, ~1 min each) > by difficulty > from its old XP.
+function plannedMinutes(task) {
+    if (!task) return 15;
+    const set = Number(task.minutes);
+    if (set > 0) return set;
+    const found = minutesFromText(task.label);
+    if (found) return found;
+    if (Number(task.historyXP) > 0) return Number(task.historyXP);
+    if (TASK_DEFAULT_MINUTES[task.difficulty]) return TASK_DEFAULT_MINUTES[task.difficulty];
+    const old = Number(task.xp);
+    return old > 0 ? Math.max(1, Math.min(240, Math.round(old))) : 15;
+}
+
+function xpForMinutes(minutes, difficulty) {
+    return Math.max(1, Math.round((Number(minutes) || 0) * (TASK_EFFORT[difficulty] || 1)));
+}
+// What one completion is worth: logged minutes if you logged them, else planned.
+const completionMinutes = (task, logged) => (Number(logged) > 0 ? Number(logged) : plannedMinutes(task));
+const completionXP = (task, logged) => xpForMinutes(completionMinutes(task, logged), task && task.difficulty);
+// A bad-habit tap costs half of what the habit is worth.
+const habitPenaltyXP = (habit) => Math.max(1, Math.round(xpForMinutes(plannedMinutes(habit), habit.difficulty) / 2));
+
 function computeTotalXP(quests) {
     return (quests || []).reduce((sum, quest) => {
         const taskXP = (quest.tasks || [])
             .filter(t => t.completed)
-            .reduce((s, t) => s + t.xp, 0);
+            .reduce((s, t) => s + completionXP(t, t.minutesSpent), 0);
         const ghostLogXP = (quest.ghostLogs || [])
             .filter(g => g.status && g.status !== 'pending')
             .reduce((s, g) => s + (g.xp || 0), 0);
@@ -72,7 +116,8 @@ function computeTotalXP(quests) {
 // completions too, same as editing a quest task's xp does.
 function computeDailyXP(dailyTasks) {
     return (dailyTasks || []).reduce((sum, task) => {
-        return sum + (task.completedDates || []).length * task.xp;
+        const log = task.minutesLog || {};
+        return sum + (task.completedDates || []).reduce((s, d) => s + completionXP(task, log[d]), 0);
     }, 0);
 }
 
@@ -85,9 +130,9 @@ function computeDailyXP(dailyTasks) {
 function computeHabitXP(habits) {
     return (habits || []).reduce((sum, habit) => {
         const history = habit.history || [];
-        const positive = history.filter(h => h.direction === 'positive').length;
-        const negative = history.filter(h => h.direction === 'negative').length;
-        return sum + (positive - negative) * habit.xp;
+        const plus = history.filter(h => h.direction === 'positive').reduce((s, h) => s + completionXP(habit, h.minutes), 0);
+        const minus = history.filter(h => h.direction === 'negative').length * habitPenaltyXP(habit);
+        return sum + plus - minus;
     }, 0);
 }
 
@@ -97,7 +142,7 @@ function computeHabitXP(habits) {
 // Daily/Habit there's no repeat count to multiply by; a To-Do happens
 // exactly once by definition.
 function computeTodoXP(todos) {
-    return (todos || []).filter(t => t.completed).reduce((sum, t) => sum + (t.xp || 0), 0);
+    return (todos || []).filter(t => t.completed).reduce((sum, t) => sum + completionXP(t, t.minutesSpent), 0);
 }
 
 function todayISO() {
@@ -171,111 +216,133 @@ function textContainsTerm(text, term) {
 // hand Eevee a real batch of "what actually happened" for a level-up
 // assessment - keeping both in exact sync instead of two copies of the same
 // matching logic that could quietly drift apart.
-function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos) {
-    const categoryByTermName = {};
-    const termNames = [];
-    (dictionaryTerms || []).forEach(term => {
-        if (term.name && term.category) {
-            categoryByTermName[term.name.toLowerCase()] = term.category;
-        }
-        if (term.name) termNames.push(term.name);
-    });
+// Oct 2026: every kind of task (Dailies, Habits, To-Dos, Quest tasks)
+// counts toward a skill two ways - its tags, and any Dictionary word that
+// appears as a whole word in its text (a quest task also checks its
+// quest's title and objective). A tag that isn't a Dictionary word becomes
+// its own skill. Each contribution carries real MINUTES (for mastery
+// hours) and XP. Imported Codex history counts like any finished task.
+function skillMatcher(dictionaryTerms) {
+    const terms = (dictionaryTerms || []).filter(t => t && t.name && String(t.name).trim().length >= 2)
+        .map(t => ({ name: String(t.name).trim(), category: t.category || t.name,
+            re: new RegExp(`(?:^|[^a-z0-9])${String(t.name).trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[^a-z0-9])`) }));
+    const byName = {};
+    terms.forEach(t => { byName[t.name.toLowerCase()] = t.category; });
+    // -> [{ category, via }] for a piece of text plus its tags
+    return (text, tags) => {
+        const out = new Map();
+        (tags || []).forEach(tag => {
+            const name = String(tag || '').trim();
+            if (!name) return;
+            const cat = byName[name.toLowerCase()] || name;
+            if (!out.has(cat)) out.set(cat, `tag ${name}`);
+        });
+        const hay = ` ${String(text || '').toLowerCase()} `;
+        terms.forEach(t => { if (!out.has(t.category) && t.re.test(hay)) out.set(t.category, `"${t.name}"`); });
+        return [...out].map(([category, via]) => ({ category, via }));
+    };
+}
+// Which skills a task would count toward (create forms show these as chips).
+function skillsForTask(task, dictionaryTerms, quest) {
+    const text = [quest && quest.title, quest && quest.objective, task.label, task.notes].filter(Boolean).join(' ');
+    return skillMatcher(dictionaryTerms)(text, (task.skillsOff ? [] : task.tags) || [])
+        .filter(s => !(task.skillsOff || []).includes(s.category));
+}
 
+function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos) {
+    const match = skillMatcher(dictionaryTerms);
     const contributions = [];
+    const skillsOf = (task, extra) => match([extra, task.label, task.notes].filter(Boolean).join(' '), task.tags)
+        .filter(s => !(task.skillsOff || []).includes(s.category));
+    const push = (cats, task, minutes, date, source) => cats.forEach(({ category }) => contributions.push({
+        category, label: task.label, minutes, xp: xpForMinutes(minutes, task.difficulty), date, source }));
 
     (dailyTasks || []).forEach(task => {
-        (task.tags || []).forEach(tag => {
-            const category = categoryByTermName[tag.toLowerCase()] || tag;
-            (task.completedDates || []).forEach(dateStr => {
-                contributions.push({ category, label: task.label, xp: task.xp || 0, date: dateStr, source: 'daily' });
-            });
-        });
+        const cats = skillsOf(task);
+        if (!cats.length) return;
+        const log = task.minutesLog || {};
+        (task.completedDates || []).forEach(d => push(cats, task, completionMinutes(task, log[d]), d, 'daily'));
     });
-
-    // Habits: only POSITIVE clicks count toward the matrix - a negative
-    // click is a lapse, not accomplishment, so it shouldn't read as
-    // "skill mastery work" even though it does subtract real XP overall
-    // (see computeHabitXP above). Each positive click contributes its own
-    // dated entry, same as a Daily's completedDates.
+    // Habits: only good (+) taps are practice.
     (habits || []).forEach(habit => {
-        (habit.tags || []).forEach(tag => {
-            const category = categoryByTermName[tag.toLowerCase()] || tag;
-            (habit.history || []).filter(h => h.direction === 'positive').forEach(entry => {
-                contributions.push({ category, label: habit.label, xp: habit.xp || 0, date: entry.date, source: 'habit' });
-            });
-        });
+        const cats = skillsOf(habit);
+        if (!cats.length) return;
+        (habit.history || []).filter(h => h.direction === 'positive')
+            .forEach(h => push(cats, habit, completionMinutes(habit, h.minutes), h.date, 'habit'));
     });
-
-    // To-Dos: tagged directly (like Dailies/Habits), not text-matched
-    // (like Quests below) - only once completed, and only ever once,
-    // matching computeTodoXP's own one-shot counting.
     (todos || []).forEach(todo => {
         if (!todo.completed) return;
-        (todo.tags || []).forEach(tag => {
-            const category = categoryByTermName[tag.toLowerCase()] || tag;
-            contributions.push({ category, label: todo.label, xp: todo.xp || 0, date: todo.completedDate || null, source: 'todo' });
-        });
+        push(skillsOf(todo), todo, completionMinutes(todo, todo.minutesSpent), todo.completedDate || null, 'todo');
     });
-
     (quests || []).forEach(quest => {
         (quest.tasks || []).forEach(task => {
             if (!task.completed) return;
-            const haystack = `${quest.title || ''} ${quest.objective || ''} ${task.label || ''}`;
-
-            const matchedCategories = new Set();
-            termNames.forEach(name => {
-                if (textContainsTerm(haystack, name)) {
-                    matchedCategories.add(categoryByTermName[name.toLowerCase()] || name);
-                }
-            });
-
-            matchedCategories.forEach(category => {
-                contributions.push({ category, label: task.label, xp: task.xp || 0, date: task.dateCompleted || null, source: 'quest' });
-            });
+            const source = Number(task.historyXP) > 0 ? 'history' : 'quest';
+            push(skillsOf(task, `${quest.title || ''} ${quest.objective || ''}`), task, completionMinutes(task, task.minutesSpent), task.dateCompleted || null, source);
         });
     });
-
     return contributions;
 }
 
 function computeSkillMatrixXP(dailyTasks, dictionaryTerms, quests, habits, todos) {
-    const xpByCategory = {};
-    computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos).forEach(contribution => {
-        xpByCategory[contribution.category] = (xpByCategory[contribution.category] || 0) + contribution.xp;
+    const by = {};
+    computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos).forEach(c => {
+        const e = by[c.category] || (by[c.category] = { category: c.category, xp: 0, minutes: 0, bySource: {} });
+        e.xp += c.xp; e.minutes += c.minutes;
+        e.bySource[c.source] = (e.bySource[c.source] || 0) + c.minutes;
     });
-
-    return Object.entries(xpByCategory)
-        .map(([category, xp]) => ({ category, xp }))
-        .sort((a, b) => b.xp - a.xp);
+    return Object.values(by).map(e => ({ ...e, hours: e.minutes / 60 })).sort((a, b) => b.minutes - a.minutes);
 }
 
-// Flat 200 XP per skill level, forever - simple and predictable, and it
-// matches the XP-ceiling steps the Dashboard already showed before levels
-// existed. Unlike character levels (which get harder further in), a
-// skill's mastery bar is meant to be a steady, always-achievable climb.
-const SKILL_LEVEL_XP_STEP = 200;
+// Skill levels (Oct 2026): real hours, same curve as your character level -
+// level L is reached at L x (L - 1) hours (level 5 = 20 h, 10 = 90 h,
+// 100 = 9,900 h). Stages name the road to 10,000 hours. The bar fills to
+// the ACKNOWLEDGED level's cap and waits there until you press Level Up
+// (levelUpSkill), which is where rewards are handed out.
+const SKILL_STAGES = [
+    { name: 'Novice', from: 0, to: 20, color: '#a69a80' },
+    { name: 'Apprentice', from: 20, to: 100, color: '#7fc0ff' },
+    { name: 'Practitioner', from: 100, to: 1000, color: '#4fb83a' },
+    { name: 'Expert', from: 1000, to: 5000, color: '#c99bff' },
+    { name: 'Master', from: 5000, to: 10000, color: '#ff6a5a' },
+    { name: 'Grandmaster', from: 10000, to: Infinity, color: '#ffd700' }
+];
+const skillStageOf = (hours) => SKILL_STAGES.find(st => hours < st.to) || SKILL_STAGES[SKILL_STAGES.length - 1];
+const skillHoursToReach = (level) => level * (level - 1);
+function skillLevelFromHours(hours) {
+    let level = 1;
+    while (hours >= skillHoursToReach(level + 1)) level++;
+    return level;
+}
 
-// A skill's live totalXP (always recomputed, never stored - see
-// computeSkillMatrixXP above) can run ahead of the level the worker bee has
-// actually CELEBRATED (acknowledgedLevel, stored in Vault.state.skillLevels
-// - see levelUpSkill below). The bar only ever shows progress within the
-// acknowledged level's own 200 XP band; once totalXP fills that band, the
-// bar reports maxed (shakes, offers the Level Up button) and STAYS at 100%
-// - it does not silently advance to the next band - until levelUpSkill()
-// is actually called. This is the same "does NOT increase automatically,
-// a specific action must break the seal" bottleneck the original Codex
-// tracker used for character-level Promotion Trials, just applied per skill.
-function computeSkillLevelState(totalXP, acknowledgedLevel) {
+function computeSkillLevelState(minutes, acknowledgedLevel) {
+    const hours = (Number(minutes) || 0) / 60;
     const level = acknowledgedLevel || 1;
-    const xpIntoLevel = Math.min(SKILL_LEVEL_XP_STEP, Math.max(0, totalXP - (level - 1) * SKILL_LEVEL_XP_STEP));
-
+    const from = skillHoursToReach(level), cap = skillHoursToReach(level + 1) - from;
+    const into = Math.min(cap, Math.max(0, hours - from));
+    const stage = skillStageOf(hours);
     return {
         level,
-        xpIntoLevel,
-        cap: SKILL_LEVEL_XP_STEP,
-        percentage: Math.min(100, (xpIntoLevel / SKILL_LEVEL_XP_STEP) * 100),
-        maxed: totalXP >= level * SKILL_LEVEL_XP_STEP
+        liveLevel: skillLevelFromHours(hours),
+        hours,
+        hoursIntoLevel: into,
+        hoursCap: cap,
+        // older pages read these two: minutes into the level / its size
+        xpIntoLevel: Math.round(into * 60),
+        cap: cap * 60,
+        percentage: Math.min(100, into / cap * 100),
+        maxed: hours >= skillHoursToReach(level + 1),
+        stage: stage.name,
+        stageColor: stage.color,
+        nextStage: (SKILL_STAGES[SKILL_STAGES.indexOf(stage) + 1] || {}).name || null,
+        hoursToNextStage: stage.to === Infinity ? 0 : stage.to - hours
     };
+}
+
+// Skill level-up rewards: 1 material every level, tickets every 5th level
+// (level / 5: Lv 5 -> 1, Lv 10 -> 2, Lv 20 -> 4), 1 bee for a new stage.
+function skillLevelReward(newLevel, stageUp) {
+    return { materials: 1, tickets: newLevel % 5 === 0 ? newLevel / 5 : 0, bees: stageUp ? 1 : 0 };
 }
 
 // Starter Dictionary terms, seeded once (see _ensureDictionarySeeded below)
@@ -688,6 +755,9 @@ function hashtagTextOf(item) {
     return [item.label, item.notes, ...(item.checklist || []).map(c => c && (c.text || c.label))].filter(Boolean).join(' \n ');
 }
 
+const GACHA_PITY_PULLS = 6;        // 6th pull is Rare or better
+const NAMED_BEAST_TICKETS = 10;    // a guaranteed Named Beast costs 10 tickets
+
 // Level-up bee reward: a flat 1 bee per level-up (Oct 2026 - it used to
 // grow 1, 1.5, 2, 2.5... per level, which flooded the hive).
 function beesForLevel(level) {
@@ -1009,50 +1079,38 @@ const COMBINE_UPGRADE_CHANCE = { Common: 0.04, Rare: 0.015, Epic: 0.004, Legenda
 // Hoisted so computeCharacterLevelBandState below can walk the exact same
 // curve computeLevelProgress uses, instead of a second copy that could
 // quietly drift out of sync with it.
-const CHARACTER_LEVEL_BASE_THRESHOLD = 150;
-const CHARACTER_LEVEL_GROWTH_RATE = 1.15;
+// Oct 2026: tied to time. Reaching level L takes 60 x L x (L - 1) XP -
+// about L x (L - 1) hours (level 5 = 20 h, 10 = 90 h, 20 = 380 h,
+// 100 = 9,900 h ~ 10,000 hours). Each level costs 120 x L XP.
+const characterXPToReach = (level) => 60 * level * (level - 1);
 
 function computeLevelProgress(totalXP) {
     let level = 1;
-    let threshold = CHARACTER_LEVEL_BASE_THRESHOLD;
-    let remaining = totalXP;
-
-    while (remaining >= threshold) {
-        remaining -= threshold;
-        level += 1;
-        threshold = Math.round(threshold * CHARACTER_LEVEL_GROWTH_RATE);
-    }
-
-    return { level, currentXP: remaining, nextLevelXP: threshold };
+    while (totalXP >= characterXPToReach(level + 1)) level++;
+    return { level, currentXP: totalXP - characterXPToReach(level), nextLevelXP: characterXPToReach(level + 1) - characterXPToReach(level) };
 }
 
-// Same curve as computeLevelProgress, but reports progress relative to a
-// specific `acknowledgedLevel` rather than whatever the live totalXP works
-// out to - the character-level bar (Home/Profile) is gated exactly like
-// Skill Mastery: it can run ahead in real totalXP, but the bar and its
-// rewards only advance one level at a time, on purpose, via
-// levelUpCharacterBar() (see the Vault class below).
+// Same curve, but for the ACKNOWLEDGED level: the bar can be full and wait
+// for you to press Level Up (levelUpCharacterBar).
 function computeCharacterLevelBandState(totalXP, acknowledgedLevel) {
     const level = acknowledgedLevel || 1;
-    let threshold = CHARACTER_LEVEL_BASE_THRESHOLD;
-    let cumulativeXP = 0;
-
-    for (let lvl = 1; lvl < level; lvl++) {
-        cumulativeXP += threshold;
-        threshold = Math.round(threshold * CHARACTER_LEVEL_GROWTH_RATE);
-    }
-    // threshold is now this level's own cap (XP needed to clear it);
-    // cumulativeXP is the total XP required to have already reached `level`.
-
-    const xpIntoLevel = Math.min(threshold, Math.max(0, totalXP - cumulativeXP));
-
+    const from = characterXPToReach(level), cap = characterXPToReach(level + 1) - from;
+    const xpIntoLevel = Math.min(cap, Math.max(0, totalXP - from));
     return {
         level,
         xpIntoLevel,
-        cap: threshold,
-        percentage: Math.min(100, (xpIntoLevel / threshold) * 100),
-        maxed: totalXP >= cumulativeXP + threshold
+        cap,
+        percentage: Math.min(100, (xpIntoLevel / cap) * 100),
+        maxed: totalXP >= from + cap
     };
+}
+
+// Character level-up tickets grow: 1, plus 1 more per 10 levels.
+const ticketsForLevel = (level) => 1 + Math.floor(level / 10);
+function expectedLevelTickets(level) {
+    let n = 0;
+    for (let l = 2; l <= level; l++) n += ticketsForLevel(l);
+    return n;
 }
 
 class DatabaseManager {
@@ -1179,6 +1237,8 @@ class DatabaseManager {
         this._ensureOnboardingData();
         // One-time sort of an old Habitica import into the right tabs.
         this._sortHabiticaImports();
+        // One-time switch to time-based XP (Oct 2026).
+        this._ensureTimeXP();
         // Backfills state.dictionary onto any save from before the
         // Dictionary feature existed - no-ops once it's there.
         if (!this.state.dictionary) {
@@ -1566,6 +1626,88 @@ class DatabaseManager {
         catch { throw new Error('Not enough storage for a recovery copy. Export and remove older device backups to free space, then retry.'); }
     }
 
+    // Time-based XP (Oct 2026), once per save:
+    //  - imported history tasks start counting (their old points become
+    //    minutes, so they now give XP too)
+    //  - the character level is recalculated on the new curve: if it came
+    //    out LOWER it drops to the real level; if HIGHER, the bar waits full
+    //    so you claim each level (and its rewards) yourself
+    //  - level-up reward counters are trimmed so nothing is granted twice
+    //  - skill levels restart at 1, so every skill level your hours already
+    //    reach can be claimed with its rewards
+    //  - every task's shown XP is refreshed from its minutes
+    _ensureTimeXP() {
+        const s = this.state;
+        if (!s || s.timeXPVersion >= 1) return;
+        // Recovery copy first - unless there's nothing to lose yet, or one
+        // was just taken (e.g. by a schema upgrade a moment ago).
+        const hasWork = (s.dailyTasks || []).some(t => (t.completedDates || []).length) || (s.habits || []).some(h => (h.history || []).length)
+            || (s.todos || []).some(t => t.completed) || (s.quests || []).some(q => (q.tasks || []).some(t => t.completed));
+        const last = this.getLocalBackups()[0];
+        const fresh = last && Date.now() - Date.parse(last.createdAt) < 60000;
+        if (hasWork && !fresh) { try { this.createLocalBackup('Before time-based XP'); } catch { /* best effort */ } }
+        this._refreshTaskXP();
+        const live = this.getUser().level;
+        if (!s.characterLevelBar) s.characterLevelBar = { acknowledgedLevel: live, leveledUpAt: null };
+        const ack = Math.min(s.characterLevelBar.acknowledgedLevel || 1, live);
+        s.timeXPRecalc = { at: new Date().toISOString(), levelBefore: s.characterLevelBar.acknowledgedLevel || 1, liveLevel: live };
+        s.characterLevelBar.acknowledgedLevel = ack;
+        if (s.colony) {
+            let bees = 0;
+            for (let l = 2; l <= ack; l++) bees += beesForLevel(l);
+            s.colony.levelUpBeesAwarded = Math.min(Number(s.colony.levelUpBeesAwarded) || 0, bees);
+            s.colony.ticketsAwarded = Math.min(Number(s.colony.ticketsAwarded) || 0, expectedLevelTickets(ack));
+            s.colony.materialsAwardedForLevels = Math.min(Number(s.colony.materialsAwardedForLevels) || 0, Math.max(0, ack - 1));
+            s.colony.beeRateOct2026 = true;
+        }
+        s.skillLevels = {};
+        s.timeXPVersion = 1;
+        this.save();
+    }
+
+    // Keeps each task's shown XP (task.xp) in step with its minutes.
+    _refreshTaskXP() {
+        const s = this.state;
+        if (!s) return;
+        const set = (t) => { if (t) t.xp = xpForMinutes(plannedMinutes(t), t.difficulty); };
+        (s.dailyTasks || []).forEach(set);
+        (s.habits || []).forEach(set);
+        (s.todos || []).forEach(set);
+        (s.quests || []).forEach(q => (q.tasks || []).forEach(set));
+    }
+
+    // The check-off pop-up: how long it really took. kind = 'daily' |
+    // 'habit' | 'todo' | 'quest'. For a daily it's today's completion, for a
+    // habit its latest + tap. Returns the XP that completion is now worth.
+    logCompletionMinutes(kind, id, minutes, { questId } = {}) {
+        const s = this.state;
+        const m = Math.max(1, Math.min(1440, Math.round(Number(minutes) || 0)));
+        if (!s || !m) return null;
+        let task = null;
+        if (kind === 'daily') {
+            task = (s.dailyTasks || []).find(t => t.id === id);
+            if (!task) return null;
+            task.minutesLog = { ...(task.minutesLog || {}), [todayISO()]: m };
+        } else if (kind === 'habit') {
+            task = (s.habits || []).find(h => h.id === id);
+            const last = task && [...(task.history || [])].reverse().find(h => h.direction === 'positive');
+            if (!last) return null;
+            last.minutes = m;
+        } else if (kind === 'todo') {
+            task = (s.todos || []).find(t => t.id === id);
+            if (!task) return null;
+            task.minutesSpent = m;
+        } else if (kind === 'quest') {
+            const quest = (s.quests || []).find(q => q.id === questId);
+            task = quest && (quest.tasks || []).find(t => t.id === id);
+            if (!task) return null;
+            task.minutesSpent = m;
+        }
+        this.save();
+        this._syncLevelUpBees();
+        return xpForMinutes(m, task && task.difficulty);
+    }
+
     // 4. Getters
     getUser() {
         if (!this.state) return null;
@@ -1785,9 +1927,8 @@ class DatabaseManager {
         }
         const beeDeficit = expectedBees - this.state.colony.levelUpBeesAwarded;
 
-        // 1 ticket per level-up - simpler cadence than the escalating bee
-        // formula since tickets are the rarer, higher-stakes currency.
-        const expectedTickets = Math.max(0, level - 1);
+        // Tickets per level-up grow with the level (ticketsForLevel).
+        const expectedTickets = expectedLevelTickets(level);
         const ticketDeficit = expectedTickets - this.state.colony.ticketsAwarded;
 
         // 1 material roll per level-up too - flat, unlike the escalating
@@ -2148,7 +2289,7 @@ class DatabaseManager {
 
     // 5b. Logic: Task management (add/edit/remove) - the LLM or the user can
     // both shape a quest's tasks this way, not just check them off.
-    addTask(questId, { label, xp, difficulty }) {
+    addTask(questId, { label, xp, difficulty, minutes }) {
         if (!this.state) return null;
 
         const quest = (this.state.quests || []).find(q => q.id === questId);
@@ -2162,16 +2303,18 @@ class DatabaseManager {
             completed: false,
             dateCompleted: null,
             link: null,
-            difficulty: difficulty || null
+            difficulty: difficulty || null,
+            minutes: Number(minutes) > 0 ? Number(minutes) : null
         });
         this._captureHashtags(quest.tasks[quest.tasks.length - 1]);
+        this._refreshTaskXP();
 
         this._updateQuestCompletionState(quest);
         this.save();
         return quest;
     }
 
-    updateTask(questId, taskId, { label, xp, difficulty }) {
+    updateTask(questId, taskId, { label, xp, difficulty, minutes }) {
         if (!this.state) return null;
 
         const quest = (this.state.quests || []).find(q => q.id === questId);
@@ -2183,6 +2326,8 @@ class DatabaseManager {
         if (label !== undefined) task.label = label;
         if (xp !== undefined) task.xp = Number(xp) || 0;
         if (difficulty !== undefined) task.difficulty = difficulty || null;
+        if (minutes !== undefined) task.minutes = Number(minutes) > 0 ? Number(minutes) : null;
+        this._refreshTaskXP();
 
         this.save();
         return quest;
@@ -2437,10 +2582,12 @@ class DatabaseManager {
         quest.source = source && source.url ? { label: source.label || source.url, url: source.url } : null;
         quest.tasks = (tasks || []).map((row, index) => {
             const prev = row.id && old.find(t => t.id === row.id);
-            if (prev) return { ...prev, label: row.label, difficulty: row.difficulty || null, xp: Number(row.xp) || 0 };
+            const minutes = Number(row.minutes) > 0 ? Number(row.minutes) : (prev ? prev.minutes || null : null);
+            if (prev) return { ...prev, label: row.label, difficulty: row.difficulty || null, minutes, xp: Number(row.xp) || 0 };
             return {
                 id: `${quest.id.toLowerCase()}-t${stamp}-${index}`,
                 label: row.label,
+                minutes,
                 xp: Number(row.xp) || 0,
                 completed: false,
                 dateCompleted: null,
@@ -2448,6 +2595,7 @@ class DatabaseManager {
                 difficulty: row.difficulty || null
             };
         });
+        this._refreshTaskXP();
         if (quest.tasks.length) this._updateQuestCompletionState(quest);
         if (makeActive) this.state.activeQuestId = quest.id;
         this.save();
@@ -2516,8 +2664,8 @@ class DatabaseManager {
     // toggleTask/toggleDailyTask below. `source` is purely informational
     // ('gacha' / 'levelup' / 'starter') in case that's ever worth surfacing
     // in the UI later - nothing currently branches on it.
-    awardBee(source) {
-        const rarityInfo = rollBeeRarity();
+    awardBee(source, forcedRarity) {
+        const rarityInfo = (forcedRarity && BEE_RARITIES.find(r => r.rarity === forcedRarity)) || rollBeeRarity();
         const dexNumber = this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
         const bee = {
             id: generateBeeId(),
@@ -2571,6 +2719,29 @@ class DatabaseManager {
         return bee;
     }
 
+    // Gacha (Oct 2026): 1 ticket = 1 pull at the normal odds. Every 6th pull
+    // without a Rare or better is a guaranteed Rare or better (pity).
+    // Named Beasts now cost NAMED_BEAST_TICKETS tickets (unwrapTicket).
+    getPityCount() {
+        return this.state && this.state.colony ? (this.state.colony.pity || 0) : 0;
+    }
+
+    pullWithTicket() {
+        if (!this.state || !this.state.colony || !(this.state.colony.tickets > 0)) return null;
+        this.state.colony.tickets -= 1;
+        const pity = (this.state.colony.pity || 0) + 1;
+        let rarity = rollBeeRarity().rarity;
+        const guaranteed = pity >= GACHA_PITY_PULLS && rarity === 'Common';
+        if (guaranteed) {
+            const pool = BEE_RARITIES.filter(r => r.weight > 0 && r.rarity !== 'Common');
+            let roll = Math.random() * pool.reduce((n, r) => n + r.weight, 0);
+            rarity = (pool.find(r => (roll -= r.weight) < 0) || pool[0]).rarity;
+        }
+        this.state.colony.pity = rarity === 'Common' ? pity : 0;
+        const bee = this.awardBee('gacha', rarity);
+        return { bee, guaranteed, pity: this.state.colony.pity };
+    }
+
     getTicketCount() {
         return this.state && this.state.colony ? (this.state.colony.tickets || 0) : 0;
     }
@@ -2582,9 +2753,9 @@ class DatabaseManager {
     // can guard the tear/reveal interaction on a real ticket existing.
     unwrapTicket() {
         if (!this.state || !this.state.colony) return null;
-        if (!this.state.colony.tickets || this.state.colony.tickets <= 0) return null;
+        if (!this.state.colony.tickets || this.state.colony.tickets < NAMED_BEAST_TICKETS) return null;
 
-        this.state.colony.tickets -= 1;
+        this.state.colony.tickets -= NAMED_BEAST_TICKETS;
         const bee = {
             id: generateBeeId(),
             name: rollNamedBeeName(),
@@ -3091,7 +3262,7 @@ class DatabaseManager {
     // times, and free-text tags. Every new field has a safe fallback so
     // both callers can still pass just the original 3 fields if that's
     // all they have.
-    addDailyTask({ label, xp, difficulty, notes, checklist, startDate, repeats, reminders, tags }) {
+    addDailyTask({ label, xp, difficulty, notes, checklist, startDate, repeats, reminders, tags, minutes, skillsOff }) {
         if (!this.state) return null;
         if (!this.state.dailyTasks) this.state.dailyTasks = [];
 
@@ -3108,15 +3279,18 @@ class DatabaseManager {
             repeats: repeats || { type: 'daily', every: 1, daysOfWeek: [] },
             reminders: Array.isArray(reminders) ? reminders : [],
             tags: Array.isArray(tags) ? tags : [],
+            minutes: Number(minutes) > 0 ? Number(minutes) : null,
+            skillsOff: Array.isArray(skillsOff) ? skillsOff : [],
             completedDates: []
         });
+        this._refreshTaskXP();
         this._captureHashtags(this.state.dailyTasks[this.state.dailyTasks.length - 1]);
 
         this.save();
         return this.state.dailyTasks;
     }
 
-    updateDailyTask(taskId, { label, xp, difficulty, notes, checklist, startDate, repeats, reminders, tags }) {
+    updateDailyTask(taskId, { label, xp, difficulty, notes, checklist, startDate, repeats, reminders, tags, minutes, skillsOff }) {
         if (!this.state) return null;
 
         const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
@@ -3135,7 +3309,10 @@ class DatabaseManager {
         if (JSON.stringify([task.startDate, task.repeats]) !== schedBefore) delete task.habiticaDue;
         if (reminders !== undefined) task.reminders = Array.isArray(reminders) ? reminders : [];
         if (tags !== undefined) task.tags = Array.isArray(tags) ? tags : [];
+        if (minutes !== undefined) task.minutes = Number(minutes) > 0 ? Number(minutes) : null;
+        if (skillsOff !== undefined) task.skillsOff = Array.isArray(skillsOff) ? skillsOff : [];
         this._captureHashtags(task, textBefore);
+        this._refreshTaskXP();
 
         this.save();
         return task;
@@ -3212,7 +3389,7 @@ class DatabaseManager {
         return habit;
     }
 
-    addHabit({ label, xp, difficulty, notes, tags, positive, negative, resetCounter }) {
+    addHabit({ label, xp, difficulty, notes, tags, positive, negative, resetCounter, minutes, skillsOff }) {
         if (!this.state) return null;
         if (!this.state.habits) this.state.habits = [];
 
@@ -3232,15 +3409,18 @@ class DatabaseManager {
             positive: hasPositive,
             negative: hasNegative,
             resetCounter: resetCounter || 'daily',
+            minutes: Number(minutes) > 0 ? Number(minutes) : null,
+            skillsOff: Array.isArray(skillsOff) ? skillsOff : [],
             history: []
         });
+        this._refreshTaskXP();
         this._captureHashtags(this.state.habits[this.state.habits.length - 1]);
 
         this.save();
         return this.state.habits;
     }
 
-    updateHabit(habitId, { label, xp, difficulty, notes, tags, positive, negative, resetCounter }) {
+    updateHabit(habitId, { label, xp, difficulty, notes, tags, positive, negative, resetCounter, minutes, skillsOff }) {
         if (!this.state) return null;
 
         const habit = (this.state.habits || []).find(h => h.id === habitId);
@@ -3255,6 +3435,9 @@ class DatabaseManager {
         if (positive !== undefined) habit.positive = positive !== false;
         if (negative !== undefined) habit.negative = negative !== false;
         if (resetCounter !== undefined) habit.resetCounter = resetCounter || 'daily';
+        if (minutes !== undefined) habit.minutes = Number(minutes) > 0 ? Number(minutes) : null;
+        if (skillsOff !== undefined) habit.skillsOff = Array.isArray(skillsOff) ? skillsOff : [];
+        this._refreshTaskXP();
         // Same "can't have neither" guard as addHabit, re-checked after
         // applying whichever of positive/negative was just passed in.
         if (habit.positive === false && habit.negative === false) { habit.positive = true; habit.negative = true; }
@@ -3346,7 +3529,7 @@ class DatabaseManager {
         return todo;
     }
 
-    addTodo({ label, xp, difficulty, notes, checklist, dueDate, reminders, tags }) {
+    addTodo({ label, xp, difficulty, notes, checklist, dueDate, reminders, tags, minutes, skillsOff }) {
         if (!this.state) return null;
         if (!this.state.todos) this.state.todos = [];
 
@@ -3360,16 +3543,19 @@ class DatabaseManager {
             dueDate: dueDate || null,
             reminders: Array.isArray(reminders) ? reminders : [],
             tags: Array.isArray(tags) ? tags : [],
+            minutes: Number(minutes) > 0 ? Number(minutes) : null,
+            skillsOff: Array.isArray(skillsOff) ? skillsOff : [],
             completed: false,
             completedDate: null
         });
         this._captureHashtags(this.state.todos[this.state.todos.length - 1]);
+        this._refreshTaskXP();
 
         this.save();
         return this.state.todos;
     }
 
-    updateTodo(todoId, { label, xp, difficulty, notes, checklist, dueDate, reminders, tags }) {
+    updateTodo(todoId, { label, xp, difficulty, notes, checklist, dueDate, reminders, tags, minutes, skillsOff }) {
         if (!this.state) return null;
 
         const todo = (this.state.todos || []).find(t => t.id === todoId);
@@ -3384,7 +3570,10 @@ class DatabaseManager {
         if (dueDate !== undefined) todo.dueDate = dueDate || null;
         if (reminders !== undefined) todo.reminders = Array.isArray(reminders) ? reminders : [];
         if (tags !== undefined) todo.tags = Array.isArray(tags) ? tags : [];
+        if (minutes !== undefined) todo.minutes = Number(minutes) > 0 ? Number(minutes) : null;
+        if (skillsOff !== undefined) todo.skillsOff = Array.isArray(skillsOff) ? skillsOff : [];
         this._captureHashtags(todo, textBefore);
+        this._refreshTaskXP();
 
         this.save();
         return todo;
@@ -3624,7 +3813,7 @@ class DatabaseManager {
 
         return computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
             const stored = this.state.skillLevels[entry.category];
-            const levelState = computeSkillLevelState(entry.xp, stored ? stored.level : 1);
+            const levelState = computeSkillLevelState(entry.minutes, stored ? stored.level : 1);
             return { ...entry, ...levelState };
         });
     }
@@ -3671,11 +3860,13 @@ class DatabaseManager {
 
         const matrixEntry = computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
             .find(entry => entry.category === category);
-        const totalXP = matrixEntry ? matrixEntry.xp : 0;
+        const minutes = matrixEntry ? matrixEntry.minutes : 0;
 
         const stored = this.state.skillLevels[category] || { level: 1, leveledUpAt: null };
-        const levelState = computeSkillLevelState(totalXP, stored.level);
+        const levelState = computeSkillLevelState(minutes, stored.level);
         if (!levelState.maxed) return null;
+        if (this._levelingSkill === category) return null;   // no double tap
+        this._levelingSkill = category;
 
         const contributions = this.getSkillContributionsSince(category, stored.leveledUpAt);
 
@@ -3700,15 +3891,30 @@ class DatabaseManager {
             bonusMaterialId = null; // ignore anything Eevee returned that isn't a real material id
         }
 
+        // Oct 2026 rewards: 1 material every level, tickets every 5th level,
+        // 1 bee when the skill reaches a new stage (see skillLevelReward).
+        const newLevel = stored.level + 1;
+        const stageBefore = skillStageOf(skillHoursToReach(stored.level)).name;
+        const stageAfter = skillStageOf(skillHoursToReach(newLevel)).name;
+        const reward = skillLevelReward(newLevel, stageAfter !== stageBefore);
+        const materials = [];
+        for (let i = 0; i < reward.materials; i++) {
+            const id = rollMaterialDrop();
+            this.state.inventory.materials[id] = (this.state.inventory.materials[id] || 0) + 1;
+            materials.push(id);
+        }
         if (!this.state.colony) this.state.colony = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
         if (typeof this.state.colony.tickets !== 'number') this.state.colony.tickets = 0;
-        this.state.colony.tickets += 1;
+        this.state.colony.tickets += reward.tickets;
+        const bees = [];
+        for (let i = 0; i < reward.bees; i++) bees.push(this.awardBee('skill'));
 
-        const newLevel = stored.level + 1;
         this.state.skillLevels[category] = { level: newLevel, leveledUpAt: new Date().toISOString() };
+        this._levelingSkill = null;
         this.save();
 
-        return { category, newLevel, pollen, bonusMaterialId, ticketsGranted: 1 };
+        return { category, newLevel, pollen, bonusMaterialId, ticketsGranted: reward.tickets, materials, bees,
+            stage: stageAfter, stageUp: stageAfter !== stageBefore };
     }
 
     // 7. Logic: Full-state export/import - a manual, no-backend way to move
