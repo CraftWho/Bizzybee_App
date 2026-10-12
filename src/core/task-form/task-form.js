@@ -195,6 +195,58 @@ const TaskForm = {
         });
     },
 
+    // Time (Oct 2026): how long the task takes, plus which skills it
+    // counts toward. XP = minutes x effort (db.js TASK_EFFORT); the skill
+    // chips come from Dictionary words + tags (db.js skillsForTask) and a
+    // tap turns one off for this task. opts: mount, note (element for the
+    // "45 min x 1.25 = 56 XP" line), getTask() -> { label, notes, tags,
+    // difficulty }, onChange(). Returns { get(), set(task), refresh() }.
+    timePicker(opts) {
+        const st = { minutes: null, other: false, off: new Set() };
+        const fmt = (m) => m >= 60 ? `${+(m / 60).toFixed(m % 60 ? 1 : 0)} h` : `${m} min`;
+        const planned = () => {
+            const t = opts.getTask();
+            return plannedMinutes({ ...t, minutes: st.minutes });
+        };
+        const render = () => {
+            const t = opts.getTask();
+            const found = minutesFromText(t.label);
+            const m = planned();
+            const chips = [...new Set([...TASK_TIME_CHIPS, m])].sort((a, b) => a - b);
+            const skills = typeof skillsForTask === 'function'
+                ? skillMatcher(Vault.getDictionaryTerms())([t.label, t.notes].filter(Boolean).join(' '), t.tags || []) : [];
+            opts.mount.innerHTML = `
+                <div class="tf-chips" role="radiogroup" aria-label="Time">${chips.map(x => `<button type="button" class="tf-chip${x === m ? ' on' : ''}" role="radio" aria-checked="${x === m}" data-min="${x}">${fmt(x)}</button>`).join('')}
+                    <button type="button" class="tf-chip tf-other${st.other ? ' on' : ''}" data-other>✎ Other</button></div>
+                ${st.other ? `<label class="tf-other-row"><input type="number" min="1" max="600" inputmode="numeric" value="${m}" aria-label="Minutes"> minutes</label>` : ''}
+                <p class="hf-hint hf-hint-left tf-hint">${st.minutes ? 'Set by you.' : found ? `⏱️ Found <b>${fmt(found)}</b> in the title.` : 'Default for this difficulty - pick a time if you know it.'}</p>
+                <div class="tf-skills">${skills.length
+                    ? `<span class="tf-skills-l">Counts toward</span>${skills.map(sk => `<button type="button" class="tf-skill${st.off.has(sk.category) ? ' off' : ''}" data-skill="${this.esc(sk.category)}" aria-pressed="${!st.off.has(sk.category)}">${st.off.has(sk.category) ? '' : '✓ '}${this.esc(sk.category)}</button>`).join('')}`
+                    : '<span class="tf-skills-l">No skill yet - mention one (like HTML) or type #word.</span>'}</div>`;
+            if (opts.note) opts.note.textContent = `${fmt(m)} × ${TASK_EFFORT[t.difficulty] || 1} = ${xpForMinutes(m, t.difficulty)} XP`;
+            const input = opts.mount.querySelector('.tf-other-row input');
+            if (input) input.addEventListener('change', () => {
+                const v = Math.round(Number(input.value));
+                if (v > 0) { st.minutes = Math.min(600, v); st.other = false; render(); opts.onChange && opts.onChange(); }
+            });
+        };
+        opts.mount.addEventListener('click', (e) => {
+            const b = e.target.closest('button');
+            if (!b) return;
+            if (b.dataset.min) { st.minutes = Number(b.dataset.min); st.other = false; }
+            else if (b.hasAttribute('data-other')) { st.other = !st.other; }
+            else if (b.dataset.skill) { st.off.has(b.dataset.skill) ? st.off.delete(b.dataset.skill) : st.off.add(b.dataset.skill); }
+            render();
+            opts.onChange && opts.onChange();
+        });
+        render();
+        return {
+            refresh: render,
+            set(task) { st.minutes = Number(task && task.minutes) > 0 ? Number(task.minutes) : null; st.off = new Set((task && task.skillsOff) || []); render(); },
+            get() { return { minutes: st.minutes, skillsOff: [...st.off], planned: planned() }; }
+        };
+    },
+
     // Delete asks for a second tap instead of a pop-up box.
     armDelete(btn, onConfirm) {
         let armed = false;

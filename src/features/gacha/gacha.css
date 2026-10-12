@@ -404,3 +404,13 @@
 .gacha-summon-close {
     padding: 10px 30px;
 }
+
+/* x1 / x10 pulls (Oct 2026) */
+.gacha-pull-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.gacha-pull-row button { flex: 1 1 140px; }
+.gacha-multi { margin-top: 12px; }
+.gacha-multi-head { margin: 0 0 6px; color: #a69a80; font-size: .8rem; }
+.gacha-multi ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.gacha-multi li { padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .35); border-left: 3px solid var(--rc); }
+.gacha-multi li b { display: block; font-size: .84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gacha-multi li small { color: var(--rc); font-size: .7rem; }

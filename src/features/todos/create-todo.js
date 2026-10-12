@@ -17,6 +17,7 @@ const TODO_DIFFICULTY_TIERS = [
 ];
 
 let selectedDifficulty = 'Easy';
+let timePicker = null;   // TaskForm.timePicker (Oct 2026: XP = minutes x effort)
 let selectedXP = 30;
 let editingTodoId = null;
 let checklistEditor = null;
@@ -41,11 +42,12 @@ function rescanTags() {
     const title = document.getElementById('todo-title-input').value;
     const notes = document.getElementById('todo-notes-input').value;
     TagPicker.rescan(document.getElementById('todo-tags-list'), [title, notes], collectKnownTerms());
+    if (timePicker) timePicker.refresh();
 }
 
 function renderDifficulty() {
     TaskForm.renderDifficulty(document.getElementById('hf-diff'), TODO_DIFFICULTY_TIERS, selectedDifficulty, document.getElementById('hf'));
-    document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
+    if (timePicker) timePicker.refresh();
 }
 
 function isoPlusDays(n) {
@@ -113,7 +115,8 @@ function saveTodo() {
         checklist: checklistEditor.get().map(i => ({ id: i.id, text: i.text, done: !!i.done })),
         dueDate: document.getElementById('todo-due-date').value || null,
         reminders: reminderEditor.get(),
-        tags: TagPicker.getTags(document.getElementById('todo-tags-list'))
+        tags: TagPicker.getTags(document.getElementById('todo-tags-list')),
+        ...timePicker.get()
     };
 
     if (editingTodoId) {
@@ -144,6 +147,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         TagPicker.render(document.getElementById('todo-tags-list'), []);
     }
 
+    timePicker = TaskForm.timePicker({
+        mount: document.getElementById('tf-time'),
+        note: document.getElementById('hf-xp-note'),
+        getTask: () => ({
+            label: document.getElementById('todo-title-input').value,
+            notes: document.getElementById('todo-notes-input').value,
+            tags: TagPicker.getTags(document.getElementById('todo-tags-list')),
+            difficulty: selectedDifficulty
+        })
+    });
+    if (existing) timePicker.set(existing);
     renderDifficulty();
     renderDue();
     rescanTags();

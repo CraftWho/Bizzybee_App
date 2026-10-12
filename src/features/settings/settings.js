@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initFolderBackup();
     initPasswordReset();
     initPhoneReminders();
+    initTimeTracking();
     initHistoryImport();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
@@ -242,5 +243,16 @@ function initHistoryImport() {
             status.textContent = error.message || 'Could not read that file.';
             Toast.show(status.textContent, 'negative');
         }
+    });
+}
+
+// Time tracking: the "how long did it take?" pop-up (time-log.js).
+function initTimeTracking() {
+    const toggle = document.getElementById('timelog-toggle');
+    if (!toggle) return;
+    toggle.checked = localStorage.getItem('bizzybee_ask_time') !== 'off';
+    toggle.addEventListener('change', () => {
+        localStorage.setItem('bizzybee_ask_time', toggle.checked ? 'on' : 'off');
+        Toast.show(toggle.checked ? '⏱️ Will ask how long things take.' : 'Planned times will count.', 'positive');
     });
 }

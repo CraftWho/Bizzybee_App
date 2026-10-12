@@ -18,6 +18,7 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const EVERY_UNIT = { daily: ['Day', 'Days'], weekly: ['Week', 'Weeks'], monthly: ['Month', 'Months'] };
 
 let selectedDifficulty = 'Easy';
+let timePicker = null;   // TaskForm.timePicker (Oct 2026: XP = minutes x effort)
 let selectedXP = 20;
 let repeatsType = 'weekly';
 let selectedDays = [0, 1, 2, 3, 4, 5, 6];
@@ -49,11 +50,12 @@ function rescanTags() {
     const title = document.getElementById('daily-title-input').value;
     const notes = document.getElementById('daily-notes-input').value;
     TagPicker.rescan(document.getElementById('daily-tags-list'), [title, notes], collectKnownTerms());
+    if (timePicker) timePicker.refresh();
 }
 
 function renderDifficulty() {
     TaskForm.renderDifficulty(document.getElementById('hf-diff'), DAILY_DIFFICULTY_TIERS, selectedDifficulty, document.getElementById('hf'));
-    document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
+    if (timePicker) timePicker.refresh();
 }
 
 // ---- scheduling ----
@@ -153,7 +155,8 @@ function saveDaily() {
             daysOfWeek: repeatsType === 'weekly' ? selectedDays : []
         },
         reminders: reminderEditor.get(),
-        tags: TagPicker.getTags(document.getElementById('daily-tags-list'))
+        tags: TagPicker.getTags(document.getElementById('daily-tags-list')),
+        ...timePicker.get()
     };
     const wantedStreak = Math.max(0, Math.floor(Number(document.getElementById('df-streak').value) || 0));
 
@@ -188,6 +191,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('daily-repeats-select').value = repeatsType;
 
+    timePicker = TaskForm.timePicker({
+        mount: document.getElementById('tf-time'),
+        note: document.getElementById('hf-xp-note'),
+        getTask: () => ({
+            label: document.getElementById('daily-title-input').value,
+            notes: document.getElementById('daily-notes-input').value,
+            tags: TagPicker.getTags(document.getElementById('daily-tags-list')),
+            difficulty: selectedDifficulty
+        })
+    });
+    if (existing) timePicker.set(existing);
     renderDifficulty();
     renderDays();
     renderSummary();

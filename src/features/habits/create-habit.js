@@ -18,6 +18,7 @@ const HABIT_DIFFICULTY_TIERS = [
 ];
 
 let selectedDifficulty = 'Easy';
+let timePicker = null;   // TaskForm.timePicker (Oct 2026: XP = minutes x effort)
 let selectedXP = 20;
 let editingHabitId = null;
 let habitPositiveEnabled = true;
@@ -46,6 +47,7 @@ function rescanTags() {
     const title = document.getElementById('habit-title-input').value;
     const notes = document.getElementById('habit-notes-input').value;
     TagPicker.rescan(document.getElementById('habit-tags-list'), [title, notes], collectKnownTerms());
+    if (timePicker) timePicker.refresh();
 }
 
 function sparksSVG(n) {
@@ -72,7 +74,7 @@ function renderDifficulty() {
         return `<button type="button" class="hf-d${on ? ' on' : ''}" role="radio" aria-checked="${on}" data-level="${tier.level}" style="--c:${s.color};--k:${s.ink}">
             ${sparksSVG(tier.sparks)}<span>${tier.level}</span></button>`;
     }).join('');
-    document.getElementById('hf-xp-note').textContent = `${selectedXP} XP each tap`;
+    if (timePicker) timePicker.refresh();
     renderColour();
 }
 
@@ -144,6 +146,7 @@ function saveHabit() {
         difficulty: selectedDifficulty,
         notes: document.getElementById('habit-notes-input').value.trim(),
         tags: TagPicker.getTags(document.getElementById('habit-tags-list')),
+        ...timePicker.get(),
         positive: habitPositiveEnabled,
         negative: habitNegativeEnabled,
         resetCounter: selectedResetCounter
@@ -186,6 +189,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    timePicker = TaskForm.timePicker({
+        mount: document.getElementById('tf-time'),
+        note: document.getElementById('hf-xp-note'),
+        getTask: () => ({
+            label: document.getElementById('habit-title-input').value,
+            notes: document.getElementById('habit-notes-input').value,
+            tags: TagPicker.getTags(document.getElementById('habit-tags-list')),
+            difficulty: selectedDifficulty
+        })
+    });
+    if (existing) timePicker.set(existing);
     renderDifficulty();
     renderToggles();
     renderReset();

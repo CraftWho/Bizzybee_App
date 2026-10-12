@@ -84,6 +84,7 @@ const HabitRow = {
             if (action === 'edit') { window.location.href = editHref(habit); return; }
             const positive = action === 'positive';
             Vault.bumpHabit(habit.id, action);
+            if (positive) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'habit', id: habit.id }), 450);
             el.classList.remove('hr-pop'); void el.offsetWidth; el.classList.add('hr-pop');
             const ripple = document.createElement('span');
             ripple.className = `hr-ripple ${positive ? 'l' : 'r'}`;
