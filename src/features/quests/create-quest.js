@@ -30,17 +30,32 @@ function renderColour() {
     });
 }
 
-function renderTotal() {
-    const items = taskEditor.all().filter(i => i.text.trim());
-    const xp = items.reduce((sum, i) => sum + (Number(i.xp) || 0), 0);
-    document.getElementById('cq-total').textContent = items.length ? `${items.length} task${items.length === 1 ? '' : 's'} · ${xp} XP` : '';
+// Oct 2026: XP is time. Each task row has a time pill (tap cycles through
+// the usual lengths, "auto" = found in the task text or by difficulty) and
+// a difficulty pill. XP = minutes x effort (db.js).
+const QUEST_TIME_STEPS = [null, 15, 30, 45, 60, 90, 120, 180];
+const fmtMin = (m) => m >= 60 ? `${+(m / 60).toFixed(m % 60 ? 1 : 0)} h` : `${m} min`;
+function rowMinutes(item) {
+    return plannedMinutes({ label: item.text, difficulty: item.difficulty, minutes: item.minutes, historyXP: item.historyXP });
+}
+function rowXP(item) {
+    return xpForMinutes(rowMinutes(item), item.difficulty);
 }
 
-// The difficulty pill on each task row. Tap cycles Easy → Medium → Hard.
+function renderTotal() {
+    const items = taskEditor.all().filter(i => i.text.trim());
+    const xp = items.reduce((sum, i) => sum + rowXP(i), 0);
+    const mins = items.reduce((sum, i) => sum + rowMinutes(i), 0);
+    document.getElementById('cq-total').textContent = items.length ? `${items.length} task${items.length === 1 ? '' : 's'} · ${fmtMin(mins)} · ${xp} XP` : '';
+}
+
+// Time pill + difficulty pill on each task row.
 function difficultyPill(item) {
     const s = HABIT_DIFFICULTY_STYLE[item.difficulty] || HABIT_DIFFICULTY_STYLE.Easy;
-    return `<button type="button" class="cq-diff" data-extra style="--c:${s.color};--k:${s.ink}" aria-label="Difficulty: ${item.difficulty}, ${item.xp} XP. Tap to change.">
-        ${item.completed ? '<span class="cq-done" title="Done">✓</span>' : ''}${item.difficulty}<small>${item.xp}</small></button>`;
+    const m = rowMinutes(item);
+    return `<button type="button" class="cq-time" data-extra="time" aria-label="Time: ${fmtMin(m)}${item.minutes ? '' : ' (auto)'}. Tap to change.">⏱️ ${fmtMin(m)}${item.minutes ? '' : '<small>auto</small>'}</button>
+        <button type="button" class="cq-diff" data-extra="diff" style="--c:${s.color};--k:${s.ink}" aria-label="Difficulty: ${item.difficulty}, ${rowXP(item)} XP. Tap to change.">
+        ${item.completed ? '<span class="cq-done" title="Done">✓</span>' : ''}${item.difficulty}<small>${rowXP(item)}</small></button>`;
 }
 
 function loadExisting(quest) {
@@ -52,6 +67,8 @@ function loadExisting(quest) {
         text: t.label || '',
         difficulty: QUEST_DIFFICULTY_TIERS.some(x => x.level === t.difficulty) ? t.difficulty : 'Easy',
         xp: Number(t.xp) || tierFor(t.difficulty).xp,
+        minutes: Number(t.minutes) > 0 ? Number(t.minutes) : null,
+        historyXP: t.historyXP || 0,
         completed: !!t.completed,
         existing: true
     })));
@@ -94,7 +111,7 @@ function saveQuest() {
         objective: document.getElementById('quest-objective-input').value.trim(),
         category,
         source: url ? { label: document.getElementById('cq-source-label').value.trim(), url } : null,
-        tasks: tasks.map(i => ({ id: i.existing ? i.id : null, label: i.text, difficulty: i.difficulty, xp: i.xp })),
+        tasks: tasks.map(i => ({ id: i.existing ? i.id : null, label: i.text, difficulty: i.difficulty, xp: rowXP(i), minutes: i.minutes || null })),
         makeActive: document.getElementById('cq-focus').checked
     });
     if (!document.getElementById('cq-focus').checked && editingQuestId && Vault.getActiveQuestId() === editingQuestId) {
@@ -112,10 +129,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         placeholder: 'Task',
         newItem: () => ({ difficulty: 'Easy', xp: tierFor('Easy').xp }),
         extraHTML: difficultyPill,
-        onExtra: (item) => {
-            const order = QUEST_DIFFICULTY_TIERS.map(t => t.level);
-            item.difficulty = order[(order.indexOf(item.difficulty) + 1) % order.length];
-            item.xp = tierFor(item.difficulty).xp;
+        onExtra: (item, el) => {
+            if (el && el.dataset.extra === 'time') {
+                const i = QUEST_TIME_STEPS.indexOf(item.minutes || null);
+                item.minutes = QUEST_TIME_STEPS[(i + 1) % QUEST_TIME_STEPS.length];
+            } else {
+                const order = QUEST_DIFFICULTY_TIERS.map(t => t.level);
+                item.difficulty = order[(order.indexOf(item.difficulty) + 1) % order.length];
+            }
+            item.xp = rowXP(item);
             setTimeout(renderTotal, 0);
             return true;
         }

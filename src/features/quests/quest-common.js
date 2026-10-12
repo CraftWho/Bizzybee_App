@@ -133,6 +133,7 @@ const QuestUI = {
         const nowDone = !task.completed;
         const quest = Vault.toggleTask(questId, taskId);
         if (rowEl) TaskRow.animateCheck(rowEl, nowDone, task.xp);
+        if (nowDone) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'quest', id: taskId, questId }), 450);
         if (quest && !wasDone && quest.status === 'completed') {
             Toast.show(`🏆 Quest complete: ${quest.title}`, 'positive');
             if (navigator.vibrate) navigator.vibrate([30, 40, 60]);

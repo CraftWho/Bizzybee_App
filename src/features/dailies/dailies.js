@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (act === 'check') {
             Vault.toggleDailyTask(task.id);
             TaskRow.animateCheck(row, !task.completedToday, task.xp);
+            if (!task.completedToday) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'daily', id: task.id }), 450);
             setTimeout(renderDailyTasks, 650);
         } else if (act === 'list') {
             if (openChecklists.has(task.id)) openChecklists.delete(task.id); else openChecklists.add(task.id);

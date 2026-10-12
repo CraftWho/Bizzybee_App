@@ -190,14 +190,14 @@ function handlePanelClick(event) {
     if (kind === 'daily') {
         const task = Vault.getDailyTasks().find(t => t.id === id);
         if (!task) return;
-        if (act === 'check') { Vault.toggleDailyTask(id); TaskRow.animateCheck(row, !task.completedToday, task.xp); refreshAfterCheck(); }
+        if (act === 'check') { Vault.toggleDailyTask(id); TaskRow.animateCheck(row, !task.completedToday, task.xp); refreshAfterCheck(); if (!task.completedToday) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'daily', id: id }), 450); }
         else if (act === 'edit') window.location.href = TAB_LINKS.dailies.edit + encodeURIComponent(id);
         else if (act === 'list') { if (openChecklists.has(id)) openChecklists.delete(id); else openChecklists.add(id); renderPanel(); }
         else if (act === 'item') { Vault.toggleDailyChecklistItem(id, el.dataset.item); renderPanel(); }
     } else if (kind === 'todo') {
         const todo = Vault.getTodos().find(t => t.id === id);
         if (!todo) return;
-        if (act === 'check') { Vault.toggleTodoComplete(id); TaskRow.animateCheck(row, !todo.completed, todo.xp); refreshAfterCheck(); }
+        if (act === 'check') { Vault.toggleTodoComplete(id); TaskRow.animateCheck(row, !todo.completed, todo.xp); refreshAfterCheck(); if (!todo.completed) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'todo', id: id }), 450); }
         else if (act === 'edit') window.location.href = TAB_LINKS.todos.edit + encodeURIComponent(id);
         else if (act === 'list') { if (openChecklists.has(id)) openChecklists.delete(id); else openChecklists.add(id); renderPanel(); }
         else if (act === 'item') { Vault.toggleTodoChecklistItem(id, el.dataset.item); renderPanel(); }

@@ -498,6 +498,22 @@ class CodexSystem {
         this.loadLocalDevTools();
         this.loadHabiticaSync();
         this.loadPhoneReminders();
+        this.loadTimeLog();
+    }
+
+    // "How long did it take?" pop-up after a check-off (time-log.js).
+    loadTimeLog() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/')) return;
+        if (document.querySelector('script[src*="time-log/time-log.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/time-log/time-log.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/time-log/time-log.js';
+        document.body.appendChild(script);
     }
 
     // Phone reminders (src/core/push/push.js) - loads on every app page once

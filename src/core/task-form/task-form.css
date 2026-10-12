@@ -176,3 +176,16 @@ body.habit-form-page, body.task-form-page { padding-bottom: 0; }
 .hf-tags .tags-empty { color: #6d6450; }
 
 @media (prefers-reduced-motion: reduce) { .hf { animation: none; } }
+
+/* Time + skills (Oct 2026, TaskForm.timePicker) */
+.tf-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.hf .tf-chip { padding: 8px 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--dc) 45%, transparent); background: #1d1810; color: var(--hf-text); font: 600 .85rem var(--hf-sans); box-shadow: none; transform: none; cursor: pointer; }
+.hf .tf-chip.on { background: var(--dc); border-color: var(--dc); color: var(--dk); }
+.tf-other-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--hf-muted); font: 500 .85rem var(--hf-sans); }
+.tf-other-row input { width: 90px; padding: 8px 10px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--dc) 55%, transparent); background: #1d1810; color: var(--hf-text); font: 600 1rem var(--hf-sans); }
+.tf-hint b { color: var(--dc); }
+.tf-skills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.tf-skills-l { color: var(--hf-muted); font: 500 .78rem var(--hf-sans); margin-right: 2px; }
+.hf .tf-skill { padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(127, 192, 255, .5); background: rgba(127, 192, 255, .12); color: var(--hf-text); font: 600 .78rem var(--hf-sans); box-shadow: none; transform: none; cursor: pointer; }
+.hf .tf-skill.off { opacity: .45; text-decoration: line-through; }
+.hf .hf-eevee[hidden] { display: none; }

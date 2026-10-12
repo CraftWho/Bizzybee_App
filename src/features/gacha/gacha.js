@@ -81,11 +81,34 @@ function pollinateForNewBee() {
 // This keeps its own foil-tear animation rather than the warp popup above
 // - a different, deliberately more "precious single pull" moment.
 
+// Ten pulls at once: a quick grid of what you got (best first), pity
+// still applies to each pull.
+function pollinateMany(n) {
+    if (Vault.getTicketCount() < n) { Toast.show(`🎟️ You need ${n} tickets for ×${n}.`, 'negative'); return; }
+    const results = [];
+    for (let i = 0; i < n; i++) { const r = Vault.pullWithTicket(); if (r) results.push(r); }
+    const order = ['Legendary', 'Epic', 'Rare', 'Common'];
+    results.sort((a, b) => order.indexOf(a.bee.rarity) - order.indexOf(b.bee.rarity));
+    const box = document.getElementById('gacha-multi');
+    const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    box.innerHTML = `<p class="gacha-multi-head">×${results.length} pulled</p><ul>${results.map(r =>
+        `<li style="--rc:${beeColor(r.bee.rarity)}"><b>${esc(r.bee.name)}</b><small>${r.bee.rarity}${r.guaranteed ? ' · guaranteed' : ''}</small></li>`).join('')}</ul>`;
+    box.hidden = false;
+    const best = results[0];
+    if (best && best.bee.rarity !== 'Common') showSummonReveal(best.bee, { title: `🌼 Best pull: ${best.bee.name}!` });
+    Toast.show(`🐝 ${results.length} bees joined the colony!`, 'positive');
+    renderCollectionCounters();
+    renderRefineSelects();
+    renderTicketPanel();
+}
+
 function renderTicketPanel() {
     const countEl = document.getElementById('gacha-ticket-count');
     if (countEl) countEl.textContent = Vault.getTicketCount();
     const btn = document.getElementById('gacha-pollinate-btn');
     if (btn) btn.disabled = Vault.getTicketCount() < 1;
+    const btn10 = document.getElementById('gacha-pollinate10-btn');
+    if (btn10) btn10.disabled = Vault.getTicketCount() < 10;
     const pity = document.getElementById('gacha-pity');
     if (pity) pity.textContent = `Guaranteed Rare+ in ${Math.max(1, 6 - Vault.getPityCount())} pull${6 - Vault.getPityCount() === 1 ? '' : 's'}.`;
     resetFoilCard();
@@ -135,6 +158,8 @@ function unwrapFoilCard() {
     document.getElementById('gacha-ticket-count').textContent = Vault.getTicketCount();
     const pbtn = document.getElementById('gacha-pollinate-btn');
     if (pbtn) pbtn.disabled = Vault.getTicketCount() < 1;
+    const pbtn10 = document.getElementById('gacha-pollinate10-btn');
+    if (pbtn10) pbtn10.disabled = Vault.getTicketCount() < 10;
     renderCollectionCounters();
     renderRefineSelects();
 }
@@ -272,6 +297,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFoilCard();
 
     document.getElementById('gacha-pollinate-btn').addEventListener('click', pollinateForNewBee);
+    document.getElementById('gacha-pollinate10-btn').addEventListener('click', () => pollinateMany(10));
     document.getElementById('gacha-destroy-btn').addEventListener('click', handleDestroy);
     document.getElementById('gacha-combine-btn').addEventListener('click', handleCombine);
 

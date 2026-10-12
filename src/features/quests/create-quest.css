@@ -22,6 +22,23 @@
 .hf button.cq-diff:hover { background: var(--c); color: var(--k); }
 .cq-diff small { font-weight: 700; opacity: .75; }
 .cq-done { color: #34c77b; font-weight: 800; }
+/* Time pill (Oct 2026) - tap cycles auto, 15 min ... 3 h */
+.hf button.cq-time {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 6px;
+    padding: 6px 9px;
+    border: 1px solid color-mix(in srgb, var(--dc) 55%, transparent);
+    border-radius: 999px;
+    background: #1d1810;
+    color: var(--hf-text);
+    font: 600 .76rem var(--hf-sans);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.cq-time small { font-weight: 500; opacity: .6; }
 
 .cq-gap { margin-top: 10px; }
 

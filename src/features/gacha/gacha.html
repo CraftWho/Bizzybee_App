@@ -33,9 +33,13 @@
 
         <section class="panel gacha-panel">
             <h3>🌼 Pollinate</h3>
-            <p class="gacha-note">Costs 1 🎟️ ticket. Every 6th pull without a Rare is a guaranteed Rare or better.</p>
+            <p class="gacha-note">1 🎟️ ticket per pull. Every 6th pull without a Rare is a guaranteed Rare or better.</p>
             <p class="gacha-note" id="gacha-pity"></p>
-            <button id="gacha-pollinate-btn" disabled>🌼 Pollinate · 1 🎟️</button>
+            <div class="gacha-pull-row">
+                <button id="gacha-pollinate-btn" disabled>🌼 Pull ×1</button>
+                <button id="gacha-pollinate10-btn" disabled>🌼 Pull ×10</button>
+            </div>
+            <div class="gacha-multi" id="gacha-multi" hidden></div>
             <p class="gacha-hint">Bee management (renaming, assigning work) now lives on the <a href="../inventory/inventory.html">Inventory</a> page — this room is just for pulling, refining, and unwrapping.</p>
         </section>
 

@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const nowDone = !todo.completed;
             Vault.toggleTodoComplete(todo.id);
             TaskRow.animateCheck(row, nowDone, todo.xp);
+            if (nowDone) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'todo', id: todo.id }), 450);
             row.classList.add(nowDone ? 'leaving' : 'returning');
             setTimeout(renderTodos, 700);
         } else if (act === 'list') {
