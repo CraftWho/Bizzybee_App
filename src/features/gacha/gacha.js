@@ -60,12 +60,17 @@ function showSummonReveal(bee, { title } = {}) {
     }, { once: true });
 }
 
+// Oct 2026: no more free pulls - each costs a ticket, with a guaranteed
+// Rare or better on the 6th pull in a row without one (Vault.pullWithTicket).
 function pollinateForNewBee() {
-    const bee = Vault.awardBee('gacha');
-    Toast.show(`🐝 ${bee.name} joined the colony!`, 'positive');
+    const result = Vault.pullWithTicket();
+    if (!result) { Toast.show('🎟️ You need a ticket to pollinate. Level up you or your skills to earn more.', 'negative'); renderTicketPanel(); return; }
+    const { bee, guaranteed } = result;
+    Toast.show(`🐝 ${bee.name} joined the colony!${guaranteed ? ' (guaranteed Rare+)' : ''}`, 'positive');
     showSummonReveal(bee, { title: `🌼 ${bee.name} joined the colony!` });
     renderCollectionCounters();
     renderRefineSelects();
+    renderTicketPanel();
 }
 
 // --- GACHA TICKET / FOIL-CARD UNWRAP -------------------------------------
@@ -79,6 +84,10 @@ function pollinateForNewBee() {
 function renderTicketPanel() {
     const countEl = document.getElementById('gacha-ticket-count');
     if (countEl) countEl.textContent = Vault.getTicketCount();
+    const btn = document.getElementById('gacha-pollinate-btn');
+    if (btn) btn.disabled = Vault.getTicketCount() < 1;
+    const pity = document.getElementById('gacha-pity');
+    if (pity) pity.textContent = `Guaranteed Rare+ in ${Math.max(1, 6 - Vault.getPityCount())} pull${6 - Vault.getPityCount() === 1 ? '' : 's'}.`;
     resetFoilCard();
 }
 
@@ -88,7 +97,7 @@ function resetFoilCard() {
     if (!wrap || !back) return;
 
     wrap.classList.remove('is-torn');
-    wrap.classList.toggle('is-empty', Vault.getTicketCount() <= 0);
+    wrap.classList.toggle('is-empty', Vault.getTicketCount() < NAMED_BEAST_TICKETS);
     back.innerHTML = '';
 }
 
@@ -108,7 +117,7 @@ function unwrapFoilCard() {
 
     const bee = Vault.unwrapTicket();
     if (!bee) {
-        Toast.show('🎟️ No tickets to unwrap yet.', 'negative');
+        Toast.show(`🎟️ A Named Beast takes ${NAMED_BEAST_TICKETS} tickets.`, 'negative');
         return;
     }
 
@@ -124,6 +133,8 @@ function unwrapFoilCard() {
 
     Toast.show(`🎟️ Unwrapped ${bee.name}!`, 'positive');
     document.getElementById('gacha-ticket-count').textContent = Vault.getTicketCount();
+    const pbtn = document.getElementById('gacha-pollinate-btn');
+    if (pbtn) pbtn.disabled = Vault.getTicketCount() < 1;
     renderCollectionCounters();
     renderRefineSelects();
 }
