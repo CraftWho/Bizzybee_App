@@ -284,6 +284,16 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, 
     return contributions;
 }
 
+// All practice minutes, each completion counted once (not per skill).
+function computeTotalPracticeMinutes(dailyTasks, quests, habits, todos) {
+    let m = 0;
+    (dailyTasks || []).forEach(t => { const log = t.minutesLog || {}; (t.completedDates || []).forEach(d => { m += completionMinutes(t, log[d]); }); });
+    (habits || []).forEach(h => (h.history || []).filter(x => x.direction === 'positive').forEach(x => { m += completionMinutes(h, x.minutes); }));
+    (todos || []).filter(t => t.completed).forEach(t => { m += completionMinutes(t, t.minutesSpent); });
+    (quests || []).forEach(q => (q.tasks || []).filter(t => t.completed).forEach(t => { m += completionMinutes(t, t.minutesSpent); }));
+    return m;
+}
+
 function computeSkillMatrixXP(dailyTasks, dictionaryTerms, quests, habits, todos) {
     const by = {};
     computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos).forEach(c => {
@@ -690,20 +700,23 @@ const STORE_ITEM_CATALOG = [
 // truth and this catalog is only consulted for name/icon/description/
 // prerequisite, the same "catalog = meaning, Vault state = your progress"
 // split used everywhere else (materials, plugins, etc.).
+// Oct 2026: each node is MASTERED automatically once its skill has enough
+// real hours (needs.skills = any of these skills; needs.total = all your
+// practice), and its parent is mastered. Once mastered it stays mastered.
 const SKILL_TREE_CATALOG = [
-    { id: 'codex-architect', parentId: null, name: 'Codex Architect', icon: '🧑🏾‍💼', description: 'The Core System. Current Status: Level 5 Web Developer. Ready for React integration.', defaultUnlocked: true },
+    { id: 'codex-architect', parentId: null, name: 'Codex Architect', icon: '🧑🏾‍💼', description: 'The Core System. Current Status: Level 5 Web Developer. Ready for React integration.', needs: { total: true, hours: 10 } },
 
-    { id: 'semantic-html', parentId: 'codex-architect', name: 'Semantic HTML Fluency', icon: '🧱', description: 'Mastery of meaningful HTML tags (header, nav, main) for better accessibility and SEO.', defaultUnlocked: true },
-    { id: 'modular-repo', parentId: 'semantic-html', name: 'Modular Repo Scaffolding', icon: '🏗️', description: 'Ability to set up clean, scalable project structures with organized folder hierarchies.', defaultUnlocked: true },
-    { id: 'github-pages', parentId: 'modular-repo', name: 'GitHub Pages Deployment', icon: '🚀', description: 'Pipeline established for publishing live projects directly to the web for recruiter access.', defaultUnlocked: true },
+    { id: 'semantic-html', parentId: 'codex-architect', name: 'Semantic HTML Fluency', icon: '🧱', description: 'Mastery of meaningful HTML tags (header, nav, main) for better accessibility and SEO.', needs: { skills: ['HTML'], hours: 20 } },
+    { id: 'modular-repo', parentId: 'semantic-html', name: 'Modular Repo Scaffolding', icon: '🏗️', description: 'Ability to set up clean, scalable project structures with organized folder hierarchies.', needs: { skills: ['HTML', 'Tools'], hours: 60 } },
+    { id: 'github-pages', parentId: 'modular-repo', name: 'GitHub Pages Deployment', icon: '🚀', description: 'Pipeline established for publishing live projects directly to the web for recruiter access.', needs: { skills: ['Tools', 'HTML'], hours: 100 } },
 
-    { id: 'css-fundamentals', parentId: 'codex-architect', name: 'CSS Fundamentals', icon: '🎨', description: 'The visual styling engine. Control over colors, typography, and the box model.', defaultUnlocked: true },
-    { id: 'responsive-design', parentId: 'css-fundamentals', name: 'Responsive Design', icon: '📱', description: 'Ensuring layouts adapt fluidly to mobile, tablet, and desktop screens.', defaultUnlocked: true },
-    { id: 'flexbox-grid', parentId: 'css-fundamentals', name: 'Flexbox/Grid', icon: '📐', description: 'Advanced layout modules for controlling complex positioning and alignment.', defaultUnlocked: true },
+    { id: 'css-fundamentals', parentId: 'codex-architect', name: 'CSS Fundamentals', icon: '🎨', description: 'The visual styling engine. Control over colors, typography, and the box model.', needs: { skills: ['CSS'], hours: 20 } },
+    { id: 'responsive-design', parentId: 'css-fundamentals', name: 'Responsive Design', icon: '📱', description: 'Ensuring layouts adapt fluidly to mobile, tablet, and desktop screens.', needs: { skills: ['CSS'], hours: 60 } },
+    { id: 'flexbox-grid', parentId: 'css-fundamentals', name: 'Flexbox/Grid', icon: '📐', description: 'Advanced layout modules for controlling complex positioning and alignment.', needs: { skills: ['CSS'], hours: 100 } },
 
-    { id: 'js-essentials', parentId: 'codex-architect', name: 'JavaScript Essentials', icon: '🧠', description: 'The logic layer. Variables, functions, loops, and data types.', defaultUnlocked: true },
-    { id: 'dom-manipulation', parentId: 'js-essentials', name: 'DOM Manipulation', icon: '⚡', description: 'Ability to use JS to target HTML elements and change them dynamically.', defaultUnlocked: true },
-    { id: 'react-fundamentals', parentId: 'js-essentials', name: 'React Fundamentals', icon: '⚛️', description: 'Component-based UI architecture. The ability to build reusable, state-driven interfaces.', defaultUnlocked: true }
+    { id: 'js-essentials', parentId: 'codex-architect', name: 'JavaScript Essentials', icon: '🧠', description: 'The logic layer. Variables, functions, loops, and data types.', needs: { skills: ['JavaScript'], hours: 20 } },
+    { id: 'dom-manipulation', parentId: 'js-essentials', name: 'DOM Manipulation', icon: '⚡', description: 'Ability to use JS to target HTML elements and change them dynamically.', needs: { skills: ['JavaScript', 'DOM'], hours: 60 } },
+    { id: 'react-fundamentals', parentId: 'js-essentials', name: 'React Fundamentals', icon: '⚛️', description: 'Component-based UI architecture. The ability to build reusable, state-driven interfaces.', needs: { skills: ['React'], hours: 20 } }
 ];
 
 // The chance a Common/Rare bee jumps to Epic when a 'trait' store item is
@@ -2804,16 +2817,40 @@ class DatabaseManager {
     // parentId per skill; this only ever tracks the unlocked boolean.
     // Returns the catalog merged with live unlocked state, ready for
     // skills.js to render without it needing to touch state.skills itself.
+    // Each node: unlocked (mastered), masteredAt, progressHours, needHours,
+    // status 'mastered' | 'progress' | 'locked'. Newly mastered nodes are
+    // saved (they stay mastered) and listed in this.lastMastered so a page
+    // can celebrate them.
     getSkillTree() {
-        const skills = this.state ? (this.state.skills || {}) : {};
-        return SKILL_TREE_CATALOG.map(entry => ({
-            ...entry,
-            unlocked: !!skills[entry.id]
-        }));
+        if (!this.state) return SKILL_TREE_CATALOG.map(e => ({ ...e, unlocked: false, status: 'locked', progressHours: 0, needHours: (e.needs || {}).hours || 0 }));
+        if (!this.state.skillsMastered) this.state.skillsMastered = {};
+        const done = this.state.skillsMastered;
+        const s = this.state;
+        const hoursBy = {};
+        computeSkillMatrixXP(s.dailyTasks, s.dictionary, s.quests, s.habits, s.todos).forEach(e => { hoursBy[e.category.toLowerCase()] = e.hours; });
+        const totalHours = computeTotalPracticeMinutes(s.dailyTasks, s.quests, s.habits, s.todos) / 60;
+        const fresh = [];
+        const out = [];
+        const byId = {};
+        SKILL_TREE_CATALOG.forEach(entry => {   // parents come before children in the catalog
+            const needs = entry.needs || { total: true, hours: 0 };
+            const progress = needs.total ? totalHours : Math.max(0, ...(needs.skills || []).map(k => hoursBy[k.toLowerCase()] || 0));
+            const parent = entry.parentId ? byId[entry.parentId] : null;
+            const open = !parent || parent.unlocked;
+            if (!done[entry.id] && open && progress >= needs.hours) { done[entry.id] = new Date().toISOString(); fresh.push(entry); }
+            const node = { ...entry, unlocked: !!done[entry.id], masteredAt: done[entry.id] || null,
+                progressHours: progress, needHours: needs.hours, needSkills: needs.total ? null : needs.skills,
+                status: done[entry.id] ? 'mastered' : open ? 'progress' : 'locked' };
+            byId[entry.id] = node;
+            out.push(node);
+        });
+        this.lastMastered = fresh;
+        if (fresh.length) this.save();
+        return out;
     }
 
     isSkillUnlocked(skillId) {
-        return this.state && this.state.skills ? !!this.state.skills[skillId] : false;
+        return this.state && this.state.skillsMastered ? !!this.state.skillsMastered[skillId] : false;
     }
 
     // Unlocks a skill - but only if it isn't already unlocked, and (unless
