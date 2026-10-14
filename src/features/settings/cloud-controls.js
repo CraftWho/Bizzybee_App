@@ -104,7 +104,21 @@ async function refreshCloudBackups() {
         button.onclick = () => settingsAction(button, async () => {
             if (confirm('Restore this backup to your cloud account and this device? The current cloud and device copies will be preserved first.')) await cloudEngine().restoreBackup(item.id);
         });
-        row.append(label, button); list.append(row);
+        // Oct 2026: keep a copy of any cloud backup as a file (in your
+        // save-files folder if one is chosen, otherwise Downloads).
+        const save = document.createElement('button'); save.textContent = '⬇️ Save file';
+        save.onclick = () => settingsAction(save, async () => {
+            const backup = await cloudEngine().request('backups?id=' + encodeURIComponent(item.id));
+            const text = typeof backup.data === 'string' ? backup.data : JSON.stringify(backup.data, null, 2);
+            const d = new Date(item.createdAt), pad = n => String(n).padStart(2, '0');
+            const name = `bizzybee-cloud-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.json`;
+            const written = typeof FolderBackup !== 'undefined' ? await FolderBackup.writeFile(name, text) : { ok: false };
+            if (written.ok) { Toast.show(`💾 Saved ${name} to ${written.folder}.`, 'positive'); return; }
+            const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+            const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        });
+        row.append(label, save, button); list.append(row);
     }
 }
 function getLocalUpdateText() {
@@ -230,8 +244,8 @@ function initFolderBackup() {
         const engine = await waitForFolderBackup();
         if (!engine) throw new Error("Couldn't load the backup module - try reopening Settings.");
         const name = await engine.chooseFolder();
-        await engine.writeSnapshot('manual');
-        Toast.show(`📁 Saving backups to "${name}".`, 'positive');
+        await engine.saveNow();
+        Toast.show(`📁 Saving your last 3 saves to "${name}".`, 'positive');
         await refreshFolderBackupStatus();
     });
     document.getElementById('folder-backup-disconnect-btn').onclick = event => settingsAction(event.currentTarget, async () => {

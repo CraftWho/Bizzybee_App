@@ -19,7 +19,9 @@ const FolderBackup = (() => {
     const DB_NAME = 'bizzybee-folder-backup';
     const STORE = 'handles';
     const KEY = 'folder';
-    const AUTO_THROTTLE_MS = 6 * 60 * 60 * 1000; // one silent write per 6h of activity, not per save
+    const AUTO_THROTTLE_MS = 2 * 60 * 60 * 1000; // one silent write per 2h of activity, not per save
+    const KEEP = 3;                               // save files kept in the folder (Oct 2026)
+    const SAVE_RE = /^bizzybee-save-.*\.json$/;
     const AUTO_LAST_KEY = 'bizzybee_folder_backup_auto_last';
 
     const supported = () => typeof window.showDirectoryPicker === 'function' && 'indexedDB' in window;
@@ -92,9 +94,33 @@ const FolderBackup = (() => {
         return { supported: true, connected: true, name: handle.name, permission };
     }
 
-    // reason 'auto' overwrites one fixed file each time (silent background
-    // writes shouldn't fill the folder with hundreds of copies); anything
-    // else gets its own timestamped file (a deliberate "save this moment").
+    // Oct 2026: auto saves are dated files - bizzybee-save-<name>-<date>.json -
+    // and only the newest KEEP (3) are kept, so the folder always holds your
+    // last 3 save states. Anything else gets its own timestamped file.
+    const local = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}`;
+    const who = () => String((Vault.state && (Vault.state.displayName || (Vault.state.onboarding || {}).name)) || 'save').replace(/[^\w-]+/g, '').slice(0, 20) || 'save';
+    async function prune(handle) {
+        const names = [];
+        for await (const [name, entry] of handle.entries()) if (entry.kind === 'file' && SAVE_RE.test(name)) names.push(name);
+        // newest first by the date at the end of the name
+        names.sort((a, b) => b.slice(-21).localeCompare(a.slice(-21)));
+        for (const name of names.slice(KEEP)) { try { await handle.removeEntry(name); } catch { /* leave it */ } }
+    }
+    async function writeFile(name, text) {
+        const handle = await getHandle();
+        if (!handle) return { ok: false, error: 'no-folder' };
+        let permission;
+        try { permission = await handle.queryPermission({ mode: 'readwrite' }); } catch { return { ok: false, error: 'unavailable' }; }
+        if (permission !== 'granted') return { ok: false, error: 'permission-needed' };
+        try {
+            const fileHandle = await handle.getFileHandle(name, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(text);
+            await writable.close();
+            return { ok: true, filename: name, folder: handle.name };
+        } catch (error) { return { ok: false, error: error.message }; }
+    }
+
     async function writeSnapshot(reason = 'manual') {
         if (typeof Vault === 'undefined' || !Vault.state) return { ok: false, error: 'vault-unavailable' };
         const handle = await getHandle();
@@ -103,12 +129,13 @@ const FolderBackup = (() => {
         try { permission = await handle.queryPermission({ mode: 'readwrite' }); }
         catch { return { ok: false, error: 'unavailable' }; }
         if (permission !== 'granted') return { ok: false, error: 'permission-needed' };
-        const filename = reason === 'auto' ? 'bizzybee-auto-backup.json' : `bizzybee-backup-${reason}-${timestampSlug()}.json`;
+        const filename = reason === 'auto' ? `bizzybee-save-${who()}-${local()}.json` : `bizzybee-backup-${reason}-${timestampSlug()}.json`;
         try {
             const fileHandle = await handle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(Vault.exportFullState());
             await writable.close();
+            if (reason === 'auto') await prune(handle);
             return { ok: true, filename };
         } catch (error) { return { ok: false, error: error.message }; }
     }
@@ -145,5 +172,12 @@ const FolderBackup = (() => {
     // Also covers a tab left open a long time with no new edits.
     setTimeout(maybeAutoWrite, 8000);
 
-    return { supported, chooseFolder, disconnect, status, writeSnapshot, downloadNow };
+    // Save one now (e.g. right after choosing the folder) - same rules as auto.
+    async function saveNow() {
+        const result = await writeSnapshot('auto');
+        if (result.ok) localStorage.setItem(AUTO_LAST_KEY, String(Date.now()));
+        return result;
+    }
+
+    return { supported, chooseFolder, disconnect, status, writeSnapshot, downloadNow, saveNow, writeFile };
 })();
