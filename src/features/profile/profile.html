@@ -17,73 +17,26 @@
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../../core/level-bar/level-bar.css">
+    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
     <link rel="stylesheet" href="./profile.css">
 </head>
 <body>
 
-    <main class="profile-container">
-
-        <section class="operative-card panel">
-            <div class="avatar-block">
-                <div class="avatar-hex">
-                    <img src="../../assets/images/me.jpg" alt="Operative Avatar" class="profile-pic" id="profile-avatar-img">
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-label">NAME</span>
-                    <span class="stat-value" id="user-name">—</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">CLASS</span>
-                    <span class="stat-value text-gold" id="user-class">—</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">LEVEL</span>
-                    <span class="stat-value" id="user-level">—</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">TITLE</span>
-                    <span class="stat-value" id="user-title">—</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">DEV POINTS</span>
-                    <span class="stat-value text-gold" id="user-xp">—</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel">
-            <div class="progress-header">
-                <h3>NANITE CORE SYNTHESIS</h3>
-                <span class="xp-text">Character Level</span>
-            </div>
-            <div id="profile-level-bar"></div>
-        </section>
-
-        <section class="panel">
-            <h3>🌿 <span class="gold-gradient-text">SKILLS UNLOCKED</span></h3>
-            <ul class="cyber-list" id="skills-unlocked-list"></ul>
-        </section>
-
-        <section class="panel">
-            <h3>/// ACTIVE PROTOCOLS (Projects)</h3>
-            <div class="project-grid" id="profile-project-grid"></div>
-        </section>
-
-        <section class="panel">
-            <h3>/// SERVICE RECORD</h3>
-            <ul class="cyber-list" id="profile-service-record"></ul>
-        </section>
-
-        <div class="action-footer">
-            <a href="../quests/quests.html" class="btn-hex-primary">INITIALIZE ACTIVE MISSION</a>
-        </div>
-
+    <main class="pfv2">
+        <section class="card top" id="pf-hero"></section>
+        <section class="card"><a class="royal" href="../colony/colony.html" id="pf-royal"></a></section>
+        <div class="tiles" id="pf-tiles"></div>
+        <h2 class="sec">Skills mastered <a href="../skills/skills.html">Skills →</a></h2>
+        <section class="card"><div class="chips" id="pf-skills"></div></section>
+        <h2 class="sec">Titles</h2>
+        <section class="card"><div class="chips" id="pf-titles"></div></section>
+        <h2 class="sec">In progress</h2>
+        <section class="card" id="pf-active"></section>
+        <h2 class="sec">Service record</h2>
+        <section class="card" id="pf-record"></section>
     </main>
+    <div class="pf-sheet-bg" id="pf-sheet" hidden><div class="pf-sheet" id="pf-sheet-body" role="dialog" aria-modal="true"></div></div>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
@@ -92,7 +45,7 @@
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
-    <script src="../../core/level-bar/level-bar.js"></script>
+    <script src="../../core/bee-card/bee-card.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./profile.js"></script>

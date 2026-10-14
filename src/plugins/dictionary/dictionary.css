@@ -1,175 +1,60 @@
-.dictionary-container {
-    width: 100%;
-    max-width: 640px;
-    margin: 20px auto 100px;
-    padding: 0 25px;
-    box-sizing: border-box;
-}
-
-/* --- Single continuous panel - the add-form and the term list live in
-   the SAME .panel, separated only by the h3 title-bar divider (see
-   global.css's ".panel h3" rule), same convention Create Daily now uses. --- */
-.form-label {
-    display: block;
-    color: var(--gold-start);
-    font-size: 0.85rem;
-    font-weight: bold;
-    margin: 14px 0 6px;
-}
-
-.form-label:first-of-type {
-    margin-top: 0;
-}
-
-.dictionary-text-input,
-.dictionary-textarea {
-    width: 100%;
-    box-sizing: border-box;
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 10px 12px;
-    color: #eee;
-    font-family: inherit;
-    font-size: 0.95rem;
-}
-
-.dictionary-text-input:focus,
-.dictionary-textarea:focus {
-    outline: none;
-    border-color: var(--gold-start);
-}
-
-.dictionary-textarea {
-    min-height: 70px;
-    resize: vertical;
-}
-
-.dictionary-add-btn {
-    margin-top: 16px;
-    width: 100%;
-}
-
-.dictionary-list-heading {
-    margin-top: 30px !important;
-}
-
-.dictionary-empty-state {
-    color: #888;
-    text-align: center;
-    padding: 10px 0;
-}
-
-.dictionary-category-group {
-    margin-bottom: 20px;
-}
-
-.dictionary-category-heading {
-    color: var(--crimson);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin: 0 0 10px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 6px;
-}
-
-.dictionary-term-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    background: #151515;
-    border: 1px solid #333;
-    border-left: 3px solid var(--gold-start);
-    border-radius: 6px;
-    padding: 10px 14px;
-    margin-bottom: 8px;
-}
-
-.dictionary-term-name {
-    color: var(--gold-start);
-    font-weight: bold;
-    font-size: 0.95rem;
-}
-
-.dictionary-term-definition {
-    margin: 4px 0 0;
-    color: #bbb;
-    font-size: 0.85rem;
-    line-height: 1.5;
-}
-
-.dictionary-term-remove {
-    flex-shrink: 0;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    font-size: 0.9rem;
-    padding: 2px 4px;
-    color: #888;
-}
-
-.dictionary-term-remove:hover {
-    color: var(--crimson);
-    transform: none;
-    box-shadow: none;
-}
-
-/* Briefly flashed on a term row when arriving here via a Quest's "Related
-   Terms" link (?term=<id>) - see highlightTermFromURL() in dictionary.js -
-   so the term you followed a link for is obvious, not just scrolled to. */
-.dictionary-term-row--highlight {
-    border-color: var(--gold-start);
-    box-shadow: 0 0 14px var(--gold-glow);
-    animation: dictionary-term-highlight-fade 2s ease-out forwards;
-}
-
-@keyframes dictionary-term-highlight-fade {
-    0% { background: #2a2205; }
-    100% { background: #151515; }
-}
-
-/* Shown when the plugin is off (Plugin Hub). */
-.dictionary-not-installed { text-align: center; padding: 30px 20px; }
-.dictionary-install-link { display: inline-block; margin-top: 10px; color: var(--gold-start); font-weight: bold; text-decoration: none; }
-.dictionary-install-link:hover { text-decoration: underline; }
-
-/* #word terms arrive without a definition (Oct 2026). */
-.dictionary-term-define {
-    margin-top: 4px;
-    padding: 3px 10px;
-    border: 1px dashed rgba(255, 204, 0, .55);
-    border-radius: 8px;
-    background: transparent;
-    color: #ffcc00;
-    font: inherit;
-    font-size: .8rem;
-    cursor: pointer;
-}
-.dictionary-term-define-form {
-    display: flex;
-    gap: 6px;
-    margin-top: 6px;
-}
-.dictionary-term-define-input {
-    flex: 1;
-    min-width: 0;
-    padding: 6px 8px;
-    border: 1px solid rgba(255, 204, 0, .4);
-    border-radius: 8px;
-    background: rgba(0, 0, 0, .35);
-    color: inherit;
-    font: inherit;
-    font-size: .85rem;
-}
-.dictionary-term-define-form button {
-    padding: 6px 12px;
-    border: 0;
-    border-radius: 8px;
-    background: #ffcc00;
-    color: #1a1200;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
+/* Dictionary (Oct 2026 redesign - approved demo). */
+.dcv2 { width: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
+.dcv2 .new { margin-top: 12px; width: 100%; padding: 11px; border-radius: 12px; border: 0; background: var(--gold); color: #1a1000; font: 700 .9rem system-ui, sans-serif; cursor: pointer; }
+.dcv2 .term.flash { box-shadow: 0 0 0 2px var(--cr), 0 0 16px rgba(220, 20, 60, .6); }
+.dcv2 .term .def-missing { color: #ff8fa3; }
+.dc-sheet-bg { position: fixed; inset: 0; z-index: 3000; background: rgba(0, 0, 0, .7); display: flex; align-items: flex-end; justify-content: center; }
+.dc-sheet-bg[hidden] { display: none; }
+.dc-sheet-bg .sheet { --gold: #ffcc00; --cr: #dc143c; --ink: #f1ede2; width: min(560px, 100%); box-sizing: border-box; padding: 18px 18px calc(26px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: #120d05; border-top: 2px solid var(--cr); color: var(--ink); font-family: system-ui, sans-serif; }
+.dc-sheet-bg .sheet h1 { margin: 0 0 6px; padding: 0; border: 0; background: none; text-align: left; font: 700 1rem var(--font-main, monospace); letter-spacing: .06em; color: var(--gold); }
+.dc-sheet-bg label { display: block; margin: 12px 0 4px; color: var(--gold); font: 700 .68rem var(--font-main, monospace); letter-spacing: .14em; }
+.dc-sheet-bg input, .dc-sheet-bg textarea { width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .3); background: #0a0703; color: var(--ink); font: 1rem system-ui, sans-serif; }
+.dc-sheet-bg textarea { min-height: 84px; resize: vertical; }
+.dc-sheet-bg .picks { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 2px; }
+.dc-sheet-bg .picks button { flex: none; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(255, 204, 0, .3); background: #1d1810; color: var(--ink); font: 600 .74rem system-ui, sans-serif; cursor: pointer; }
+.dc-sheet-bg .btns { display: flex; gap: 8px; margin-top: 14px; }
+.dc-sheet-bg .btns button { padding: 12px; border-radius: 12px; border: 0; font: 700 .9rem system-ui, sans-serif; cursor: pointer; }
+.dc-sheet-bg .save { flex: 2; background: var(--gold); color: #1a1000; }
+.dc-sheet-bg .del { flex: 1; background: #2a0d12; color: #ff8fa3; }
+.dcv2 { --gold: #ffcc00; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .92); --t: #9aa6b6; --e: #34c77b; --m: #ffcc00; --h: #e3304a; }
+.dcv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
+.dcv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
+.dcv2 .head { display: flex; align-items: center; gap: 12px; }
+.dcv2 .head h1 { margin: 0; font: 700 1.25rem/1.2 var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; flex: 1; }
+.dcv2 .head .meta { color: var(--muted); font-size: .8rem; text-align: right; }
+.dcv2 .head .meta b { display: block; color: var(--gold); font: 700 1.2rem var(--font-main, monospace); }
+.dcv2 .sub { margin: 8px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+.dcv2 h2.sec { display: flex; align-items: center; gap: 10px; margin: 18px 4px 8px; font: 700 .72rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.dcv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
+.dcv2 .hx { --c: var(--gold); position: relative; flex: none; width: 46px; height: 50px; display: grid; place-items: center; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 85%, #fff), var(--c) 50%, color-mix(in srgb, var(--c) 60%, #000)); font-size: 1.25rem; }
+.dcv2 .hx::after { content: ""; position: absolute; inset: 3px; clip-path: inherit; box-shadow: inset 0 0 0 2px rgba(220, 20, 60, .8); }
+.dcv2 .bar { height: 8px; margin-top: 6px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.dcv2 .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b8861e, var(--gold)); box-shadow: 0 0 8px rgba(255, 204, 0, .5); }
+.dcv2 .sheet-bg { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .7); display: flex; align-items: flex-end; justify-content: center; }
+.dcv2 .sheet-bg[hidden] { display: none; }
+.dcv2 .sheet { width: min(560px, 100%); box-sizing: border-box; padding: 18px 18px 26px; border-radius: 22px 22px 0 0; background: #120d05; border-top: 2px solid var(--cr); box-shadow: 0 -20px 40px rgba(0, 0, 0, .6); animation: up .3s cubic-bezier(.2, .9, .3, 1.1); color: var(--ink); font-family: system-ui, sans-serif; }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } }
+.dcv2 .sheet p { color: #cdbb8a; font-size: .88rem; line-height: 1.5; }
+.dcv2 .sheet .go { width: 100%; padding: 12px !important; border-radius: 12px !important; font: 700 .9rem system-ui, sans-serif !important; }
+.dcv2 .sheet label { display: block; margin: 12px 0 4px; color: var(--gold); font: 700 .68rem var(--font-main, monospace); letter-spacing: .14em; }
+.dcv2 .sheet input, .dcv2 .sheet textarea { width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .3); background: #0a0703; color: var(--ink); font: 1rem system-ui, sans-serif; }
+.dcv2 .sheet textarea { min-height: 84px; resize: vertical; }
+.dcv2 .search { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 0 12px; border-radius: 12px; background: #0a0703; border: 1px solid rgba(255, 204, 0, .25); }
+.dcv2 .search input { flex: 1; padding: 11px 0; border: 0; background: none; color: var(--ink); font: 1rem system-ui, sans-serif; outline: none; }
+.dcv2 .chips { display: flex; gap: 6px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; }
+.dcv2 .chips::-webkit-scrollbar { display: none; }
+.dcv2 .chip { flex: none; padding: 6px 12px !important; border-radius: 999px !important; border: 1px solid rgba(255, 204, 0, .3) !important; background: #1d1810 !important; color: var(--ink) !important; font: 600 .76rem system-ui, sans-serif !important; box-shadow: none !important; transform: none !important; }
+.dcv2 .chip[aria-pressed="true"] { background: var(--gold) !important; color: #1a1000 !important; box-shadow: 0 0 0 2px var(--cr) !important; }
+.dcv2 .chip span { opacity: .6; margin-left: 4px; }
+.dcv2 .term { display: flex; gap: 12px; padding: 12px; margin-bottom: 8px; border-radius: 14px; background: rgba(14, 10, 4, .92); border: 1px solid rgba(255, 204, 0, .12); cursor: pointer; text-align: left; width: 100%; box-sizing: border-box; color: inherit; }
+.dcv2 .term .hx { width: 40px; height: 44px; font: 800 .82rem var(--font-main, monospace); color: #2a1a00; }
+.dcv2 .term .body { flex: 1; min-width: 0; }
+.dcv2 .term .row1 { display: flex; align-items: center; gap: 8px; }
+.dcv2 .term b { font-size: .95rem; }
+.dcv2 .term .cat { padding: 2px 8px; border-radius: 999px; background: rgba(220, 20, 60, .18); color: #ff8fa3; font: 700 .62rem system-ui, sans-serif; letter-spacing: .06em; }
+.dcv2 .term p { margin: 4px 0 0; color: #cdbb8a; font-size: .82rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dcv2 .term small { display: block; margin-top: 4px; color: #7d725b; font-size: .7rem; }
+.dcv2 .empty { padding: 26px 10px; text-align: center; color: var(--muted); font-size: .85rem; }
+.dcv2 [hidden] { display: none !important; }
+.dictionary-not-installed { max-width: 560px; margin: 20px auto; padding: 20px; text-align: center; }
+.dictionary-install-link { color: #ffcc00; }

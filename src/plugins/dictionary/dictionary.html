@@ -21,35 +21,23 @@
 </head>
 <body>
 
-    <main class="dictionary-container">
-        <div class="panel page-header-panel">
-            <h2 class="page-title">📖 <span class="gold-gradient-text">DICTIONARY</span></h2>
-            <p class="page-subtitle">Terms you define here feed the Skill Mastery matrix on your Dashboard - matched against your Dailies' tags and against any completed Quest whose title, objective, or task mentions the term by name. Tip: type <b>#word</b> in any task to add it here.</p>
-        </div>
-
-        <div id="dictionary-not-installed" class="panel dictionary-not-installed" hidden>
-            <p>The Dictionary plugin isn't installed.</p>
-            <a href="../../features/plugin-hub/plugin-hub.html" class="dictionary-install-link">🧩 Go to Plugin Hub →</a>
-        </div>
-
-        <section class="panel dictionary-panel">
-            <h3>➕ New Term</h3>
-            <label class="form-label" for="term-name-input">Term</label>
-            <input type="text" id="term-name-input" class="dictionary-text-input" placeholder="e.g. Flexbox">
-
-            <label class="form-label" for="term-category-input">Category</label>
-            <input type="text" id="term-category-input" class="dictionary-text-input" list="dictionary-category-list" placeholder="e.g. CSS">
-            <datalist id="dictionary-category-list"></datalist>
-
-            <label class="form-label" for="term-definition-input">Definition</label>
-            <textarea id="term-definition-input" class="dictionary-textarea" placeholder="What does it mean?"></textarea>
-
-            <button type="button" id="add-term-btn" class="dictionary-add-btn">💾 Add Term</button>
-
-            <h3 class="dictionary-list-heading">📚 Your Terms</h3>
-            <div class="dictionary-list" id="dictionary-list"></div>
+    <main class="dcv2" id="dc-main">
+        <section class="card top">
+            <div class="head"><h1>📖 DICTIONARY</h1><div class="meta"><b id="dc-count"></b>terms</div></div>
+            <p class="sub">Your own glossary. Each term's category is a skill: any task that mentions the term counts toward it. Tip: type <b>#word</b> in any task to add it here.</p>
+            <label class="search">🔍<input id="dc-q" type="search" placeholder="Search terms" aria-label="Search terms"></label>
+            <div class="chips" id="dc-chips"></div>
+            <button type="button" class="new" id="dc-new">＋ New term</button>
         </section>
+        <div id="dc-list"></div>
     </main>
+
+    <div id="dictionary-not-installed" class="panel dictionary-not-installed" hidden>
+        <p>The Dictionary plugin isn't installed.</p>
+        <a href="../../features/plugin-hub/plugin-hub.html" class="dictionary-install-link">🧩 Go to Plugin Hub →</a>
+    </div>
+
+    <div class="dc-sheet-bg" id="dc-sheet" hidden><div class="sheet" id="dc-sheet-body" role="dialog" aria-modal="true"></div></div>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>

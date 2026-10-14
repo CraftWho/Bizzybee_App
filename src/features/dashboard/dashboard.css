@@ -1,39 +1,113 @@
-/* --- ISOLATED DASHBOARD STYLES --- */
-/* Every section on this page is a .panel (shared global) for visual consistency
-   with Profile - do not mix in .quest-card/.quest-container here. */
+/* Dashboard (Oct 2026 redesign - approved "Dashboard v2" demo). */
+.dbv2 { width: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
 
-.dashboard-container {
-    width: 100%;
-    max-width: 850px;
-    margin: 20px auto 60px;
-    padding: 0 15px;
-    box-sizing: border-box;
-}
+.dbv2 { --gold: #ffcc00; --bar: #d4a017; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .92); }
+.dbv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
+.dbv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
+.dbv2 .head { display: flex; align-items: center; gap: 12px; }
+.dbv2 .head h1 { margin: 0; font: 700 1.25rem/1.2 var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; flex: 1; }
+.dbv2 .sub { margin: 8px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+.dbv2 h2.sec { display: flex; align-items: center; gap: 10px; margin: 18px 4px 8px; font: 700 .72rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.dbv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
+.dbv2 h2.sec a { color: var(--muted); font: 600 .7rem system-ui, sans-serif; letter-spacing: 0; text-transform: none; text-decoration: none; order: 3; }
+.dbv2 .hx { --c: var(--gold); position: relative; flex: none; width: 44px; height: 48px; display: grid; place-items: center; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 85%, #fff), var(--c) 50%, color-mix(in srgb, var(--c) 60%, #000)); font: 800 .8rem var(--font-main, monospace); color: #2a1a00; }
+.dbv2 .hx::after { content: ""; position: absolute; inset: 3px; clip-path: inherit; box-shadow: inset 0 0 0 2px rgba(220, 20, 60, .8); }
 
-.dashboard-title {
-    text-align: center;
-    margin-bottom: 25px;
-}
+/* stat tiles */
+.dbv2 .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.dbv2 .tile { padding: 14px; border-radius: 16px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .14); }
+.dbv2 .tile small { display: block; color: var(--muted); font: 600 .66rem var(--font-main, monospace); letter-spacing: .14em; text-transform: uppercase; }
+.dbv2 .tile b { display: block; margin-top: 6px; font: 700 1.6rem/1 var(--font-main, monospace); color: var(--ink); }
+.dbv2 .tile span { display: block; margin-top: 4px; color: var(--muted); font-size: .72rem; }
+.dbv2 .tile.hero b { color: var(--gold); }
+.dbv2 .bar { height: 8px; margin-top: 8px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.dbv2 .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b8861e, var(--gold)); }
 
-.panel--stacked {
-    margin-top: 25px;
-}
+/* chart */
+.dbv2 .chart-head { display: flex; justify-content: space-between; align-items: baseline; }
+.dbv2 .chart-head b { font: 700 1.4rem var(--font-main, monospace); color: var(--ink); }
+.dbv2 .chart-head small { color: var(--muted); font-size: .74rem; }
+.dbv2 .chart { position: relative; margin-top: 10px; }
+.dbv2 .chart svg { display: block; width: 100%; height: 170px; overflow: visible; }
+.dbv2 .chart .grid line { stroke: rgba(255, 255, 255, .07); stroke-width: 1; }
+.dbv2 .chart .base { stroke: rgba(255, 204, 0, .35); stroke-width: 1; }
+.dbv2 .chart rect.b { fill: var(--bar); }
+.dbv2 .chart rect.b.today { fill: var(--gold); }
+.dbv2 .chart rect.hit { fill: transparent; cursor: pointer; }
+.dbv2 .chart text { fill: var(--muted); font: 600 10px system-ui, sans-serif; }
+.dbv2 .chart text.lab { fill: var(--ink); font-weight: 700; }
+.dbv2 .tip { position: absolute; pointer-events: none; transform: translate(-50%, -100%); padding: 6px 9px; border-radius: 10px; background: #1d1810; border: 1px solid rgba(255, 204, 0, .4); color: var(--ink); font: 600 .74rem system-ui, sans-serif; white-space: nowrap; box-shadow: 0 6px 16px rgba(0, 0, 0, .6); }
+.dbv2 .tip[hidden] { display: none; }
+.dbv2 .sr-table { margin-top: 8px; font-size: .74rem; color: var(--muted); }
+.dbv2 .sr-table summary { cursor: pointer; }
+.dbv2 .sr-table table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.dbv2 .sr-table td { padding: 3px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
 
-.progress-header h3 {
-    border-bottom: none;
-    margin-bottom: 0;
-}
+/* today ring + rows */
+.dbv2 .today { display: flex; gap: 16px; align-items: center; }
+.dbv2 .ring { flex: none; width: 92px; height: 92px; }
+.dbv2 .ring circle { fill: none; stroke-width: 9; }
+.dbv2 .today ul { list-style: none; margin: 0; padding: 0; flex: 1; font-size: .86rem; }
+.dbv2 .today li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.dbv2 .today li b { color: var(--gold); }
+.dbv2 .row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid rgba(255, 204, 0, .08); }
+.dbv2 .row:first-child { border-top: 0; }
+.dbv2 .row .mid { flex: 1; min-width: 0; }
+.dbv2 .row .mid b { font-size: .9rem; }
+.dbv2 .row .mid small { display: block; color: var(--muted); font-size: .72rem; }
+.dbv2 .row .val { font: 700 .95rem var(--font-main, monospace); color: var(--gold); }
 
-.metric-row {
-    display: flex;
-    justify-content: space-between;
-}
+/* profile */
+.dbv2 .prof { display: flex; gap: 14px; align-items: center; }
+.dbv2 .avatar { position: relative; flex: none; width: 96px; height: 106px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #fff0a8, var(--gold) 45%, #a37800); padding: 4px; box-sizing: border-box; }
+.dbv2 .avatar img { width: 100%; height: 100%; object-fit: cover; clip-path: inherit; display: block; background: #120d05; }
+.dbv2 .prof .who { flex: 1; min-width: 0; }
+.dbv2 .prof .who .hi { color: var(--muted); font-size: .8rem; }
+.dbv2 .prof .who b { display: block; font: 700 1.7rem/1.1 var(--font-main, monospace); color: var(--gold); }
+.dbv2 .prof .who .title { color: #bfae86; font-size: .78rem; letter-spacing: .04em; }
+.dbv2 .lv { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.dbv2 .lv .chip { padding: 3px 9px; border-radius: 8px; background: var(--gold); color: #1a1000; font: 800 .72rem var(--font-main, monospace); }
+.dbv2 .lv .bar { flex: 1; margin: 0; }
+.dbv2 .lv small { color: var(--muted); font-size: .7rem; }
+.dbv2 .royal { display: flex; gap: 12px; align-items: center; text-decoration: none; color: inherit; }
+.dbv2 .royal .art { flex: none; width: 92px; aspect-ratio: 1; }
+.dbv2 .royal b { font-size: 1rem; }
+.dbv2 .royal small { display: block; color: var(--muted); font-size: .75rem; }
+.dbv2 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dbv2 .schip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(255, 204, 0, .08); border: 1px solid rgba(255, 204, 0, .25); font-size: .78rem; }
+.dbv2 .link-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255, 204, 0, .08); color: var(--ink); text-decoration: none; font-size: .9rem; }
+.dbv2 .link-row:first-child { border-top: 0; }
+.dbv2 .link-row span { flex: 1; }
+.dbv2 .link-row i { color: var(--muted); font-style: normal; }
+.dbv2 [hidden] { display: none !important; }
 
-.status-optimal {
-    color: #0f0;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
-}
-
-/* Skill Mastery's bars/badges/shake/Level Up button/celebration modal all
-   now come from the shared src/core/level-bar/level-bar.css - nothing
-   skill-specific left to style here. */
+/* skill mastery (10,000 hours) */
+.dbv2 .m-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 4px; }
+.dbv2 .m-sum div { text-align: center; padding: 8px 4px; border-radius: 12px; background: rgba(255, 204, 0, .05); border: 1px solid rgba(255, 204, 0, .12); }
+.dbv2 .m-sum b { display: block; font: 700 1.15rem var(--font-main, monospace); color: var(--gold); }
+.dbv2 .m-sum small { color: var(--muted); font-size: .66rem; letter-spacing: .06em; }
+.dbv2 .sk { padding: 12px 0; border-top: 1px solid rgba(255, 204, 0, .08); }
+.dbv2 .sk:first-of-type { border-top: 0; }
+.dbv2 .sk-top { display: flex; align-items: center; gap: 12px; }
+.dbv2 .sk-top .mid { flex: 1; min-width: 0; }
+.dbv2 .sk-top .mid b { font-size: .95rem; }
+.dbv2 .stage { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font: 700 .62rem var(--font-main, monospace); letter-spacing: .08em; text-transform: uppercase; color: #1a1000; background: var(--sc, var(--gold)); vertical-align: 2px; }
+.dbv2 .sk-top .hrs { text-align: right; }
+.dbv2 .sk-top .hrs b { display: block; font: 700 1.05rem var(--font-main, monospace); color: var(--gold); }
+.dbv2 .sk-top .hrs small { color: var(--muted); font-size: .68rem; }
+.dbv2 .sk .bar { height: 10px; margin-top: 10px; }
+.dbv2 .sk .bar i { background: linear-gradient(90deg, #8b0a1e, var(--cr) 35%, #b8861e 70%, var(--gold)); box-shadow: 0 0 8px rgba(255, 204, 0, .35); }
+.dbv2 .sk .cap { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; color: var(--muted); font-size: .7rem; }
+.dbv2 .road { position: relative; height: 18px; margin-top: 8px; }
+.dbv2 .road .line { position: absolute; left: 0; right: 0; top: 8px; height: 2px; background: rgba(255, 255, 255, .08); border-radius: 2px; }
+.dbv2 .road .fill { position: absolute; left: 0; top: 8px; height: 2px; background: var(--gold); border-radius: 2px; }
+.dbv2 .road .tick { position: absolute; top: 4px; width: 2px; height: 10px; background: rgba(255, 255, 255, .18); transform: translateX(-1px); }
+.dbv2 .road .tick.on { background: var(--gold); }
+.dbv2 .road .me { position: absolute; top: 2px; width: 12px; height: 14px; transform: translateX(-6px); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.dbv2 .road-lab { display: flex; justify-content: space-between; color: #6f6550; font: 600 .58rem var(--font-main, monospace); letter-spacing: .04em; }
+.dbv2 .how { margin-top: 10px; font-size: .74rem; color: var(--muted); }
+.dbv2 .how summary { cursor: pointer; color: #cdbb8a; }
+.dbv2 .how table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.dbv2 .how td { padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.dbv2 .how td:last-child { text-align: right; color: var(--ink); }
+.dbv2 .new { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: var(--cr); color: #fff; font: 700 .58rem system-ui, sans-serif; letter-spacing: .06em; vertical-align: 2px; }
