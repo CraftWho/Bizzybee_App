@@ -1,218 +1,72 @@
-.skills-container {
-    width: 100%;
-    max-width: 1000px;
-    margin: 20px auto 60px;
-    padding: 0 25px;
-    box-sizing: border-box;
-    text-align: center;
-}
+/* Skills page (Oct 2026 redesign). */
+.sk-page { --gold: #ffcc00; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .92);
+    width: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
+.sk-card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
+.sk-top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
+.sk-head { display: flex; align-items: center; gap: 12px; }
+.sk-head h1 { margin: 0; flex: 1; padding: 0; border: 0; background: none; text-align: left; font: 700 1.25rem/1.2 var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); }
+.sk-meta { color: var(--muted); font-size: .8rem; text-align: right; }
+.sk-meta b { display: block; color: var(--gold); font: 700 1.2rem var(--font-main, monospace); }
+.sk-sub { margin: 8px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+h2.sk-sec { display: flex; align-items: center; gap: 10px; margin: 18px 4px 8px; padding: 0; border: 0; background: none; text-align: left; font: 700 .72rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
+h2.sk-sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
+.sk-from { margin: 0 4px; color: #7d725b; font-size: .72rem; line-height: 1.4; }
 
-/* #skill-tree is a .panel (see skills.html) so the whole diagram - every
-   node label included - sits on a solid backdrop instead of directly on
-   the page's busy hex-grid background (see global.css's .page-header-panel
-   comment for why: text floating on that pattern with nothing behind it
-   is hard to read no matter how good its own text-shadow is). Still needs
-   its own overflow-x for when the tree is wider than the panel on a small
-   screen - .panel itself doesn't clip/scroll on its own. */
-#skill-tree {
-    overflow-x: auto;
-}
+.sk-hx { --c: var(--gold); position: relative; flex: none; width: 46px; height: 50px; display: grid; place-items: center; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 85%, #fff), var(--c) 50%, color-mix(in srgb, var(--c) 60%, #000)); font-size: 1.25rem; }
+.sk-hx::after { content: ""; position: absolute; inset: 3px; clip-path: inherit; box-shadow: inset 0 0 0 2px rgba(220, 20, 60, .8); }
+.sk-hx.progress { --c: #3a2a10; }
+.sk-hx.locked { --c: #241c10; filter: grayscale(1); opacity: .55; }
+.sk-hx.locked::after { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); }
+.sk-hx.lv { width: 44px; height: 48px; font: 800 .85rem var(--font-main, monospace); color: #1a1000; }
 
-/* === Top-down skill tree wrapper === */
-.tree {
-    text-align: center;
-    padding: 0;
-    margin: 40px auto 20px;
-    list-style: none;
-}
+.sk-root, .sk-node { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; padding: 6px 0; border: 0; background: none; box-shadow: none; transform: none; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+.sk-root { padding: 4px 4px 12px; }
+.sk-root .sk-hx { width: 58px; height: 64px; font-size: 1.6rem; }
+.sk-root b, .sk-txt b { display: block; color: var(--ink); }
+.sk-root small, .sk-txt small { color: var(--muted); font-size: .74rem; }
+.sk-branch { margin: 0 0 10px; padding: 10px 12px; border-radius: 14px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 204, 0, .12); }
+.sk-node .sk-hx { width: 40px; height: 44px; font-size: 1.05rem; }
+.sk-txt { flex: 1; min-width: 0; }
+.sk-txt b { font-size: .9rem; }
+.sk-mini { display: block; height: 4px; margin-top: 5px; border-radius: 999px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.sk-mini i { display: block; height: 100%; background: var(--gold); }
+.sk-pill { flex: none; padding: 3px 9px; border-radius: 999px; font: 700 .6rem system-ui, sans-serif; letter-spacing: .06em; }
+.sk-pill.mastered { background: rgba(255, 204, 0, .15); color: var(--gold); }
+.sk-pill.progress { background: rgba(220, 20, 60, .2); color: #ff8fa3; }
+.sk-pill.locked { background: rgba(255, 255, 255, .06); color: #7d725b; }
+.sk-node[data-depth="2"] { padding-left: 26px; }
+.sk-node[data-depth="3"] { padding-left: 52px; }
+.sk-node[data-depth="2"]::before, .sk-node[data-depth="3"]::before { content: ""; position: absolute; top: -6px; bottom: 50%; width: 14px; border-left: 2px solid rgba(255, 204, 0, .35); border-bottom: 2px solid rgba(255, 204, 0, .35); border-bottom-left-radius: 8px; }
+.sk-node[data-depth="2"]::before { left: 19px; }
+.sk-node[data-depth="3"]::before { left: 45px; }
 
-.tree ul {
-    padding-top: 20px;
-    position: relative;
-    transition: all 0.5s;
-    display: flex;
-    justify-content: center;
-    padding-left: 0;
-    margin: 0;
-}
+.sk-mrow { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255, 204, 0, .08); }
+.sk-mrow:first-child { border-top: 0; }
+.sk-mid { flex: 1; min-width: 0; }
+.sk-mtop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sk-mtop b { font-size: .92rem; }
+.sk-stage { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--sc); color: #1a1000; font: 700 .58rem var(--font-main, monospace); letter-spacing: .06em; text-transform: uppercase; vertical-align: 2px; }
+.sk-h { color: var(--gold); font: 700 .9rem var(--font-main, monospace); }
+.sk-mid small { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; }
+.sk-bar { height: 8px; margin-top: 6px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.sk-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8b0a1e, var(--cr) 35%, #b8861e 70%, var(--gold)); }
+.sk-lvl { flex: none; padding: 8px 10px; border-radius: 10px; border: 0; background: var(--cr); color: #fff; font: 700 .74rem system-ui, sans-serif; box-shadow: 0 0 10px rgba(220, 20, 60, .5); transform: none; cursor: pointer; animation: sk-pulse 1.4s ease-in-out infinite; }
+@keyframes sk-pulse { 50% { box-shadow: 0 0 18px rgba(220, 20, 60, .9); } }
+.sk-empty { margin: 0; color: var(--muted); font-size: .85rem; text-align: center; padding: 14px 4px; }
 
-.tree li {
-    text-align: center;
-    list-style-type: none;
-    position: relative;
-    padding: 20px 10px 0 10px;
-    transition: all 0.5s;
-    flex: 1;
-}
-
-/* === THE NODES (orbs) === */
-.skill-node {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 3px solid var(--gold-start);
-    background-color: var(--obsidian);
-    background-image: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    padding: 0;
-    margin: 0 auto;
-    box-shadow: 0 0 15px var(--gold-glow);
-    transition: all 0.2s ease;
-    z-index: 2;
-    position: relative;
-}
-
-.skill-node:hover {
-    transform: scale(1.1);
-    background-color: #8b0000;
-    box-shadow: 0 0 25px rgba(255, 204, 0, 0.8);
-    cursor: pointer;
-}
-
-.skill-node.locked {
-    border-color: #555;
-    filter: grayscale(100%);
-    box-shadow: none;
-    opacity: 0.6;
-}
-
-.skill-node.root-node {
-    width: 80px;
-    height: 80px;
-    border-color: var(--crimson);
-    font-size: 2rem;
-}
-
-.node-label {
-    margin-top: 8px;
-    font-size: 0.85rem;
-    color: var(--gold-start);
-    font-weight: bold;
-    text-shadow: 1px 1px 2px #000;
-    letter-spacing: 0.5px;
-}
-
-/* === CONNECTOR LINES ===
-   Every li owns two pseudo-elements: ::before draws its LEFT half of the
-   horizontal bar above it (toward the previous sibling), ::after draws its
-   RIGHT half of that same bar PLUS the vertical stem dropping into its own
-   node. first-child has no left neighbor (its ::before is zeroed) and
-   last-child has no right neighbor (its ::after loses only the horizontal
-   half, keeping its own vertical stem). */
-.tree ul::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    border-left: 2px solid var(--gold-start);
-    width: 0;
-    height: 20px;
-    z-index: 1;
-}
-
-.tree li::before,
-.tree li::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 50%;
-    width: 50%;
-    height: 20px;
-    border-top: 2px solid var(--gold-start);
-    z-index: 1;
-}
-
-.tree li::after {
-    right: auto;
-    left: 50%;
-    border-left: 2px solid var(--gold-start);
-}
-
-.tree li:first-child::before {
-    border: 0 none;
-}
-
-.tree li:last-child::after {
-    border-top: none;
-}
-
-.tree > ul::before {
-    display: none;
-}
-
-.tree > ul > li::before,
-.tree > ul > li::after {
-    border: 0 none;
-}
-
-/* === HOVER HIGHLIGHT ===
-   The goal is: hovering a node lights the path FROM THE ROOT DOWN TO that
-   node, and stops exactly there - never past a sibling, never past the
-   node itself into its own children. Two rules, both self/ancestor-only:
-
-   1. `.tree li:hover::before/::after` - :hover naturally applies not just
-      to the exact li under the cursor but to every ANCESTOR li too (an
-      ancestor's box contains the descendant, so the pointer is still
-      "over" it). So this one rule alone lights every li ON THE PATH from
-      the hovered node up to the root: the hovered node's own half(s) +
-      stem, AND each ancestor's own half + stem along the way. Edge nodes
-      (first/last child) only have one live pseudo-element, so their half
-      never bleeds into a sibling's - that half belongs to a different
-      element this selector never touches.
-
-   2. `.tree ul:has(li:hover)::before` - the vertical "drop" lines living
-      on the <ul> wrappers (not the <li>s) aren't reached by rule 1 at all,
-      so they need their own rule. :has() matches at any depth, so every
-      ancestor ul's drop line lights too, completing the spine all the way
-      to the root regardless of how deep the hovered node is.
-
-   Earlier version had a THIRD rule here (`li:hover > ul::before`) meant to
-   also light the line going down from a hovered node into ITS OWN
-   children, as a bonus "there's more below" cue. Removed - it made the
-   highlight visibly overshoot past the hovered node before stopping (e.g.
-   hovering Modular Repo Scaffolding relit the segment leading toward
-   GitHub Pages Deployment below it), which read as broken rather than
-   helpful. The path should terminate exactly at the node you're pointing
-   at. */
-.tree li:hover::before,
-.tree li:hover::after {
-    border-color: var(--crimson);
-}
-
-.tree ul:has(li:hover)::before {
-    border-left-color: var(--crimson);
-}
-
-/* === SKILL INFO PANEL === */
-#skill-info {
-    text-align: left;
-    max-width: 640px;
-    margin: 0 auto;
-}
-
-#skill-info h3 {
-    text-align: center;
-}
-
-#skill-description {
-    color: #ccc;
-    line-height: 1.6;
-}
-
-#skill-action {
-    margin-top: 14px;
-    text-align: center;
-}
-
-.skill-unlock-btn {
-    background: linear-gradient(to bottom, var(--gold-start), var(--gold-end));
-}
-
-@media (max-width: 520px) {
-    .skill-node { width: 46px; height: 46px; font-size: 1.15rem; }
-    .skill-node.root-node { width: 64px; height: 64px; font-size: 1.6rem; }
-    .node-label { font-size: 0.7rem; }
-}
+.sk-sheet-bg { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .7); }
+.sk-sheet-bg[hidden] { display: none; }
+.sk-sheet { width: min(560px, 100%); box-sizing: border-box; padding: 18px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: #120d05; border-top: 2px solid var(--cr, #dc143c); color: #f1ede2; font-family: system-ui, sans-serif; animation: sk-up .25s ease-out; }
+@keyframes sk-up { from { transform: translateY(40px); opacity: 0; } }
+.sk-sheet .sk-head h1 { font-size: 1rem; letter-spacing: .06em; }
+.sk-sheet p { color: #cdbb8a; font-size: .88rem; line-height: 1.5; }
+.sk-sheet .sk-ok { color: #ffcc00; }
+.sk-go { width: 100%; margin-top: 8px; padding: 12px; border-radius: 12px; border: 0; background: #ffcc00; color: #1a1000; font: 700 .92rem system-ui, sans-serif; cursor: pointer; }
+.sk-reward { text-align: center; }
+.sk-reward h1 { margin: 0; padding: 0; border: 0; background: none; font: 700 1.05rem system-ui, sans-serif; color: #f1ede2; }
+.sk-burst { width: 96px; height: 106px; margin: 0 auto 10px; display: grid; place-items: center; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: radial-gradient(circle, #fff3b0, #ffcc00 55%, #9a6b00); font: 800 1.7rem var(--font-main, monospace); color: #1a1000; animation: sk-pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes sk-pop { from { transform: scale(.3) rotate(-30deg); } }
+.sk-loot { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0 6px; }
+.sk-loot div { padding: 8px 12px; border-radius: 12px; background: rgba(255, 204, 0, .08); border: 1px solid rgba(255, 204, 0, .25); font-size: .78rem; }
+.sk-loot b { display: block; font-size: 1.3rem; }
+@media (prefers-reduced-motion: reduce) { .sk-lvl, .sk-burst, .sk-sheet { animation: none; } }
