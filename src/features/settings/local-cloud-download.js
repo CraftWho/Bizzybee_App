@@ -7,12 +7,36 @@ const LocalCloudDownload = {
         try { await stream.write(content); await stream.close(); }
         catch (error) { try { await stream.abort(); } catch {} throw error; }
     },
-    async saveToProject(directory, cloudSave) {
-        const manifest = JSON.parse(await (await (await directory.getFileHandle('package.json')).getFile()).text());
-        if (manifest.name !== 'bizzybee-app') throw new Error('Choose the Bizzybee_App project folder, not Downloads or src.');
+    // Oct 2026: the cloud save may arrive as a JSON string or an object.
+    readCloudState(cloudSave) {
         if (!cloudSave?.data) throw new Error('No cloud save exists yet. Nothing was changed.');
-        const state = JSON.parse(cloudSave.data);
+        const state = typeof cloudSave.data === 'string' ? JSON.parse(cloudSave.data) : cloudSave.data;
         Vault.validateFullState(state);
+        return state;
+    },
+    async isProjectRoot(directory) {
+        try {
+            const manifest = JSON.parse(await (await (await directory.getFileHandle('package.json')).getFile()).text());
+            return manifest.name === 'bizzybee-app';
+        } catch { return false; }
+    },
+    // Writes bizzybee-save-<name>-<date>.json and keeps only the newest 3.
+    async writeSaveFile(folder, state) {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+        const who = String(state.displayName || (state.onboarding || {}).name || 'save').replace(/[^\w-]+/g, '').slice(0, 20) || 'save';
+        const name = `bizzybee-save-${who}-${stamp}.json`;
+        await this.writeFile(folder, name, JSON.stringify(state, null, 2));
+        const names = [];
+        for await (const [n, entry] of folder.entries()) if (entry.kind === 'file' && /^bizzybee-save-.*\.json$/.test(n)) names.push(n);
+        names.sort((a, b) => b.slice(-21).localeCompare(a.slice(-21)));
+        for (const old of names.slice(3)) { try { await folder.removeEntry(old); } catch { /* leave it */ } }
+        return name;
+    },
+    async saveToProject(directory, cloudSave) {
+        if (!await this.isProjectRoot(directory)) throw new Error('Choose the Bizzybee_App project folder, not Downloads or src.');
+        const state = this.readCloudState(cloudSave);
         const core = await (await directory.getDirectoryHandle('src')).getDirectoryHandle('core');
         const id = crypto.randomUUID();
         let previous;
@@ -23,9 +47,8 @@ const LocalCloudDownload = {
             const backups = await core.getDirectoryHandle('local-save-backups', { create: true });
             await this.writeFile(backups, `data.personal-${Date.now()}-${id}.json`, previous);
         }
-        state.blueprintSource = 'personal';
-        state._localCloudTransfer = { id, cloudUpdatedAt: cloudSave.updatedAt || null, downloadedAt: new Date().toISOString() };
-        await this.writeFile(core, 'data.personal.json', JSON.stringify(state, null, 2));
+        const local = { ...state, blueprintSource: 'personal', _localCloudTransfer: { id, cloudUpdatedAt: cloudSave.updatedAt || null, downloadedAt: new Date().toISOString() } };
+        await this.writeFile(core, 'data.personal.json', JSON.stringify(local, null, 2));
         return { backedUp: previous !== undefined };
     },
     async download() {
@@ -35,19 +58,37 @@ const LocalCloudDownload = {
         }
         // Must happen directly in the click gesture, before fetching cloud data.
         const directory = await window.showDirectoryPicker({ id: 'bizzybee-local-project', mode: 'readwrite' });
+        if (directory.requestPermission && await directory.requestPermission({ mode: 'readwrite' }) !== 'granted') {
+            throw new Error('Chrome did not get permission to save in that folder. Nothing was changed.');
+        }
         status.textContent = 'Downloading the latest cloud save…';
         const cloudSave = await cloudEngine().request('load-state');
-        const result = await this.saveToProject(directory, cloudSave);
-        status.textContent = `Saved to src/core/data.personal.json.${result.backedUp ? ' The previous file was backed up.' : ''} Reload your localhost app using your local dev login to load this progress. Your local edits stay local.`;
+        const state = this.readCloudState(cloudSave);
+        // Bizzybee_App folder: install for localhost + keep a copy in save-files.
+        // Any other folder (e.g. save-files itself): just drop the save file there.
+        if (await this.isProjectRoot(directory)) {
+            const result = await this.saveToProject(directory, cloudSave);
+            const saves = await directory.getDirectoryHandle('save-files', { create: true });
+            const file = await this.writeSaveFile(saves, state);
+            return `Saved. src/core/data.personal.json updated${result.backedUp ? ' (old file backed up)' : ''}, and save-files/${file} added. Reload your localhost app to load it.`;
+        }
+        const file = await this.writeSaveFile(directory, state);
+        return `Saved ${file} in "${directory.name}". To also update your offline profile, pick the Bizzybee_App folder instead.`;
     },
     init() {
         const button = document.getElementById('cloud-local-download-btn');
         button.onclick = async () => {
             button.disabled = true;
-            try { await this.download(); }
+            const status = document.getElementById('cloud-local-download-status');
+            const tell = (message, tone) => {
+                status.textContent = message;
+                status.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                if (typeof Toast !== 'undefined') Toast.show(message, tone);
+            };
+            try { tell(await this.download(), 'positive'); }
             catch (error) {
-                const message = error.name === 'AbortError' ? 'Download cancelled. No new save was installed.' : error.message;
-                document.getElementById('cloud-local-download-status').textContent = message;
+                console.error('[LocalCloudDownload]', error);
+                tell(error.name === 'AbortError' ? 'Download cancelled. Nothing was saved.' : `Download failed: ${error.message || error}`, 'negative');
             } finally { button.disabled = false; }
         };
     }
