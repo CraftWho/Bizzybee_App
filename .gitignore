@@ -40,3 +40,8 @@ node_modules/
 # Local dev tools (Hacker login + 🛠 panel). Craft's computer only - never
 # commit or deploy. app.js only loads it on localhost.
 src/local/
+
+# Your local save files (last 3 saves, full progress + photo) - never commit.
+save-files/
+# Codebase dump tool output.
+repomix-output.xml

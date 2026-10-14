@@ -237,7 +237,9 @@ function initHistoryImport() {
             if (!confirm(`Import from ${pack.source || 'this file'}?\n\n${list.join('\n')}\n\nNothing is replaced. A device backup is made first.`)) return;
             if (typeof Vault.createLocalBackup === 'function') { try { Vault.createLocalBackup('before history import'); } catch (e) { /* best effort */ } }
             Vault.importHistoryPack(pack);
-            status.textContent = `✅ Imported: ${list.join(', ')}.`;
+            // Say where it went: the cloud account (auto upload) or this device only.
+            const cloud = localStorage.getItem('bizzybee_session') === 'identity' && localStorage.getItem('bizzybee_auto_sync') !== 'false';
+            status.textContent = `✅ Imported: ${list.join(', ')}. ${cloud ? 'Uploading to your cloud account now.' : 'Saved on THIS DEVICE ONLY - you are not signed in to the cloud here. Sign in on the live site and import again to put it in your cloud save.'}`;
             Toast.show('📥 History imported.', 'positive');
         } catch (error) {
             status.textContent = error.message || 'Could not read that file.';
