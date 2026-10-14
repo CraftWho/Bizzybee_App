@@ -456,7 +456,10 @@ const WAGGLE_NAV_PAGES = [
     { page: 'colony', icon: '🏰', label: 'Hive Mind' },
     { page: 'gacha', icon: '🌼', label: 'Pollination Chamber' },
     { page: 'inventory', icon: '🎒', label: 'Inventory' },
-    { page: 'keeperdex', icon: '📘', label: 'KeeperDex' }
+    { page: 'keeperdex', icon: '📘', label: 'KeeperDex' },
+    // Account links (Oct 2026): moved off the Profile page.
+    { page: 'account-info', icon: '🔐', label: 'Account Info' },
+    { page: 'settings', icon: '⚙️', label: 'Settings' }
 ];
 
 function baseWaggleActions() {

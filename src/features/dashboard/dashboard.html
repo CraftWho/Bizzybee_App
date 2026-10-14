@@ -23,76 +23,28 @@
 </head>
 <body>
 
-    <main class="dashboard-container">
-        <section class="panel">
-            <div class="progress-header">
-                <h3>📊 CORE SYSTEM STATS</h3>
-                <span class="xp-text" id="dash-active-arc">ACTIVE ARC: FD-ARC</span>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-label">TOTAL XP</span>
-                    <span class="stat-value text-gold" id="dash-total-xp">—</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">CURRENT LEVEL</span>
-                    <span class="stat-value" id="dash-level">—</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">SYSTEM HEALTH</span>
-                    <span class="stat-value status-optimal">OPTIMAL</span>
-                </div>
-            </div>
+    <main class="dbv2">
+        <section class="card top">
+            <div class="head"><h1>📊 DASHBOARD</h1></div>
+            <p class="sub">How your hive is doing: XP, streaks, today's progress and how far each skill is on the road to mastery.</p>
+        </section>
+        <div class="tiles" id="db-tiles"></div>
+
+        <h2 class="sec">Skill mastery · 10,000 hours <a href="../skills/skills.html">Skills →</a></h2>
+        <section class="card" id="db-mastery"></section>
+
+        <h2 class="sec">XP · last 14 days</h2>
+        <section class="card">
+            <div class="chart-head"><b id="db-total"></b><small id="db-avg"></small></div>
+            <div class="chart" id="db-chart"></div>
+            <details class="sr-table"><summary>Show as a table</summary><table id="db-table"></table></details>
         </section>
 
-        <section class="panel panel--stacked">
-            <div class="progress-header">
-                <h3>🧬 SKILL MASTERY MATRIX</h3>
-                <span class="xp-text" id="skill-matrix-subtitle">Live from Dictionary + Dailies + Quests</span>
-            </div>
-            <div id="skill-container"></div>
-        </section>
+        <h2 class="sec">Today</h2>
+        <section class="card"><div class="today" id="db-today"></div></section>
 
-        <div class="dashboard-grid">
-
-            <div class="panel">
-                <h3>📋 <span class="gold-gradient-text">DAILY OBJECTIVES</span></h3>
-                <ul class="task-list">
-                    <li>
-                        <input type="checkbox">
-                        <span>Complete CSS Grid challenge</span>
-                    </li>
-                    <li>
-                        <input type="checkbox">
-                        <span>Refactor login components</span>
-                    </li>
-                    <li>
-                        <input type="checkbox">
-                        <span>Generate new quest path with Eevee</span>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="panel">
-                <h3>📡 <span class="gold-gradient-text">TERMINAL METRICS</span></h3>
-                <ul class="cyber-list">
-                    <li class="metric-row">
-                        <span class="xp-text">Quests Completed:</span>
-                        <span class="gold-gradient-text">12</span>
-                    </li>
-                    <li class="metric-row">
-                        <span class="xp-text">Current Streak:</span>
-                        <span class="gold-gradient-text">5 Days</span>
-                    </li>
-                    <li class="metric-row">
-                        <span class="xp-text">Last Sync:</span>
-                        <span class="xp-text">System Online</span>
-                    </li>
-                </ul>
-            </div>
-
-        </div>
-
+        <h2 class="sec">Streaks</h2>
+        <section class="card" id="db-streaks"></section>
     </main>
 
     <script src="../../core/db.js"></script>
@@ -102,7 +54,6 @@
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
-    <script src="../../core/level-bar/level-bar.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
     <script src="./dashboard.js"></script>

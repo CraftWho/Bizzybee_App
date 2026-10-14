@@ -1,151 +1,85 @@
-console.log("/// DICTIONARY PROTOCOLS INITIALIZED ///");
+// Dictionary (Oct 2026 redesign, approved demo): search, category chips
+// (each category is a skill - shown with its level), term cards, and a
+// sheet to add / edit / delete. Still a plugin: shows a Plugin Hub link
+// when it isn't installed.
+const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let dcCat = 'All', dcQ = '';
+const sheet = document.getElementById('dc-sheet');
+const sheetBody = document.getElementById('dc-sheet-body');
+const closeSheet = () => { sheet.hidden = true; };
+sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
 
-function escapeDictHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-// Renders every term grouped by category, sorted alphabetically within
-// each group, categories sorted alphabetically too - browsing order, not
-// XP order (that's the Dashboard's job).
-function renderDictionaryList() {
-    const container = document.getElementById('dictionary-list');
+function renderDict() {
     const terms = Vault.getDictionaryTerms();
+    const cats = [...new Set(terms.map(t => t.category))].sort((a, b) => a.localeCompare(b));
+    if (dcCat !== 'All' && !cats.includes(dcCat)) dcCat = 'All';
+    document.getElementById('dc-count').textContent = terms.length;
+    document.getElementById('dc-chips').innerHTML = ['All', ...cats].map(c => `<button type="button" class="chip" data-cat="${esc(c)}" aria-pressed="${c === dcCat}">${esc(c)}<span>${c === 'All' ? terms.length : terms.filter(t => t.category === c).length}</span></button>`).join('');
+    const matrix = Object.fromEntries(Vault.getSkillMatrix().map(m => [m.category, m]));
+    const shown = terms.filter(t => (dcCat === 'All' || t.category === dcCat) && (!dcQ || `${t.name} ${t.definition} ${t.category}`.toLowerCase().includes(dcQ)));
+    const groups = dcCat === 'All' ? cats : [dcCat];
+    document.getElementById('dc-list').innerHTML = shown.length ? groups.map(c => {
+        const list = shown.filter(t => t.category === c).sort((a, b) => a.name.localeCompare(b.name));
+        if (!list.length) return '';
+        const m = matrix[c];
+        return `<h2 class="sec">${esc(c)}${m ? ` · Lv ${m.level} · ${m.hours < 10 ? m.hours.toFixed(1) : Math.round(m.hours)} h` : ''}</h2>` + list.map(t => `
+            <button type="button" class="term" data-id="${esc(t.id)}"><span class="hx">${esc(t.name.replace(/^</, '').slice(0, 2).toUpperCase())}</span>
+                <span class="body"><span class="row1"><b>${esc(t.name)}</b><span class="cat">${esc(t.category)}</span></span>${t.definition ? `<p>${esc(t.definition)}</p>` : '<p class="def-missing">＋ Add a definition</p>'}</span></button>`).join('');
+    }).join('') : `<p class="empty">${dcQ ? 'No terms match.' : 'No terms yet. Tap New term to add your first.'}</p>`;
+}
 
-    if (terms.length === 0) {
-        container.innerHTML = '<p class="dictionary-empty-state">No terms yet - add your first one above.</p>';
-        return;
+function termForm(t) {
+    const cats = [...new Set(Vault.getDictionaryTerms().map(x => x.category))].sort((a, b) => a.localeCompare(b));
+    sheetBody.innerHTML = `<h1>${t ? 'Edit term' : 'New term'}</h1>
+        <label for="f-name">TERM</label><input id="f-name" value="${esc(t ? t.name : '')}" placeholder="e.g. Flexbox" maxlength="80">
+        <label for="f-cat">SKILL (CATEGORY)</label><input id="f-cat" value="${esc(t ? t.category : (dcCat !== 'All' ? dcCat : ''))}" placeholder="e.g. CSS" maxlength="40">
+        <div class="picks">${cats.map(c => `<button type="button" data-pick="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+        <label for="f-def">DEFINITION</label><textarea id="f-def" placeholder="What does it mean?" maxlength="600">${esc(t ? t.definition : '')}</textarea>
+        <div class="btns">${t ? '<button type="button" class="del" id="f-del">Delete</button>' : ''}<button type="button" class="save" id="f-save">Save</button></div>`;
+    sheet.hidden = false;
+    sheetBody.querySelectorAll('[data-pick]').forEach(b => { b.onclick = () => { document.getElementById('f-cat').value = b.dataset.pick; }; });
+    document.getElementById(t && !t.definition ? 'f-def' : 'f-name').focus();
+    document.getElementById('f-save').onclick = () => {
+        const name = document.getElementById('f-name').value.trim();
+        const category = document.getElementById('f-cat').value.trim() || 'General';
+        const definition = document.getElementById('f-def').value.trim();
+        if (!name) { Toast.show('Give the term a name first.', 'negative'); return; }
+        if (t) Vault.updateDictionaryTerm(t.id, { name, category, definition });
+        else Toast.show(`📖 Added "${Vault.addDictionaryTerm({ name, category, definition }).name}"`, 'positive');
+        closeSheet(); renderDict();
+    };
+    const del = document.getElementById('f-del');
+    if (del) {
+        let armed = false;
+        del.onclick = () => {
+            if (!armed) { armed = true; del.textContent = 'Tap again'; setTimeout(() => { armed = false; del.textContent = 'Delete'; }, 2500); return; }
+            Vault.removeDictionaryTerm(t.id); closeSheet(); renderDict();
+        };
     }
-
-    const byCategory = {};
-    terms.forEach(term => {
-        if (!byCategory[term.category]) byCategory[term.category] = [];
-        byCategory[term.category].push(term);
-    });
-
-    const categories = Object.keys(byCategory).sort((a, b) => a.localeCompare(b));
-
-    container.innerHTML = categories.map(category => {
-        const termsInCategory = byCategory[category].sort((a, b) => a.name.localeCompare(b.name));
-        return `
-            <div class="dictionary-category-group">
-                <h4 class="dictionary-category-heading">${escapeDictHTML(category)}</h4>
-                ${termsInCategory.map(term => `
-                    <div class="dictionary-term-row" data-term-id="${term.id}">
-                        <div class="dictionary-term-main">
-                            <span class="dictionary-term-name">${escapeDictHTML(term.name)}</span>
-                            ${term.definition ? `<p class="dictionary-term-definition">${escapeDictHTML(term.definition)}</p>` : `<button type="button" class="dictionary-term-define" data-role="define-term">＋ Add a definition</button>`}
-                        </div>
-                        <button type="button" class="dictionary-term-remove" data-role="remove-term" aria-label="Remove term">🗑️</button>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }).join('');
-
-    // Terms added with #word start with no definition - fill it in here.
-    container.querySelectorAll('[data-role="define-term"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const row = btn.closest('.dictionary-term-row');
-            const form = document.createElement('form');
-            form.className = 'dictionary-term-define-form';
-            form.innerHTML = `<input type="text" class="dictionary-term-define-input" placeholder="What does it mean?" maxlength="400" aria-label="Definition"><button type="submit">Save</button>`;
-            btn.replaceWith(form);
-            const input = form.querySelector('input');
-            input.focus();
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const text = input.value.trim();
-                if (!text) return;
-                Vault.updateDictionaryTerm(row.dataset.termId, { definition: text });
-                renderDictionaryList();
-            });
-        });
-    });
-
-    container.querySelectorAll('[data-role="remove-term"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const row = btn.closest('.dictionary-term-row');
-            const term = terms.find(t => t.id === row.dataset.termId);
-            if (!term) return;
-            if (!confirm(`Remove term "${term.name}"? Its XP history moves to a category named after any tag still using it.`)) return;
-            Vault.removeDictionaryTerm(term.id);
-            renderDictionaryList();
-            refreshCategoryDatalist();
-        });
-    });
 }
 
-// Existing categories become autocomplete suggestions in the "Category"
-// field, via a <datalist> - keeps new terms grouping into the same
-// buckets you already use instead of near-duplicate categories
-// ("CSS" vs "Css" vs "css-stuff") fragmenting the Skill Matrix.
-function refreshCategoryDatalist() {
-    const datalist = document.getElementById('dictionary-category-list');
-    const categories = [...new Set(Vault.getDictionaryTerms().map(t => t.category))].sort((a, b) => a.localeCompare(b));
-    datalist.innerHTML = categories.map(c => `<option value="${escapeDictHTML(c)}"></option>`).join('');
-}
-
-// A Quest's "Related Terms" button (quests.js) links here as
-// dictionary.html?term=<termId> - scrolls to and briefly flashes that
-// term's row so arriving from a quest actually lands you somewhere
-// specific instead of just the top of a long unfiltered list.
+// A quest's "Related Terms" link opens dictionary.html?term=<id>.
 function highlightTermFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    const termId = params.get('term');
-    if (!termId) return;
-
-    const row = document.querySelector(`[data-term-id="${termId}"]`);
-    if (!row) return;
-
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    row.classList.add('dictionary-term-row--highlight');
-    setTimeout(() => row.classList.remove('dictionary-term-row--highlight'), 2000);
+    const id = new URLSearchParams(window.location.search).get('term');
+    const el = id && document.querySelector(`.term[data-id="${CSS.escape(id)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 2000);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     Waggle.setActions(baseWaggleActions());
-
-    // A plugin since 2026-10-11 (it was core). Reached while uninstalled
-    // (an old bookmark, a quest's term link): point to Plugin Hub instead.
     const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('dictionary');
     document.getElementById('dictionary-not-installed').hidden = installed;
-    document.querySelectorAll('.dictionary-container > section').forEach(s => { s.hidden = !installed; });
+    document.getElementById('dc-main').hidden = !installed;
     if (!installed) return;
-
-    renderDictionaryList();
-    refreshCategoryDatalist();
+    renderDict();
     highlightTermFromURL();
-
-    document.getElementById('add-term-btn').addEventListener('click', () => {
-        const nameInput = document.getElementById('term-name-input');
-        const categoryInput = document.getElementById('term-category-input');
-        const definitionInput = document.getElementById('term-definition-input');
-
-        const name = nameInput.value.trim();
-        if (!name) {
-            Toast.show('Give the term a name first.', 'negative');
-            return;
-        }
-
-        const added = Vault.addDictionaryTerm({
-            name,
-            category: categoryInput.value.trim(),
-            definition: definitionInput.value.trim()
-        });
-
-        if (!added) {
-            Toast.show('Could not add that term.', 'negative');
-            return;
-        }
-
-        Toast.show(`📖 Added "${added.name}" to ${added.category}`, 'positive');
-        nameInput.value = '';
-        categoryInput.value = '';
-        definitionInput.value = '';
-        renderDictionaryList();
-        refreshCategoryDatalist();
-    });
+    document.getElementById('dc-chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; dcCat = b.dataset.cat; renderDict(); });
+    document.getElementById('dc-q').addEventListener('input', e => { dcQ = e.target.value.trim().toLowerCase(); renderDict(); });
+    document.getElementById('dc-list').addEventListener('click', e => { const b = e.target.closest('.term'); if (b) termForm(Vault.getDictionaryTerms().find(t => t.id === b.dataset.id)); });
+    document.getElementById('dc-new').addEventListener('click', () => termForm(null));
 });
