@@ -861,31 +861,7 @@ button:hover {
 /* Make room for the dock, and move the floating buttons out of its way. */
 body.has-app-dock { padding-bottom: calc(var(--dock-h) + 40px + env(safe-area-inset-bottom)); box-sizing: border-box; }
 
-body.has-app-head button.mobile-waggle-btn {
-    top: calc(env(safe-area-inset-top) + 10px);
-    bottom: auto;
-    left: auto;
-    right: 12px;
-    width: 50px;
-    height: 50px;
-    transform: none;
-    z-index: 950;
-}
-body.has-app-head .mobile-waggle-btn:hover,
-body.has-app-head .mobile-waggle-btn:active,
-body.has-app-head .mobile-waggle-btn.is-active { transform: scale(1.06); }
-body.has-app-head .waggle-menu {
-    top: calc(env(safe-area-inset-top) + 72px);
-    bottom: auto;
-    left: auto;
-    right: 12px;
-    transform: none;
-    flex-direction: column;
-    align-items: flex-end;
-    z-index: 960;
-}
-body.has-app-head .waggle-menu-item { transform: scale(.5) translateY(-20px); transform-origin: top right; }
-body.has-app-head .waggle-menu.is-open .waggle-menu-item { transform: scale(1) translateY(0); }
+/* The top-right menu button + drawer are styled in hive-mind.css. */
 /* With the dock, the top bar (tap = Home) and the dock cover navigation,
    so the floating back button would only sit on top of list buttons. */
 body.has-app-dock .back-fab-btn { display: none; }
@@ -902,6 +878,7 @@ body.ob-mode .app-head .ah-in { display: none; }
 body.ob-mode .app-head { background: linear-gradient(180deg, rgba(14, 10, 4, .98), rgba(8, 6, 2, .95)); }
 body.ob-mode.has-app-head button.mobile-waggle-btn,
 body.ob-mode .waggle-menu,
+body.ob-mode .waggle-scrim,
 body.ob-mode .install-fab-btn { display: none !important; }
 body.ob-nodock .app-dock { display: none; }
 .dk-tab.ob-locked { visibility: hidden; pointer-events: none; }

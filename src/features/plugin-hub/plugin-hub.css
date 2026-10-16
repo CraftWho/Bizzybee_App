@@ -1,150 +1,50 @@
-/* ==========================================================================
-   PLUGIN HUB
-   Grid of optional expansion packs (see PLUGIN_CATALOG in plugins.js) -
-   each card shows its status (Enabled/Disabled/Coming Soon) and a toggle.
-   Plain static cards on purpose (not the flip-for-more-info ItemCard
-   pattern) since these are settings switches, not collectible items.
-   ========================================================================== */
-
-.plugin-hub-container {
-    width: 100%;
-    max-width: 900px;
-    margin: 20px auto 60px;
-    padding: 0 25px;
-    box-sizing: border-box;
-}
-
-.plugin-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 14px;
-}
-
-.plugin-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: #0a0a0a;
-    border: 1px solid #444;
-    border-radius: 10px;
-    padding: 16px;
-}
-
-.plugin-card--coming-soon {
-    opacity: 0.6;
-}
-
-.plugin-card-top-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.plugin-card-icon {
-    font-size: 1.5rem;
-    flex-shrink: 0;
-}
-
-.plugin-card-label {
-    flex: 1;
-    min-width: 0;
-    font-weight: bold;
-    color: #fff;
-}
-
-.plugin-status-badge {
-    flex-shrink: 0;
-    font-size: 0.68rem;
-    font-weight: bold;
-    padding: 3px 9px;
-    border-radius: 12px;
-    white-space: nowrap;
-}
-
-.plugin-status-badge--enabled {
-    background: rgba(76, 217, 100, 0.15);
-    color: #4cd964;
-}
-
-.plugin-status-badge--disabled {
-    background: rgba(255, 255, 255, 0.08);
-    color: #999;
-}
-
-.plugin-status-badge--coming-soon {
-    background: rgba(255, 255, 255, 0.06);
-    color: #777;
-}
-
-.plugin-card-desc {
-    margin: 0;
-    color: #999;
-    font-size: 0.82rem;
-    line-height: 1.4;
-    flex: 1;
-}
-
-.plugin-toggle-btn {
-    align-self: flex-start;
-    position: relative;
-    overflow: hidden;
-    padding: 6px 16px;
-    font-size: 0.8rem;
-    background: transparent;
-    border: 1px solid var(--gold-start);
-    color: var(--gold-start);
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.plugin-toggle-btn:hover:not(:disabled) {
-    background: var(--gold-start);
-    color: #000;
-    box-shadow: none;
-    transform: none;
-}
-
-.plugin-toggle-btn--active {
-    background: var(--gold-start);
-    color: #000;
-}
-
-.plugin-toggle-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.plugin-toggle-btn-label {
-    position: relative;
-    z-index: 1;
-}
-
-/* --- INSTALL ANIMATION ---
-   A left-to-right progress fill sweeps behind the label while an
-   'available' plugin is installing (see PLUGIN_INSTALL_ANIMATION_MS in
-   plugin-hub.js) - purely cosmetic, the actual toggle lands the instant
-   the timer completes. Uninstalling skips this entirely. */
-.plugin-toggle-btn--installing {
-    opacity: 1;
-    cursor: wait;
-    color: #000;
-}
-
-.plugin-toggle-btn-progress {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background: var(--gold-start);
-    transform: scaleX(0);
-    transform-origin: left;
-}
-
-.plugin-toggle-btn--installing .plugin-toggle-btn-progress {
-    animation: plugin-install-fill 0.9s ease-in-out forwards;
-}
-
-@keyframes plugin-install-fill {
-    0% { transform: scaleX(0); }
-    100% { transform: scaleX(1); }
-}
+/* Plugins & Packs (Oct 2026 redesign - approved demo). Dashboard v2 look. */
+.phv2 { --gold: #ffcc00; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --green: #5fd38a; --panel: rgba(14, 10, 4, .92);
+    width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; box-sizing: border-box; color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.phv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
+.phv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
+.phv2 h1 { margin: 0; font: 700 1.2rem var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.phv2 .sub { margin: 8px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+.phv2 h2.sec { display: flex; align-items: center; gap: 10px; margin: 18px 4px 8px; font: 700 .7rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.phv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
+.phv2 .store { display: flex; justify-content: space-between; align-items: baseline; font-size: .8rem; color: var(--muted); }
+.phv2 .store b { font: 700 1.3rem var(--font-main, monospace); color: var(--ink); }
+.phv2 .bar { height: 8px; margin-top: 8px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.phv2 .bar i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b8861e, var(--gold)); transition: width .3s; }
+.phv2 .hx { flex: none; width: 42px; height: 46px; display: grid; place-items: center; font-size: 18px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: #1c1406; }
+.phv2 .pl { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255, 204, 0, .08); border-radius: 8px; }
+.phv2 .pl:first-child { border-top: 0; padding-top: 2px; }
+.phv2 .pl.on .hx { background: linear-gradient(180deg, #ffe680, var(--gold) 50%, #a87700); }
+.phv2 .pl.flash { animation: phFlash 1.6s 2; }
+@keyframes phFlash { 50% { background: rgba(255, 204, 0, .12); } }
+.phv2 .pl .mid { flex: 1; min-width: 0; }
+.phv2 .pl .mid b { font-size: .92rem; }
+.phv2 .pl .mid small { display: block; margin-top: 2px; color: var(--muted); font-size: .74rem; line-height: 1.35; }
+.phv2 .pl .mid a { display: inline-block; margin-top: 5px; color: var(--gold); font-size: .74rem; font-weight: 700; text-decoration: none; }
+.phv2 .size { display: inline-block; margin-top: 4px; font: 700 .64rem var(--font-main, monospace); color: var(--muted); letter-spacing: .06em; }
+.phv2 .size.hd { color: var(--gold); }
+.phv2 .state { font: 700 .62rem var(--font-main, monospace); letter-spacing: .08em; }
+.phv2 .state.dl { color: var(--green); }
+.phv2 .state.off { color: var(--muted); }
+.phv2 .prog { height: 5px; margin-top: 6px; border-radius: 9px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.phv2 .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #b8861e, var(--gold)); transition: width .15s linear; }
+.phv2 .sw { position: relative; flex: none; width: 46px; height: 26px; padding: 0; border-radius: 999px; border: 1px solid rgba(255, 204, 0, .35); background: #1a1205; cursor: pointer; }
+.phv2 .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: left .2s, background .2s; }
+.phv2 .sw[aria-checked="true"] { background: rgba(255, 204, 0, .25); }
+.phv2 .sw[aria-checked="true"]::after { left: 23px; background: var(--gold); }
+.phv2 .sw[disabled] { opacity: .45; cursor: wait; }
+.phv2 .sw:focus-visible, .ph-modal .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.phv2 .soon { opacity: .55; }
+.phv2 .soon .tag { font: 700 .6rem var(--font-main, monospace); letter-spacing: .1em; color: var(--muted); border: 1px solid rgba(255, 255, 255, .15); border-radius: 999px; padding: 3px 8px; }
+.ph-modal { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, .6); backdrop-filter: blur(2px); }
+.ph-modal[hidden] { display: none; }
+.ph-modal .box { width: min(340px, 100%); padding: 20px; border-radius: 18px; background: #0f0a03; border: 1px solid rgba(255, 204, 0, .3); box-shadow: 0 20px 50px rgba(0, 0, 0, .7); text-align: center; color: #f1ede2; font-family: system-ui, sans-serif; }
+.ph-modal .hx { margin: 0 auto 10px; width: 56px; height: 62px; display: grid; place-items: center; font-size: 26px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #ffe680, #ffcc00 50%, #a87700); }
+.ph-modal .del .hx { background: linear-gradient(180deg, #ff6a85, #dc143c 55%, #7a0a20); }
+.ph-modal h3 { margin: 0; font: 700 1rem var(--font-main, monospace); color: #ffcc00; letter-spacing: .06em; background: none; border: 0; padding: 0; }
+.ph-modal p { margin: 8px 0 0; color: #a69a80; font-size: .82rem; line-height: 1.45; }
+.ph-modal .row2 { display: flex; gap: 8px; margin-top: 16px; }
+.ph-modal .btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .4); background: #1a1205; color: #ffcc00; font: 700 .76rem var(--font-main, monospace); cursor: pointer; }
+.ph-modal .btn.solid { background: #ffcc00; color: #241600; border-color: #ffcc00; }
+.ph-modal .btn.danger { background: #dc143c; border-color: #dc143c; color: #fff; }

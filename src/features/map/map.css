@@ -1,279 +1,39 @@
-.map-container {
-    width: 100%;
-    max-width: 1000px;
-    margin: 20px auto 60px;
-    padding: 0 25px;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-/* --- THE FRAME: a square panel that displays the linked picture asset
-   (./assets/map-background.svg, loaded via the <object> in map.html) and
-   layers the interactive checkpoint markers on top of it. The picture's
-   own viewBox is a fixed 1000x1000 square and this frame is locked to the
-   same 1:1 ratio, so a viewBox coordinate maps straight to a CSS
-   percentage with zero extra math (see map.js). --- */
-.map-frame {
-    position: relative;
-    width: 100%;
-    max-width: 820px;
-    aspect-ratio: 1 / 1;
-    margin: 10px auto 0;
-    border-radius: 28px;
-    overflow: hidden;
-    /* Fallback fill (matches the picture's own sky gradient tone) in case
-       the asset is still loading or ever fails to fetch, so there's no
-       jarring blank flash. */
-    background: linear-gradient(155deg, #122336 0%, #173321 55%, #0c1a11 100%);
-    box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.6),
-        0 0 0 4px #1a1a1a,
-        0 0 30px var(--gold-glow);
-}
-
-/* <object> doesn't behave like an <img> by default (inline, with a small
-   baseline gap) - forcing it to a block that fills the frame exactly. */
-.map-picture {
-    position: absolute;
-    inset: 0;
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: none;
-    pointer-events: none;
-}
-
-/* --- CHECKPOINT / START / FINISH NODES - rendered by map.js as absolutely
-   positioned HTML badges (left/top set inline as percentages), layered
-   above the picture. --- */
-.map-markers {
-    position: absolute;
-    inset: 0;
-    z-index: 4;
-}
-
-.map-node {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--obsidian);
-    border: 3px solid var(--gold-dim);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
-    cursor: default;
-    transition: transform 0.15s ease;
-}
-
-.map-node:hover {
-    transform: translate(-50%, -50%) scale(1.15);
-    z-index: 5;
-}
-
-.map-node-icon {
-    font-size: 1.3rem;
-    line-height: 1;
-}
-
-.map-node--start,
-.map-node--finish {
-    width: 56px;
-    height: 56px;
-    border-color: var(--gold-start);
-    box-shadow: 0 0 16px var(--gold-glow), 0 3px 8px rgba(0, 0, 0, 0.5);
-}
-
-.map-node--start .map-node-icon,
-.map-node--finish .map-node-icon {
-    font-size: 1.6rem;
-}
-
-.map-node--finish {
-    border-color: #ffd700;
-    box-shadow: 0 0 22px rgba(255, 215, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.5);
-}
-
-.map-node--completed {
-    border-color: var(--gold-start);
-    box-shadow: 0 0 12px var(--gold-glow);
-}
-
-.map-node--active {
-    border-color: var(--crimson);
-    box-shadow: 0 0 14px rgba(220, 20, 60, 0.65);
-    animation: map-node-pulse 1.8s ease-in-out infinite;
-}
-
-.map-node--pending {
-    border-color: #666;
-    opacity: 0.8;
-}
-
-@keyframes map-node-pulse {
-    0%, 100% { box-shadow: 0 0 14px rgba(220, 20, 60, 0.65); }
-    50% { box-shadow: 0 0 22px rgba(220, 20, 60, 0.95); }
-}
-
-/* Cities are the bigger milestone tier - larger ring + icon regardless of
-   which status color it's currently wearing, stacked with whichever
-   .map-node--completed/--active/--pending class also applies. */
-.map-node--city {
-    width: 54px;
-    height: 54px;
-}
-
-.map-node--city .map-node-icon {
-    font-size: 1.55rem;
-}
-
-/* --- CORNER CONTROLS: key toggle + compass, fixed to the frame's own
-   bottom-right corner rather than the road's percentage coordinate system
-   (these are map UI chrome, not part of the illustrated world). --- */
-.map-corner-controls {
-    position: absolute;
-    right: 14px;
-    bottom: 14px;
-    z-index: 6;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.map-key-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: var(--obsidian);
-    border: 2px solid var(--gold-start);
-    box-shadow: 0 0 12px var(--gold-glow);
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: 0;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.map-key-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 18px var(--gold-start);
-}
-
-.map-compass {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: var(--obsidian);
-    border: 2px solid var(--gold-dim);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
-    font-size: 1.4rem;
-    pointer-events: none;
-}
-
-/* --- MAP KEY MODAL - a themed list rendered inside the shared
-   modal-overlay/modal-box shell (core/modal/modal.css), opened by the 🗝️
-   button in .map-corner-controls. Sized to hug its content rather than
-   using modal-box's default full-height layout, since it's a short list,
-   not a detail view. --- */
-.map-key-modal {
-    max-width: 360px;
-    height: auto;
-    max-height: 80vh;
-}
-
-.map-key-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.map-key-list li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #151515;
-    border: 1px solid #333;
-    border-left: 3px solid var(--gold-dim);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: #ccc;
-    font-size: 0.95rem;
-}
-
-.map-key-swatch {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: var(--obsidian);
-    border: 2px solid var(--gold-dim);
-    font-size: 0.95rem;
-    flex-shrink: 0;
-}
-
-.map-key-swatch--start,
-.map-key-swatch--finish {
-    border-color: var(--gold-start);
-    box-shadow: 0 0 8px var(--gold-glow);
-}
-
-.map-key-swatch--completed {
-    border-color: var(--gold-start);
-}
-
-.map-key-swatch--active {
-    border-color: var(--crimson);
-    box-shadow: 0 0 8px rgba(220, 20, 60, 0.5);
-}
-
-.map-key-swatch--pending {
-    border-color: #666;
-    opacity: 0.8;
-}
-
-.map-key-swatch--city {
-    border-color: var(--gold-start);
-    width: 36px;
-    height: 36px;
-    box-shadow: 0 0 10px var(--gold-glow);
-}
-
-.map-key-note {
-    color: #888;
-    font-size: 0.8rem;
-    margin-left: 4px;
-}
-
-.map-footer-link {
-    margin-top: 20px;
-}
-
-.map-footer-link a {
-    color: var(--gold-start);
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.map-footer-link a:hover {
-    text-decoration: underline;
-}
-
-@media (max-width: 520px) {
-    .map-node { width: 36px; height: 36px; }
-    .map-node--start, .map-node--finish { width: 46px; height: 46px; }
-    .map-node-icon { font-size: 1.05rem; }
-    .map-node--start .map-node-icon, .map-node--finish .map-node-icon { font-size: 1.3rem; }
-}
+/* Map v2 (Oct 2026 redesign - approved demo). Matches the Dashboard v2 look. */
+.mpv2 { --gold: #ffcc00; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .92);
+    width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; box-sizing: border-box; color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.mpv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
+.mpv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
+.mpv2 h1 { margin: 0; font: 700 1.2rem var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.mpv2 .sub { margin: 8px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+.mpv2 h2.sec { display: flex; align-items: center; gap: 10px; margin: 18px 4px 8px; font: 700 .7rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.mpv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
+.mpv2 .hx { flex: none; display: grid; place-items: center; width: 52px; height: 58px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: #1c1406; color: var(--muted); font: 800 .8rem var(--font-main, monospace); text-decoration: none; }
+.mpv2 .hx.big { width: 56px; height: 62px; font-size: 24px; background: linear-gradient(180deg, #ffe680, var(--gold) 50%, #a87700); }
+.mpv2 .mp-now { display: flex; gap: 14px; align-items: center; }
+.mpv2 .mp-now .mid { flex: 1; min-width: 0; }
+.mpv2 .mp-now b { font-size: 1rem; }
+.mpv2 .mp-now small { display: block; margin-top: 2px; color: var(--muted); font-size: .74rem; }
+.mpv2 .bar { height: 8px; margin-top: 8px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.mpv2 .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b8861e, var(--gold)); }
+.mpv2 .actions { display: flex; gap: 8px; margin-top: 12px; }
+.mpv2 .btn { display: inline-block; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .4); background: #1a1205; color: var(--gold); font: 700 .74rem var(--font-main, monospace); text-decoration: none; }
+.mpv2 .btn.solid { background: var(--gold); color: #241600; border-color: var(--gold); }
+.mpv2 .trail { position: relative; list-style: none; margin: 0; padding: 6px 0 4px; }
+.mpv2 .trail::before { content: ""; position: absolute; left: 50%; top: 24px; bottom: 24px; width: 4px; margin-left: -2px; border-radius: 4px; background: repeating-linear-gradient(180deg, rgba(255, 204, 0, .5) 0 10px, transparent 10px 18px); }
+.mpv2 .stop { position: relative; display: grid; grid-template-columns: 1fr 58px 1fr; align-items: center; gap: 12px; margin: 6px 0; }
+.mpv2 .stop .hx { grid-column: 2; grid-row: 1; justify-self: center; }
+.mpv2 .stop .lab { display: block; padding: 9px 11px; border-radius: 12px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .14); color: var(--ink); text-decoration: none; min-width: 0; }
+.mpv2 .stop .lab b { display: block; font-size: .82rem; overflow-wrap: anywhere; }
+.mpv2 .stop .lab small { color: var(--muted); font-size: .7rem; }
+.mpv2 .stop.l .lab { grid-column: 1; grid-row: 1; text-align: right; }
+.mpv2 .stop.r .lab { grid-column: 3; grid-row: 1; }
+.mpv2 .stop.done .hx { background: linear-gradient(180deg, #ffe680, var(--gold) 50%, #a87700); color: #241600; }
+.mpv2 .stop.now .hx { background: linear-gradient(180deg, #ff6a85, var(--cr) 55%, #7a0a20); color: #fff; animation: mpPulse 1.8s infinite; }
+.mpv2 .stop.now .lab { border-color: rgba(220, 20, 60, .6); }
+.mpv2 .stop.goal .hx { background: radial-gradient(circle, #fff6c8, var(--gold) 60%, #a87700); font-size: 22px; }
+.mpv2 a.hx:focus-visible, .mpv2 a.lab:focus-visible, .mpv2 .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+@keyframes mpPulse { 50% { filter: drop-shadow(0 0 10px rgba(220, 20, 60, .9)); } }
+.mpv2 .legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 4px; font-size: .72rem; color: var(--muted); }
+.mpv2 .legend span::before { content: ""; display: inline-block; width: 10px; height: 11px; margin-right: 6px; vertical-align: -1px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--c); }
+@media (prefers-reduced-motion: reduce) { .mpv2 .stop.now .hx { animation: none; } }

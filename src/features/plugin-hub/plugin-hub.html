@@ -10,7 +10,7 @@
     <link rel="manifest" href="../../../manifest.json">
     <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🧩 Plugins</title>
+    <title>🧩 Plugins &amp; Packs</title>
 
     <link rel="stylesheet" href="../../core/global.css">
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
@@ -22,21 +22,28 @@
 </head>
 <body>
 
-    <main class="plugin-hub-container">
-
-        <div class="panel page-header-panel">
-            <h2 class="page-title">🧩 <span class="gold-gradient-text">PLUGIN HUB</span></h2>
-            <p class="page-subtitle">Optional expansions you can switch on without touching the base app. Nothing here affects your quests, dailies, or colony unless you turn it on.</p>
-        </div>
-
-        <section class="panel">
-            <div class="plugin-grid" id="plugin-grid"></div>
+    <main class="phv2">
+        <section class="card top">
+            <h1>🧩 PLUGINS &amp; PACKS</h1>
+            <p class="sub">The base app stays small. Download only what you use, like extra packs in a game. Switch on = download. Switch off = delete from this device. Your progress is never deleted.</p>
         </section>
-
+        <section class="card">
+            <div class="store"><span>On this device</span><b id="ph-used">…</b></div>
+            <div class="bar"><i id="ph-usedbar"></i></div>
+            <p class="sub" id="ph-usedsub"></p>
+        </section>
+        <h2 class="sec">Plugins</h2>
+        <section class="card" id="ph-plugins"></section>
+        <h2 class="sec">Quality packs</h2>
+        <section class="card" id="ph-packs"></section>
+        <h2 class="sec">Coming soon</h2>
+        <section class="card" id="ph-soon"></section>
     </main>
+    <div class="ph-modal" id="ph-modal" hidden></div>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
+    <script src="../../core/packs/packs.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>

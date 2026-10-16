@@ -64,3 +64,6 @@ model-viewer { width: 100%; height: 280px; border-radius: 12px; background: radi
 
 /* species */
 .sp-no { font: 700 .62rem monospace; color: var(--muted); letter-spacing: .1em; }
+.m3d-get { padding: 18px; border-radius: 14px; border: 1px dashed rgba(255, 204, 0, .35); text-align: center; color: var(--muted); font-size: .85rem; }
+.m3d-get p { margin: 0 0 10px; }
+.m3d-get a { display: inline-block; text-decoration: none; }

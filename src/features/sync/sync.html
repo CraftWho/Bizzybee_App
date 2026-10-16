@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🔄 Phone Sync</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
+    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/modal/modal.css">
+    <link rel="stylesheet" href="../../core/toast/toast.css">
+    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="./sync.css">
+</head>
+<body>
+
+    <main class="syv2">
+        <section class="card top">
+            <h1>🔄 PHONE SYNC</h1>
+            <p class="sub">Show Bizzybee on your Android phone. Android's Calendar app shows any calendar in your Google account, so adding Bizzybee there puts it on your phone.</p>
+        </section>
+
+        <h2 class="sec">Any calendar app</h2>
+        <section class="card">
+            <div class="sy" id="sy-feed">
+                <div class="hx" aria-hidden="true">🔗</div>
+                <div class="mid">
+                    <b>Calendar feed link</b>
+                    <small>A private link any calendar app can subscribe to. Your phone calendar checks it every few hours.</small>
+                    <span class="dir">→ ONE-WAY</span>
+                    <p class="note" id="sy-feed-status" role="status"></p>
+                    <div id="sy-feed-on" hidden>
+                        <div class="chips" role="group" aria-label="What to show">
+                            <label><input type="checkbox" data-item="events"> 📌 Events</label>
+                            <label><input type="checkbox" data-item="todos"> ✅ To-Do due dates</label>
+                            <label><input type="checkbox" data-item="dailies"> ☀️ Dailies</label>
+                        </div>
+                        <div class="link-row"><input id="sy-feed-url" readonly aria-label="Your private calendar link"><button type="button" class="btn" id="sy-copy">Copy</button></div>
+                        <div class="actions">
+                            <a class="btn solid" id="sy-google" target="_blank" rel="noopener">Add to Google Calendar</a>
+                            <button type="button" class="btn" id="sy-rotate">New link</button>
+                        </div>
+                        <details class="how"><summary>How to add it on Android</summary>
+                            <ol>
+                                <li>Tap <b>Add to Google Calendar</b> (or open Google Calendar on a computer → Other calendars → + → From URL, and paste the link).</li>
+                                <li>On your phone, open Google Calendar → menu → Settings → <b>🐝 Bizzybee</b> → turn on Sync.</li>
+                                <li>Changes show up within a few hours. Google sometimes takes up to a day.</li>
+                            </ol>
+                            <p>Keep the link private. Anyone with it can see these items. Tap <b>New link</b> to cut off the old one.</p>
+                        </details>
+                    </div>
+                </div>
+                <button type="button" class="sw" role="switch" aria-checked="false" aria-label="Calendar feed link" id="sy-feed-sw" disabled></button>
+            </div>
+            <div class="sy" id="sy-push">
+                <div class="hx" aria-hidden="true">🔔</div>
+                <div class="mid"><b>Phone reminders</b><small>Push notifications for dailies and due dates.</small><span class="dir">→ ONE-WAY</span>
+                    <p class="note" id="sy-push-status"></p><a class="more" href="../settings/settings.html">Change in Settings →</a></div>
+            </div>
+        </section>
+
+        <h2 class="sec">Google account</h2>
+        <section class="card">
+            <div class="sy soon">
+                <div class="hx" aria-hidden="true">📅</div>
+                <div class="mid"><b>Google Calendar</b><small>Two-way: events you add on your phone come back here.</small><span class="dir">⇄ TWO-WAY</span></div>
+                <span class="tag">SETUP NEEDED</span>
+            </div>
+            <div class="sy soon">
+                <div class="hx" aria-hidden="true">✅</div>
+                <div class="mid"><b>Google Tasks</b><small>Two-way: check off a to-do on your phone and get the XP here.</small><span class="dir">⇄ TWO-WAY</span></div>
+                <span class="tag">SETUP NEEDED</span>
+            </div>
+            <p class="sub">These need a one-time Google setup on the app's side. Until then, use the feed link above.</p>
+        </section>
+
+        <h2 class="sec">Already connected</h2>
+        <section class="card">
+            <div class="sy" id="sy-habitica">
+                <div class="hx" aria-hidden="true">⚔️</div>
+                <div class="mid"><b>Habitica</b><small>Dailies, habits and to-dos sync both ways. Use the Habitica app on Android.</small><span class="dir">⇄ TWO-WAY</span>
+                    <p class="note" id="sy-habitica-status"></p><a class="more" href="../account-info/account-info.html">Manage in Account Info →</a></div>
+            </div>
+        </section>
+        <div class="sy-modal" id="sy-modal" hidden></div>
+    </main>
+
+    <script src="../../core/db.js"></script>
+    <script src="../../core/plugins.js"></script>
+    <script src="../../core/app.js"></script>
+        <script src="../../core/hive-mind/hive-mind.js"></script>
+    <script src="../../core/toast/toast.js"></script>
+    <script src="../../core/reminders/reminders.js"></script>
+    <script src="../llm-engine/llm-engine.js"></script>
+
+    <script src="./sync.js"></script>
+</body>
+</html>

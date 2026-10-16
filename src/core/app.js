@@ -783,6 +783,8 @@ class CodexSystem {
         if (path.includes('honey-store.html')) return 'honey-store';
         if (path.includes('plugin-hub.html')) return 'plugin-hub';
         if (path.includes('map.html')) return 'map';
+        if (path.includes('sync.html')) return 'sync';
+        if (path.includes('study.html')) return 'study';
         if (path.includes('hive-archive.html')) return 'hive-archive';
         if (path.includes('dailies.html')) return 'dailies';
         if (path.includes('create-daily.html')) return 'create-daily';
