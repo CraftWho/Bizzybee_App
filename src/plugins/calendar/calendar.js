@@ -50,6 +50,8 @@ function startOfWeek(date) {
 
 let currentView = 'month'; // 'month' | 'week' | 'day'
 let currentDate = new Date();
+let selectedKey = null;     // the day tapped in Month view (agenda below)
+const EMPTY_DAY = { quests: [], dailies: [], events: [], todos: [] };
 
 // One pass over quests/dailies/events, bucketed by date key - built fresh
 // on every render rather than cached, since a quest/daily can be
@@ -58,7 +60,7 @@ let currentDate = new Date();
 function buildEventIndex() {
     const index = {};
     const ensure = (key) => {
-        if (!index[key]) index[key] = { quests: [], dailies: [], events: [] };
+        if (!index[key]) index[key] = { quests: [], dailies: [], events: [], todos: [] };
         return index[key];
     };
 
@@ -79,6 +81,11 @@ function buildEventIndex() {
 
     Vault.getCalendarEvents().forEach(event => {
         ensure(event.date).events.push(event);
+    });
+
+    // To-Dos show on their due date (Oct 2026).
+    (Vault.getTodos() || []).forEach(todo => {
+        if (todo.dueDate) ensure(String(todo.dueDate).slice(0, 10)).todos.push(todo);
     });
 
     return index;
@@ -110,35 +117,58 @@ function goToDay(dateKey) {
 function renderMonthView(board, anchorDate, index) {
     const cells = buildMonthCells(anchorDate);
     const todayKey = gridDateKey(new Date());
+    if (!selectedKey || !cells.some(c => c.inMonth && gridDateKey(c.date) === selectedKey)) {
+        selectedKey = cells.some(c => c.inMonth && gridDateKey(c.date) === todayKey) ? todayKey : gridDateKey(new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1));
+    }
+    const dot = (n, cls) => n ? `<i class="dot dot--${cls}"></i>` : '';
 
     board.className = 'calendar-board calendar-board--month';
     board.innerHTML = `
-        <div class="calendar-month-weekdays">
-            ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<span>${d}</span>`).join('')}
-        </div>
-        <div class="calendar-month-grid">
+        <div class="grid" role="grid">
+            ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<span class="dow" aria-hidden="true">${d}</span>`).join('')}
             ${cells.map(cell => {
                 const key = gridDateKey(cell.date);
-                const day = index[key] || { quests: [], dailies: [], events: [] };
-                const hasItems = day.quests.length + day.dailies.length + day.events.length > 0;
-                return `
-                    <button class="calendar-month-cell${cell.inMonth ? '' : ' calendar-month-cell--outside'}${key === todayKey ? ' calendar-month-cell--today' : ''}" data-date="${key}">
-                        <span class="calendar-month-cell-num">${cell.date.getDate()}</span>
-                        ${hasItems ? `
-                        <span class="calendar-month-cell-dots">
-                            ${day.quests.length ? `<span class="calendar-dot calendar-dot--quest" title="${day.quests.length} quest task(s)"></span>` : ''}
-                            ${day.dailies.length ? `<span class="calendar-dot calendar-dot--daily" title="${day.dailies.length} daily(s)"></span>` : ''}
-                            ${day.events.length ? `<span class="calendar-dot calendar-dot--event" title="${day.events.length} event(s)"></span>` : ''}
-                        </span>` : ''}
-                    </button>
-                `;
+                const day = index[key] || EMPTY_DAY;
+                const count = day.quests.length + day.dailies.length + day.events.length + day.todos.length;
+                const label = cell.date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) + (count ? `, ${count} item${count === 1 ? '' : 's'}` : '');
+                return `<button type="button" class="day${cell.inMonth ? '' : ' out'}${key === todayKey ? ' today' : ''}${key === selectedKey ? ' sel' : ''}" data-date="${key}" aria-label="${label}"${key === selectedKey ? ' aria-pressed="true"' : ''}>
+                    ${cell.date.getDate()}<span class="dots">${dot(day.quests.length, 'quest')}${dot(day.dailies.length, 'daily')}${dot(day.todos.length, 'todo')}${dot(day.events.length, 'event')}</span></button>`;
             }).join('')}
-        </div>
-    `;
+        </div>`;
 
-    board.querySelectorAll('.calendar-month-cell').forEach(cell => {
-        cell.addEventListener('click', () => goToDay(cell.dataset.date));
+    board.querySelectorAll('.day').forEach(cell => {
+        cell.addEventListener('click', () => {
+            selectedKey = cell.dataset.date;
+            const [y, m] = selectedKey.split('-').map(Number);
+            if (m - 1 !== currentDate.getMonth() || y !== currentDate.getFullYear()) currentDate = new Date(y, m - 1, 1);
+            renderCalendar();
+        });
     });
+}
+
+// The list under the month: everything on the tapped day.
+function renderAgenda(index) {
+    const wrap = document.getElementById('calendar-agenda-wrap');
+    wrap.hidden = currentView !== 'month';
+    if (currentView !== 'month') return;
+    const [y, m, d] = selectedKey.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const isToday = selectedKey === gridDateKey(new Date());
+    document.getElementById('calendar-agenda-title').textContent = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + (isToday ? ' · Today' : '');
+    const day = index[selectedKey] || EMPTY_DAY;
+    const rows = [
+        ...day.events.map(e => ({ tm: e.time || 'All day', c: 'event', t: e.title, s: 'Your event', id: e.id })),
+        ...day.todos.map(t => ({ tm: 'Due', c: 'todo', t: t.label, s: t.completed ? 'To-Do · done' : 'To-Do · due' })),
+        ...day.quests.map(q => ({ tm: 'Done', c: 'quest', t: q.label, s: `${q.questTitle} · +${q.xp} XP` })),
+        ...day.dailies.map(dl => ({ tm: 'Daily', c: 'daily', t: dl.label, s: `Daily · done · +${dl.xp} XP` }))
+    ];
+    document.getElementById('calendar-agenda').innerHTML = (rows.length
+        ? rows.map(r => `<${r.id ? `button type="button" data-event-id="${r.id}"` : 'div'} class="ag${r.id ? ' calendar-item--event' : ''}"><span class="tm">${escapeHTML(r.tm)}</span><span class="pip pip--${r.c}"></span><span class="txt"><b>${escapeHTML(r.t)}</b><small>${escapeHTML(r.s)}</small></span></${r.id ? 'button' : 'div'}>`).join('')
+        : '<p class="sub">Nothing on this day.</p>')
+        + `<div class="ag-actions"><button type="button" class="btn" id="calendar-agenda-add">+ Event this day</button><button type="button" class="btn" id="calendar-agenda-open">Open day view</button></div>`;
+    bindEventItemClicks(document.getElementById('calendar-agenda'));
+    document.getElementById('calendar-agenda-add').onclick = () => openEventModal({ date: selectedKey });
+    document.getElementById('calendar-agenda-open').onclick = () => goToDay(selectedKey);
 }
 
 function renderCalendarItem(item) {
@@ -168,8 +198,9 @@ function renderWeekView(board, anchorDate, index) {
     board.className = 'calendar-board calendar-board--week';
     board.innerHTML = days.map(date => {
         const key = gridDateKey(date);
-        const day = index[key] || { quests: [], dailies: [], events: [] };
+        const day = index[key] || EMPTY_DAY;
         const items = [
+            ...day.todos.map(t => ({ icon: '✅', label: t.label, sub: 'Due' })),
             ...day.quests.map(q => ({ icon: '🐝', label: q.label, sub: `+${q.xp} XP` })),
             ...day.dailies.map(dl => ({ icon: '☀️', label: dl.label, sub: `+${dl.xp} XP` })),
             ...day.events.map(e => ({ icon: '📌', label: e.title, sub: e.time || '', id: e.id, isEvent: true }))
@@ -199,12 +230,19 @@ function renderWeekView(board, anchorDate, index) {
 
 function renderDayView(board, anchorDate, index) {
     const key = gridDateKey(anchorDate);
-    const day = index[key] || { quests: [], dailies: [], events: [] };
+    const day = index[key] || EMPTY_DAY;
 
     board.className = 'calendar-board calendar-board--day';
     board.innerHTML = `
         <div class="calendar-day-header">
             <h3>${anchorDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h3>
+        </div>
+
+        <div class="calendar-day-section">
+            <h4>✅ To-Dos due</h4>
+            ${day.todos.length === 0
+                ? `<p class="empty-state">Nothing due this day.</p>`
+                : day.todos.map(t => renderCalendarItem({ icon: '✅', label: t.label, sub: t.completed ? 'Done' : 'Due' })).join('')}
         </div>
 
         <div class="calendar-day-section">
@@ -278,9 +316,11 @@ function renderCalendar() {
         btn.classList.toggle('calendar-view-btn--active', btn.dataset.view === currentView);
     });
 
+    document.querySelectorAll('.calendar-view-btn').forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.view === currentView)));
     if (currentView === 'month') renderMonthView(board, currentDate, index);
     else if (currentView === 'week') renderWeekView(board, currentDate, index);
     else renderDayView(board, currentDate, index);
+    renderAgenda(index);
 }
 
 // Add/Edit form for a user-created event - the one thing on this page
@@ -364,6 +404,7 @@ function openEventModal({ date, existing } = {}) {
         close();
         const [y, m, d] = dateVal.split('-').map(Number);
         currentDate = new Date(y, m - 1, d);
+        selectedKey = dateVal;
         renderCalendar();
     });
 }
@@ -378,16 +419,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const installed = typeof Plugins !== 'undefined' && Plugins.isEnabled('calendar');
     document.getElementById('calendar-not-installed').hidden = installed;
     document.getElementById('calendar-app').hidden = !installed;
+    document.getElementById('calendar-add-event-btn').hidden = !installed;
 
     if (installed) {
         document.getElementById('calendar-prev-btn').addEventListener('click', () => navigate(-1));
         document.getElementById('calendar-next-btn').addEventListener('click', () => navigate(1));
         document.getElementById('calendar-today-btn').addEventListener('click', () => {
             currentDate = new Date();
+            selectedKey = gridDateKey(currentDate);
             renderCalendar();
         });
         document.getElementById('calendar-add-event-btn').addEventListener('click', () => {
-            openEventModal({ date: gridDateKey(currentDate) });
+            openEventModal({ date: currentView === 'month' && selectedKey ? selectedKey : gridDateKey(currentDate) });
         });
         document.querySelectorAll('.calendar-view-btn').forEach(btn => {
             btn.addEventListener('click', () => {

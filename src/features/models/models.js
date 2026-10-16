@@ -93,3 +93,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderBeeModels();
     Waggle.setActions(baseWaggleActions());
 });
+
+// 3D bee (Oct 2026): only loaded once the 3D Bee Model pack is downloaded.
+(async function show3dBee() {
+    if (typeof Packs === 'undefined' || !(await Packs.isDownloaded('bee3d'))) return;
+    const s = document.createElement('script');
+    s.type = 'module';
+    s.src = MODEL_VIEWER_URL;
+    document.head.appendChild(s);
+    document.getElementById('m3d-host').innerHTML = '<model-viewer id="mv" src="../../assets/3d/bizzy-bee.glb" auto-rotate camera-controls shadow-intensity="1" exposure="1.1" alt="3D Bizzybee"></model-viewer>';
+})();
