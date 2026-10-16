@@ -1,23 +1,40 @@
 /* ==========================================================================
-   TOAST - brief self-dismissing notification for live reward feedback
+   TOAST - pop-up messages (Oct 2026: stay longer, stack above the dock,
+   errors get a ✕ and can be tapped away).
    ========================================================================== */
+.bizzybee-toast-stack {
+    position: fixed;
+    right: 20px;
+    bottom: calc(var(--dock-h, 0px) + 24px + env(safe-area-inset-bottom));
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: min(420px, calc(100vw - 30px));
+    pointer-events: none;
+}
 
 .bizzybee-toast {
-    position: fixed;
-    right: 30px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     background: #151515;
-    border: 2px solid var(--gold-start);
-    color: var(--gold-start);
-    padding: 12px 20px;
-    border-radius: 8px;
+    border: 2px solid var(--gold-start, #ffcc00);
+    color: var(--gold-start, #ffcc00);
+    padding: 12px 16px;
+    border-radius: 12px;
     font-weight: bold;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px var(--gold-glow);
+    line-height: 1.4;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px var(--gold-glow, rgba(255, 204, 0, .3));
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.3s ease, transform 0.3s ease;
-    z-index: 3000;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
+    overflow-wrap: anywhere;
 }
+.bizzybee-toast-text { flex: 1; }
 
 .bizzybee-toast--visible {
     opacity: 1;
@@ -25,15 +42,27 @@
 }
 
 .bizzybee-toast--negative {
-    border-color: var(--crimson);
-    color: var(--crimson);
+    border-color: var(--crimson, #dc143c);
+    color: #ffb3c0;
+    background: #1c0a0e;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(220, 20, 60, 0.4);
+}
+.bizzybee-toast--neutral { border-color: rgba(255, 255, 255, .3); color: #f1ede2; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6); }
+
+.bizzybee-toast-x {
+    flex: none;
+    width: 26px; height: 26px;
+    margin: -3px -6px -3px 0;
+    border: 1px solid rgba(220, 20, 60, .5);
+    border-radius: 8px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
 }
 
 @media (max-width: 768px) {
-    .bizzybee-toast {
-        right: 15px;
-        left: 15px;
-        text-align: center;
-    }
+    .bizzybee-toast-stack { left: 15px; right: 15px; align-items: stretch; max-width: none; }
+    .bizzybee-toast { text-align: center; }
 }
+@media (prefers-reduced-motion: reduce) { .bizzybee-toast { transition: none; } }
