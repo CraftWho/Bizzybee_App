@@ -37,9 +37,9 @@ _local_backup_before_history_scrub_2026-08-26/
 .npm-cache/
 node_modules/
 
-# Local dev tools (Hacker login + 🛠 panel). Craft's computer only - never
-# commit or deploy. app.js only loads it on localhost.
-src/local/
+# Local dev login (src/local/admin.local.js) is now committed (Oct 2026) so
+# collaborators get the Hacker login on their own machine. It only works on
+# localhost / a local network address - app.js never loads it on the live site.
 
 # Your local save files (last 3 saves, full progress + photo) - never commit.
 save-files/

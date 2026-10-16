@@ -30,204 +30,113 @@
 </head>
 <body>
 
-    <main class="settings-container">
+    <main class="stv2">
+        <h1 class="settings-title">⚙️ SETTINGS</h1>
 
-        <h2 class="settings-title">⚙️ <span class="gold-gradient-text">SETTINGS</span></h2>
-<details class="panel settings-category" open>
-<summary>☁️ Cloud Settings</summary><div class="settings-category-body">
-<p class="settings-intro">Your cloud account keeps your progress across devices. Saves and backups are encrypted in cloud storage; this browser also keeps a local copy for offline work.</p>
-<div id="cloud-sync-signed-out"><button id="cloud-sync-login-btn">Sign in to Cloud</button></div>
-<div id="cloud-sync-signed-in" hidden>
-<p>Signed in as <span id="cloud-sync-email"></span></p>
-<p id="cloud-sync-status" role="status" aria-live="polite">Connecting to cloud…</p>
-<div id="cloud-vs-local-compare" class="sync-compare" role="status" aria-live="polite">
-    <div class="sync-compare-row"><span>📍 This device</span><span id="sync-compare-local">—</span></div>
-    <div class="sync-compare-row"><span>☁️ Cloud</span><span id="sync-compare-cloud">—</span></div>
-    <p id="sync-compare-verdict" class="sync-compare-verdict">Checking…</p>
-</div>
-<details class="settings-subcategory" open><summary>Sync options</summary>
-<div class="settings-action-row"><div class="settings-action-info"><strong>Automatic cloud uploads</strong><p>Uploads shortly after changes. Pending changes retry when you reconnect or reopen the app.</p></div><label class="toggle-switch"><input type="checkbox" id="cloud-sync-auto-toggle" aria-label="Automatic cloud uploads" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
-<div class="settings-action-row"><div class="settings-action-info"><strong>Save now</strong><p>Upload this device’s latest progress.</p></div><button id="cloud-sync-push-btn">Save to Cloud</button></div>
-<div class="settings-action-row"><div class="settings-action-info"><strong>Use cloud copy</strong><p>Load the latest cloud progress. A local recovery copy is kept first.</p></div><button id="cloud-sync-pull-btn">Load from Cloud</button></div>
-<div class="settings-action-row">
-    <div class="settings-action-info">
-        <strong>Download cloud to local project</strong>
-        <p>Pick your Bizzybee_App folder. Updates src/core/data.personal.json (old file backed up) and adds a save file to save-files (last 3 kept). Picking any other folder just saves the file there.</p>
-        <p class="settings-file-hint">The local file is readable JSON, including your photo and progress. Keep it private. Requires desktop browser folder access.</p>
-        <p id="cloud-local-download-status" role="status" aria-live="polite"></p>
-    </div>
-    <button id="cloud-local-download-btn">Download Cloud to Local</button>
-</div>
-<div class="settings-action-row"><div class="settings-action-info"><strong>Resolve a conflict with this device’s copy</strong><p>Replace cloud progress with this device’s progress, keeping a backup of the previous cloud copy.</p></div><button id="cloud-sync-use-device-btn">Use Device Copy</button></div>
-</details>
-<details class="settings-subcategory"><summary>Automatic backups</summary>
-<p>Backs up the latest uploaded cloud save even while the app is closed. Keeps the latest 30 backups. Changes still offline on a device cannot be included.</p>
-<label for="backup-interval">Create a backup every</label>
-<select id="backup-interval"><option value="4">4 hours</option><option value="8">8 hours</option><option value="12">12 hours</option><option value="24" selected>24 hours</option></select>
-<button id="backup-schedule-btn">Save Schedule</button>
-<p id="backup-status" role="status" aria-live="polite"></p>
-<div class="settings-action-btns"><button id="backup-now-btn">Back Up Now</button><button id="backup-refresh-btn">Refresh List</button></div>
-<div id="cloud-backup-list"></div>
-</details>
-<button id="cloud-sync-logout-btn">Sign Out</button>
-</div></div></details>
-
-        <details class="panel settings-category"><summary>⏱️ Time Tracking</summary><div class="settings-category-body">
-            <p class="settings-intro">XP is time: about 1 XP per minute, more for harder work. After you check something off, Bizzybee can ask how long it really took.</p>
-            <div class="settings-action-row"><div class="settings-action-info"><strong>Ask how long it took</strong><p>Shows after Dailies, To-Dos, Quest tasks and good Habits (habits under 10 minutes never ask). Skip uses the planned time.</p></div><label class="toggle-switch"><input type="checkbox" id="timelog-toggle" aria-label="Ask how long it took" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
-        </div></details>
-
-        <details class="panel settings-category"><summary>🔔 Phone Reminders</summary><div class="settings-category-body">
-            <p class="settings-intro">Get your Daily and To-Do reminders as phone notifications, even when the app is closed. Needs your cloud account. Your save stays encrypted - only the upcoming reminder times (and task names, if you allow it) go to the server.</p>
-            <div class="settings-action-row"><div class="settings-action-info"><strong>Phone reminders on this device</strong><p id="push-status" role="status" aria-live="polite">Checking…</p></div><label class="toggle-switch"><input type="checkbox" id="push-toggle" aria-label="Phone reminders on this device"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
-            <div class="settings-action-row"><div class="settings-action-info"><strong>Show task names</strong><p>Off: notifications just say "You have a task reminder."</p></div><label class="toggle-switch"><input type="checkbox" id="push-names-toggle" aria-label="Show task names in notifications" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
-            <div class="settings-action-row"><div class="settings-action-info"><strong>Send a test</strong><p>Arrives in a few seconds.</p></div><button id="push-test-btn" disabled>Send Test</button></div>
-        </div></details>
-
-        <details class="panel settings-category"><summary>👤 Account</summary><div class="settings-category-body">
-            <p class="settings-intro">Your photo and personal information - kept off this page entirely, on their own locked and encrypted screen, so it isn't just sitting here for anyone using this device to see.</p>
-
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Account Info</strong>
-                    <p>Photo, alias, and optional personal details. Locked behind your PIN and encrypted at rest.</p>
-                </div>
-                <a href="../account-info/account-info.html" class="settings-nav-link">🔐 Open</a>
+        <section class="card top hero-card">
+            <div class="hero">
+                <div class="avatar" id="st-avatar" aria-hidden="true">🐝</div>
+                <div class="who"><b id="st-name">Beekeeper</b><small><span id="cloud-sync-email"></span><span id="st-level"></span></small></div>
             </div>
-        </div></details>
-
-        <details class="panel settings-category"><summary>🔐 Account Security</summary><div class="settings-category-body">
-            <p class="settings-intro">Manage your account password and device PINs.</p>
-<div class="settings-action-row"><div class="settings-action-info"><strong>Reset account password</strong><p>Netlify will email you a password reset link. This changes your cloud login password; your PINs stay the same.</p><label for="reset-account-email">Account email</label><input id="reset-account-email" type="email" autocomplete="email"><p id="reset-password-status" role="status"></p></div><button id="reset-account-password-btn">Email Reset Link</button></div>
-
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Manage PIN</strong>
-                    <p>Set a PIN for the first time, or change an existing one.</p>
-                </div>
-                <a href="../account-security/account-security.html" class="settings-nav-link">🔐 Open</a>
+            <div id="cloud-sync-signed-out" class="signed-out">
+                <p>Sign in to keep your progress on every device.</p>
+                <button id="cloud-sync-login-btn" class="btn solid" type="button">Sign in to Cloud</button>
             </div>
-        </div></details>
-
-        <details class="panel settings-category"><summary>🐝 Eevee</summary><div class="settings-category-body">
-            <p class="settings-intro">Talk to Eevee from the honeycomb button anywhere in the app. Here, you can export what she's picked up so far. See ROADMAP.md's "Two-track plan" for what these exports are actually for.</p>
-
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Export Conversations</strong>
-                    <p>Downloads everything you and Eevee have said to each other as a .jsonl file - the raw material for training her for real, later.</p>
-                </div>
-                <button id="export-conversations-btn">📤 Export</button>
+            <div id="cloud-vs-local-compare" class="sync" role="status" aria-live="polite">
+                <p id="sync-compare-verdict" class="verdict">Checking…</p>
+                <div class="times"><span>📍 This device <b id="sync-compare-local">—</b></span><span>☁️ Cloud <b id="sync-compare-cloud">—</b></span></div>
             </div>
+        </section>
 
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Export Quest Data</strong>
-                    <p>Downloads your quest and career history as its own .json file, kept separate from conversations since it's a different shape of data.</p>
+        <h2 class="sec">Account</h2>
+        <section class="card">
+            <a class="row" href="../account-info/account-info.html"><span class="hx">🧬</span><span class="mid"><b>Account Info</b><small>Photo, name, personal details, Habitica</small></span><span class="chev">›</span></a>
+            <a class="row" href="../account-security/account-security.html"><span class="hx">🔐</span><span class="mid"><b>Security</b><small>PIN and app lock</small></span><span class="chev">›</span></a>
+            <details>
+                <summary class="row"><span class="hx">🔑</span><span class="mid"><b>Reset account password</b><small>Emails you a reset link</small></span><span class="chev">›</span></summary>
+                <div class="inner">
+                    <label class="lbl" for="reset-account-email">Account email</label>
+                    <div class="line"><input id="reset-account-email" type="email" autocomplete="email"><button id="reset-account-password-btn" class="btn" type="button">Email Link</button></div>
+                    <p id="reset-password-status" class="status" role="status"></p>
                 </div>
-                <button id="export-quests-btn">📤 Export</button>
-            </div>
-        </div></details>
-
-        <details class="panel settings-category"><summary>💾 Local Save &amp; Device Data</summary><div class="settings-category-body">
-            <p class="settings-intro">Everything here lives only on this device/browser - nothing is sent anywhere unless you export a file yourself.</p>
-            <p id="local-only-updated-row" class="settings-intro">📍 Last updated on this device: <strong id="local-only-updated">—</strong></p>
-
-            <div class="settings-action-row"><div class="settings-action-info"><strong>Import history file</strong><p>Adds old progress (like your Codex Career Terminal) as finished quests, dictionary terms, projects and a timeline. Nothing is replaced. Do it while signed in to the cloud and it goes to your cloud save (and your phone).</p><p id="history-import-status" role="status" aria-live="polite"></p></div><button id="history-import-btn">📥 Import</button><input type="file" id="history-import-file" accept=".json,application/json" hidden></div>
-
-            <details class="settings-subcategory" open><summary>Device recovery copies</summary>
-            <p>Keep up to three quick recovery copies on this device. These are unencrypted local snapshots, not cloud backups; clearing browser data removes them.</p>
-            <div class="settings-action-row"><button id="local-backup-btn">Create Device Backup</button><button id="local-backup-refresh-btn">Refresh Recovery Copies</button></div>
-            <div id="local-backup-list"></div>
             </details>
+        </section>
 
-            <details class="settings-subcategory" open><summary>Save files folder (last 3 saves)</summary>
-            <p>Keeps your last 3 saves as files on this computer, outside the browser, so clearing site data can't take them. Choose your <b>Bizzybee_App\save-files</b> folder once. A new save file is written every 2 hours while you use the app, and only the newest 3 are kept. Cloud backups below have a ⬇️ Save file button too.</p>
+        <div id="cloud-sync-signed-in" hidden>
+            <h2 class="sec">Cloud &amp; sync</h2>
+            <section class="card">
+                <div class="row"><span class="hx">☁️</span><span class="mid"><b>Automatic cloud uploads</b><small>Saves to the cloud shortly after changes</small></span><label class="toggle-switch"><input type="checkbox" id="cloud-sync-auto-toggle" aria-label="Automatic cloud uploads" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+                <div class="btns indent"><button id="cloud-sync-push-btn" class="btn solid" type="button">Save to Cloud</button><button id="cloud-sync-pull-btn" class="btn" type="button">Load from Cloud</button></div>
+                <p id="cloud-sync-status" class="status indent" role="status" aria-live="polite">Connecting to cloud…</p>
+                <details>
+                    <summary class="row"><span class="hx">🧰</span><span class="mid"><b>More sync options</b><small>Backups, conflicts, offline profile</small></span><span class="chev">›</span></summary>
+                    <div class="inner">
+                        <div class="row"><span class="mid"><b>Automatic backups</b><small>Backs up your cloud save even while the app is closed. Keeps the latest 30.</small></span></div>
+                        <div class="line"><label class="lbl" for="backup-interval">Every</label><select id="backup-interval"><option value="4">4 hours</option><option value="8">8 hours</option><option value="12">12 hours</option><option value="24" selected>24 hours</option></select><button id="backup-schedule-btn" class="btn" type="button">Save</button></div>
+                        <p id="backup-status" class="status" role="status" aria-live="polite"></p>
+                        <div class="btns"><button id="backup-now-btn" class="btn" type="button">Back Up Now</button><button id="backup-refresh-btn" class="btn" type="button">Show Backups</button></div>
+                        <div id="cloud-backup-list" class="list"></div>
+                        <div class="row"><span class="mid"><b>Download cloud to local</b><small>Pick your Bizzybee_App folder. Updates your offline profile and adds a file to save-files (last 3 kept).</small><small id="cloud-local-download-status" class="status" role="status" aria-live="polite"></small></span><button id="cloud-local-download-btn" class="btn" type="button">Download</button></div>
+                        <div class="row"><span class="mid"><b>Use this device's copy</b><small>Only to fix a sync conflict. The old cloud copy is backed up first.</small></span><button id="cloud-sync-use-device-btn" class="btn danger" type="button">Use Device</button></div>
+                        <div class="row"><span class="mid"><b>Sign out of the cloud</b><small>This device keeps working offline.</small></span><button id="cloud-sync-logout-btn" class="btn" type="button">Sign Out</button></div>
+                    </div>
+                </details>
+            </section>
+        </div>
 
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Download a Copy Now</strong>
-                    <p>Saves your current progress as a file to your Downloads folder. Works in every browser, including iPhone.</p>
-                </div>
-                <button id="folder-backup-download-btn">⬇️ Download</button>
+        <h2 class="sec">Phone</h2>
+        <section class="card">
+            <div class="row"><span class="hx">🔔</span><span class="mid"><b>Phone reminders</b><small id="push-status" role="status" aria-live="polite">Checking…</small></span><label class="toggle-switch"><input type="checkbox" id="push-toggle" aria-label="Phone reminders on this device"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+            <div class="inner">
+                <div class="row"><span class="mid"><b>Show task names</b><small>Off = "You have a task reminder"</small></span><label class="toggle-switch"><input type="checkbox" id="push-names-toggle" aria-label="Show task names in notifications" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+                <div class="row"><span class="mid"><b>Send a test</b><small>Arrives in a few seconds</small></span><button id="push-test-btn" class="btn" type="button" disabled>Test</button></div>
             </div>
+            <a class="row" href="../sync/sync.html"><span class="hx">🔄</span><span class="mid"><b>Phone Sync</b><small>Calendar feed link for Android</small></span><span class="chev">›</span></a>
+        </section>
 
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Save files folder</strong>
-                    <p id="folder-backup-status">Checking this browser…</p>
+        <h2 class="sec">Tracking</h2>
+        <section class="card">
+            <div class="row"><span class="hx">⏱️</span><span class="mid"><b>Ask how long it took</b><small>Pop-up after you finish a task. XP is about 1 per minute.</small></span><label class="toggle-switch"><input type="checkbox" id="timelog-toggle" aria-label="Ask how long it took" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+        </section>
+
+        <h2 class="sec">Your data</h2>
+        <section class="card">
+            <div class="row"><span class="hx">📁</span><span class="mid"><b>Save files folder</b><small id="folder-backup-status">Checking this browser…</small></span><button id="folder-backup-choose-btn" class="btn" type="button" hidden>Choose</button><button id="folder-backup-disconnect-btn" class="btn" type="button" hidden>Disconnect</button></div>
+            <div class="row"><span class="hx">⬇️</span><span class="mid"><b>Download a copy now</b><small>One save file to your Downloads</small></span><button id="folder-backup-download-btn" class="btn" type="button">Download</button></div>
+            <details>
+                <summary class="row"><span class="hx">📦</span><span class="mid"><b>Import &amp; export</b><small>Full save, history file, recovery copies</small></span><span class="chev">›</span></summary>
+                <div class="inner">
+                    <p class="status" id="local-only-updated-row">📍 Last change on this device: <b id="local-only-updated">—</b></p>
+                    <div class="row"><span class="mid"><b>Export full save</b><small>Your whole hive as one file. Add a 6-digit PIN to lock it.</small></span><button id="export-full-save-btn" class="btn" type="button">Export</button></div>
+                    <label class="lbl" for="full-save-password">PIN for the file (optional)</label>
+                    <input type="password" id="full-save-password" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Blank = plain file" autocomplete="off">
+                    <label class="lbl" for="full-save-hint">Hint (optional, not locked)</label>
+                    <input type="text" id="full-save-hint" placeholder="Never the PIN itself" maxlength="80">
+                    <div class="row"><span class="mid"><b>Import full save</b><small>Replaces everything on this device. Enter the file's PIN above first.</small><small id="import-full-save-hint-display" class="status" hidden></small></span><button id="import-full-save-btn" class="btn danger" type="button">Import</button></div>
+                    <input type="file" id="import-full-save-input" class="file-input" aria-label="Save file to import">
+                    <div class="row"><span class="mid"><b>Import history file</b><small>Old progress, like the Codex Career Terminal. Nothing is replaced.</small><small id="history-import-status" class="status" role="status" aria-live="polite"></small></span><button id="history-import-btn" class="btn" type="button">Import</button><input type="file" id="history-import-file" accept=".json,application/json" hidden></div>
+                    <div class="row"><span class="mid"><b>Device recovery copies</b><small>Up to 3 quick copies on this device</small></span></div>
+                    <div class="btns"><button id="local-backup-btn" class="btn" type="button">Make a Copy</button><button id="local-backup-refresh-btn" class="btn" type="button">Show Copies</button></div>
+                    <div id="local-backup-list" class="list"></div>
                 </div>
-                <button id="folder-backup-choose-btn" hidden>📁 Choose Folder</button>
-                <button id="folder-backup-disconnect-btn" hidden>Disconnect</button>
-            </div>
             </details>
+        </section>
 
-            <details class="settings-subcategory"><summary>Full save (backup &amp; transfer)</summary>
-            <p class="settings-intro">Makes a full copy of your entire progress - every quest, XP, level, bee, everything - as one file. Nothing is removed from this device; it's a copy, not a move. Use it to keep a backup somewhere safe, or to bring your progress to another device. No account or internet connection needed.</p>
+        <h2 class="sec">Eevee &amp; help</h2>
+        <section class="card">
+            <div class="row"><span class="hx">💬</span><span class="mid"><b>Export conversations</b><small>Everything you and Eevee said (.jsonl)</small></span><button id="export-conversations-btn" class="btn" type="button">Export</button></div>
+            <div class="row"><span class="hx">📜</span><span class="mid"><b>Export quest data</b><small>Quest and career history (.json)</small></span><button id="export-quests-btn" class="btn" type="button">Export</button></div>
+            <a class="row" href="../../../suggestions.html"><span class="hx">✉️</span><span class="mid"><b>Send feedback</b><small>Ideas and bug reports</small></span><span class="chev">›</span></a>
+        </section>
 
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Export Full Save</strong>
-                    <p>Downloads your complete Vault as one file. Send it to your other device however you like (email, Drive, AirDrop) and import it there.</p>
-                    <label class="settings-password-label" for="full-save-password">Encryption PIN (optional, 6 digits)</label>
-                    <input type="password" id="full-save-password" class="settings-password-input pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Leave blank to export as plain JSON" autocomplete="off">
-                    <label class="settings-password-label" for="full-save-hint">Hint for yourself (optional, stored in plain text)</label>
-                    <input type="text" id="full-save-hint" class="settings-password-input" placeholder="e.g. \"same as my bike lock\"" maxlength="80">
-                    <p class="settings-file-hint">A short numeric PIN is easier to remember and re-type on another device than a full password. Set a hint too if you're worried you'll forget it - the hint is saved in the file as plain, unencrypted text, so never put the actual PIN in it. You'll still need the exact PIN to import; there's no recovery if it's really lost.</p>
-                </div>
-                <button id="export-full-save-btn">📤 Export</button>
-            </div>
+        <div id="dev-section" hidden>
+            <h2 class="sec">Developer</h2>
+            <section class="card">
+                <div class="row"><span class="hx">🛠</span><span class="mid"><b>Replay the egg</b><small>Practice run. Nothing is saved.</small></span><button id="practice-egg-btn" class="btn" type="button">Replay</button></div>
+            </section>
+        </div>
 
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Import Full Save</strong>
-                    <p>Loads a save file exported from another device. This replaces everything currently in this browser - make sure you actually want to overwrite it first.</p>
-                    <!-- No accept filter, deliberately - see the matching note on
-                         index.html's load-save-input (Samsung Internet collapses
-                         its picker to Photos/Video only when any accept filter is
-                         present; wide open is what actually surfaces "My Files"). -->
-                    <input type="file" id="import-full-save-input" class="settings-file-input">
-                    <p id="import-full-save-hint-display" class="settings-file-hint" hidden></p>
-                    <p class="settings-file-hint">Picker only offering Photos/Video? Look for a menu icon, "Browse," or "My Files" inside it. If the file was exported with a PIN, enter it above before importing.</p>
-                </div>
-                <button id="import-full-save-btn">📥 Import</button>
-            </div>
-            </details>
-
-        </div></details>
-
-        <details class="panel settings-category"><summary>💬 Feedback & Suggestions</summary><div class="settings-category-body">
-            <p class="settings-intro">Leave a review or suggest something - Leo reads every one and can reply straight to your email.</p>
-
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Send Feedback</strong>
-                    <p>Opens a short form - optional star rating, plus a message. Not tied to your account or PIN, so it's safe even if you'd rather stay anonymous about the details.</p>
-                </div>
-                <a href="../../../suggestions.html" class="settings-nav-link">💬 Open</a>
-            </div>
-        </div></details>
-
-        <details id="dev-section" class="panel settings-category" hidden><summary>🛠 Developer</summary><div class="settings-category-body">
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Replay the egg</strong>
-                    <p>Plays the whole egg-to-royal opening again as practice. Nothing is saved, and your bees and habits stay as they are.</p>
-                </div>
-                <button id="practice-egg-btn" class="settings-nav-link" type="button">🥚 Replay</button>
-            </div>
-        </div></details>
-
-        <details class="panel settings-category"><summary>🔐 Session</summary><div class="settings-category-body">
-            <div class="settings-action-row">
-                <div class="settings-action-info">
-                    <strong>Log Out</strong>
-                    <p>Clears this device's login and sends you back to the login screen.</p>
-                </div>
-                <button id="logout-btn" class="settings-btn-danger">🚪 Log Out</button>
-            </div>
-        </div></details>
-
+        <section class="card"><button id="logout-btn" class="row logout" type="button">Log out</button></section>
     </main>
 
     <script src="../../core/db.js"></script>

@@ -18,7 +18,8 @@
 // ============================================================================
 (function () {
     const OWNER_HASHES = [
-        'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d'
+        'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d',
+        '0fb7061c0faa822f969cf19e1e1e96f9abd3ea14b0c3e232f80b25eea65b374f'   // collaborator (Oct 2026)
     ];
     const DEV_KEY = 'bizzybee_dev';
     const TEST_KEY = 'bizzybee_dev_test';
@@ -340,6 +341,8 @@
     // A test save stays reachable even if the owner check can't run (so
     // you can always switch back). Otherwise: this computer, or the owner.
     const allowed = localDev || testOn() ? Promise.resolve(true) : isOwner();
+    // Settings asks this to show its Developer section (Oct 2026).
+    window.BizzyDev = { allowed: () => allowed };
     const start = () => allowed.then(ok => ok ? ready().then(build) : null).catch(() => {});
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();

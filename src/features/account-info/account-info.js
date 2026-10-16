@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const data = readPersonalInfoForm();
         if (!data.alias) {
-            errorEl.textContent = 'Alias is required - everything else is optional.';
+            errorEl.textContent = 'Add a name to show - everything else is optional.';
             errorEl.hidden = false;
             return;
         }
@@ -350,6 +350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // attemptUnlock) sets it.
         await Vault.setPersonalInfo(data, unlockedPin);
         Toast.show('💾 Saved and encrypted.', 'positive');
+        if (window.AccountInfoV2) AccountInfoV2.markSaved();
     });
 
     document.getElementById('habitica-import-btn').addEventListener('click', async () => {
@@ -391,3 +392,87 @@ document.addEventListener('DOMContentLoaded', async () => {
         Toast.show('Habitica disconnected on this device.', 'positive');
     });
 });
+
+
+// ---- Account Info v2 (Oct 2026 redesign - approved demo) -------------------
+// PIN boxes + number pad, auto BMI, a Save bar that shows when something
+// changed, Habitica status pill and Lock now. The old logic above is unchanged.
+const AccountInfoV2 = (() => {
+    const PI = ['pi-alias', 'pi-firstName', 'pi-lastName', 'pi-work', 'pi-address', 'pi-height', 'pi-weight', 'pi-bmi', 'pi-availability', 'pi-habiticaUserId', 'pi-habiticaApiToken'];
+    let saved = null;
+    const $ = (id) => document.getElementById(id);
+    const snapshot = () => Object.fromEntries(PI.map(id => [id, $(id).value]));
+
+    // Height: 5'10", 5 ft 10, 70 in, 178 cm, 1.78 m. Weight: 165 lbs, 75 kg.
+    function meters(text) {
+        const t = String(text).toLowerCase().trim();
+        let m;
+        if ((m = t.match(/(\d+(?:\.\d+)?)\s*cm/))) return +m[1] / 100;
+        if ((m = t.match(/^(\d(?:\.\d+)?)\s*m\b/))) return +m[1];
+        if ((m = t.match(/(\d+)\s*(?:'|ft|feet)\s*(\d+(?:\.\d+)?)?/))) return ((+m[1]) * 12 + (+m[2] || 0)) * 0.0254;
+        if ((m = t.match(/(\d+(?:\.\d+)?)\s*(?:"|in)/))) return +m[1] * 0.0254;
+        return null;
+    }
+    function kilos(text) {
+        const t = String(text).toLowerCase().trim();
+        const m = t.match(/(\d+(?:\.\d+)?)\s*(kg|kilo|lb|lbs|pound)?/);
+        if (!m) return null;
+        return m[2] && m[2].startsWith('k') ? +m[1] : +m[1] * 0.453592;
+    }
+    function updateBmi() {
+        const h = meters($('pi-height').value), w = kilos($('pi-weight').value);
+        const bmi = h && w && h > 0.8 && h < 2.6 && w > 20 && w < 400 ? (w / (h * h)).toFixed(1) : '';
+        if (bmi) $('pi-bmi').value = bmi;
+    }
+    function dirtyCheck() {
+        if (!saved) return;
+        const now = snapshot();
+        $('ai-savebar').hidden = !PI.some(id => now[id] !== saved[id]);
+    }
+    function markSaved() { saved = snapshot(); $('ai-savebar').hidden = true; $('ai-name').textContent = $('pi-alias').value.trim() || 'You'; }
+
+    function pinPad() {
+        const input = $('account-unlock-pin');
+        const boxes = [...document.querySelectorAll('.pin-boxes i')];
+        const paint = () => boxes.forEach((b, i) => { b.textContent = i < input.value.length ? '•' : ''; b.classList.toggle('on', i === Math.min(input.value.length, 5)); });
+        input.addEventListener('input', paint);
+        const keys = $('ai-keys');
+        keys.innerHTML = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✓'].map(k =>
+            `<button type="button" data-k="${k}" aria-label="${k === '⌫' ? 'Delete' : k === '✓' ? 'Unlock' : k}">${k}</button>`).join('');
+        keys.addEventListener('click', (e) => {
+            const k = e.target.closest('[data-k]')?.dataset.k;
+            if (!k) return;
+            if (k === '⌫') input.value = input.value.slice(0, -1);
+            else if (k === '✓') { $('account-unlock-btn').click(); return; }
+            else if (input.value.length < 6) input.value += k;
+            paint();
+            if (input.value.length === 6) $('account-unlock-btn').click();
+        });
+        // A wrong PIN clears the boxes so you can try again.
+        new MutationObserver(() => { if (!$('account-unlock-error').hidden) { input.value = ''; paint(); } }).observe($('account-unlock-error'), { attributes: true, attributeFilter: ['hidden'] });
+        paint();
+    }
+
+    function habiticaPill() {
+        const on = typeof HabiticaSync !== 'undefined' && HabiticaSync.isConnected();
+        $('ai-hab-pill').textContent = on ? 'CONNECTED' : 'OFF';
+        $('ai-hab-pill').classList.toggle('on', on);
+        $('ai-hab-hx').classList.toggle('gold', on);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        pinPad();
+        ['pi-height', 'pi-weight'].forEach(id => $(id).addEventListener('input', updateBmi));
+        PI.forEach(id => $(id).addEventListener('input', dirtyCheck));
+        $('ai-undo').addEventListener('click', () => { if (saved) PI.forEach(id => { $(id).value = saved[id]; }); dirtyCheck(); });
+        $('ai-lock').addEventListener('click', () => location.reload());
+        // When the page unlocks, remember what was loaded.
+        new MutationObserver(() => {
+            if (!$('account-content').hidden && !saved) setTimeout(() => { updateBmi(); markSaved(); habiticaPill(); }, 50);
+        }).observe($('account-content'), { attributes: true, attributeFilter: ['hidden'] });
+        window.addEventListener('habitica-sync-status', habiticaPill);
+        setTimeout(habiticaPill, 1500);
+    });
+    return { markSaved };
+})();
+window.AccountInfoV2 = AccountInfoV2;

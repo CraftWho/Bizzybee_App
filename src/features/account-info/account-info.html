@@ -21,167 +21,84 @@
 </head>
 <body>
 
-    <main class="account-info-container">
+    <main class="aiv2">
 
-        <h2 class="account-info-title">🔐 <span class="gold-gradient-text">ACCOUNT INFO</span></h2>
-
-        <!-- PIN-CREATE screen - shown when no PIN has ever been set on this
-             save (Vault.hasAccountPin() false). First-time setup only;
-             account-info.js switches this out for the enter-PIN screen
-             below the moment a PIN exists, on this visit or any future one. -->
-        <section class="panel" id="account-pin-create-screen" hidden>
-            <h3>🔢 Create a PIN</h3>
-            <p class="account-info-intro">Set a 6-digit PIN, numbers only. It locks this page AND is the encryption key for your personal information - there's no recovery if you forget it, so pick one you'll remember.</p>
-
-            <div class="pin-field-group">
-                <label for="pin-create-new">New PIN</label>
-                <input type="password" id="pin-create-new" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
-            </div>
-            <div class="pin-field-group">
-                <label for="pin-create-confirm">Confirm PIN</label>
-                <input type="password" id="pin-create-confirm" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
-            </div>
-
-            <p id="pin-create-error" class="account-info-error" hidden></p>
-            <button id="pin-create-btn">Create PIN</button>
+        <!-- First visit: make a PIN. -->
+        <section class="card top lock" id="account-pin-create-screen" hidden>
+            <div class="hx big" aria-hidden="true">🔢</div>
+            <h1>CREATE A PIN</h1>
+            <p class="sub">6 numbers. It locks this page and encrypts your details. There is no reset if you forget it.</p>
+            <label class="field"><span>New PIN</span><input type="password" id="pin-create-new" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"></label>
+            <label class="field"><span>Confirm PIN</span><input type="password" id="pin-create-confirm" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"></label>
+            <p id="pin-create-error" class="err" role="alert" hidden></p>
+            <button id="pin-create-btn" class="btn solid wide" type="button">Create PIN</button>
         </section>
 
-        <!-- PIN-ENTER screen - shown whenever a PIN already exists. Nothing
-             below this unlocks or renders until it's entered correctly. -->
-        <section class="panel" id="account-lock-screen" hidden>
-            <h3>🔒 Locked</h3>
-            <p class="account-info-intro">Your photo and personal information live here, encrypted with your own PIN - not just hidden behind a screen. Enter it to continue.</p>
-
-            <div class="pin-field-group">
-                <label for="account-unlock-pin">PIN</label>
+        <!-- Locked: PIN boxes + number pad. -->
+        <section class="card top lock" id="account-lock-screen" hidden>
+            <div class="hx big" aria-hidden="true">🔒</div>
+            <h1>ACCOUNT INFO</h1>
+            <p class="sub">Your photo and details are encrypted with your PIN. Enter it to open.</p>
+            <label class="pin-wrap" for="account-unlock-pin">
+                <span class="sr">PIN</span>
                 <input type="password" id="account-unlock-pin" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
-            </div>
-
-            <p id="account-unlock-error" class="account-info-error" hidden></p>
-            <button id="account-unlock-btn">Unlock</button>
+                <span class="pin-boxes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            </label>
+            <p id="account-unlock-error" class="err" role="alert" hidden></p>
+            <div class="keys" id="ai-keys"></div>
+            <button id="account-unlock-btn" class="btn solid wide" type="button">Unlock</button>
         </section>
 
-        <!-- Unlocked content - hidden until account-info.js confirms the
-             PIN and successfully decrypts whatever's already saved. -->
         <div id="account-content" hidden>
-
-            <section class="panel">
-                <h3>🖼️ Photo</h3>
-                <p class="account-info-intro">Shown on your Profile page. Uploads are resized automatically before they're stored.</p>
-
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <div class="settings-avatar-preview-row">
-                            <div class="settings-avatar-preview-hex">
-                                <img id="account-avatar-preview" src="../../assets/images/me.jpg" alt="Profile photo preview">
-                            </div>
-                            <button type="button" id="account-avatar-remove-btn" class="settings-icon-btn" title="Remove photo" hidden>🗑️</button>
+            <section class="card top">
+                <div class="hero">
+                    <div class="photo"><img id="account-avatar-preview" src="../../assets/images/me.jpg" alt="Your photo"></div>
+                    <div class="who">
+                        <b id="ai-name">You</b><small>Shown on your Profile and top bar</small>
+                        <div class="btns">
+                            <button id="account-avatar-edit-btn" class="btn" type="button">✏️ Change photo</button>
+                            <button type="button" id="account-avatar-migrate-btn" class="btn" hidden>📥 Use Existing Photo</button>
+                            <button type="button" id="account-avatar-remove-btn" class="btn danger" hidden>Remove</button>
                         </div>
                     </div>
-                    <div class="settings-action-btns">
-                        <!-- Only shown when no photo has ever actually been uploaded into
-                             the save AND a local src/assets/images/me.jpg happens to exist
-                             on this device (see account-info.js's updateAvatarMigrateButton) -
-                             a one-click way to pull that device-only fallback file into real,
-                             exportable save data instead of re-picking it by hand. -->
-                        <button type="button" id="account-avatar-migrate-btn" class="account-avatar-migrate-btn" hidden>📥 Use Existing Photo</button>
-                        <button id="account-avatar-edit-btn">✏️ Edit</button>
-                    </div>
                 </div>
-
                 <input type="file" id="account-avatar-input" accept="image/*" hidden>
             </section>
+            <p class="privacy">🔒 Everything here is encrypted with your PIN. <button type="button" class="link" id="ai-lock">Lock now</button></p>
 
-            <section class="panel">
-                <h3>🧬 Personal Information</h3>
-                <p class="account-info-intro">Only Alias is required. Everything else here is optional for now - later, fields like Height/Weight/Work/Address are meant to only show up once a matching plugin is installed; for now they're all just kept together on this one page.</p>
-
-                <div class="personal-info-grid">
-                    <label class="personal-info-field">
-                        <span>Alias <span class="required-mark">*</span></span>
-                        <input type="text" id="pi-alias" placeholder="What should we call you?">
-                    </label>
-                    <label class="personal-info-field">
-                        <span>First Name</span>
-                        <input type="text" id="pi-firstName" placeholder="Optional">
-                    </label>
-                    <label class="personal-info-field">
-                        <span>Last Name</span>
-                        <input type="text" id="pi-lastName" placeholder="Optional">
-                    </label>
-                    <label class="personal-info-field personal-info-field-wide">
-                        <span>Availability / Schedule</span>
-                        <input type="text" id="pi-availability" placeholder="e.g. Weeknights 7-9pm, weekends flexible">
-                    </label>
-                    <label class="personal-info-field">
-                        <span>Height</span>
-                        <input type="text" id="pi-height" placeholder="e.g. 5'10&quot;">
-                    </label>
-                    <label class="personal-info-field">
-                        <span>Weight</span>
-                        <input type="text" id="pi-weight" placeholder="e.g. 165 lbs">
-                    </label>
-                    <label class="personal-info-field">
-                        <span>BMI</span>
-                        <input type="text" id="pi-bmi" placeholder="e.g. 22.5">
-                    </label>
-                    <label class="personal-info-field">
-                        <span>Work</span>
-                        <input type="text" id="pi-work" placeholder="Employer / role">
-                    </label>
-                    <label class="personal-info-field personal-info-field-wide">
-                        <span>Address</span>
-                        <input type="text" id="pi-address" placeholder="Street, City, State">
-                    </label>
-                </div>
-
-                <p id="account-info-error" class="account-info-error" hidden></p>
-
-                <div class="settings-action-row account-info-save-row">
-                    <div class="settings-action-info">
-                        <strong>Save</strong>
-                        <p>Encrypted with your PIN before it's stored - even someone with your save file can't read this without it.</p>
-                    </div>
-                    <button id="save-account-info-btn">💾 Save</button>
-                </div>
+            <h2 class="sec">About you</h2>
+            <section class="card pad">
+                <label class="field"><span>Name to show *</span><input type="text" id="pi-alias" placeholder="What should we call you?"></label>
+                <div class="two"><label class="field"><span>First name</span><input type="text" id="pi-firstName" placeholder="Optional"></label><label class="field"><span>Last name</span><input type="text" id="pi-lastName" placeholder="Optional"></label></div>
+                <label class="field"><span>Work</span><input type="text" id="pi-work" placeholder="Employer / role"></label>
+                <label class="field"><span>Address</span><input type="text" id="pi-address" placeholder="Street, City, State"></label>
             </section>
 
-            <section class="panel">
-                <h3>🎮 Habitica Sync</h3>
-                <p class="account-info-intro">Optional - keeps your Habits, Dailies and To-Dos in step with Habitica, both ways: check-offs, new tasks, edits and deletes. It syncs when the app opens, every 5 minutes, and right after you change something. Find both values on habitica.com under Settings &gt; API. They're stored here encrypted with your PIN; after you unlock, this device keeps a copy so syncing works without the PIN.</p>
-
-                <div class="personal-info-grid">
-                    <label class="personal-info-field">
-                        <span>Habitica User ID</span>
-                        <input type="text" id="pi-habiticaUserId" placeholder="Found under Settings > API">
-                    </label>
-                    <label class="personal-info-field">
-                        <span>Habitica API Token</span>
-                        <input type="password" id="pi-habiticaApiToken" placeholder="Found under Settings > API" autocomplete="off">
-                    </label>
-                </div>
-
-                <p id="habitica-import-status" class="account-info-status" hidden></p>
-                <p id="habitica-import-error" class="account-info-error" hidden></p>
-
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <strong>Sync now</strong>
-                        <p>Connects this device and syncs right away. Turns on automatic syncing.</p>
-                    </div>
-                    <button id="habitica-import-btn">🔄 Sync now</button>
-                </div>
-                <div class="settings-action-row">
-                    <div class="settings-action-info">
-                        <strong>Disconnect this device</strong>
-                        <p>Stops syncing here and removes the device copy of your key. Your tasks stay.</p>
-                    </div>
-                    <button id="habitica-disconnect-btn" hidden>Disconnect</button>
-                </div>
+            <h2 class="sec">Body &amp; schedule</h2>
+            <section class="card pad">
+                <div class="three"><label class="field"><span>Height</span><input type="text" id="pi-height" placeholder="5'10&quot; or 178 cm"></label><label class="field"><span>Weight</span><input type="text" id="pi-weight" placeholder="165 lbs or 75 kg"></label><label class="field"><span>BMI</span><input type="text" id="pi-bmi" placeholder="auto" readonly tabindex="-1"></label></div>
+                <label class="field"><span>When are you free?</span><input type="text" id="pi-availability" placeholder="e.g. Weeknights 7-9pm"></label>
             </section>
 
+            <h2 class="sec">Connections</h2>
+            <section class="card">
+                <details id="ai-habitica">
+                    <summary class="row"><span class="hx" id="ai-hab-hx" aria-hidden="true">⚔️</span><span class="mid"><b>Habitica</b><small id="habitica-import-status">Not connected on this device.</small></span><span class="pill" id="ai-hab-pill">OFF</span><span class="chev">›</span></summary>
+                    <div class="inner">
+                        <p class="sub">Keeps Habits, Dailies and To-Dos in step with Habitica, both ways. Find both values on habitica.com → Settings → API.</p>
+                        <div class="two"><label class="field"><span>User ID</span><input type="text" id="pi-habiticaUserId" placeholder="Settings > API"></label><label class="field"><span>API Token</span><input type="password" id="pi-habiticaApiToken" placeholder="Settings > API" autocomplete="off"></label></div>
+                        <p id="habitica-import-error" class="err" role="alert" hidden></p>
+                        <div class="btns"><button id="habitica-import-btn" class="btn solid" type="button">🔄 Sync now</button><button id="habitica-disconnect-btn" class="btn danger" type="button" hidden>Disconnect</button></div>
+                    </div>
+                </details>
+            </section>
+
+            <div class="savebar" id="ai-savebar" hidden>
+                <span id="account-info-error-wrap"><span class="msg">Unsaved changes</span><span id="account-info-error" class="err" role="alert" hidden></span></span>
+                <button type="button" class="btn" id="ai-undo">Undo</button>
+                <button id="save-account-info-btn" class="btn solid" type="button">💾 Save</button>
+            </div>
         </div>
-
     </main>
 
     <script src="../../core/db.js"></script>
