@@ -158,6 +158,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             Toast.show('🛠 Developer tools shown.', 'positive');
         }
     });
+    // Owners (and this computer's dev login) see Developer automatically.
+    setTimeout(() => {
+        if (window.BizzyDev) window.BizzyDev.allowed().then(ok => { if (ok) devSection.hidden = false; }).catch(() => {});
+    }, 800);
+
+    // Top card: your name, level and royal (Oct 2026 redesign).
+    try {
+        const royal = typeof Vault.getRoyalBee === 'function' ? Vault.getRoyalBee() : null;
+        const bar = Vault.getCharacterLevelBar();
+        document.getElementById('st-name').textContent = Vault.state.displayName || (royal && royal.name) || (Vault.getUser() || {}).name || 'Beekeeper';
+        document.getElementById('st-level').textContent = bar ? `Level ${bar.level}` : '';
+        if (royal) document.getElementById('st-avatar').textContent = royal.royal === 'king' ? '🤴' : '👑';
+    } catch { /* keep defaults */ }
+
     document.getElementById('practice-egg-btn').addEventListener('click', () => {
         window.location.href = '../onboarding/onboarding.html?practice=1';
     });
