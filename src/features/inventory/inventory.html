@@ -15,61 +15,44 @@
     <link rel="stylesheet" href="../../core/global.css">
     <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
-    <link rel="stylesheet" href="../../core/item-card/item-card.css">
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
     <link rel="stylesheet" href="./inventory.css">
 </head>
 <body>
+    <!-- Inventory v2 (Oct 2026, approved demo): same look as Settings.
+         Colony Bees moved to its own page (../colony-bees/). -->
+    <main class="pv2 inv2">
+        <h1 class="pv2-title">🎒 INVENTORY</h1>
+        <p class="pv2-lead">Everything your bees bring back.</p>
 
-    <main class="inventory-container">
-
-        <div class="panel page-header-panel">
-            <h2 class="page-title">🎒 <span class="gold-gradient-text">INVENTORY</span></h2>
-            <p class="page-subtitle">Everything your Collector bees can bring back, plus your full colony roster.</p>
-        </div>
-
-        <button class="inventory-bee-roster-card" id="inventory-bee-roster-btn">
-            <span class="inventory-bee-roster-icon">🐝</span>
-            <span class="inventory-bee-roster-text">
-                <strong>View &amp; Manage Colony Bees</strong>
-                <span id="inventory-bee-roster-count">0 bees</span>
-            </span>
-            <span class="inventory-bee-roster-arrow">→</span>
-        </button>
-
-        <section class="panel">
-            <h3>🌾 Materials</h3>
-            <p class="inventory-materials-note">Collector bees have a chance to bring one of these back whenever you complete a task or daily. Quests award more too - bigger XP and faster completion times both mean bigger hauls. High-grade materials unlock cosmetics down the line.</p>
-            <div class="item-card-grid" id="inventory-materials-grid"></div>
+        <section class="card">
+            <a class="row" href="../colony-bees/colony-bees.html">
+                <span class="hx big">🐝</span>
+                <span class="mid"><b>Colony Bees</b><small id="inv-bee-summary">Your bees</small></span>
+                <span class="chev">›</span>
+            </a>
         </section>
 
-        <section class="panel">
-            <h3>🧬 Evolution Items</h3>
-            <p class="inventory-materials-note">Rare finds from completing quests. Use them from a bee's card in the roster above - an Evolution Stone guarantees a bee evolves up one rarity tier and is assembled from 5 fragments; a Rebirth Stone is the single rarest find and guarantees a bee jumps straight to Legendary; Drill Hands and Nanite Bolts are more common and give an Epic+ bee a chance at a permanent trait.</p>
-            <div class="item-card-grid" id="inventory-items-grid"></div>
-        </section>
+        <div class="stats" id="inv-stats"></div>
 
-        <section class="panel">
-            <h3>🎁 Store Items</h3>
-            <p class="inventory-materials-note">Bought at the Honey Store with materials. Trait items work on any bee that isn't already a Named Beast, and also carry a chance to bump a Common/Rare bee straight to Epic. The Identity Card guarantees a bee becomes a full Named Beast - but only if you haven't personally renamed it. Use them from a bee's card in the roster above.</p>
-            <div class="item-card-grid" id="inventory-store-items-grid"></div>
-        </section>
-
+        <h2 class="sec">Items</h2>
+        <div class="chips" role="group" aria-label="Item type" id="inv-tabs"></div>
+        <div class="tiles" id="inv-grid"></div>
+        <p class="note" id="inv-hint"></p>
     </main>
 
     <script src="../../core/db.js"></script>
     <script src="../../core/plugins.js"></script>
     <script src="../../core/app.js"></script>
     <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/bee-card/bee-card.js"></script>
-    <script src="../../core/item-card/item-card.js"></script>
     <script src="../../core/hive-mind/hive-mind.js"></script>
     <script src="../../core/toast/toast.js"></script>
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/page-v2/page-v2.js"></script>
 
     <script src="./inventory.js"></script>
 </body>

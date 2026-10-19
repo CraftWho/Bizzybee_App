@@ -19,26 +19,30 @@
     <link rel="stylesheet" href="../../core/keeperdex-card/keeperdex-card.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
     <link rel="stylesheet" href="./keeperdex.css">
 </head>
 <body>
 
-    <main class="keeperdex-container">
+    <!-- KeeperDex v2 (Oct 2026): same look as Settings/Inventory. Cards are
+         shown small in a grid; tap one to see it full size. -->
+    <main class="pv2 kd2">
+        <h1 class="pv2-title">📘 KEEPERDEX</h1>
+        <p class="pv2-lead">Every rarity and element the hive can make. Get a matching bee to reveal its entry.</p>
 
-        <div class="panel page-header-panel">
-            <h2 class="page-title">📘 <span class="gold-gradient-text">KEEPERDEX</span></h2>
-            <p class="page-subtitle">Every rarity and element the hive can produce, Pokedex-style. Obtain a matching bee to reveal its entry.</p>
-        </div>
+        <section class="card kd-progress">
+            <div class="kd-progress-top"><b id="keeperdex-progress-text"></b><small id="keeperdex-progress-pct"></small></div>
+            <span class="kd-bar"><i id="keeperdex-progress-fill"></i></span>
+        </section>
 
-        <div class="keeperdex-progress">
-            <span class="keeperdex-progress-text" id="keeperdex-progress-text"></span>
-            <div class="keeperdex-progress-bar">
-                <div class="keeperdex-progress-fill" id="keeperdex-progress-fill"></div>
-            </div>
-        </div>
+        <div class="chips" role="group" aria-label="Show" id="kd-tabs"></div>
+        <div class="kd-grid" id="keeperdex-grid"></div>
 
-        <div class="bee-card-grid" id="keeperdex-grid"></div>
-
+        <!-- Hive Life (Oct 2026): bees that died. -->
+        <section id="keeperdex-memorial" hidden>
+            <h2 class="sec">In memory</h2>
+            <div class="card"><ul class="kd-fallen" id="keeperdex-fallen"></ul></div>
+        </section>
     </main>
 
     <script src="../../core/db.js"></script>
@@ -52,6 +56,7 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/page-v2/page-v2.js"></script>
     <script src="./keeperdex.js"></script>
 </body>
 </html>

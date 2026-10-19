@@ -14,6 +14,8 @@ const PACKS = [
       files: ['src/plugins/dictionary/dictionary.html', 'src/plugins/dictionary/dictionary.css', 'src/plugins/dictionary/dictionary.js'] },
     { id: 'study', kind: 'plugin', icon: '🎓', label: 'Study', kb: 12,
       files: ['src/plugins/study/study.html', 'src/plugins/study/study.css', 'src/plugins/study/study.js'] },
+    { id: 'terminal', kind: 'plugin', icon: '💻', label: 'Terminal', kb: 20,
+      files: ['src/plugins/terminal/terminal.html', 'src/plugins/terminal/terminal.css', 'src/plugins/terminal/terminal.js'] },
     { id: 'bee3d', kind: 'pack', icon: '🐝', label: '3D Bee Model', hd: true, kb: 3600,
       description: 'The full 3D bee on the Models page. Without it you see the flat art only.',
       files: ['src/assets/3d/bizzy-bee.glb', MODEL_VIEWER_URL] }

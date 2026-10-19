@@ -18,19 +18,23 @@
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
     <link rel="stylesheet" href="../../core/wip-page/wip-page.css">
 </head>
 <body>
 
-    <main class="wip-container">
-        <div class="wip-icon">📚</div>
-        <h2 class="wip-title">The Hive Archive</h2>
-        <span class="wip-badge">🚧 Work in Progress</span>
-        <p class="wip-description">
-            A library of PDFs, books, and articles worth keeping close - your own reference
-            shelf inside the hive. Nothing stored yet - check back soon.
-        </p>
-        <a href="../home/home.html" class="wip-back-link">← Back to Home</a>
+    <!-- Hive Archive (Oct 2026): placeholder in the same look as Settings. -->
+    <main class="pv2 ha2">
+        <h1 class="pv2-title">📚 HIVE ARCHIVE</h1>
+        <p class="pv2-lead">Your own reference shelf inside the hive.</p>
+        <section class="card ha-soon">
+            <span class="hx big">📚</span>
+            <b>Coming soon</b>
+            <p>A library of PDFs, books and articles worth keeping close. Nothing stored yet.</p>
+        </section>
+        <section class="card" style="margin-top:14px">
+            <a class="row" href="../home/home.html"><span class="hx">🏠</span><span class="mid"><b>Back to Home</b></span><span class="chev">›</span></a>
+        </section>
     </main>
 
     <script src="../../core/db.js"></script>
@@ -42,6 +46,7 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/page-v2/page-v2.js"></script>
     <script src="./hive-archive.js"></script>
 </body>
 </html>

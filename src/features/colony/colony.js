@@ -109,8 +109,14 @@ function renderExterior() {
 
     const bandTop = hive.top + 40;
     const bandHeight = Math.max(40, hive.bottom - hive.top - 40);
-    exteriorSwarmBees().forEach(bee => {
-        colonyHiveScene.orbit({
+    // Hive Life: only Foragers and Scouts are outside; everyone else is
+    // inside at their job. Classic: half of your bees fly outside.
+    const outsideBees = colonyHiveView() === 'life' && typeof HiveLife !== 'undefined'
+        ? colonyWorkerBees().filter(b => HiveLife.zoneOf(b) === 'outside').slice(0, 8)
+        : exteriorSwarmBees();
+    const faceActors = [];
+    outsideBees.forEach(bee => {
+        const actor = colonyHiveScene.orbit({
             cx: hive.cx,
             y: bandTop + Math.random() * bandHeight,
             rx: hive.maxA * (1.45 + Math.random() * 0.7),
@@ -121,7 +127,10 @@ function renderExterior() {
             labelColor: COLONY_LABEL_COLORS[bee.rarity] || '#d4d4d4',
             onClick: () => openColonyBeeCard(bee)
         });
+        faceActors.push({ bee, actor });
     });
+    colonyExteriorFaces(faceActors);
+    renderColonyStats();
 
     hive.deckSpots.forEach((spot, i) => {
         colonyHiveScene.walk({ x: spot.x, y: spot.y, range: 16, speed: 0.6 + i * 0.25, bee: { scale: 0.6, pollen: i === 1 } });
@@ -129,6 +138,39 @@ function renderExterior() {
 
     colonyHiveScene.autoForage({ entrance: hive.entrance, bee: { scale: 0.7 } });
     colonyHiveScene.start();
+}
+
+// v2 header stats: level, bees, and how many need help (Hive Life moods).
+function renderColonyStats() {
+    const host = document.getElementById('cm-stats');
+    if (!host) return;
+    const bees = colonyWorkerBees();
+    const eggs = bees.filter(b => typeof beeIsBrood === 'function' && beeIsBrood(b)).length;
+    const help = typeof beeFeeling === 'function' ? bees.filter(b => ['sad', 'upset', 'fainted'].includes(beeFeeling(b).key)).length : 0;
+    const user = Vault.getUser() || {};
+    host.innerHTML = `<span><b>⭐ ${user.level || 1}</b><small>Level</small></span>
+        <span><b>🐝 ${bees.length - eggs}</b><small>${eggs ? `+${eggs} egg${eggs === 1 ? '' : 's'}` : 'Bees'}</small></span>
+        <a href="../colony-bees/colony-bees.html?show=help" class="${help ? 'is-warn' : ''}"><b>${help ? '😢' : '😊'} ${help}</b><small>Need help</small></a>`;
+}
+
+// Hive Life faces over the bees flying outside (😊 / 😢 / 😠).
+let colonyFaceTimer = null;
+function colonyExteriorFaces(list) {
+    clearInterval(colonyFaceTimer);
+    if (!list.length || typeof HiveLife === 'undefined' || colonyHiveView() !== 'life') return;
+    const pop = () => {
+        if (document.hidden || !document.body.classList.contains('colony-outside')) return;
+        list.forEach(({ bee, actor }, i) => {
+            const f = beeFeeling(bee);
+            if (!HiveLife.wantsFace(f) || !actor.el || !actor.el.wrap.isConnected) return;
+            setTimeout(() => {
+                const r = actor.el.wrap.getBoundingClientRect();
+                if (r.width) HiveLife.popFace(document.body, f.face, r.left + r.width / 2, r.top - 6, true);
+            }, i * 300);
+        });
+    };
+    setTimeout(pop, 900);
+    colonyFaceTimer = setInterval(pop, 7000);
 }
 
 // The hive art fills the whole page behind the title panel (colony.css).
@@ -154,7 +196,42 @@ function openColonyBeeCard(bee) {
     host.classList.remove('is-flipped');
     overlay.classList.remove('is-queen');
     BeeCard.render(host, bee, { editable: false });
+    const lifeHost = document.getElementById('colony-life-panel');
+    if (lifeHost && typeof HiveLife !== 'undefined') HiveLife.renderPanel(lifeHost, bee, () => colonyRefreshLife());
     overlay.hidden = false;
+}
+
+// ---- Hive Life vs Classic (Oct 2026) ----------------------------------
+const COLONY_VIEW_KEY = 'bizzybee_hive_view';
+let colonyLifeView = null;
+function colonyHiveView() {
+    try { return localStorage.getItem(COLONY_VIEW_KEY) === 'classic' ? 'classic' : 'life'; } catch { return 'life'; }
+}
+function colonyRefreshLife() {
+    if (colonyHiveView() !== 'life' || typeof HiveLife === 'undefined') return;
+    HiveLife.renderNews(document.getElementById('hl-news-host'), () => renderHiveLife());
+}
+function renderHiveLife() {
+    if (colonyLifeView) colonyLifeView.destroy();
+    colonyLifeView = HiveLife.mountComb(document.getElementById('hl-comb-host'), {
+        bees: colonyWorkerBees(),
+        onBeeClick: bee => openColonyBeeCard(bee),
+        onChange: () => renderHiveLife()
+    });
+    colonyRefreshLife();
+}
+function colonyShowInside() {
+    const life = colonyHiveView() === 'life' && typeof HiveLife !== 'undefined';
+    document.body.classList.toggle('hive-life', life);
+    document.getElementById('colony-life').hidden = !life;
+    document.querySelectorAll('[data-hive-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hiveView === (life ? 'life' : 'classic'))));
+    if (life) {
+        if (colonyInterior) { colonyInterior.destroy(); colonyInterior = null; }
+        renderHiveLife();
+    } else {
+        if (colonyLifeView) { colonyLifeView.destroy(); colonyLifeView = null; }
+        renderInterior();
+    }
 }
 
 // ---------------------------------------------------------------------
@@ -240,6 +317,8 @@ function openColonyQueenPanel(state, royal) {
     if (!overlay || !host) return;
     // Plain panel, not a card: drop the card + theme classes BeeCard added.
     host.className = 'colony-card-host';
+    const lifeHost = document.getElementById('colony-life-panel');
+    if (lifeHost) lifeHost.innerHTML = '';
     overlay.classList.add('is-queen');
     host.innerHTML = `<div class="colony-queen-panel">
         <div class="colony-queen-panel-crown">👑</div>
@@ -266,11 +345,13 @@ function renderInterior() {
 
     const state = colonyHoneyState();
     const allBees = colonyWorkerBees();
-    // Busy bees (a job is set) crawl; the rest wait in their open cell.
-    const inside = allBees.filter(b => b.class).slice(-COLONY_MAX_CRAWLERS);
+    // Busy bees (a job is set) crawl, up to COLONY_MAX_CRAWLERS.
+    const inside = allBees.filter(b => b.class && !(typeof beeIsBrood === 'function' && beeIsBrood(b))).slice(-COLONY_MAX_CRAWLERS);
     const insideIds = new Set(inside.map(b => b.id));
     const royal = colonyRoyal();
-    const toHatch = colonyBeesToHatch(allBees);
+    // Eggs (Hive Life) stay sealed and play the hatch animation once they hatch.
+    const isEgg = b => typeof beeIsBrood === 'function' && beeIsBrood(b);
+    const toHatch = colonyBeesToHatch(allBees.filter(b => !isEgg(b)));
     const hatchIds = new Set(toHatch.map(b => b.id));
     renderColonyHud(state);
 
@@ -279,7 +360,9 @@ function renderInterior() {
         broodBees: allBees,
         // Bees about to hatch aren't crawling yet - they come out of their cell.
         crawlers: inside.filter(b => !hatchIds.has(b.id)),
-        idleBees: allBees.filter(b => !insideIds.has(b.id) && !hatchIds.has(b.id)),
+        // Only bees with no job wait head-out in an open cell. Bees with a
+        // job past the crawl cap (and eggs) show as sealed, glowing cells.
+        idleBees: allBees.filter(b => !b.class && !isEgg(b) && !hatchIds.has(b.id)),
         lightY: colonyFitInterior(),
         assetBase: COLONY_QUEEN_ASSETS,
         royal,
@@ -308,7 +391,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cardOverlay = document.getElementById('colony-card-overlay');
     if (cardOverlay) {
         cardOverlay.addEventListener('click', (e) => {
-            if (!e.target.closest('.bee-card, .colony-queen-panel')) cardOverlay.hidden = true;
+            if (!e.target.closest('.bee-card, .colony-queen-panel, .hl-panel')) {
+                cardOverlay.hidden = true;
+                if (colonyHiveView() === 'life' && document.body.classList.contains('colony-inside')) renderHiveLife();
+            }
         });
     }
 
@@ -336,13 +422,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('colony-exterior').style.display = 'none';
             document.getElementById('colony-interior').style.display = '';
             document.body.classList.add('colony-inside');
-            renderInterior();
+            colonyShowInside();
         }, 1150);
     });
 
     document.getElementById('leave-hive-btn').addEventListener('click', () => {
         if (colonyInterior) { colonyInterior.destroy(); colonyInterior = null; }
-        document.body.classList.remove('colony-inside');
+        if (colonyLifeView) { colonyLifeView.destroy(); colonyLifeView = null; }
+        if (typeof HiveLife !== 'undefined') HiveLife.closeRoom();
+        document.body.classList.remove('colony-inside', 'hive-life');
         document.getElementById('colony-interior').style.display = 'none';
         document.getElementById('colony-exterior').style.display = '';
         document.getElementById('colony-nest-scene').classList.remove('is-entering');
@@ -350,14 +438,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderExterior();
     });
 
-    // Same quick-access shortcut as the "Colony Bees" Waggle FAB item
-    // (llm-engine.js's baseWaggleActions()) - jumps straight to the bee
-    // roster (openBeeRosterModal() on the Inventory page) via the
-    // #colony-bees hash inventory.js's DOMContentLoaded handler watches
-    // for, rather than making the user go Inventory -> scroll -> tap
-    // "View & Manage Colony Bees" themselves.
+    document.querySelectorAll('[data-hive-view]').forEach(btn => btn.addEventListener('click', () => {
+        try { localStorage.setItem(COLONY_VIEW_KEY, btn.dataset.hiveView); } catch { /* storage off */ }
+        colonyShowInside();
+    }));
+
+    // Colony Bees has its own page (Oct 2026).
     document.getElementById('colony-bees-quick-btn').addEventListener('click', () => {
-        window.location.href = '../inventory/inventory.html#colony-bees';
+        window.location.href = '../colony-bees/colony-bees.html';
     });
 
     Waggle.setActions(baseWaggleActions());

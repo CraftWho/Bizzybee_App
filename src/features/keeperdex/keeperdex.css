@@ -1,44 +1,20 @@
-/* --- LAYOUT --- */
-.keeperdex-container {
-    width: 100%;
-    max-width: 1360px;
-    margin: 20px auto 60px;
-    padding: 0 25px;
-    box-sizing: border-box;
-}
-
-/* --- COMPLETION PROGRESS --- */
-.keeperdex-progress {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 22px;
-}
-
-.keeperdex-progress-text {
-    color: #999;
-    font-size: 0.82rem;
-    white-space: nowrap;
-}
-
-.keeperdex-progress-bar {
-    flex: 1;
-    height: 8px;
-    background: #151515;
-    border: 1px solid #333;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.keeperdex-progress-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--gold-start);
-    transition: width 0.4s ease;
-}
-
-/* Card layout itself reuses .bee-card-grid (bee-card.css) - a plain
-   flex-wrap of fixed-260px cards, same as the Gacha collection and the
-   old Inventory roster grid both already use. No need for a second grid
-   system here: KeeperDex is a fixed, small (20-entry) catalog meant to
-   be browsed at full card size, not a dense scrollable list. */
+/* KeeperDex v2 (Oct 2026). Shared look: core/page-v2/page-v2.css. */
+.kd2 .kd-progress { padding: 14px 16px; margin-bottom: 12px; }
+.kd2 .kd-progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.kd2 .kd-progress-top b { font: 700 .95rem var(--font-main, monospace); color: var(--gold2); }
+.kd2 .kd-progress-top small { color: var(--muted); font-family: var(--font-main, monospace); }
+.kd2 .kd-bar { display: block; height: 8px; border-radius: 9px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.kd2 .kd-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffcc00, #ffd977); transition: width .4s; }
+.kd2 .kd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+@media (min-width: 640px) { .kd2 .kd-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; } }
+.kd2 .kd-tile { position: relative; aspect-ratio: 5 / 7; overflow: hidden; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; cursor: pointer; transition: transform .15s; }
+.kd2 .kd-tile:hover, .kd2 .kd-tile:focus-visible { transform: translateY(-3px); outline: none; }
+.kd2 .kd-tile:focus-visible { box-shadow: 0 0 0 2px var(--gold); border-radius: 8px; }
+.kd2 .kd-scale { position: absolute; top: 0; left: 0; width: 260px; transform: scale(var(--tile-scale, .35)); transform-origin: top left; pointer-events: none; }
+.kd2 .kd-fallen { list-style: none; margin: 0; padding: 4px 0; }
+.kd2 .kd-fallen li { padding: 10px 0; border-top: 1px solid rgba(255, 204, 0, .08); color: var(--muted); font-size: .8rem; }
+.kd2 .kd-fallen li:first-child { border-top: 0; }
+.kd2 .kd-fallen li b { display: block; color: var(--ink); }
+.kd2 .kd-fallen li span, .kd2 .kd-fallen li small { display: block; }
+.pv2-sheet .kd-full { display: flex; justify-content: center; margin-top: 12px; }
+.pv2-sheet .kd-full > * { width: 260px; max-width: 100%; }

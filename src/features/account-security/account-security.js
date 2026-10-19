@@ -219,6 +219,15 @@ async function attemptRemoveAppLockPin() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
+    // Forgot PIN (Oct 2026): erase the encrypted details and start over.
+    const forgot = document.getElementById('pin-forgot-btn');
+    if (forgot) forgot.addEventListener('click', () => {
+        if (!confirm('Forgot your PIN? It can\'t be recovered, because it is also the key that locks your saved details.\n\nResetting erases your encrypted personal details and saved Habitica login on this save. Your bees, tasks and progress are NOT touched. A backup is made first.\n\nReset your PIN?')) return;
+        Vault.resetAccountPin();
+        Toast.show('🔢 PIN reset. Create a new one.', 'positive');
+        setTimeout(() => window.location.reload(), 600);
+    });
+
     Waggle.setActions(baseWaggleActions());
 
     ['create-pin-new', 'create-pin-confirm', 'change-pin-current', 'change-pin-new', 'change-pin-confirm']

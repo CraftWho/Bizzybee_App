@@ -19,34 +19,37 @@
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/bee-name/bee-name.css">
+    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
     <link rel="stylesheet" href="./gacha.css">
 </head>
 <body>
 
-    <main class="gacha-container">
+    <!-- Pollination Chamber v2 (Oct 2026): same look as Settings. Ids the JS
+         uses are unchanged; the foil card and pull results keep their art. -->
+    <main class="pv2 ga2">
+        <h1 class="pv2-title">🌼 POLLINATION</h1>
+        <p class="pv2-lead">Spend tickets on new bees, refine your collection, or save up for a Named Beast.</p>
 
-        <div class="panel page-header-panel gacha-header-panel">
-            <h2 class="page-title">🌼 <span class="gold-gradient-text">POLLINATION CHAMBER</span></h2>
-            <p class="page-subtitle">Spend tickets to pull new bees, refine your collection, or save up for a Named Beast.</p>
-            <div class="gacha-collection-counter" id="gacha-collection-counter"></div>
+        <div class="stats">
+            <div><b>🎟️ <span id="gacha-ticket-count">0</span></b><small>Tickets</small></div>
+            <div class="ga-contents" id="gacha-collection-counter"></div>
         </div>
 
-        <section class="panel gacha-panel">
-            <h3>🌼 Pollinate</h3>
-            <p class="gacha-note">1 🎟️ ticket per pull. Every 6th pull without a Rare is a guaranteed Rare or better.</p>
-            <p class="gacha-note" id="gacha-pity"></p>
-            <div class="gacha-pull-row">
-                <button id="gacha-pollinate-btn" disabled>🌼 Pull ×1</button>
-                <button id="gacha-pollinate10-btn" disabled>🌼 Pull ×10</button>
+        <h2 class="sec">Pollinate</h2>
+        <section class="card ga-pad">
+            <p class="ga-note">1 🎟️ per pull. Every 6th pull without a Rare is a guaranteed Rare or better.</p>
+            <p class="ga-note ga-pity" id="gacha-pity"></p>
+            <div class="btns">
+                <button type="button" class="btn solid" id="gacha-pollinate-btn" disabled>🌼 Pull ×1</button>
+                <button type="button" class="btn" id="gacha-pollinate10-btn" disabled>🌼 Pull ×10</button>
             </div>
             <div class="gacha-multi" id="gacha-multi" hidden></div>
-            <p class="gacha-hint">Bee management (renaming, assigning work) now lives on the <a href="../inventory/inventory.html">Inventory</a> page — this room is just for pulling, refining, and unwrapping.</p>
         </section>
 
-        <section class="panel gacha-ticket-panel">
-            <h3>🎟️ Gacha Tickets <span id="gacha-ticket-count">0</span></h3>
-            <p class="gacha-ticket-note">Earned from leveling up (you and your skills) and big quests. Save 10 to tear open the card below — a guaranteed Named Beast inside.</p>
-
+        <h2 class="sec">Named Beast</h2>
+        <section class="card ga-pad">
+            <p class="ga-note">Save 10 tickets to tear open this card. A Named Beast is always inside. Tickets come from level-ups and big quests.</p>
             <div class="gacha-foil-card">
                 <div class="gacha-foil-wrap is-empty" id="gacha-foil-wrap">
                     <div class="gacha-foil-back" id="gacha-foil-back"></div>
@@ -58,33 +61,32 @@
             </div>
         </section>
 
-        <section class="panel gacha-refine-panel">
-            <h3>🔧 Refine</h3>
-            <p class="gacha-refine-note">Destroy a bee for guaranteed materials, or combine two for a chance at something better — both permanently consume the bee(s) you pick.</p>
-
-            <div class="gacha-refine-block">
-                <h4>💥 Destroy</h4>
-                <p class="gacha-refine-desc">Turns one bee into materials. Higher rarity yields more.</p>
-                <select id="gacha-destroy-select" class="gacha-refine-select"></select>
-                <button id="gacha-destroy-btn" class="gacha-refine-btn gacha-refine-btn--destroy">Destroy for Loot</button>
-                <p class="gacha-refine-result" id="gacha-destroy-result"></p>
+        <h2 class="sec">Refine</h2>
+        <section class="card ga-pad">
+            <div class="ga-block">
+                <b>💥 Destroy</b>
+                <small>Turn one bee into materials. Higher rarity gives more. The bee is gone for good.</small>
+                <select id="gacha-destroy-select" class="ga-sel" aria-label="Bee to destroy"></select>
+                <div class="btns"><button type="button" class="btn danger" id="gacha-destroy-btn">Destroy for loot</button></div>
+                <p class="ga-result" id="gacha-destroy-result"></p>
             </div>
-
-            <div class="gacha-refine-block">
-                <h4>🧬 Combine</h4>
-                <p class="gacha-refine-desc">Fuses two bees into one stronger bee — it keeps the best of each stat from both, plus a small boost. A tiny chance it climbs a rarity tier (never a Named Beast).</p>
-                <div class="gacha-refine-select-row">
-                    <select id="gacha-combine-select-a" class="gacha-refine-select"></select>
-                    <span class="gacha-refine-plus">+</span>
-                    <select id="gacha-combine-select-b" class="gacha-refine-select"></select>
+            <div class="ga-block">
+                <b>🧬 Combine</b>
+                <small>Fuse two bees into one. It keeps the best stats of both plus a small boost, with a tiny chance to go up a rarity.</small>
+                <div class="ga-two">
+                    <select id="gacha-combine-select-a" class="ga-sel" aria-label="First bee"></select>
+                    <span>+</span>
+                    <select id="gacha-combine-select-b" class="ga-sel" aria-label="Second bee"></select>
                 </div>
-                <button id="gacha-combine-btn" class="gacha-refine-btn gacha-refine-btn--combine">Combine</button>
-                <p class="gacha-refine-result" id="gacha-combine-result"></p>
+                <div class="btns"><button type="button" class="btn solid" id="gacha-combine-btn">Combine</button></div>
+                <p class="ga-result" id="gacha-combine-result"></p>
             </div>
         </section>
 
-        <a href="../colony/colony.html" class="gacha-colony-link-btn">🏰 Back to the Hive Mind →</a>
-
+        <section class="card ga-links">
+            <a class="row" href="../colony-bees/colony-bees.html"><span class="hx">🐝</span><span class="mid"><b>Colony Bees</b><small>Rename bees and give them jobs</small></span><span class="chev">›</span></a>
+            <a class="row" href="../colony/colony.html"><span class="hx">🏰</span><span class="mid"><b>Hive Mind</b><small>Back to your hive</small></span><span class="chev">›</span></a>
+        </section>
     </main>
 
     <!-- Gacha summon popup - spinning warp/galaxy animation, then reveals
@@ -100,6 +102,7 @@
         <div class="gacha-summon-result" id="gacha-summon-result" hidden>
             <p class="gacha-summon-title" id="gacha-summon-title"></p>
             <div class="gacha-summon-card" id="gacha-summon-card"></div>
+            <div class="gacha-summon-name" id="gacha-summon-name"></div>
             <button class="gacha-summon-close" id="gacha-summon-close">Collect</button>
         </div>
     </div>
@@ -114,6 +117,8 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/bee-name/bee-name.js"></script>
+    <script src="../../core/page-v2/page-v2.js"></script>
     <script src="./gacha.js"></script>
 </body>
 </html>

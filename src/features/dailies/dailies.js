@@ -24,11 +24,16 @@ function renderHead(tasks) {
     document.getElementById('dl-bar-fill').style.width = `${pct}%`;
 }
 
+// Oct 2026: dailies not due today sit in their own "Not due today"
+// section under the rest, instead of greyed out between them.
 function renderDailyTasks() {
     const tasks = Vault.getDailyTasks();
     renderHead(tasks);
+    const due = tasks.filter(t => t.dueToday || t.completedToday);
+    const off = tasks.filter(t => !(t.dueToday || t.completedToday));
     document.getElementById('daily-task-list').innerHTML = tasks.length
-        ? `<ul class="hr-list" data-reorder="1">${tasks.map(t => TaskRow.dailyHTML(t, openChecklists.has(t.id))).join('')}</ul>`
+        ? (due.length ? `<ul class="hr-list" data-reorder="1">${due.map(t => TaskRow.dailyHTML(t, openChecklists.has(t.id))).join('')}</ul>` : '<p class="dl-empty">Nothing due today. 🎉</p>')
+          + (off.length ? `<h2 class="dl-sec">💤 Not due today <small>${off.length}</small></h2><ul class="hr-list dl-off">${off.map(t => TaskRow.dailyHTML(t, openChecklists.has(t.id))).join('')}</ul>` : '')
         : '<p class="dl-empty">No dailies yet. Tap the + below to make one.</p>';
 }
 
@@ -67,7 +72,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     HabitRow.enableReorder(list, {
         onMoved: (taskId, toIndex) => {
-            Vault.moveDaily(taskId, toIndex);
+            // toIndex is a spot in the "due today" list; turn it into a spot
+            // in the full list (the not-due ones keep their places).
+            const due = Vault.getDailyTasks().filter(t => t.dueToday || t.completedToday);
+            const target = due[Math.max(0, Math.min(due.length - 1, toIndex))];
+            const all = Vault.state.dailyTasks || [];
+            Vault.moveDaily(taskId, target ? all.findIndex(t => t.id === target.id) : toIndex);
             renderDailyTasks();
         }
     });

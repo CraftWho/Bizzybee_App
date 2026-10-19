@@ -38,142 +38,151 @@ function goHome() {
     window.location.href = './src/features/home/home.html';
 }
 
-// --- Cloud Sync invite/confirmation/recovery handoff ----------------------
-// Netlify Identity invite, confirmation, and password-recovery emails link
-// to this site's root by default - i.e. THIS page - with a token in the
-// URL hash (#invite_token=..., #confirmation_token=..., etc). Netlify's own
-// widget (loaded in index.html's <head>) is what actually knows how to
-// read that token and pop open its own "set your password" modal - but
-// only once `netlifyIdentity.init()` has run. Before this existed, that
-// token was landing here and just sitting inert: this page's own unrelated
-// passcode/session logic below would run instead (fall through to "already
-// logged in" if this device had a session, or show the normal login form),
-// giving zero indication anything Cloud Sync-related was even supposed to
-// happen. Runs BEFORE (and, if a token is present, INSTEAD of) the normal
-// login flow below - critical, since otherwise "already logged in, skip
-// straight through" would navigate away and kill the identity modal before
-// the user could ever see or use it.
-function handleCloudSyncTokenIfPresent() {
-    const hasIdentityToken = /(invite_token|confirmation_token|recovery_token|email_change_token)=/.test(window.location.hash);
-    if (!hasIdentityToken || typeof netlifyIdentity === 'undefined') return false;
+// --- Bizzybee sign-in (Oct 2026) -------------------------------------------
+// Our own sign-in screen instead of Netlify's white pop-up. It talks to the
+// same free Netlify Identity service through the widget's built-in GoTrue
+// client (netlifyIdentity.gotrue), so sessions, Cloud Sync and every other
+// page work exactly as before. Invite links get a "set your password" panel
+// and then a short welcome before the egg. Password reset links go to
+// reset-password.html (src/core/recovery-redirect.js).
+const AUTH_PANELS = ['auth-signin', 'auth-invite', 'auth-forgot', 'auth-welcome'];
+let authToken = null;   // invite/confirm token, kept in memory only
 
-    // This path skips the #welcome-loading beat entirely (see the
-    // DOMContentLoaded handler below) - the invite/confirm banner and the
-    // widget's own modal need #login-content visible right away, not after
-    // a loading delay that has nothing to do with this flow.
+function showPanel(id) {
+    AUTH_PANELS.forEach(p => { document.getElementById(p).hidden = p !== id; });
+    const first = document.querySelector(`#${id} input, #${id} button`);
+    if (first) setTimeout(() => first.focus({ preventScroll: true }), 50);
+}
+
+function authStatus(text) {
+    const el = document.getElementById('cloud-sync-invite-status');
+    el.textContent = text || '';
+    el.hidden = !text;
+}
+
+function setFormError(id, message) {
+    const el = document.getElementById(id);
+    el.textContent = message || '';
+    el.hidden = !message;
+}
+
+// The GoTrue client lives inside the Identity widget. Clear any token from
+// the address bar first so the widget never opens its own pop-up.
+function identityClient() {
+    if (typeof netlifyIdentity === 'undefined') return null;
+    try { netlifyIdentity.init(); } catch { /* already started */ }
+    return netlifyIdentity.gotrue || null;
+}
+
+// Turns GoTrue's error into a short, readable sentence.
+function friendlyAuthError(error, fallback) {
+    const raw = String((error && (error.json && (error.json.error_description || error.json.msg))) || (error && error.message) || '');
+    if (/invalid|no user|password/i.test(raw)) return '🐝 That email and password don\'t match. Try again.';
+    if (/not confirmed/i.test(raw)) return 'Confirm your email first - check your inbox for the link.';
+    if (/expired|not found|invalid token|already/i.test(raw)) return 'This link has expired or was already used. Ask for a new invite.';
+    if (/fetch|network|failed/i.test(raw)) return 'Can\'t reach the server. Check your connection and try again.';
+    return fallback + (raw ? ` (${raw})` : '');
+}
+
+function finishSignedIn(user, { welcome = false } = {}) {
+    localStorage.setItem('bizzybee_cloud_owner', user.id);
+    localStorage.setItem('bizzybee_session', 'identity');
+    if (!welcome) { goHome(); return; }
+    document.getElementById('auth-subtitle').hidden = true;
+    authStatus('');
+    document.getElementById('welcome-email').textContent = `Signed in as ${user.email}.`;
+    showPanel('auth-welcome');
+}
+
+// Handles #invite_token / #confirmation_token links. Returns true if one
+// was found (the normal "returning device" path is then skipped).
+function handleAuthTokenIfPresent() {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const invite = params.get('invite_token');
+    const confirmToken = params.get('confirmation_token');
+    if (!invite && !confirmToken) return false;
+    authToken = invite || confirmToken;
+    history.replaceState(null, '', location.pathname + location.search);
+
     document.getElementById('welcome-loading').hidden = true;
     document.getElementById('login-content').hidden = false;
+    const gotrue = identityClient();
+    if (!gotrue) { authStatus('⚠️ Sign-in is unavailable right now. Check your connection and reload this link.'); showPanel('auth-signin'); return true; }
 
-    const status = document.getElementById('cloud-sync-invite-status');
-    status.hidden = false;
-    status.textContent = '☁️ Confirming your Cloud Sync account...';
-
-    const finishConfirmed = () => {
-        const user = netlifyIdentity.currentUser();
-        if (!user) return;
-        localStorage.setItem('bizzybee_cloud_owner', user.id);
-        localStorage.setItem('bizzybee_session', 'identity');
-        status.textContent = '✅ Cloud Sync account confirmed! Taking you to Settings...';
-        netlifyIdentity.close();
-        setTimeout(() => {
-            window.location.href = './src/features/settings/settings.html';
-        }, 1500);
-    };
-
-    netlifyIdentity.on('login', finishConfirmed);
-
-    netlifyIdentity.on('error', (err) => {
-        console.error('Netlify Identity error:', err);
-        status.textContent = "⚠️ That link didn't work - it may have expired or already been used. Ask to be re-invited from the Netlify dashboard (Identity → Users) and try the fresh link.";
-    });
-
-    netlifyIdentity.init();
-
-    // REAL BUG FOUND (live-debugged 2026-08-22, see HANDOFF.md): Identity
-    // keeps its OWN persisted session (netlifyIdentity.currentUser()),
-    // completely separate from our bizzybee_session flag. If this browser
-    // already has a valid, confirmed session for this account - e.g. this
-    // exact token was already used successfully in an earlier attempt, or
-    // the account got confirmed via some other path (a recovery email,
-    // etc.) - the widget just silently restores that session instead of
-    // firing a fresh 'login' event, since nothing new actually happened.
-    // Without this check, the banner above gets stuck on "Confirming..."
-    // forever, because 'login' never fires for a session it's only
-    // restoring, not establishing. Caught by directly inspecting
-    // netlifyIdentity.currentUser() on a live tab that turned out to
-    // already hold a fully confirmed session while the page sat there
-    // looking blank/broken.
-    if (netlifyIdentity.currentUser()) {
-        finishConfirmed();
+    if (invite) {
+        document.getElementById('auth-subtitle').textContent = 'Finish your account';
+        showPanel('auth-invite');
+        return true;
     }
-
+    authStatus('☁️ Confirming your email…');
+    gotrue.confirm(authToken, true)
+        .then(user => finishSignedIn(user, { welcome: true }))
+        .catch(error => { authStatus(friendlyAuthError(error, 'Could not confirm your email.')); showPanel('auth-signin'); });
     return true;
 }
 
-// --- Cloud Sync front-door sign-in (invited testers) -----------------------
-// The explicit way into the app for testers:
-// opens Netlify Identity's own login modal so an
-// already-invited tester can sign in with their real Cloud Sync account, on
-// any ordinary return visit (not just the one-time invite/confirm/recovery
-// link handleCloudSyncTokenIfPresent() handles above). Mutually exclusive
-// with that function - this is only ever wired up when there's NO identity
-// token in the URL hash, since the caller below returns early in that case.
-// Decisions confirmed with the user before building:
-//   - The personal passcode stays exactly as it was - redacted's own back door.
-//     (The demo login this comment originally also promised to leave alone
-//     was itself retired in a later update - see HANDOFF.md.)
-//   - A brand-new tester's first sign-in here still starts from the
-//     generic blueprint (same as the old demo default was) - no auto-pull
-//     from the cloud. They press "Load from Cloud" in Settings themselves
-//     when they want their prior progress.
-//   - Tags the session as 'identity' (a new, third value alongside 'demo'
-//     and 'personal') - grepped the whole repo first; nothing checks for a
-//     specific session-value string except truthiness, so this can't break
-//     any existing check.
-function setupCloudSyncLoginButton() {
-    const btn = document.getElementById('cloud-sync-login-btn');
-    if (!btn) return;
+function setupAuthForms() {
+    document.querySelectorAll('.pw-eye').forEach(btn => btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.for);
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    }));
+    document.querySelectorAll('[data-show]').forEach(btn => btn.addEventListener('click', () => {
+        if (btn.dataset.show === 'auth-forgot') document.getElementById('forgot-email').value = document.getElementById('email').value.trim();
+        authStatus('');
+        showPanel(btn.dataset.show);
+    }));
 
-    if (typeof netlifyIdentity === 'undefined') {
-        // Widget script didn't load (offline, blocked, etc.) - hide rather
-        // than leave a button on the page that can't do anything.
-        btn.hidden = true;
-        return;
-    }
-
-    netlifyIdentity.init();
-
-    netlifyIdentity.on('login', (user) => {
-        localStorage.setItem('bizzybee_cloud_owner', user.id);
-        netlifyIdentity.close();
-        localStorage.setItem('bizzybee_session', 'identity');
-        goHome();
+    // Sign in. (On this computer the Hacker login answers first.)
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearError();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) { showError('Enter your email and password.'); return; }
+        const gotrue = identityClient();
+        if (!gotrue) { showError('Sign-in is unavailable right now. Check your connection.'); return; }
+        const btn = document.getElementById('auth-submit-btn');
+        btn.disabled = true; btn.textContent = 'Entering…';
+        try { finishSignedIn(await gotrue.login(email, password, true)); }
+        catch (error) { showError(friendlyAuthError(error, 'Sign-in didn\'t go through.')); }
+        finally { btn.disabled = false; btn.textContent = 'Enter the Hive'; }
     });
 
-    netlifyIdentity.on('error', (err) => {
-        console.error('Netlify Identity error:', err);
-        showError("⚠️ Cloud Sync sign-in didn't go through. Check your credentials and try again.");
+    // Invite: set a password, then the welcome card.
+    document.getElementById('invite-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setFormError('invite-error', '');
+        const pw = document.getElementById('invite-password').value;
+        if (pw.length < 12) { setFormError('invite-error', 'Use at least 12 characters.'); return; }
+        if (pw !== document.getElementById('invite-password2').value) { setFormError('invite-error', 'The two passwords don\'t match.'); return; }
+        const btn = document.getElementById('invite-submit-btn');
+        btn.disabled = true; btn.textContent = 'Creating…';
+        try { finishSignedIn(await identityClient().acceptInvite(authToken, pw, true), { welcome: true }); }
+        catch (error) { setFormError('invite-error', friendlyAuthError(error, 'Could not finish your account.')); }
+        finally { btn.disabled = false; btn.textContent = 'Create my account'; }
     });
 
-    btn.addEventListener('click', () => {
-        // Same root cause as the fix in handleCloudSyncTokenIfPresent()
-        // above: netlifyIdentity.currentUser() can already be populated
-        // from a session this browser established earlier (a previous
-        // Cloud Sync sign-in, or an invite/recovery that actually
-        // succeeded even if the page never showed it). Opening the login
-        // modal in that case just makes someone re-enter credentials for
-        // a session that's already valid - or, worse, shows a confusing
-        // fallback screen, which is exactly what was reported and
-        // live-debugged on 2026-08-22 (see HANDOFF.md). If we're already
-        // signed in, honor that immediately instead of prompting again.
-        if (netlifyIdentity.currentUser()) {
-            localStorage.setItem('bizzybee_cloud_owner', netlifyIdentity.currentUser().id);
-            localStorage.setItem('bizzybee_session', 'identity');
-            goHome();
-            return;
-        }
-        netlifyIdentity.open('login');
+    // Forgot password: always the same answer, so it never reveals who has an account.
+    document.getElementById('forgot-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setFormError('forgot-error', '');
+        const email = document.getElementById('forgot-email').value.trim();
+        if (!/^\S+@\S+\.\S+$/.test(email)) { setFormError('forgot-error', 'Enter the email you signed up with.'); return; }
+        const btn = document.getElementById('forgot-submit-btn');
+        btn.disabled = true;
+        try {
+            const gotrue = identityClient();
+            if (gotrue) await gotrue.requestPasswordRecovery(email);
+            else if (typeof AccountRecovery !== 'undefined') await AccountRecovery.send(email);
+        } catch { /* same message either way */ }
+        btn.disabled = false;
+        authStatus('📬 If that account exists, a reset link is on its way. Check spam too.');
+        showPanel('auth-signin');
     });
+
+    document.getElementById('welcome-go-btn').addEventListener('click', goHome);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -201,11 +210,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try { await Vault.init(); } catch (error) { showError(error.message); }
 
-    if (handleCloudSyncTokenIfPresent()) {
+    setupAuthForms();
+    if (handleAuthTokenIfPresent()) {
         return;
     }
-
-    setupCloudSyncLoginButton();
 
     // Replaces the old SILENT "already logged in? skip straight through"
     // shortcut (retired earlier today - see HANDOFF.md's "UPDATE: retired
@@ -232,13 +240,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('welcome-loading').hidden = true;
     document.getElementById('login-content').hidden = false;
 
-    document.getElementById('login-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        clearError();
-
-        // Nothing here opens the app any more - the local dev tools catch
-        // their own login before this runs (see the note at the top).
-
-        showError('🐝 Access Denied. Check your credentials, Worker Bee.');
-    });
+    identityClient();   // restore any saved cloud session quietly
 });

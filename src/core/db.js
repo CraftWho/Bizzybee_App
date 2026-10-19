@@ -435,7 +435,9 @@ function shiftISODate(dateStr, n) {
 // { value, through }: the streak as of the `through` date, so the count
 // keeps growing from there and still breaks on a missed day.
 function computeDailyStreak(task, today) {
-    const done = new Set(task.completedDates || []);
+    // savedDates: days a Guard Bee or Streak Charm saved (Start My Day) -
+    // they keep the streak going but give no XP.
+    const done = new Set([...(task.completedDates || []), ...(task.savedDates || [])]);
     const adj = task.streakAdjust && task.streakAdjust.through ? task.streakAdjust : null;
     let count = 0;
     let day = done.has(today) ? today : shiftISODate(today, -1);
@@ -500,12 +502,24 @@ function rollNamedBeeName() {
 // which - see colony.css's colony-patrol/colony-forage/colony-fortify/
 // colony-build/colony-tend keyframes), same intentional "groundwork
 // before mechanics" spirit as the numeric stats note used to be here.
+// Oct 2026 (Hive Life): real honeybee jobs. Keys stay the same for saves
+// made before (collector/guardian/barrier/architect/nurse) - only the
+// names changed. zone = where the bee works in the hive view. stat = what
+// makes it better at the job. maleOnly: only male bees (Drones). Every other
+// job is done by female workers, like a real hive.
 const BEE_CLASSES = {
-    collector: { label: 'Collector', icon: '🌾', category: 'Gathering', description: 'Gathers materials whenever you complete a task or daily.' },
-    guardian: { label: 'Guardian', icon: '🛡️', category: 'Defense', description: 'Patrols the hive, scanning for intruders. No material yield yet.' },
-    barrier: { label: 'Barrier', icon: '🧱', category: 'Defense', description: 'Holds a fixed post at the entrance instead of patrolling. No material yield yet.' },
-    architect: { label: 'Architect', icon: '🏗️', category: 'Hive Management', description: 'Raises new honeycomb cells for the hive. No material yield yet.' },
-    nurse: { label: 'Nurse', icon: '🥚', category: 'Hive Management', description: "Tends the brood chamber and the colony's eggs. No material yield yet." }
+    collector: { label: 'Forager', icon: '🌾', category: 'Gathering', zone: 'outside', stat: 'speed', description: 'Flies out to the flowers and brings back materials when you finish a task or daily.' },
+    scout: { label: 'Scout', icon: '🔭', category: 'Gathering', zone: 'outside', stat: 'speed', description: 'Dances to show the hive where food is. Small chance of a gacha ticket when you finish a task.' },
+    guardian: { label: 'Guard Bee', icon: '🛡️', category: 'Defense', zone: 'entrance', stat: 'defense', description: 'Fights raids at the entrance. Each Guard forgives one missed day of dailies per week (max 2).' },
+    barrier: { label: 'Propolis Sealer', icon: '🟫', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Seals cracks with propolis (bee glue). Adds to raid defense.' },
+    undertaker: { label: 'Undertaker', icon: '⚰️', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Carries fallen bees out of the hive. Each fallen bee leaves a little Pollen behind.' },
+    architect: { label: 'Comb Builder', icon: '🏗️', category: 'Hive Management', zone: 'comb', stat: 'power', description: 'Builds new comb from wax. +1 loot roll when a quest finishes (max 3).' },
+    cleaner: { label: 'Cleaner', icon: '🧹', category: 'Hive Management', zone: 'comb', stat: 'defense', description: 'Cleans cells and other bees. A lost raid hurts happiness less.' },
+    honeymaker: { label: 'Honey Maker', icon: '🍯', category: 'Hive Management', zone: 'honey', stat: 'power', description: 'Ripens nectar into honey. Some days turns 3 Pollen into 1 Honey Drop.' },
+    watercarrier: { label: 'Water Carrier', icon: '💧', category: 'Hive Management', zone: 'honey', stat: 'speed', description: 'Brings water to cool the hive. Working bees tire more slowly.' },
+    nurse: { label: 'Nurse Bee', icon: '🥚', category: 'Hive Management', zone: 'brood', stat: 'offense', description: 'Feeds the young and the sick. Every bee heals a little faster.' },
+    attendant: { label: "Queen's Attendant", icon: '👑', category: 'Royal Court', zone: 'royal', stat: 'power', description: 'Grooms and feeds your Queen. +1 Royal Nectar on each level-up.' },
+    drone: { label: 'Drone', icon: '♂️', category: 'Royal Court', zone: 'royal', stat: null, maleOnly: true, description: 'Male bee. Mates with your Queen - some days your next gacha pull gets a better shot at Rare.' }
 };
 
 // What a Collector bee can bring back. Flat, deliberately small catalog -
@@ -515,7 +529,9 @@ const BEE_CLASSES = {
 const MATERIAL_CATALOG = [
     { id: 'pollen', label: 'Pollen', icon: '🌼', rarity: 'Common', description: 'Common material - nearly every Collector run has a shot at this.' },
     { id: 'royal-nectar', label: 'Royal Nectar', icon: '✨', rarity: 'Rare', description: 'Rare material - a refined drop straight from the queen\'s own stores.' },
-    { id: 'honey-drop', label: 'Honey Drop', icon: '🍯', rarity: 'Epic', description: 'Epic-grade material - an exceptionally dense, solidified drop of pure hive honey. The hardest material to find.' }
+    { id: 'honey-drop', label: 'Honey Drop', icon: '🍯', rarity: 'Epic', description: 'Epic-grade material - an exceptionally dense, solidified drop of pure hive honey. The hardest material to find.' },
+    // Hive Life (Oct 2026): never dropped - made from 5 Honey Drops. Lets a bee live far longer.
+    { id: 'royal-jelly', label: 'Royal Jelly', icon: '👑', rarity: 'Legendary', description: 'The food that turns a bee into a queen. Given to a bee, it lives about 120 days instead of 42. Made from 5 Honey Drops.' }
 ];
 
 // Reweighted to match each material's rarity tag above - Pollen (Common)
@@ -688,6 +704,9 @@ const STORE_ITEM_CATALOG = [
     { id: 'battery-full', label: 'Battery', icon: '🔋', kind: 'trait', rarity: 'Rare', trait: 'charged', price: { materialId: 'pollen', amount: 5 }, description: 'Grants the Charged trait - plus a chance to evolve a Common/Rare bee to Epic.' },
     { id: 'battery-low', label: 'Dead Battery', icon: '🪫', kind: 'trait', rarity: 'Rare', trait: 'overdrawn', price: { materialId: 'pollen', amount: 3 }, description: 'Grants the Overdrawn trait - plus a chance to evolve a Common/Rare bee to Epic.' },
     { id: 'lightbulb', label: 'Lightbulb', icon: '💡', kind: 'trait', rarity: 'Rare', trait: 'insight', price: { materialId: 'pollen', amount: 4 }, description: 'Grants the Bright Idea trait - plus a chance to evolve a Common/Rare bee to Epic.' },
+    // Start My Day (Oct 2026): saves one daily's streak on a miss, used
+    // automatically. Paid in Honey coins, not materials.
+    { id: 'streak-charm', label: 'Streak Charm', icon: '🎁', kind: 'charm', rarity: 'Rare', price: { currency: 'coins', amount: 25 }, description: "Saves one daily's streak when you miss it. Used up automatically in the morning, after your Guard Bees, and only on streaks of 2 days or more." },
     { id: 'identity-card', label: 'Identity Card', icon: '🪪', kind: 'identity', rarity: 'Legendary', price: { materialId: 'royal-nectar', amount: 3 }, description: "Guarantees a bee evolves straight into a full Named Beast. Only works on a bee you haven't personally renamed." }
 ];
 
@@ -1126,6 +1145,228 @@ function expectedLevelTickets(level) {
     return n;
 }
 
+
+// ============================================================================
+// HIVE LIFE (Oct 2026, approved demo) - real bee roles, vitals, faint/death,
+// old age, raids and counter-raids. Pure helpers first, then Vault methods
+// (attached to DatabaseManager.prototype below the class).
+//
+// Every non-royal bee gets bee.sex ('f'/'m', 1 in 10 male - only males can
+// be Drones) and bee.life:
+//   { health, stamina, fullness, happiness  (0-100)
+//     bornAt (YYYY-MM-DD), faintedAt (date|null), royalJelly (bool),
+//     birthTrait (null | BIRTH_TRAITS id - rare, set at birth) }
+// Mood isn't stored - it follows the vitals and your daily streak.
+// Once a day (on app open) hiveDailyTick() runs every missed day (max 14):
+// hunger, stamina, health, happiness, faint -> death after LIFE.faintDays,
+// old age, Honey Makers, Drones and a random raid (more likely on a bad
+// streak). Finishing a task/daily feeds every bee (_feedHive).
+// ============================================================================
+const LIFE = {
+    // Death is paused (Craft, Oct 2026): bees still faint and can be
+    // revived, but nobody dies of neglect or old age. Flip to true to bring
+    // death, old age and Royal Jelly back - all the code is still here.
+    deathEnabled: false,
+    lifespan: 42, jellyLifespan: 120, faintDays: 3, maxCatchUp: 14,
+    reviveCost: 10, jellyCost: 5, maleChance: 0.1, traitChance: 0.08,
+    hungerPerDay: 15, feedPerTask: 4, eventsKept: 30,
+    // Comb rooms (Oct 2026): new bees start as eggs in the Nursery for
+    // broodDays (a working Nurse Bee takes a day off). A bee with no job
+    // for idleUpsetDays gets upset.
+    broodDays: 2, idleUpsetDays: 3
+};
+// Bee names (Oct 2026): new bees get a real name instead of "Common Bee
+// #12", so they're easy to tell apart. Old bees still on that default name
+// get one once (never a bee you renamed). randomBeeName() skips names
+// already in your hive; when all are used it adds II, III...
+const BEE_NAME_POOL = ['Buzz', 'Honey', 'Clover', 'Pip', 'Bramble', 'Fern', 'Moss', 'Sage', 'Nectar', 'Pollen', 'Wax', 'Amber', 'Maple', 'Hazel', 'Juniper',
+    'Willow', 'Poppy', 'Daisy', 'Marigold', 'Thistle', 'Basil', 'Saffron', 'Ginger', 'Nutmeg', 'Cinnamon', 'Biscuit', 'Waffle', 'Muffin', 'Toffee', 'Caramel',
+    'Butterscotch', 'Sunny', 'Goldie', 'Dandelion', 'Buttercup', 'Bluebell', 'Heather', 'Lavender', 'Rosemary', 'Thyme', 'Mint', 'Olive', 'Peaches', 'Plum',
+    'Apricot', 'Quince', 'Acorn', 'Pebble', 'Flint', 'Rusty', 'Copper', 'Bronze', 'Nugget', 'Sparky', 'Zippy', 'Dash', 'Comet', 'Blitz', 'Zoom', 'Whizz',
+    'Hum', 'Bumble', 'Fuzzy', 'Velvet', 'Stripes', 'Dot', 'Freckle', 'Speckle', 'Twig', 'Bark', 'Pine', 'Cedar', 'Birch', 'Rowan', 'Aspen', 'Hollis',
+    'Wren', 'Robin', 'Finch', 'Lark', 'Sparrow', 'Echo', 'Nova', 'Luna', 'Sol', 'Orbit', 'Pixel', 'Bolt', 'Gizmo', 'Widget', 'Rivet', 'Sprocket', 'Cog',
+    'Gadget', 'Turbo', 'Jet', 'Rocket', 'Ziggy', 'Bingo', 'Pippin', 'Tansy', 'Yarrow', 'Sorrel', 'Briar', 'Hawthorn', 'Elder', 'Linden', 'Laurel', 'Ivy',
+    'Holly', 'Bramblebee', 'Mallow', 'Primrose', 'Petal', 'Blossom', 'Bud', 'Sprout', 'Meadow', 'Brook', 'River', 'Misty', 'Cloud', 'Storm', 'Thunder',
+    'Breeze', 'Gale', 'Ember', 'Blaze', 'Cinder', 'Ash', 'Frost', 'Glacier', 'Pearl', 'Opal', 'Jade', 'Ruby', 'Topaz', 'Garnet', 'Onyx', 'Quartz',
+    'Mochi', 'Dumpling', 'Noodle', 'Pickle', 'Nacho', 'Pretzel', 'Crumpet', 'Scone', 'Truffle', 'Fudge', 'Gumdrop', 'Jellybean', 'Sprinkles', 'Cupcake'];
+const DEFAULT_BEE_NAME = /^(Common|Rare|Epic|Legendary|Worker) Bee #\d+$/;
+function randomBeeName(taken = [], rand = Math.random) {
+    const used = new Set(taken.map(n => String(n).toLowerCase()));
+    const free = BEE_NAME_POOL.filter(n => !used.has(n.toLowerCase()));
+    if (free.length) return free[Math.floor(rand() * free.length)];
+    const base = BEE_NAME_POOL[Math.floor(rand() * BEE_NAME_POOL.length)];
+    for (const tag of ['II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']) if (!used.has(`${base} ${tag}`.toLowerCase())) return `${base} ${tag}`;
+    return `${base} ${Math.floor(rand() * 900) + 100}`;
+}
+
+// Where new bees come from as eggs. Combined bees are grown-ups already.
+// ============================================================================
+// QUEEN STATS + START MY DAY (Oct 2026, approved demo) - Habitica-style
+// health, XP and Honey coins for your Queen (or King), shown on Home.
+// state.queen = { since, hp, spent, lost, xpLost, healed[], reviewedOn,
+//                 guardLog[{beeId, date}] }
+// - Coins are counted live from what you finish since `since` (the day this
+//   arrived), so un-checking a task takes its coins back. spent = shop,
+//   lost = fainting.
+// - Health: a missed daily (Start My Day) or a bad-habit tap hurts by
+//   difficulty; finishing a daily/to-do/quest task heals 1 (once per task
+//   per day); level-up refills it. At 0 the Queen faints: -10% coins, this
+//   level's XP progress is lost (never a level), health back to half, bees
+//   get sad.
+// - Start My Day: the first open of a new day asks about YESTERDAY's dailies
+//   and to-dos. Anything not done is missed: health damage, and its streak
+//   is lost unless a Guard Bee (2 saves a week each, after 3 days on the
+//   job) or a Streak Charm (Honey Store, 2+ day streaks) saves it.
+// ============================================================================
+const QUEEN = {
+    maxHp: 50,
+    hit: { Trivial: 1, Easy: 2, Medium: 4, Hard: 7 },
+    coin: { Trivial: 1, Easy: 2, Medium: 3, Hard: 5 },
+    heal: 1, faintCoinLoss: 0.1, guardSaves: 2, guardDays: 3, charmMinStreak: 2
+};
+function queenDifficulty(task) {
+    const d = String((task && task.difficulty) || '').toLowerCase();
+    return d === 'trivial' ? 'Trivial' : d === 'medium' ? 'Medium' : d === 'hard' ? 'Hard' : 'Easy';
+}
+const queenHit = (task) => QUEEN.hit[queenDifficulty(task)];
+const queenCoin = (task) => QUEEN.coin[queenDifficulty(task)];
+// Coins earned from everything finished on or after `since`.
+function computeQueenCoins(state, since) {
+    if (!state || !since) return 0;
+    let n = 0;
+    (state.dailyTasks || []).forEach(t => { n += (t.completedDates || []).filter(d => d >= since).length * queenCoin(t); });
+    (state.todos || []).forEach(t => { if (t.completed && t.completedDate && t.completedDate >= since) n += queenCoin(t); });
+    (state.habits || []).forEach(h => { n += (h.history || []).filter(x => x.direction === 'positive' && x.date >= since).length * queenCoin(h); });
+    (state.quests || []).forEach(q => (q.tasks || []).forEach(t => { if (t.completed && t.dateCompleted && t.dateCompleted.slice(0, 10) >= since) n += queenCoin(t); }));
+    return n;
+}
+
+// PBKDF2 rounds for the Account PIN check (see setAccountPin).
+const PIN_CHECK_ITER = 200000;
+const BROOD_SOURCES = ['gacha', 'levelup', 'skill'];
+const BIRTH_TRAITS = {
+    'stout-heart': { label: 'Stout Heart', text: '+2% hive happiness when full' },
+    'deep-stomach': { label: 'Deep Stomach', text: 'Gets hungry 25% slower' },
+    'swift-wings': { label: 'Swift Wings', text: 'Foraging finds 10% more' },
+    'iron-shell': { label: 'Iron Shell', text: '+10 raid defense' },
+    'long-lived': { label: 'Long-Lived', text: 'Lives 25% longer' }
+};
+const RAID_ENEMIES = [
+    { id: 'hornets', label: 'Hornet raid', icon: '🦟', power: 1.2 },
+    { id: 'wasps', label: 'Wasp raid', icon: '🐝', power: 1.0 },
+    { id: 'robbers', label: 'Robber bees', icon: '🏴', power: 0.8 },
+    { id: 'mites', label: 'Mite outbreak', icon: '🦠', power: 0.9 }
+];
+const clampVital = (n) => Math.max(0, Math.min(100, Math.round(n)));
+const lifeRand = () => Math.random();
+
+// Stable 1-in-10 for bees that existed before Hive Life, so a reload never
+// changes anyone's sex. A bee that already has a job stays female (only
+// Drones can be male).
+function backfillBeeSex(bee) {
+    if (bee.class && bee.class !== 'drone') return 'f';
+    let h = 0;
+    for (const ch of String(bee.id || bee.name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return h % 10 === 0 ? 'm' : 'f';
+}
+
+function freshBeeLife(today, rand = lifeRand) {
+    const traits = Object.keys(BIRTH_TRAITS);
+    return {
+        health: 100, stamina: 100, fullness: 80, happiness: 70,
+        bornAt: today, faintedAt: null, royalJelly: false,
+        birthTrait: rand() < LIFE.traitChance ? traits[Math.floor(rand() * traits.length)] : null
+    };
+}
+
+// Adds sex + life to a bee that doesn't have them. Returns true if changed.
+function ensureBeeLife(bee, today = todayISO(), { isNew = false } = {}) {
+    if (!bee || bee.rarity === 'Royal') return false;
+    let changed = false;
+    if (bee.sex !== 'f' && bee.sex !== 'm') {
+        bee.sex = isNew ? (bee.class ? (bee.class === 'drone' ? 'm' : 'f') : (lifeRand() < LIFE.maleChance ? 'm' : 'f')) : backfillBeeSex(bee);
+        changed = true;
+    }
+    if (!bee.life || typeof bee.life !== 'object') {
+        bee.life = freshBeeLife(today);
+        if (isNew && BROOD_SOURCES.includes(bee.source)) bee.life.hatchOn = shiftISODate(today, LIFE.broodDays);
+        changed = true;
+    }
+    if (!bee.class && !bee.life.hatchOn && !bee.life.idleSince) { bee.life.idleSince = today; changed = true; }
+    return changed;
+}
+
+function beeLifespan(bee) {
+    const base = bee.life && bee.life.royalJelly ? LIFE.jellyLifespan : LIFE.lifespan;
+    return Math.round(base * (bee.life && bee.life.birthTrait === 'long-lived' ? 1.25 : 1));
+}
+
+function beeAgeDays(bee, today = todayISO()) {
+    if (!bee.life || !bee.life.bornAt) return 0;
+    return Math.max(0, daysBetween(bee.life.bornAt, today) || 0);
+}
+
+function beeIsFainted(bee) { return !!(bee.life && bee.life.faintedAt); }
+// Able to do its job: alive, awake and not exhausted.
+function beeCanWork(bee) { return !!(bee.life && !bee.life.faintedAt && !bee.life.hatchOn && bee.life.stamina >= 10); }
+// Still an egg in the Nursery.
+function beeIsBrood(bee) { return !!(bee && bee.life && bee.life.hatchOn); }
+function broodDaysLeft(bee, today = todayISO(), nurses = 0) {
+    if (!beeIsBrood(bee)) return 0;
+    return Math.max(0, (daysBetween(today, bee.life.hatchOn) || 0) - (nurses > 0 ? 1 : 0));
+}
+// What pops out of a bee: happy (has a job, all good), sad (hungry, tired
+// or hurt), upset (no job for LIFE.idleUpsetDays+), calm (no job yet).
+function beeFeeling(bee, today = todayISO()) {
+    const L = bee && bee.life;
+    if (!L) return { key: 'calm', face: '🙂', why: 'Doing fine' };
+    if (L.hatchOn) return { key: 'egg', face: '🥚', why: 'Still an egg' };
+    if (L.faintedAt) return { key: 'fainted', face: '😵', why: 'Fainted' };
+    const idle = !bee.class && L.idleSince ? (daysBetween(L.idleSince, today) || 0) : 0;
+    if (!bee.class && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😠', why: `No job for ${idle} days` };
+    const lack = [L.fullness < 40 && 'Hungry', L.stamina < 30 && 'Tired', L.health < 65 && 'Hurt', L.happiness < 30 && 'Unhappy'].filter(Boolean);
+    if (lack.length) return { key: 'sad', face: '😢', why: lack.join(', ') };
+    if (!bee.class) return { key: 'calm', face: '🙂', why: 'Waiting for a job' };
+    return { key: 'happy', face: '😊', why: 'All good' };
+}
+
+// Hive streak from your Dailies: +N = N days in a row with every due daily
+// done, -N = N days in a row missing one. Today doesn't count yet. Each
+// working Guard Bee forgives one missed day per week (max 2).
+function computeHiveStreak(dailies, today = todayISO(), guards = 0) {
+    const list = dailies || [];
+    if (!list.length) return 0;
+    let forgive = Math.min(2, guards);
+    let streak = 0, sign = 0;
+    for (let i = 1; i <= 14; i++) {
+        const day = shiftISODate(today, -i);
+        const due = list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
+        if (!due.length) continue;
+        let ok = due.every(d => (d.completedDates || []).includes(day));
+        if (!ok && i <= 7 && forgive > 0) { forgive--; ok = true; }
+        const s = ok ? 1 : -1;
+        if (sign === 0) sign = s;
+        if (s !== sign) break;
+        streak += s;
+    }
+    return streak;
+}
+
+function beeMood(bee, streak = 0) {
+    if (!bee.life) return { label: 'Content', face: '🙂', score: 60 };
+    if (bee.life.faintedAt) return { label: 'Fainted', face: '😵', score: 0 };
+    const score = (bee.life.health + bee.life.fullness + bee.life.happiness) / 3 + streak * 4;
+    if (score > 80) return { label: 'Joyful', face: '😄', score };
+    if (score > 60) return { label: 'Content', face: '🙂', score };
+    if (score > 40) return { label: 'Uneasy', face: '😐', score };
+    if (score > 20) return { label: 'Miserable', face: '😟', score };
+    return { label: 'Despairing', face: '😫', score };
+}
+
+// Raid chance per day: ~12% normally, higher on a bad streak (max 45%).
+function raidChance(streak) { return Math.max(0.03, Math.min(0.45, 0.12 - streak * 0.03)); }
+
+
 class DatabaseManager {
     constructor() {
         this.dbName = 'BizzybeeVault';
@@ -1252,6 +1493,11 @@ class DatabaseManager {
         this._sortHabiticaImports();
         // One-time switch to time-based XP (Oct 2026).
         this._ensureTimeXP();
+        // Hive Life (Oct 2026): sex + vitals on every bee, then the daily tick.
+        this._ensureBeeLife();
+        this._nameDefaultBees();
+        this._ensureQueen();
+        this._pendingLifeEvents = this.hiveDailyTick();
         // Backfills state.dictionary onto any save from before the
         // Dictionary feature existed - no-ops once it's there.
         if (!this.state.dictionary) {
@@ -1725,10 +1971,11 @@ class DatabaseManager {
     getUser() {
         if (!this.state) return null;
 
-        const totalXP = computeTotalXP(this.state.quests)
+        const totalXP = Math.max(0, computeTotalXP(this.state.quests)
             + computeDailyXP(this.state.dailyTasks)
             + computeHabitXP(this.state.habits)
-            + computeTodoXP(this.state.todos);
+            + computeTodoXP(this.state.todos)
+            - ((this.state.queen && this.state.queen.xpLost) || 0));   // lost when the Queen faints
         const { level, currentXP, nextLevelXP } = computeLevelProgress(totalXP);
 
         return {
@@ -1876,6 +2123,7 @@ class DatabaseManager {
         // a task was actually checked off, not just which day. Quest-level
         // dateCompleted (below) stays date-only - this is scoped to tasks.
         task.dateCompleted = task.completed ? new Date().toISOString() : null;
+        if (task.completed) this._queenHeal(`quest:${task.id}`);
 
         this._updateQuestCompletionState(quest);
 
@@ -2013,9 +2261,14 @@ class DatabaseManager {
 
         this.state.characterLevelBar.acknowledgedLevel += 1;
         this.state.characterLevelBar.leveledUpAt = new Date().toISOString();
+        this._ensureQueen();
+        this.state.queen.hp = QUEEN.maxHp;                      // level up = full health
         this.save();
 
         const { awardedBees, ticketsGranted, awardedMaterials } = this._syncLevelUpBees({ silent: true });
+        // Hive Life: each working Queen's Attendant adds 1 Royal Nectar.
+        this._workers('attendant').forEach(() => { this._addMaterial('royal-nectar', 1); awardedMaterials.push('royal-nectar'); });
+        if (this._workers('attendant').length) this.save();
 
         return {
             newLevel: this.state.characterLevelBar.acknowledgedLevel,
@@ -2181,15 +2434,26 @@ class DatabaseManager {
     // (not when unchecking). No-ops silently if you have no Collectors.
     _collectMaterialsOnCompletion() {
         if (!this.state) return;
-        const collectors = this.getColonyBees().filter(b => b.class === 'collector');
-        if (collectors.length === 0) return;
+        // Hive Life: every finished task feeds the hive; Scouts may find a ticket.
+        this._feedHive();
+        this._workers('scout').forEach(scout => {
+            if (lifeRand() < 0.03) {
+                this.state.colony.tickets = (this.state.colony.tickets || 0) + 1;
+                if (typeof Toast !== 'undefined') Toast.show(`🎟️ ${scout.name} the Scout found a gacha ticket!`, 'positive');
+            }
+        });
+        // Foragers (collectors) only work while awake and rested; Speed helps.
+        const collectors = this.getColonyBees().filter(b => b.class === 'collector' && (!b.life || beeCanWork(b)));
+        if (collectors.length === 0) { this.save(); return; }
 
         if (!this.state.inventory) this.state.inventory = { materials: {} };
         if (!this.state.inventory.materials) this.state.inventory.materials = {};
 
         const drops = [];
         collectors.forEach(bee => {
-            if (Math.random() < COLLECTOR_DROP_CHANCE) {
+            const speed = (bee.stats && bee.stats.speed) || 0;
+            const chance = (COLLECTOR_DROP_CHANCE - 0.1 + Math.min(0.25, speed / 120)) * (bee.life && bee.life.birthTrait === 'swift-wings' ? 1.1 : 1);
+            if (Math.random() < chance) {
                 const materialId = rollMaterialDrop();
                 this.state.inventory.materials[materialId] = (this.state.inventory.materials[materialId] || 0) + 1;
                 drops.push({ bee, materialId });
@@ -2252,7 +2516,7 @@ class DatabaseManager {
             else if (daysElapsed <= QUEST_SPEED_FAST_DAYS) speedBonusRolls = QUEST_SPEED_FAST_BONUS_ROLLS;
         }
 
-        const totalRolls = baseRolls + speedBonusRolls;
+        const totalRolls = baseRolls + speedBonusRolls + Math.min(3, this._workers('architect').length);
         const materialsDropped = [];
         for (let i = 0; i < totalRolls; i++) {
             const materialId = rollMaterialDrop();
@@ -2666,6 +2930,7 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.colony) this.state.colony = { bees: [] };
 
+        ensureBeeLife(bee, todayISO(), { isNew: true });
         this.state.colony.bees.push(bee);
         this.save();
         return bee;
@@ -2682,7 +2947,7 @@ class DatabaseManager {
         const dexNumber = this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
         const bee = {
             id: generateBeeId(),
-            name: `${rarityInfo.rarity} Bee #${dexNumber}`,
+            name: randomBeeName(this.getColonyBees().map(b => b.name)),
             rarity: rarityInfo.rarity,
             class: null,
             obtainedAt: new Date().toISOString(),
@@ -2726,8 +2991,19 @@ class DatabaseManager {
         const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
         if (className && !BEE_CLASSES[className]) return null;
+        // Hive Life: only male bees can be Drones, and Drones do nothing else.
+        if (className && bee.sex) {
+            const maleOnly = !!BEE_CLASSES[className].maleOnly;
+            if (maleOnly !== (bee.sex === 'm')) return null;
+        }
 
+        if ((bee.class || null) !== (className || null)) bee.jobSince = todayISO();   // Guard shields need 3 days on the job
         bee.class = className || null;
+        // Comb rooms: how long a bee has gone without a job (upset at 3 days).
+        if (bee.life) {
+            if (bee.class) delete bee.life.idleSince;
+            else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
+        }
         this.save();
         return bee;
     }
@@ -2749,6 +3025,11 @@ class DatabaseManager {
             const pool = BEE_RARITIES.filter(r => r.weight > 0 && r.rarity !== 'Common');
             let roll = Math.random() * pool.reduce((n, r) => n + r.weight, 0);
             rarity = (pool.find(r => (roll -= r.weight) < 0) || pool[0]).rarity;
+        }
+        // Hive Life: a Drone's mating gives this pull a 50% shot at Rare.
+        if (this.state.colony.droneBoost) {
+            this.state.colony.droneBoost = false;
+            if (rarity === 'Common' && lifeRand() < 0.5) rarity = 'Rare';
         }
         this.state.colony.pity = rarity === 'Common' ? pity : 0;
         const bee = this.awardBee('gacha', rarity);
@@ -3015,10 +3296,13 @@ class DatabaseManager {
         if (!this.state.inventory.items) this.state.inventory.items = {};
 
         const { materialId, amount } = item.price;
-        const owned = this.state.inventory.materials[materialId] || 0;
-        if (owned < amount) return null;
-
-        this.state.inventory.materials[materialId] = owned - amount;
+        if (item.price.currency === 'coins') {
+            if (!this.spendCoins(amount)) return null;
+        } else {
+            const owned = this.state.inventory.materials[materialId] || 0;
+            if (owned < amount) return null;
+            this.state.inventory.materials[materialId] = owned - amount;
+        }
         this.state.inventory.items[itemId] = (this.state.inventory.items[itemId] || 0) + 1;
 
         this.save();
@@ -3160,7 +3444,7 @@ class DatabaseManager {
         const keepName = lead.customNamed && lead.rarity === resultRarity;
         const newBee = {
             id: generateBeeId(),
-            name: keepName ? lead.name : `${resultRarity} Bee #${dexNumber}`,
+            name: keepName ? lead.name : randomBeeName(this.getColonyBees().map(b => b.name)),
             rarity: resultRarity,
             class: lead.class || null,
             obtainedAt: new Date().toISOString(),
@@ -3285,6 +3569,7 @@ class DatabaseManager {
             task.completedDates.splice(index, 1);
         }
 
+        if (justCompleted) this._queenHeal(`daily:${task.id}:${today}`);
         this.save();
         this._syncLevelUpBees();
         if (justCompleted) this._collectMaterialsOnCompletion();
@@ -3416,6 +3701,8 @@ class DatabaseManager {
             direction,
             date: todayISO()
         });
+        // Queen health (Oct 2026): a bad habit hurts (half a missed daily).
+        if (direction === 'negative') this._queenHurt(Math.ceil(queenHit(habit) / 2), `😖 ${habit.label}`);
 
         this.save();
         this._syncLevelUpBees();
@@ -3559,6 +3846,7 @@ class DatabaseManager {
 
         todo.completed = !todo.completed;
         todo.completedDate = todo.completed ? todayISO() : null;
+        if (todo.completed) this._queenHeal(`todo:${todo.id}`);
 
         this.save();
         this._syncLevelUpBees();
@@ -4124,21 +4412,55 @@ class DatabaseManager {
     // account-security.js validate before ever calling setAccountPin, same
     // "core stores state, features own meaning" split used everywhere else
     // in this file.
+    // PIN check v2 (Oct 2026): state.accountPinCheck = { v: 2, salt, iter,
+    // hash } - PBKDF2-SHA256 with a random salt and PIN_CHECK_ITER rounds,
+    // so a copied save can't be turned back into the PIN in a second (the old
+    // plain SHA-256 accountPinHash could). An old hash still works: the
+    // first correct unlock upgrades it and deletes the old field.
     hasAccountPin() {
-        return !!(this.state && this.state.accountPinHash);
+        return !!(this.state && (this.state.accountPinCheck || this.state.accountPinHash));
+    }
+
+    async _pinDerive(pin, saltB64, iter) {
+        const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+        const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+        const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, key, 256);
+        return btoa(String.fromCharCode(...new Uint8Array(bits)));
     }
 
     async setAccountPin(pin) {
         if (!this.state) return null;
-        this.state.accountPinHash = await Auth.sha256Hex(pin);
+        const salt = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+        const iter = PIN_CHECK_ITER;
+        this.state.accountPinCheck = { v: 2, salt, iter, hash: await this._pinDerive(pin, salt, iter) };
+        delete this.state.accountPinHash;
         this.save();
         return true;
     }
 
     async verifyAccountPin(pin) {
-        if (!this.state || !this.state.accountPinHash) return false;
-        const hash = await Auth.sha256Hex(pin);
-        return hash === this.state.accountPinHash;
+        if (!this.state) return false;
+        const c = this.state.accountPinCheck;
+        if (c && c.salt && c.hash) return (await this._pinDerive(pin, c.salt, c.iter || PIN_CHECK_ITER)) === c.hash;
+        if (!this.state.accountPinHash) return false;
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(pin)));
+        const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+        if (hex !== this.state.accountPinHash) return false;
+        await this.setAccountPin(pin);          // upgrade the old hash
+        return true;
+    }
+
+    // Forgot PIN: the PIN is also the key to the encrypted personal info
+    // (details + Habitica login), so that is erased with it. A local backup
+    // is made first. Then a new PIN can be created.
+    resetAccountPin() {
+        if (!this.state) return false;
+        try { this.createLocalBackup('Before PIN reset'); } catch { /* best effort */ }
+        delete this.state.accountPinCheck;
+        delete this.state.accountPinHash;
+        this.state.personalInfoEncrypted = null;
+        this.save();
+        return true;
     }
 
     // An early version of the Habitica import put every Habitica Habit into
@@ -4425,7 +4747,7 @@ class DatabaseManager {
             const day = dayISO(d);
             dailies.forEach(task => {
                 if (!isDailyDueOn(task, day)) return;
-                if ((task.completedDates || []).includes(day)) return;
+                if ((task.completedDates || []).includes(day) || (task.savedDates || []).includes(day)) return;
                 ids.push(`daily:${task.id}:${day}`);
             });
         }
@@ -4463,4 +4785,385 @@ class DatabaseManager {
 }
 
 // Global instance
+
+// ---- Hive Life: Vault methods (see the HIVE LIFE notes above the class) ----
+Object.assign(DatabaseManager.prototype, {
+    // Living, non-royal bees.
+    _lifeBees() {
+        return this.getColonyBees().filter(b => b.rarity !== 'Royal' && b.life);
+    },
+    _workers(role) {
+        return this._lifeBees().filter(b => b.class === role && beeCanWork(b));
+    },
+    _lifeEvent(type, text, extra = {}) {
+        const c = this.state.colony;
+        if (!Array.isArray(c.lifeEvents)) c.lifeEvents = [];
+        c.lifeEvents.unshift({ id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, at: new Date().toISOString(), type, text, ...extra });
+        c.lifeEvents = c.lifeEvents.slice(0, LIFE.eventsKept);
+    },
+    _addMaterial(id, n = 1) {
+        if (!this.state.inventory) this.state.inventory = { materials: {}, items: {}, fragments: {} };
+        if (!this.state.inventory.materials) this.state.inventory.materials = {};
+        const m = this.state.inventory.materials;
+        m[id] = Math.max(0, (m[id] || 0) + n);
+        return m[id];
+    },
+
+    // Backfills sex + life onto every bee (fair start: age counts from today).
+    _ensureBeeLife() {
+        if (!this.state || !this.state.colony) return;
+        const today = todayISO();
+        let changed = false;
+        // One recovery copy of the save from before Hive Life touched it.
+        if (!this.state.colony.lifeTick && (this.state.colony.bees || []).some(b => b.rarity !== 'Royal' && !b.life)) {
+            try { this.createLocalBackup('Before Hive Life'); } catch { /* best effort */ }
+        }
+        (this.state.colony.bees || []).forEach(b => { if (ensureBeeLife(b, today)) changed = true; });
+        if (!Array.isArray(this.state.colony.fallen)) { this.state.colony.fallen = []; changed = true; }
+        if (!this.state.colony.lifeTick) { this.state.colony.lifeTick = today; changed = true; }
+        if (changed) this.save();
+    },
+
+    // One time: bees still called "Common Bee #12" get a real name.
+    _nameDefaultBees() {
+        if (!this.state || !this.state.colony) return;
+        const bees = this.state.colony.bees || [];
+        const todo = bees.filter(b => b.rarity !== 'Royal' && !b.customNamed && DEFAULT_BEE_NAME.test(String(b.name || '')));
+        if (!todo.length) return;
+        todo.forEach(b => { b.name = randomBeeName(bees.map(x => x.name)); });
+        this.save();
+    },
+    randomBeeName() {
+        return randomBeeName(this.getColonyBees().map(b => b.name));
+    },
+
+    getHiveStreak() {
+        return computeHiveStreak(this.state ? this.state.dailyTasks : [], todayISO(), this._workers('guardian').length);
+    },
+
+    // Runs each day missed since the last visit (max LIFE.maxCatchUp).
+    hiveDailyTick(today = todayISO()) {
+        if (!this.state || !this.state.colony) return [];
+        const c = this.state.colony;
+        if (!c.lifeTick) { c.lifeTick = today; this.save(); return []; }
+        let days = Math.min(LIFE.maxCatchUp, Math.max(0, daysBetween(c.lifeTick, today) || 0));
+        const before = (c.lifeEvents || []).length ? c.lifeEvents[0].id : null;
+        for (let i = days - 1; i >= 0; i--) this._lifeDay(shiftISODate(today, -i));
+        if (days > 0) { c.lifeTick = today; this.save(); }
+        const fresh = [];
+        for (const ev of (c.lifeEvents || [])) { if (ev.id === before) break; fresh.push(ev); }
+        return fresh;
+    },
+
+    _lifeDay(day) {
+        const c = this.state.colony;
+        const streak = this.getHiveStreak();
+        const bees = this._lifeBees();
+        if (!bees.length) return;
+        const nurses = this._workers('nurse').length;
+        const water = this._workers('watercarrier').length;
+        const avgFull = bees.reduce((n, b) => n + b.life.fullness, 0) / bees.length;
+        const stoutBonus = avgFull >= 80 ? bees.filter(b => b.life.birthTrait === 'stout-heart').length * 2 : 0;
+
+        // Eggs hatch. A job picked in the Nursery starts right away.
+        bees.filter(beeIsBrood).forEach(b => {
+            if (broodDaysLeft(b, day, nurses) > 0) return;
+            delete b.life.hatchOn;
+            b.life.bornAt = day;
+            if (!b.class) b.life.idleSince = day;
+            const job = b.class && BEE_CLASSES[b.class] ? BEE_CLASSES[b.class].label : null;
+            this._lifeEvent('hatch', job ? `🐣 ${b.name} hatched and started work as a ${job}.` : `🐣 ${b.name} hatched. Give ${b.sex === 'm' ? 'him' : 'her'} a job.`, { beeId: b.id });
+        });
+
+        bees.forEach(b => {
+            const L = b.life;
+            if (L.faintedAt || L.hatchOn) return;
+            L.fullness = clampVital(L.fullness - LIFE.hungerPerDay * (L.birthTrait === 'deep-stomach' ? 0.75 : 1));
+            if (L.fullness <= 0) L.health = clampVital(L.health - 20);
+            else if (L.fullness >= 50) L.health = clampVital(L.health + 5 + Math.min(2, nurses) * 2);
+            if (b.class) L.stamina = clampVital(L.stamina - (water ? 6 : 8) + (L.fullness >= 60 ? 12 : 0));
+            else L.stamina = clampVital(L.stamina + 25);
+            if (L.stamina <= 0) L.health = clampVital(L.health - 5);
+            L.happiness = clampVital(L.happiness + (streak > 0 ? 4 : streak < 0 ? -6 : 0) + stoutBonus);
+            if (L.health <= 0) { L.faintedAt = day; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
+        });
+
+        // Faint too long, or too old -> the bee dies (only while death is on).
+        if (LIFE.deathEnabled) bees.slice().forEach(b => {
+            const L = b.life;
+            if (L.faintedAt && (daysBetween(L.faintedAt, day) || 0) >= LIFE.faintDays) this._beeDies(b, 'neglect', day);
+            else if (beeAgeDays(b, day) >= beeLifespan(b)) this._beeDies(b, 'old age', day);
+        });
+
+        // Honey Makers: 40% each, 3 Pollen -> 1 Honey Drop.
+        this._workers('honeymaker').forEach(() => {
+            const m = (this.state.inventory && this.state.inventory.materials) || {};
+            if (lifeRand() < 0.4 && (m.pollen || 0) >= 3) { this._addMaterial('pollen', -3); this._addMaterial('honey-drop', 1); this._lifeEvent('honey', '🍯 Honey Makers turned 3 Pollen into a Honey Drop.'); }
+        });
+        // Drones: 30% each day, the next pull gets a better shot at Rare.
+        if (this._workers('drone').length && !c.droneBoost && lifeRand() < 0.3) { c.droneBoost = true; this._lifeEvent('drone', '♂️ A Drone mated with your Queen. Your next pull has a better shot at Rare.'); }
+
+        if (lifeRand() < raidChance(streak)) this._raid(day);
+    },
+
+    _beeDies(bee, cause, day = todayISO()) {
+        const c = this.state.colony;
+        c.bees = c.bees.filter(b => b.id !== bee.id);
+        const undertakers = this._workers('undertaker').length;
+        if (undertakers) this._addMaterial('pollen', Math.min(2, undertakers));
+        c.fallen.unshift({ id: bee.id, name: bee.name, rarity: bee.rarity, element: bee.element, sex: bee.sex, role: bee.class, cause, diedAt: day, bornAt: bee.life && bee.life.bornAt, dexNumber: bee.dexNumber });
+        this._lifeEvent('death', cause === 'old age' ? `🕯️ ${bee.name} died of old age.` : `🕯️ ${bee.name} died after being fainted too long.`, { beeId: bee.id });
+    },
+
+    // Raid defense vs a rolled attack. Lost raid: 1-2 bees take damage.
+    _raid(day) {
+        const enemy = RAID_ENEMIES[Math.floor(lifeRand() * RAID_ENEMIES.length)];
+        const level = (this.getUser() || {}).level || 1;
+        const def = 15
+            + this._workers('guardian').reduce((n, b) => n + (b.stats.defense || 0) + (b.life.birthTrait === 'iron-shell' ? 10 : 0), 0)
+            + this._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4), 0);
+        const atk = Math.round((25 + level * 4 + lifeRand() * 40) * enemy.power);
+        if (def >= atk) {
+            this._workers('guardian').forEach(b => { b.life.stamina = clampVital(b.life.stamina - 15); });
+            this._addMaterial('pollen', 1);
+            this._lifeEvent('raid-won', `${enemy.icon} ${enemy.label} repelled! Defense ${def} vs ${atk}. +1 🌼 Pollen.`);
+            return;
+        }
+        const pool = this._lifeBees().filter(b => !b.life.faintedAt && !b.life.hatchOn);
+        const guards = pool.filter(b => b.class === 'guardian' || b.class === 'barrier');
+        const hurt = [];
+        for (let i = 0; i < Math.min(2, pool.length); i++) {
+            const from = guards.length ? guards : pool;
+            const b = from.splice(Math.floor(lifeRand() * from.length), 1)[0];
+            if (!b) break;
+            const p = pool.indexOf(b); if (p >= 0) pool.splice(p, 1);
+            b.life.health = clampVital(b.life.health - 40);
+            if (b.life.health <= 0) b.life.faintedAt = day;
+            hurt.push(b);
+        }
+        const sad = this._workers('cleaner').length ? 4 : 10;
+        this._lifeBees().forEach(b => { b.life.happiness = clampVital(b.life.happiness - sad); });
+        this._lifeEvent('raid-lost', `${enemy.icon} ${enemy.label} broke in (defense ${def} vs ${atk}). ${hurt.map(b => `${b.name}${b.life.faintedAt ? ' fainted' : ' was hurt'}`).join(', ') || 'Everyone is shaken'}.`);
+    },
+
+    // Finishing a task or daily feeds the hive.
+    _feedHive() {
+        this._lifeBees().forEach(b => {
+            if (b.life.faintedAt) return;
+            b.life.fullness = clampVital(b.life.fullness + LIFE.feedPerTask);
+            b.life.happiness = clampVital(b.life.happiness + 1);
+        });
+    },
+
+    // Once a day: your 3 strongest awake bees raid a nest.
+    counterRaid() {
+        if (!this.state || !this.state.colony) return { ok: false, error: 'No hive yet.' };
+        const c = this.state.colony;
+        const today = todayISO();
+        if (c.lastCounterRaid === today) return { ok: false, error: 'Your bees already raided today. Try again tomorrow.' };
+        const power = b => (b.stats.offense || 0) + (b.stats.speed || 0) + (b.stats.power || 0);
+        const team = this._lifeBees().filter(b => !b.life.faintedAt && !b.life.hatchOn && b.life.stamina >= 30).sort((a, b) => power(b) - power(a)).slice(0, 3);
+        if (!team.length) return { ok: false, error: 'No bee has the stamina to raid. Let them rest and eat.' };
+        const level = (this.getUser() || {}).level || 1;
+        const ours = team.reduce((n, b) => n + power(b), 0);
+        const theirs = Math.round(40 + level * 6 + lifeRand() * 60);
+        const won = ours >= theirs;
+        c.lastCounterRaid = today;
+        team.forEach(b => {
+            b.life.stamina = clampVital(b.life.stamina - (won ? 30 : 40));
+            if (!won) { b.life.health = clampVital(b.life.health - 15); if (b.life.health <= 0) b.life.faintedAt = today; }
+            else b.life.happiness = clampVital(b.life.happiness + 5);
+        });
+        if (won) this._addMaterial('royal-nectar', 2);
+        const text = won ? `⚔️ Counter-raid won (${ours} vs ${theirs})! +2 ✨ Royal Nectar.` : `⚔️ Counter-raid failed (${ours} vs ${theirs}). The team came home hurt and tired.`;
+        this._lifeEvent(won ? 'counter-won' : 'counter-lost', text);
+        this.save();
+        return { ok: true, won, ours, theirs, team: team.map(b => b.name), text };
+    },
+
+    reviveBee(beeId) {
+        const bee = this.getColonyBees().find(b => b.id === beeId);
+        if (!bee || !bee.life || !bee.life.faintedAt) return { ok: false, error: 'That bee is not fainted.' };
+        const have = (this.state.inventory && this.state.inventory.materials && this.state.inventory.materials['honey-drop']) || 0;
+        if (have < LIFE.reviveCost) return { ok: false, error: `Reviving costs ${LIFE.reviveCost} Honey Drops. You have ${have}.` };
+        this._addMaterial('honey-drop', -LIFE.reviveCost);
+        Object.assign(bee.life, { faintedAt: null, health: 40, stamina: 20, fullness: Math.max(bee.life.fullness, 40) });
+        this._lifeEvent('revive', `💛 ${bee.name} was revived.`, { beeId });
+        this.save();
+        return { ok: true, bee };
+    },
+
+    craftRoyalJelly() {
+        const have = (this.state.inventory && this.state.inventory.materials && this.state.inventory.materials['honey-drop']) || 0;
+        if (have < LIFE.jellyCost) return { ok: false, error: `Royal Jelly takes ${LIFE.jellyCost} Honey Drops. You have ${have}.` };
+        this._addMaterial('honey-drop', -LIFE.jellyCost);
+        this._addMaterial('royal-jelly', 1);
+        this.save();
+        return { ok: true };
+    },
+
+    giveRoyalJelly(beeId) {
+        const bee = this.getColonyBees().find(b => b.id === beeId);
+        if (!bee || !bee.life) return { ok: false, error: 'Bee not found.' };
+        if (bee.life.royalJelly) return { ok: false, error: `${bee.name} already had Royal Jelly.` };
+        const have = (this.state.inventory && this.state.inventory.materials && this.state.inventory.materials['royal-jelly']) || 0;
+        if (have < 1) return { ok: false, error: 'You have no Royal Jelly. Make it from 5 Honey Drops.' };
+        this._addMaterial('royal-jelly', -1);
+        bee.life.royalJelly = true;
+        this.save();
+        return { ok: true, bee };
+    },
+
+    getFallenBees() { return (this.state && this.state.colony && this.state.colony.fallen) || []; },
+    getLifeEvents() { return (this.state && this.state.colony && this.state.colony.lifeEvents) || []; }
+});
+
+
+// ---- Queen stats + Start My Day: Vault methods (see QUEEN above) ----
+Object.assign(DatabaseManager.prototype, {
+    _ensureQueen() {
+        if (!this.state) return null;
+        if (!this.state.queen || typeof this.state.queen !== 'object') {
+            // since = yesterday, so tasks credited in the first Start My Day earn coins too.
+            this.state.queen = { since: shiftISODate(todayISO(), -1), hp: QUEEN.maxHp, spent: 0, lost: 0, xpLost: 0, healed: [], reviewedOn: null, guardLog: [] };
+            this.save();
+        }
+        const q = this.state.queen;
+        if (!Array.isArray(q.healed)) q.healed = [];
+        if (!Array.isArray(q.guardLog)) q.guardLog = [];
+        return q;
+    },
+    getQueenStats() {
+        const q = this._ensureQueen();
+        if (!q) return null;
+        const earned = computeQueenCoins(this.state, q.since);
+        return { hp: Math.max(0, Math.round(q.hp)), maxHp: QUEEN.maxHp, coins: Math.max(0, earned - (q.spent || 0) - (q.lost || 0)), earned, fainted: q.faintedOn === todayISO() };
+    },
+    getCoins() { const s = this.getQueenStats(); return s ? s.coins : 0; },
+    spendCoins(n) {
+        const q = this._ensureQueen();
+        if (!q || this.getCoins() < n) return false;
+        q.spent = (q.spent || 0) + n;
+        return true;
+    },
+    // +1 health, once per task per day (so un-check/re-check can't farm it).
+    _queenHeal(key) {
+        const q = this._ensureQueen();
+        if (!q || q.healed.includes(key)) return;
+        q.healed.push(key);
+        if (q.healed.length > 300) q.healed = q.healed.slice(-300);
+        q.hp = Math.min(QUEEN.maxHp, (q.hp || 0) + QUEEN.heal);
+    },
+    // Returns true if the Queen fainted.
+    _queenHurt(n, why = '') {
+        const q = this._ensureQueen();
+        if (!q || !(n > 0)) return false;
+        q.hp = Math.max(0, (q.hp || 0) - n);
+        if (typeof Toast !== 'undefined' && why) Toast.show(`❤️ −${n} · ${why}`, 'negative');
+        if (q.hp > 0) return false;
+        // Faint: lose 10% of coins and this level's XP progress (never a level).
+        const coins = this.getCoins();
+        const bar = this.getCharacterLevelBar ? this.getCharacterLevelBar() : null;
+        const lostCoins = Math.floor(coins * QUEEN.faintCoinLoss);
+        const lostXP = bar && !bar.maxed ? bar.xpIntoLevel : 0;
+        q.lost = (q.lost || 0) + lostCoins;
+        q.xpLost = (q.xpLost || 0) + lostXP;
+        q.hp = Math.round(QUEEN.maxHp / 2);
+        q.faintedOn = todayISO();
+        this._lifeBees().forEach(b => { if (b.life) b.life.happiness = clampVital(b.life.happiness - 15); });
+        this._lifeEvent('queen-faint', `😵 Your Queen fainted! Lost ${lostCoins} 🪙 and ${lostXP} XP. Your bees are sad.`);
+        if (typeof Toast !== 'undefined') Toast.show(`😵 Your Queen fainted! −${lostCoins} 🪙 · −${lostXP} XP. Health is back to half.`, 'negative');
+        return true;
+    },
+
+    // Guard Bees that can shield a streak right now: working, 3+ days on
+    // the job, under 2 saves in the last 7 days.
+    _readyGuards(today = todayISO()) {
+        const q = this._ensureQueen();
+        const weekAgo = shiftISODate(today, -6);
+        q.guardLog = q.guardLog.filter(g => g.date >= shiftISODate(today, -13));
+        return this._workers('guardian')
+            .filter(b => !b.jobSince || (daysBetween(b.jobSince, today) || 0) >= QUEEN.guardDays)
+            .map(b => ({ bee: b, left: QUEEN.guardSaves - q.guardLog.filter(g => g.beeId === b.id && g.date >= weekAgo).length }))
+            .filter(g => g.left > 0);
+    },
+
+    // What Start My Day asks about: yesterday's unfinished dailies and
+    // to-dos that were due yesterday. null = nothing to ask (or done today).
+    getDayReview(today = todayISO()) {
+        const q = this._ensureQueen();
+        if (!q || q.reviewedOn === today) return null;
+        if (typeof this.isOnboarding === 'function' && this.isOnboarding()) return null;
+        const y = shiftISODate(today, -1);
+        const dailies = (this.state.dailyTasks || []).filter(t =>
+            (!t.startDate || t.startDate <= y) && isDailyDueOn(t, y)
+            && !(t.completedDates || []).includes(y) && !(t.savedDates || []).includes(y))
+            .map(t => ({ id: t.id, label: t.label, difficulty: queenDifficulty(t), xp: t.xp, streak: computeDailyStreak(t, y), checklist: (t.checklist || []).map(i => ({ id: i.id, label: i.label })) }));
+        const todos = (this.state.todos || []).filter(t => !t.completed && t.dueDate === y)
+            .map(t => ({ id: t.id, label: t.label, difficulty: queenDifficulty(t), xp: t.xp }));
+        if (!dailies.length && !todos.length) {
+            q.reviewedOn = today;
+            this.save();
+            return null;
+        }
+        const guards = this._readyGuards(today);
+        const charms = (this.state.inventory && this.state.inventory.items && this.state.inventory.items['streak-charm']) || 0;
+        return { today, yesterday: y, dailies, todos, guards: guards.map(g => ({ id: g.bee.id, name: g.bee.name, left: g.left })), charms };
+    },
+
+    // Applies Start My Day. doneDailyIds/doneTodoIds = what you did
+    // yesterday. Returns { saves: [...], damage, fainted }.
+    finishDayReview({ doneDailyIds = [], doneTodoIds = [] } = {}, today = todayISO()) {
+        const q = this._ensureQueen();
+        if (!q || q.reviewedOn === today) return { saves: [], damage: 0, fainted: false };
+        const y = shiftISODate(today, -1);
+        const done = new Set(doneDailyIds);
+        const result = { saves: [], damage: 0, fainted: false, credited: 0 };
+        const missed = [];
+        (this.state.dailyTasks || []).forEach(t => {
+            if ((t.startDate && t.startDate > y) || !isDailyDueOn(t, y)) return;
+            if ((t.completedDates || []).includes(y) || (t.savedDates || []).includes(y)) return;
+            if (done.has(t.id)) {
+                if (!t.completedDates) t.completedDates = [];
+                t.completedDates.push(y);
+                this._queenHeal(`daily:${t.id}:${y}`);
+                result.credited++;
+            } else missed.push(t);
+        });
+        (this.state.todos || []).forEach(t => {
+            if (!t.completed && doneTodoIds.includes(t.id)) {
+                t.completed = true; t.completedDate = y;
+                this._queenHeal(`todo:${t.id}`);
+                result.credited++;
+            }
+        });
+        // Savers: longest streaks first. Guard Bees, then Streak Charms.
+        const guards = this._readyGuards(today);
+        const items = (this.state.inventory && this.state.inventory.items) || {};
+        missed.map(t => ({ t, streak: computeDailyStreak(t, y) }))
+            .sort((a, b) => b.streak - a.streak)
+            .forEach(({ t, streak }) => {
+                result.damage += queenHit(t);
+                if (streak <= 0) { result.saves.push({ id: t.id, label: t.label, streak, by: 'none' }); return; }
+                const g = guards.find(x => x.left > 0);
+                let by = 'lost';
+                if (g) {
+                    g.left--;
+                    q.guardLog.push({ beeId: g.bee.id, date: today });
+                    by = 'guard';
+                } else if (streak >= QUEEN.charmMinStreak && (items['streak-charm'] || 0) > 0) {
+                    items['streak-charm']--;
+                    by = 'charm';
+                }
+                if (by !== 'lost') { if (!t.savedDates) t.savedDates = []; t.savedDates.push(y); }
+                result.saves.push({ id: t.id, label: t.label, streak, by, guard: by === 'guard' ? g.bee.name : null });
+            });
+        q.reviewedOn = today;
+        if (result.damage) result.fainted = this._queenHurt(result.damage);
+        this.save();
+        this._syncLevelUpBees();
+        return result;
+    }
+});
+
 const Vault = new DatabaseManager();

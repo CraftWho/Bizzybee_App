@@ -5,7 +5,7 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
-const PACK_PATHS = /^\/src\/(plugins\/(calendar|dictionary|study)\/|assets\/3d\/)/;
+const PACK_PATHS = /^\/src\/(plugins\/(calendar|dictionary|study|terminal)\/|assets\/3d\/)/;
 self.addEventListener('fetch', (event) => {
     const req = event.request;
     if (req.method !== 'GET') return;
@@ -26,7 +26,7 @@ self.addEventListener('push', (event) => {
         body: data.body || '',
         tag: data.tag || undefined,
         icon: '/src/assets/icons/icon-192x192.png',
-        badge: '/src/assets/icons/icon-192x192.png',
+        badge: '/src/assets/icons/badge-96x96.png',
         data: { url: data.url || '/src/features/home/home.html' }
     }));
 });

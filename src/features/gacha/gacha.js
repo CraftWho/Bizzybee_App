@@ -51,6 +51,14 @@ function showSummonReveal(bee, { title } = {}) {
 
         titleEl.textContent = title || `${bee.name} joined the colony!`;
         BeeCard.render(cardHost, bee, { editable: false });
+        // Name it now (Oct 2026): a random name is already set; 🎲 for another.
+        const nameHost = document.getElementById('gacha-summon-name');
+        if (nameHost && typeof BeeName !== 'undefined' && bee.rarity !== 'Royal') {
+            BeeName.mount(nameHost, bee, {
+                label: 'Name your new bee',
+                onSaved: (r) => { titleEl.textContent = `${r.name} joined the colony!`; BeeCard.render(cardHost, r, { editable: false }); }
+            });
+        } else if (nameHost) nameHost.innerHTML = '';
         resultPanel.hidden = false;
     }, SPIN_DURATION_MS);
 

@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/bee-name/bee-name.css">
     <link rel="stylesheet" href="./colony.css">
 </head>
 <body>
@@ -27,9 +28,11 @@
     <main class="colony-container">
 
         <div class="colony-view" id="colony-exterior">
-            <div class="panel page-header-panel">
-                <h2 class="page-title">🏰 <span class="gold-gradient-text">HIVE MIND</span></h2>
-                <p class="page-subtitle">Your colony grows as you do. Level up to add rings, glowing cells and a landing deck.</p>
+            <!-- v2 header (Oct 2026): same look as Settings. -->
+            <div class="page-header-panel cm-head">
+                <h1 class="cm-title">🏰 HIVE MIND</h1>
+                <p class="cm-lead">Your colony grows as you do. Level up to add rings, glowing cells and a landing deck.</p>
+                <div class="cm-stats" id="cm-stats"></div>
             </div>
 
             <!-- Full-page hive art behind everything on this view (fixed,
@@ -46,10 +49,21 @@
         </div>
 
         <div class="colony-view" id="colony-interior" style="display: none;">
-            <div class="panel page-header-panel">
-                <h2 class="page-title">🍯 <span class="gold-gradient-text">INSIDE THE HIVE</span></h2>
-                <p class="page-subtitle">Your level fills the comb. Bees with a job crawl; the rest wait in their cell. Missed tasks and bad habits make cells decay.</p>
+            <div class="page-header-panel cm-head">
+                <h1 class="cm-title">🍯 INSIDE THE HIVE</h1>
+                <p class="cm-lead">Tap a comb to manage your bees. Missed tasks and bad habits make cells decay.</p>
             </div>
+            <!-- Hive Life (Oct 2026) or the Classic inside view. -->
+            <div class="hl-switch" role="group" aria-label="Hive view">
+                <button type="button" data-hive-view="life">🐝 Hive Life</button>
+                <button type="button" data-hive-view="classic">🍯 Classic</button>
+            </div>
+            <section id="colony-life" class="hl-wrap" hidden>
+                <div id="hl-comb-host"></div>
+                <div class="hl-info" id="hl-info"><b>Tap a comb</b> to manage it: change jobs, add resting bees, and pick jobs for eggs. 😊 happy · 😢 hungry, tired or hurt · 😠 no job for 3+ days.</div>
+                <h3 class="hl-sec">Hive news</h3>
+                <div id="hl-news-host"></div>
+            </section>
 
             <!-- Full-page honeycomb behind everything on this view (fixed,
                  colony.css). Drawn by colony-interior.js. -->
@@ -74,6 +88,7 @@
     <!-- Tap a bee (inside or outside the hive) to see its card. -->
     <div class="colony-card-overlay" id="colony-card-overlay" hidden>
         <div class="colony-card-host" id="colony-card-host"></div>
+        <div class="colony-life-panel" id="colony-life-panel"></div>
         <p class="colony-card-hint">Tap the card to flip it. Tap outside to close.</p>
     </div>
 
@@ -90,6 +105,8 @@
     <script src="../../core/mech-bee/mech-bee.js"></script>
     <script src="./colony-hive.js"></script>
     <script src="./colony-interior.js"></script>
+    <script src="../../core/bee-name/bee-name.js"></script>
+    <script src="./colony-life.js"></script>
     <script src="./colony.js"></script>
 </body>
 </html>
