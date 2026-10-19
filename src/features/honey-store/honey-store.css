@@ -1,94 +1,11 @@
-/* ==========================================================================
-   HONEY STORE
-   Materials-priced item shop - see STORE_ITEM_CATALOG in db.js. A wallet
-   strip up top shows what you have to spend, the Identity Card gets its
-   own spotlight section (rarer/more dramatic than the rest), and the 17
-   trait items fill a standard ItemCard buy-grid below (see item-card.css
-   for the card itself - this file only covers page-specific chrome).
-   ========================================================================== */
-
-.store-container {
-    width: 100%;
-    max-width: 900px;
-    margin: 20px auto 60px;
-    padding: 0 25px;
-    box-sizing: border-box;
-}
-
-.store-note {
-    color: #999;
-    font-size: 0.85rem;
-    margin: 8px 0 15px;
-}
-
-/* --- WALLET --- */
-.store-wallet-panel {
-    margin-bottom: 20px;
-}
-
-.store-wallet-panel h3 {
-    margin-top: 0;
-}
-
-.store-wallet-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.store-wallet-chip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #0a0a0a;
-    border: 1px solid #444;
-    border-radius: 20px;
-    padding: 8px 16px;
-}
-
-.store-wallet-icon {
-    font-size: 1.2rem;
-}
-
-.store-wallet-label {
-    color: #999;
-    font-size: 0.85rem;
-}
-
-.store-wallet-count {
-    color: var(--gold-start);
-    font-weight: bold;
-}
-
-/* --- IDENTITY CARD SPOTLIGHT --- */
-.store-identity-panel {
-    border-top: 2px solid #ff2d78;
-}
-
-.store-identity-desc {
-    color: #999;
-    font-size: 0.85rem;
-    margin: 8px 0 15px;
-}
-
-.store-identity-row {
-    display: flex;
-}
-
-.store-identity-card {
-    max-width: 280px;
-}
-
-/* --- FOOTER LINK --- */
-.store-inventory-link {
-    display: block;
-    text-align: center;
-    margin-top: 25px;
-    color: var(--gold-start);
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-
-.store-inventory-link:hover {
-    text-decoration: underline;
-}
+/* Honey Store v2 (Oct 2026). Shared look: core/page-v2/page-v2.css. */
+.hs2 .hs-wallet { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.hs2 .hs-wallet > div { padding: 9px 2px; }
+.hs2 .hs-coins { border-color: rgba(255, 204, 0, .45) !important; background: rgba(255, 204, 0, .08) !important; }
+.hs2 .hs-wallet small { font-size: .62rem; }
+.hs2 .hs-price { font: 700 .7rem var(--font-main, monospace); color: var(--gold); }
+.hs2 .tile.hs-cant .hs-price { color: var(--muted); }
+.hs2 .tile.hs-cant .hx { filter: grayscale(.6) brightness(.8); }
+.hs2 .note a { color: var(--gold); }
+.hs2 .hs-links { margin-top: 18px; }
+.hs2 .card button.row .mid b { color: var(--gold2); }

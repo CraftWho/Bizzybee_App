@@ -49,7 +49,7 @@
                  (setWelcomeOutcome() in login.js sets a minimum visible
                  time) so it reads as a real loading step, not a flash.
                  Not shown at all for the invite/confirm token path -
-                 handleCloudSyncTokenIfPresent() in login.js hides this and
+                 handleAuthTokenIfPresent() in login.js hides this and
                  reveals #login-content immediately in that case, since the
                  invite banner below needs to be visible. -->
             <!-- The launch screen (2026-10-09): the gold bee pulses on black
@@ -94,58 +94,77 @@
 
             <div id="login-content" hidden>
                 <h1 class="login-title">BIZZYBEE</h1>
-                <p class="subtitle">Welcome to the hive</p>
+                <p class="subtitle" id="auth-subtitle">Welcome to the hive</p>
+                <p id="cloud-sync-invite-status" class="auth-status" role="status" aria-live="polite" hidden></p>
 
-                <!-- Only ever shown when this page loads with a Netlify Identity
-                     token in the URL hash (see the widget script tag/comment in
-                     <head>) - completely separate from the login form below it,
-                     which normal visits never touch. -->
-                <p id="cloud-sync-invite-status" class="cloud-sync-invite-status" hidden></p>
+                <!-- Sign in (Oct 2026): one form for everyone. Cloud accounts
+                     sign in here directly (Netlify Identity, no pop-up). On
+                     this computer the Hacker login (src/local/admin.local.js)
+                     answers first. -->
+                <section id="auth-signin" class="auth-panel">
+                    <form id="login-form" class="auth-form" novalidate>
+                        <div class="input-group-auth">
+                            <label for="email">Email</label>
+                            <input type="text" id="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+                        </div>
+                        <div class="input-group-auth">
+                            <label for="password">Password</label>
+                            <div class="pw-wrap"><input type="password" id="password" autocomplete="current-password" required><button type="button" class="pw-eye" data-for="password" aria-label="Show password">👁</button></div>
+                        </div>
+                        <p id="login-error" class="login-error" role="alert" hidden></p>
+                        <button type="submit" id="auth-submit-btn">Enter the Hive</button>
+                    </form>
+                    <div class="login-quick-links">
+                        <button type="button" class="auth-link" data-show="auth-forgot">Forgot password?</button>
+                        <span class="quick-link-sep">&middot;</span>
+                        <a href="./request-access.html">Request access</a>
+                    </div>
+                </section>
 
-                <form id="login-form" class="auth-form">
-                <div class="input-group-auth">
-                    <label for="email">Email</label>
-                    <input type="text" id="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
-                </div>
+                <!-- Invite link: set your password. -->
+                <section id="auth-invite" class="auth-panel" hidden>
+                    <p class="auth-lead">🐝 You're invited! Pick a password to finish your account.</p>
+                    <form id="invite-form" class="auth-form" novalidate>
+                        <div class="input-group-auth">
+                            <label for="invite-password">New password</label>
+                            <div class="pw-wrap"><input type="password" id="invite-password" autocomplete="new-password" minlength="12" required><button type="button" class="pw-eye" data-for="invite-password" aria-label="Show password">👁</button></div>
+                        </div>
+                        <div class="input-group-auth">
+                            <label for="invite-password2">Type it again</label>
+                            <input type="password" id="invite-password2" autocomplete="new-password" minlength="12" required>
+                        </div>
+                        <p class="auth-hint">At least 12 characters.</p>
+                        <p id="invite-error" class="login-error" role="alert" hidden></p>
+                        <button type="submit" id="invite-submit-btn">Create my account</button>
+                    </form>
+                </section>
 
-                <div class="input-group-auth">
-                    <label for="password">Passcode</label>
-                    <input type="password" id="password" required>
-                </div>
+                <!-- Forgot password: email a reset link. -->
+                <section id="auth-forgot" class="auth-panel" hidden>
+                    <p class="auth-lead">Enter your email. We'll send a link to set a new password.</p>
+                    <form id="forgot-form" class="auth-form" novalidate>
+                        <div class="input-group-auth">
+                            <label for="forgot-email">Email</label>
+                            <input type="email" id="forgot-email" autocomplete="email" autocapitalize="none" required>
+                        </div>
+                        <p id="forgot-error" class="login-error" role="alert" hidden></p>
+                        <button type="submit" id="forgot-submit-btn">Send reset link</button>
+                    </form>
+                    <div class="login-quick-links"><button type="button" class="auth-link" data-show="auth-signin">← Back to sign in</button></div>
+                </section>
 
-                <p id="login-error" class="login-error" hidden></p>
-
-                <button type="submit" id="auth-submit-btn">Enter Hive</button>
-            </form>
-
-            <!-- The main front door: for invited beta testers with a real
-                 Cloud Sync (Netlify Identity) account. Opens the Identity widget's
-                 own login modal - separate from both the form above (which never
-                 touches Netlify) and the invite/confirm banner above that (which
-                 only appears for a one-time link, see handleCloudSyncTokenIfPresent
-                 in login.js). Hidden by setupCloudSyncLoginButton() in login.js if
-                 the widget script didn't load (e.g. offline), so it never sits
-                 there as a dead button. -->
-            <div class="cloud-sync-login-section">
-                <button type="button" id="cloud-sync-login-btn" class="btn-cloud-sync">☁️ Sign In with Cloud Sync</button>
-                <p class="cloud-sync-login-hint">For invited beta testers with a Cloud Sync account.</p>
-            </div>
-
-            <div class="auth-footer">
-                <!-- Simplified 2026-09-09: was two separate full-width .btn-link
-                     buttons ("Forgot your account password?" inside the Cloud
-                     Sync section above, and "Request Access" here) - visually
-                     identical in weight to the two real buttons (Enter Hive,
-                     Sign In with Cloud Sync), which made all four compete for
-                     attention and made whichever one was lowest easy to miss.
-                     Demoted to small text links, combined into one row. Same
-                     destinations, same hrefs, just lighter visual weight. -->
-                <div class="login-quick-links">
-                    <a href="./reset-password.html">Forgot password?</a>
-                    <span class="quick-link-sep">&middot;</span>
-                    <a href="./request-access.html">Request Access</a>
-                </div>
-            </div>
+                <!-- After an invite: a short welcome, then the egg. -->
+                <section id="auth-welcome" class="auth-panel auth-welcome" hidden>
+                    <div class="welcome-hex" aria-hidden="true">🥚</div>
+                    <h2 id="welcome-title">Welcome to the hive!</h2>
+                    <p class="auth-lead" id="welcome-email"></p>
+                    <ol class="welcome-steps">
+                        <li><b>Hatch your egg.</b> Your first dailies and habits raise it.</li>
+                        <li><b>Meet your royal.</b> A Queen or King rules your hive.</li>
+                        <li><b>Your progress is saved to the cloud.</b> Sign in on any device.</li>
+                    </ol>
+                    <button type="button" id="welcome-go-btn">Hatch my egg →</button>
+                </section>
             </div>
         </div>
     </main>

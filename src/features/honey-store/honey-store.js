@@ -1,98 +1,80 @@
 console.log("/// HONEY STORE PROTOCOLS INITIALIZED ///");
 
-// STORE_ITEM_CATALOG lives in db.js (17 'trait' items + 1 'identity' item -
-// the Identity Card). Purchases spend materials (the same pool Collector
-// bees/quests/level-ups already earn - see MATERIAL_CATALOG in db.js) and
-// land in state.inventory.items, the exact same bucket a dropped Evolution
-// Item lands in. Applying a purchased item to a bee happens from the
-// Inventory roster's BeeCard (see bee-card.js) - this page is acquire-only,
-// same "one job per page" split as the Pollination Chamber (acquire bees)
-// vs. Inventory (manage/apply).
+// Honey Store v2 (Oct 2026, same look as Settings/Inventory - page-v2.css).
+// STORE_ITEM_CATALOG lives in db.js (trait items + the Identity Card).
+// Purchases spend materials and land in state.inventory.items. Items are
+// used from a bee's card on the Colony Bees page - this page only sells.
+// Tap an item for its details and the Buy button.
+
+function hsMat(id) { return MATERIAL_CATALOG.find(m => m.id === id) || { icon: '', label: id }; }
+// What an item costs and how much of that you have (materials, or Honey
+// coins for the Streak Charm).
+function hsPrice(item) {
+    if (item.price.currency === 'coins') return { icon: '🪙', label: 'Honey coins', have: Vault.getCoins() };
+    const m = hsMat(item.price.materialId);
+    return { icon: m.icon, label: m.label, have: Vault.getMaterials()[item.price.materialId] || 0 };
+}
+function hsAffordable(item) { return hsPrice(item).have >= item.price.amount; }
 
 function renderWallet() {
-    const panel = document.getElementById('store-wallet-panel');
-    const materials = Vault.getMaterials();
-
-    panel.innerHTML = `
-        <h3>👛 Your Materials</h3>
-        <div class="store-wallet-row">
-            ${MATERIAL_CATALOG.map(mat => `
-                <div class="store-wallet-chip">
-                    <span class="store-wallet-icon">${mat.icon}</span>
-                    <span class="store-wallet-label">${mat.label}</span>
-                    <span class="store-wallet-count">${materials[mat.id] || 0}</span>
-                </div>
-            `).join('')}
-        </div>
-    `;
+    const m = Vault.getMaterials();
+    document.getElementById('store-wallet-panel').innerHTML = `<div class="hs-coins"><b>🪙 ${Vault.getCoins()}</b><small>Honey coins</small></div>` + MATERIAL_CATALOG
+        .map(mat => `<div><b>${mat.icon} ${m[mat.id] || 0}</b><small>${PV2.esc(mat.label)}</small></div>`).join('');
 }
 
-function affordable(item) {
-    const materials = Vault.getMaterials();
-    return (materials[item.price.materialId] || 0) >= item.price.amount;
+function renderIdentityCard() {
+    const host = document.getElementById('store-identity-row');
+    const list = STORE_ITEM_CATALOG.filter(i => i.kind === 'identity' || i.kind === 'charm');
+    if (!list.length) { host.hidden = true; return; }
+    host.innerHTML = list.map(item => {
+        const p = hsPrice(item);
+        const owned = Vault.getItems()[item.id] || 0;
+        return `<button type="button" class="row" data-item="${item.id}">
+        <span class="hx big r-${PV2.esc(item.rarity || 'Rare')}">${item.icon}</span>
+        <span class="mid"><b>${PV2.esc(item.label)}</b><small>${p.icon} ${item.price.amount} ${PV2.esc(p.label)}${owned ? ` · you have ${owned}` : ''}</small></span>
+        <span class="chev">›</span></button>`;
+    }).join('');
+}
+
+function renderItemGrid() {
+    const items = Vault.getItems();
+    document.getElementById('store-item-grid').innerHTML = STORE_ITEM_CATALOG.filter(i => i.kind === 'trait').map(item => {
+        const mat = hsMat(item.price.materialId);
+        return `<button type="button" class="tile r-${PV2.esc(item.rarity || 'Common')}${hsAffordable(item) ? '' : ' hs-cant'}" data-item="${item.id}" aria-label="${PV2.esc(item.label)}, costs ${item.price.amount} ${PV2.esc(mat.label)}">
+            ${items[item.id] ? `<span class="n">×${items[item.id]}</span>` : ''}
+            <span class="hx">${item.icon}</span><b>${PV2.esc(item.label)}</b><span class="hs-price">${mat.icon} ${item.price.amount}</span></button>`;
+    }).join('');
+}
+
+function openStoreItem(id) {
+    const item = STORE_ITEM_CATALOG.find(i => i.id === id);
+    if (!item) return;
+    const mat = hsPrice(item);
+    const have = mat.have;
+    const owned = Vault.getItems()[item.id] || 0;
+    const ok = hsAffordable(item);
+    const box = PV2.sheet(`
+        <div class="head"><span class="hx big r-${PV2.esc(item.rarity || 'Common')}">${item.icon}</span>
+            <div><h2>${PV2.esc(item.label)}</h2><small style="color:var(--${PV2.esc(item.rarity || 'Common')})">${PV2.esc(item.rarity || '')}</small> <small>· you have ${owned}</small></div>
+            <button type="button" class="x" data-close aria-label="Close">×</button></div>
+        <p>${PV2.esc(item.description)}</p>
+        <p>Costs ${mat.icon} <b style="color:var(--ink)">${item.price.amount} ${PV2.esc(mat.label)}</b>. You have ${have}.</p>
+        <div class="btns"><button type="button" class="btn solid" data-buy${ok ? '' : ' disabled'}>Buy</button>
+            ${owned && item.kind !== 'charm' ? '<a class="btn" href="../colony-bees/colony-bees.html">🐝 Use on a bee…</a>' : ''}</div>
+        ${ok ? '' : `<p>You need ${item.price.amount - have} more ${PV2.esc(mat.label)}. ${item.price.currency === 'coins' ? 'Every task you finish earns coins.' : 'Foragers bring materials back when you finish tasks.'}</p>`}`, item.label);
+    const buy = box.querySelector('[data-buy]');
+    if (buy) buy.addEventListener('click', () => handlePurchase(item.id));
 }
 
 function handlePurchase(itemId) {
     const result = Vault.purchaseStoreItem(itemId);
     if (!result) {
-        if (typeof Toast !== 'undefined') Toast.show(`Not enough materials for that yet.`, 'negative');
+        if (typeof Toast !== 'undefined') Toast.show('Not enough materials for that yet.', 'negative');
         return;
     }
-    if (typeof Toast !== 'undefined') {
-        Toast.show(`${result.item.icon} Bought ${result.item.label}! Apply it from a bee's card in Inventory.`, 'positive');
-    }
+    if (typeof Toast !== 'undefined') Toast.show(result.item.kind === 'charm' ? `🎁 Bought a Streak Charm! It's used automatically on a missed streak.` : `${result.item.icon} Bought ${result.item.label}! Use it from a bee's card on Colony Bees.`, 'positive');
     renderAll();
-}
-
-// Both grids below render via the shared ItemCard component
-// (item-card.js) - same flip-for-more-info rectangular card the Inventory
-// page's Materials/Evolution Items/Store Items grids use, just with a
-// price + Buy button wired to Vault.purchaseStoreItem() since this page
-// is acquire-only (applying a purchased item to a bee happens from the
-// Inventory roster instead - see bee-card.js).
-function storeEntryFor(item) {
-    const mat = MATERIAL_CATALOG.find(m => m.id === item.price.materialId);
-    return {
-        id: item.id,
-        icon: item.icon,
-        label: item.label,
-        description: item.description,
-        rarity: item.rarity || null,
-        count: Vault.getItems()[item.id] || 0,
-        price: {
-            materialId: item.price.materialId,
-            amount: item.price.amount,
-            icon: mat ? mat.icon : '',
-            label: mat ? mat.label : item.price.materialId
-        },
-        affordable: affordable(item)
-    };
-}
-
-function renderIdentityCard() {
-    const item = STORE_ITEM_CATALOG.find(i => i.kind === 'identity');
-    if (!item) return;
-
-    document.getElementById('store-identity-desc').textContent = item.description;
-
-    const row = document.getElementById('store-identity-row');
-    row.innerHTML = '';
-    const card = document.createElement('div');
-    card.className = 'store-identity-card';
-    row.appendChild(card);
-    ItemCard.render(card, storeEntryFor(item), { onBuy: handlePurchase });
-}
-
-function renderItemGrid() {
-    const grid = document.getElementById('store-item-grid');
-    const traitItems = STORE_ITEM_CATALOG.filter(i => i.kind === 'trait');
-
-    grid.innerHTML = '';
-    traitItems.forEach(item => {
-        const card = document.createElement('div');
-        grid.appendChild(card);
-        ItemCard.render(card, storeEntryFor(item), { onBuy: handlePurchase });
-    });
+    openStoreItem(itemId);
 }
 
 function renderAll() {
@@ -103,8 +85,10 @@ function renderAll() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
-
     renderAll();
-
+    document.querySelector('.hs2').addEventListener('click', (e) => {
+        const t = e.target.closest('[data-item]');
+        if (t) openStoreItem(t.dataset.item);
+    });
     Waggle.setActions(baseWaggleActions());
 });

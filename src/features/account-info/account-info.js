@@ -251,6 +251,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('account-lock-screen').hidden = false;
 
         document.getElementById('account-unlock-btn').addEventListener('click', attemptUnlock);
+        // Forgot PIN (Oct 2026): erase the encrypted details and start over.
+        document.getElementById('account-forgot-pin').addEventListener('click', () => {
+            if (!confirm('Forgot your PIN? It can\'t be recovered, because it is also the key that locks your saved details.\n\nResetting erases your encrypted personal details and saved Habitica login on this save. Your bees, tasks and progress are NOT touched. A backup is made first.\n\nReset your PIN?')) return;
+            Vault.resetAccountPin();
+            Toast.show('🔢 PIN reset. Create a new one.', 'positive');
+            setTimeout(() => window.location.reload(), 600);
+        });
         document.getElementById('account-unlock-pin').addEventListener('keydown', (event) => {
             if (event.key === 'Enter') attemptUnlock();
         });

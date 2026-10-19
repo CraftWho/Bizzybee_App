@@ -163,3 +163,16 @@
     .home-rise, .home-enter { animation: none !important; opacity: 1; transform: none; }
     .home-app-grid.editing .home-app { animation: none; outline: 1px dashed rgba(220, 20, 60, .6); }
 }
+
+/* Bees that need help (Oct 2026). */
+.home-help { display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-decoration: none; color: #f1ede2; border-color: rgba(220, 20, 60, .45); }
+.home-help[hidden] { display: none; }
+.home-help::before { background: linear-gradient(90deg, transparent, #ff8aa0 20%, #ff8aa0 80%, transparent); }
+.home-help-ic { flex: none; font-size: 26px; animation: homeHelpBob 2.4s ease-in-out infinite; }
+.home-help-t { flex: 1; min-width: 0; }
+.home-help-t b { display: block; font-size: .92rem; color: #ff8aa0; }
+.home-help-t small { display: block; margin-top: 2px; color: #a69a80; font-size: .74rem; }
+.home-help-go { color: #a69a80; font-size: 1.3rem; }
+.home-help:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+@keyframes homeHelpBob { 50% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .home-help-ic { animation: none; } }

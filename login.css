@@ -354,3 +354,31 @@
 .login-card .btn-cloud-sync:hover { background: rgba(217, 185, 104, .08); transform: none; }
 .login-card .login-quick-links a { color: #d9b968; }
 @media (prefers-reduced-motion: reduce) { .launch-bee, .launch-halo { animation: none; } }
+
+/* --- Bizzybee sign-in panels (Oct 2026) ----------------------------------- */
+.auth-panel[hidden], .auth-status[hidden] { display: none !important; }
+.auth-panel { text-align: left; }
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+#invite-submit-btn, #forgot-submit-btn, #welcome-go-btn { padding: 14px; border: 0; border-radius: 12px; font: 700 .95rem "Cinzel", "Times New Roman", serif; letter-spacing: .12em; text-transform: uppercase; color: #1b1203; background: linear-gradient(180deg, #f6e3a4, #d9b968 50%, #a8823a); box-shadow: 0 8px 24px rgba(168, 130, 58, .35); cursor: pointer; width: 100%; }
+#auth-submit-btn:disabled, #invite-submit-btn:disabled, #forgot-submit-btn:disabled { opacity: .6; cursor: wait; }
+.pw-wrap { position: relative; display: flex; }
+.pw-wrap input { flex: 1; padding-right: 46px !important; }
+.pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; padding: 0; border: 0; border-radius: 8px; background: none; box-shadow: none; color: #9c8f72; font-size: 1rem; cursor: pointer; }
+.pw-eye:hover { background: rgba(217, 185, 104, .08); transform: translateY(-50%); }
+.pw-eye:focus-visible, .auth-link:focus-visible { outline: 2px solid #d9b968; outline-offset: 2px; }
+.auth-lead { margin: 0 0 16px; color: #efe6cf; font-size: .9rem; line-height: 1.5; text-align: center; }
+.auth-hint { margin: -6px 0 0; color: #9c8f72; font-size: .74rem; }
+.auth-status { margin: -10px 0 16px; padding: 10px 12px; border-radius: 12px; background: rgba(217, 185, 104, .08); border: 1px solid rgba(217, 185, 104, .25); color: #f6e3a4; font-size: .82rem; line-height: 1.45; text-align: center; }
+.auth-link { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: #d9b968; font: inherit; font-size: inherit; text-decoration: none; cursor: pointer; }
+.auth-link:hover { text-decoration: underline; transform: none; background: none; }
+.login-card .login-quick-links { margin-top: 18px; justify-content: center; }
+.auth-welcome { text-align: center; }
+.welcome-hex { width: 72px; height: 80px; margin: 0 auto 12px; display: grid; place-items: center; font-size: 34px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #f6e3a4, #d9b968 50%, #a8823a); animation: welcomeBob 2.4s ease-in-out infinite; }
+@keyframes welcomeBob { 50% { transform: translateY(-5px) rotate(-4deg); } }
+.auth-welcome h2 { margin: 0 0 6px; font: 700 1.15rem "Cinzel", "Times New Roman", serif; letter-spacing: .08em; color: #f6e3a4; background: none; border: 0; padding: 0; }
+.welcome-steps { margin: 4px 0 20px; padding: 0; list-style: none; counter-reset: s; text-align: left; }
+.welcome-steps li { position: relative; padding: 10px 0 10px 40px; border-top: 1px solid rgba(217, 185, 104, .12); color: #9c8f72; font-size: .84rem; line-height: 1.4; counter-increment: s; }
+.welcome-steps li:first-child { border-top: 0; }
+.welcome-steps li::before { content: counter(s); position: absolute; left: 0; top: 9px; width: 26px; height: 28px; display: grid; place-items: center; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: #1c1406; color: #d9b968; font: 700 .8rem system-ui, sans-serif; }
+.welcome-steps b { color: #efe6cf; }
+@media (prefers-reduced-motion: reduce) { .welcome-hex { animation: none; } }

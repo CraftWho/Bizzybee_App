@@ -82,6 +82,29 @@ function renderHive() {
         </a>`).join('');
 }
 
+// ---- Bees that need help (Hive Life moods) ----
+// 😢 hungry / tired / hurt, 😠 no job for 3+ days, 😵 fainted. One line,
+// tap to open Colony Bees on the "Need help" filter. Hidden when all is well.
+function renderBeeHelp() {
+    const el = document.getElementById('home-help');
+    if (!el || typeof beeFeeling !== 'function') return;
+    const bees = Vault.getColonyBees().filter(b => b.rarity !== 'Royal');
+    const count = (k) => bees.filter(b => beeFeeling(b).key === k).length;
+    const sad = count('sad'), upset = count('upset'), faint = count('fainted');
+    const total = sad + upset + faint;
+    el.hidden = !total;
+    if (!total) return;
+    const parts = [
+        sad ? `😢 ${sad} hungry, tired or hurt` : '',
+        upset ? `😠 ${upset} with no job` : '',
+        faint ? `😵 ${faint} fainted` : ''
+    ].filter(Boolean);
+    el.setAttribute('aria-label', `${total} bee${total === 1 ? ' needs' : 's need'} help: ${parts.join(', ')}`);
+    el.innerHTML = `<span class="home-help-ic" aria-hidden="true">${upset ? '😠' : faint ? '😵' : '😢'}</span>
+        <span class="home-help-t"><b>${total} bee${total === 1 ? ' needs' : 's need'} help</b><small>${parts.join(' · ')}</small></span>
+        <span class="home-help-go" aria-hidden="true">›</span>`;
+}
+
 // ---- Today ----
 function emptyState(icon, text) {
     return `<div class="home-empty"><b>${icon}</b>${text}</div>`;
@@ -164,6 +187,7 @@ function renderToday(direction) {
 
 function refreshAfterCheck() {
     renderHive();
+    renderBeeHelp();
     setTimeout(() => { renderTabs(); renderRing(); renderPanel(); }, 700);
 }
 
@@ -383,6 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
     renderHive();
+    renderBeeHelp();
     renderToday();
     renderAppGrid();
     setupToday();

@@ -1,0 +1,62 @@
+/* Page v2 (Oct 2026): the look of the new Settings page, shared by
+   Inventory and Colony Bees. Scope everything to .pv2 so older pages
+   are untouched. Hex icons, dark rounded cards, gold section labels with
+   a red line, pill tabs, bottom sheets. */
+.pv2 { --gold: #ffcc00; --gold2: #ffd977; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .94);
+    --Common: #d4d4d4; --Rare: #7fc0ff; --Epic: #c99bff; --Legendary: #ffd700; --Named: #ff6a5a; --Royal: #ffcc00;
+    width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 130px; box-sizing: border-box; color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.pv2 [hidden] { display: none !important; }
+.pv2 .pv2-title { display: flex; align-items: center; gap: 10px; margin: 4px 4px 2px; font: 700 1.2rem var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.pv2 .pv2-lead { margin: 0 4px 12px; color: var(--muted); font-size: .82rem; }
+.pv2 .sec { display: flex; align-items: center; gap: 10px; margin: 20px 4px 8px; font: 700 .7rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
+.pv2 .sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
+.pv2 .card { position: relative; padding: 2px 14px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .14); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); }
+.pv2 .hx { position: relative; flex: none; width: 40px; height: 44px; display: grid; place-items: center; font-size: 20px; line-height: 1; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(160deg, #3b2808, #1a1104); }
+.pv2 .hx.big { width: 56px; height: 62px; font-size: 28px; }
+.pv2 .row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 11px 0; margin: 0; border: 0; border-top: 1px solid rgba(255, 204, 0, .08); border-radius: 0; background: none; box-shadow: none; color: var(--ink); text-align: left; text-decoration: none; font: inherit; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.pv2 .card > .row:first-child { border-top: 0; }
+.pv2 .row:hover { background: rgba(255, 204, 0, .03); transform: none; }
+.pv2 .row:focus-visible, .pv2 .tile:focus-visible, .pv2 .chip:focus-visible, .pv2 .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pv2 .row .mid { flex: 1; min-width: 0; }
+.pv2 .row .mid b { display: block; font-size: .92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv2 .row .mid small { display: block; margin-top: 2px; color: var(--muted); font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv2 .chev { color: var(--muted); font-size: 1.2rem; }
+.pv2 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.pv2 .stats > div { padding: 10px 6px; border-radius: 14px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .14); text-align: center; }
+.pv2 .stats b { display: block; font: 700 1.05rem var(--font-main, monospace); }
+.pv2 .stats small { color: var(--muted); font-size: .68rem; }
+.pv2 .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
+.pv2 .chips::-webkit-scrollbar { display: none; }
+.pv2 .chip { flex: none; margin: 0; padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(255, 204, 0, .14); background: #0d0a05; box-shadow: none; color: var(--muted); font: .8rem system-ui, sans-serif; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.pv2 .chip[aria-pressed="true"] { background: rgba(255, 204, 0, .14); color: var(--gold); border-color: rgba(255, 204, 0, .5); }
+.pv2 .chip small { margin-left: 4px; opacity: .7; }
+.pv2 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+@media (min-width: 560px) { .pv2 .tiles { grid-template-columns: repeat(4, 1fr); } }
+.pv2 .tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0; padding: 12px 6px 10px; border-radius: 14px; border: 1px solid rgba(255, 204, 0, .14); background: var(--panel); box-shadow: none; color: var(--ink); font: inherit; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.pv2 .tile:hover { border-color: rgba(255, 204, 0, .4); transform: none; }
+.pv2 .tile .hx { width: 46px; height: 52px; font-size: 24px; }
+.pv2 .tile b { font-size: .74rem; font-weight: 600; text-align: center; line-height: 1.2; }
+.pv2 .tile .n { position: absolute; top: 6px; right: 8px; font: 700 .72rem var(--font-main, monospace); color: var(--gold); }
+.pv2 .tile.zero { opacity: .4; }
+.pv2 .r-Rare .hx, .pv2 .hx.r-Rare { background: linear-gradient(160deg, #18304a, #0b1520); }
+.pv2 .r-Epic .hx, .pv2 .hx.r-Epic { background: linear-gradient(160deg, #2c1a44, #120a1e); }
+.pv2 .r-Legendary .hx, .pv2 .r-Royal .hx, .pv2 .hx.r-Legendary, .pv2 .hx.r-Royal { background: linear-gradient(160deg, #5a4206, #221802); }
+.pv2 .r-Named .hx, .pv2 .hx.r-Named { background: linear-gradient(160deg, #4a1810, #1e0906); }
+.pv2 .btn { flex: none; display: inline-block; padding: 9px 14px; margin: 0; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .4); background: #1a1205; color: var(--gold); font: 700 .76rem var(--font-main, monospace); text-decoration: none; white-space: nowrap; cursor: pointer; box-shadow: none; text-transform: none; letter-spacing: 0; }
+.pv2 .btn.solid { background: var(--gold); color: #241600; border-color: var(--gold); }
+.pv2 .btn:disabled { opacity: .45; cursor: not-allowed; }
+.pv2 .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.pv2 .note { margin: 10px 4px 0; color: var(--muted); font-size: .76rem; line-height: 1.45; }
+.pv2 input[type="search"], .pv2 select { box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .2); background: #0a0702; color: var(--ink); font: .88rem system-ui, sans-serif; margin: 0; }
+.pv2 input:focus, .pv2 select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255, 204, 0, .12); }
+/* Bottom sheet (built in JS, lives on <body> inside a .pv2 scrim). */
+.pv2-scrim { position: fixed; inset: 0; z-index: 9400; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .66); max-width: none; padding: 0; margin: 0; }
+.pv2-sheet { width: 100%; max-width: 560px; max-height: 86vh; overflow-y: auto; box-sizing: border-box; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; border: 1px solid rgba(255, 204, 0, .25); border-bottom: 0; background: #15110a; color: var(--ink); text-align: left; animation: pv2Up .25s ease-out; }
+@keyframes pv2Up { from { transform: translateY(40px); opacity: 0; } }
+.pv2-sheet .head { display: flex; align-items: center; gap: 12px; }
+.pv2-sheet .head h2 { margin: 0; font: 700 1.05rem var(--font-main, monospace); color: var(--gold2); background: none; border: 0; padding: 0; text-align: left; }
+.pv2-sheet .head small { color: var(--muted); font-size: .76rem; }
+.pv2-sheet .x { margin: 0 0 0 auto; padding: 0 6px; border: 0; background: none; box-shadow: none; color: var(--muted); font-size: 26px; line-height: 1; cursor: pointer; }
+.pv2-sheet p { color: var(--muted); font-size: .82rem; line-height: 1.45; }
+@media (prefers-reduced-motion: reduce) { .pv2-sheet { animation: none; } }

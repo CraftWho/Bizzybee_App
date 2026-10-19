@@ -7,9 +7,9 @@ console.log("/// WAGGLE ONLINE ///");
 // (Chat with Eevee) sits at the bottom. The page links live here.
 const WAGGLE_MENU = [
     ['Your hive', [
-        { icon: '🏰', label: 'Hive Mind', path: 'src/features/colony/colony.html' },
+        { icon: '🏰', label: 'Hive Mind', path: 'src/features/colony/colony.html', fainted: true },
         { icon: '🌼', label: 'Pollination Chamber', path: 'src/features/gacha/gacha.html', tickets: true },
-        { icon: '🐝', label: 'Colony Bees', path: 'src/features/inventory/inventory.html#colony-bees', key: 'colony-bees' },
+        { icon: '🐝', label: 'Colony Bees', path: 'src/features/colony-bees/colony-bees.html' },
         { icon: '🎒', label: 'Inventory', path: 'src/features/inventory/inventory.html' },
         { icon: '📘', label: 'KeeperDex', path: 'src/features/keeperdex/keeperdex.html' }
     ]],
@@ -23,6 +23,7 @@ const WAGGLE_MENU = [
         { icon: '📅', label: 'Calendar', path: 'src/plugins/calendar/calendar.html', plugin: 'calendar' },
         { icon: '📖', label: 'Dictionary', path: 'src/plugins/dictionary/dictionary.html', plugin: 'dictionary' },
         { icon: '🎓', label: 'Study', path: 'src/plugins/study/study.html', plugin: 'study' },
+        { icon: '💻', label: 'Terminal', path: 'src/plugins/terminal/terminal.html', plugin: 'terminal' },
         { icon: '🧩', label: 'Plugins & Packs', path: 'src/features/plugin-hub/plugin-hub.html' }
     ]],
     ['Account', [
@@ -86,10 +87,6 @@ const Waggle = {
                 if (a && a.onClick) a.onClick();
                 return;
             }
-            const link = e.target.closest('a.wg-row');
-            if (link && link.dataset.key === 'colony-bees' && window.location.pathname.includes('inventory.html') && typeof openBeeRosterModal === 'function') {
-                e.preventDefault(); this.close(); openBeeRosterModal();
-            }
         });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.isOpen) this.close(); });
 
@@ -109,13 +106,15 @@ const Waggle = {
         let bar = null, tickets = 0;
         try { bar = v ? v.getCharacterLevelBar() : null; } catch { /* not ready */ }
         try { tickets = v && v.getTicketCount ? v.getTicketCount() : 0; } catch { /* not ready */ }
-        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets };
+        let fainted = 0;
+        try { fainted = v ? v.getColonyBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
+        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted };
     },
 
     updateDot() {
         if (!this.button) return;
         const s = this.status();
-        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0);
+        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0 || s.fainted > 0);
     },
 
     renderMenu() {
@@ -141,7 +140,8 @@ const Waggle = {
             html += `<div class="wg-sec">${sec}</div>` + shown.map(it => {
                 const file = it.path.split('#')[0].split('/').pop();
                 const on = !it.key && here.endsWith(file);
-                const extra = it.tickets && s.tickets > 0 ? `${s.tickets} ticket${s.tickets === 1 ? '' : 's'} ready` : '';
+                const extra = it.tickets && s.tickets > 0 ? `${s.tickets} ticket${s.tickets === 1 ? '' : 's'} ready`
+                    : it.fainted && s.fainted > 0 ? `${s.fainted} bee${s.fainted === 1 ? ' has' : 's have'} fainted` : '';
                 return row(it.icon, it.label, extra, `href="${root}/${it.path}"${it.key ? ` data-key="${it.key}"` : ''}`, on);
             }).join('');
         });

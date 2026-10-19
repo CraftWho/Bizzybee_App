@@ -60,6 +60,13 @@ const PLUGIN_CATALOG = [
         ]
     },
     {
+        id: 'terminal',
+        icon: '💻',
+        label: 'Terminal',
+        status: 'available',
+        description: 'A support console, like the one in Fallout. If an update breaks your save, request help here - the team unlocks repair commands for you.'
+    },
+    {
         id: 'fitness',
         icon: '💪',
         label: 'Fitness & Health',

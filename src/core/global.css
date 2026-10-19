@@ -964,3 +964,16 @@ body.ob-nodock .app-dock { display: none; }
 
 .ao-center { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .5s ease, transform .5s ease; }
 .app-open.fade-center .ao-center { opacity: 0; transform: scale(.96); }
+
+/* Queen stats in the top bar (Oct 2026): health bar + Honey coins. */
+.ah-hp { display: flex; align-items: center; gap: 8px; margin-top: 8px; max-height: 40px; overflow: hidden; transition: opacity .25s, max-height .35s, margin .35s; }
+.ah-hp-ic { flex: none; font-size: .9rem; line-height: 1; }
+.ah-hpbar { position: relative; flex: 1; height: 9px; border-radius: 999px; background: #1a0508; border: 1px solid #5a1622; box-shadow: inset 0 1px 3px #000; overflow: hidden; }
+.ah-hpbar i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit; background: linear-gradient(180deg, #ff8a9a, #e8344e 55%, #a3122a); box-shadow: 0 0 10px rgba(232, 52, 78, .5); transition: width 1s cubic-bezier(.2, .8, .2, 1); }
+.ah-hpbar.low i { animation: ahHpLow 1.2s ease-in-out infinite; }
+@keyframes ahHpLow { 50% { filter: brightness(1.5); } }
+.ah-hpt { flex: none; font-size: .74rem; color: var(--shell-muted); white-space: nowrap; }
+.ah-hpt b { color: var(--shell-text); font-weight: 600; }
+.ah-coins { flex: none; padding: 3px 8px; border-radius: 999px; background: rgba(255, 204, 0, .1); border: 1px solid rgba(255, 204, 0, .3); color: var(--shell-honey); font: 700 .72rem var(--font-main); white-space: nowrap; }
+.app-head.compact .ah-hp { opacity: 0; max-height: 0; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .ah-hpbar.low i { animation: none; } }

@@ -163,6 +163,13 @@ const AppShell = {
                         <div class="ah-bar"><i></i></div>
                     </div>
                     <div class="ah-meta"><span class="ah-xp"></span><span class="ah-next"></span></div>
+                    <!-- Queen stats (Oct 2026): health + Honey coins, Habitica-style. -->
+                    <div class="ah-hp" aria-label="Health and coins">
+                        <span class="ah-hp-ic" aria-hidden="true">❤️</span>
+                        <div class="ah-hpbar" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="50"><i></i></div>
+                        <span class="ah-hpt"></span>
+                        <span class="ah-coins" title="Honey coins"></span>
+                    </div>
                     <button type="button" class="ah-levelup">LEVEL UP ✦</button>
                 </div>
             </div>`;
@@ -252,7 +259,47 @@ const AppShell = {
         q('.ah-xp').innerHTML = `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
         q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to Level ${bar.level + 1}`;
         q('.ah-chip').classList.toggle('ready', !!bar.maxed);
+        const qs = typeof Vault.getQueenStats === 'function' ? Vault.getQueenStats() : null;
+        if (qs) {
+            const pct = Math.max(0, Math.min(100, qs.hp / qs.maxHp * 100));
+            q('.ah-hpbar i').style.width = `${pct}%`;
+            q('.ah-hpbar').setAttribute('aria-valuenow', String(qs.hp));
+            q('.ah-hpbar').classList.toggle('low', pct <= 30);
+            q('.ah-hpt').innerHTML = `<b>${qs.hp}</b> / ${qs.maxHp}`;
+            q('.ah-coins').textContent = `🪙 ${qs.coins}`;
+        }
         q('.ah-levelup').classList.toggle('show', !!bar.maxed && this.isHome);
+    },
+
+    // Hive Life (Oct 2026): what happened while you were away - raids,
+    // faints, deaths. Shown once, on whichever page you open first.
+    lifeNews() {
+        const events = Vault._pendingLifeEvents || [];
+        Vault._pendingLifeEvents = [];
+        if (!events.length || typeof Toast === 'undefined') return;
+        const bad = ['raid-lost', 'faint', 'death'];
+        events.slice(0, 3).forEach((e, i) => setTimeout(() => Toast.show(e.text, bad.includes(e.type) ? 'negative' : 'positive'), 600 + i * 400));
+        if (events.length > 3) setTimeout(() => Toast.show(`🐝 ${events.length - 3} more hive events - see Hive Mind.`, 'neutral'), 2000);
+    },
+
+    // Start My Day (Oct 2026): first open of a new day asks about
+    // yesterday's dailies and to-dos (src/core/day-start/, loaded on demand).
+    dayStart() {
+        try {
+            if (typeof Vault.getDayReview !== 'function' || this.key.startsWith('create-') || this.key === 'onboarding') return;
+            if (typeof Vault.isOnboarding === 'function' && Vault.isOnboarding()) return;
+            const review = Vault.getDayReview();
+            if (!review) return;
+            const show = () => setTimeout(() => { if (typeof DayStart !== 'undefined') DayStart.open(Vault.getDayReview()); }, 900);
+            if (typeof DayStart !== 'undefined') { show(); return; }
+            const css = document.createElement('link');
+            css.rel = 'stylesheet'; css.href = this.url('src/core/day-start/day-start.css');
+            document.head.appendChild(css);
+            const js = document.createElement('script');
+            js.src = this.url('src/core/day-start/day-start.js');
+            js.onload = show;
+            document.body.appendChild(js);
+        } catch (e) { console.error('Start My Day failed', e); }
     },
 
     queueRefresh() {
@@ -265,7 +312,7 @@ const AppShell = {
         if (typeof Vault === 'undefined' || Vault.__shellWatched) return;
         Vault.__shellWatched = true;
         const init = Vault.init.bind(Vault);
-        Vault.init = (...args) => init(...args).then((state) => { this.refresh(); return state; });
+        Vault.init = (...args) => init(...args).then((state) => { this.refresh(); this.lifeNews(); this.dayStart(); return state; });
         const save = Vault.save.bind(Vault);
         Vault.save = (...args) => { const result = save(...args); this.queueRefresh(); return result; };
         if (Vault.state) this.refresh();
@@ -775,6 +822,7 @@ class CodexSystem {
         if (path.includes('account-info.html')) return 'account-info';
         if (path.includes('account-security.html')) return 'account-security';
         if (path.includes('inventory.html')) return 'inventory';
+        if (path.includes('colony-bees.html')) return 'colony-bees';
         if (path.includes('keeperdex.html')) return 'keeperdex';
         if (path.includes('models.html')) return 'models';
         if (path.includes('settings.html')) return 'settings';
@@ -785,6 +833,7 @@ class CodexSystem {
         if (path.includes('map.html')) return 'map';
         if (path.includes('sync.html')) return 'sync';
         if (path.includes('study.html')) return 'study';
+        if (path.includes('terminal.html')) return 'terminal';
         if (path.includes('hive-archive.html')) return 'hive-archive';
         if (path.includes('dailies.html')) return 'dailies';
         if (path.includes('create-daily.html')) return 'create-daily';

@@ -156,10 +156,17 @@ const BEE_CARD_RARITY_SYMBOLS = { common: '●', rare: '◆', epic: '◆◆', le
 // "No material yield yet." developer note.
 const BEE_CARD_ABILITY_NAMES = {
     collector: 'Forage',
-    guardian: 'Patrol',
-    barrier: 'Hold the Line',
-    architect: 'Build',
-    nurse: 'Tend'
+    scout: 'Waggle Dance',
+    guardian: 'Guard',
+    barrier: 'Seal with Propolis',
+    undertaker: 'Carry Out',
+    architect: 'Build Comb',
+    cleaner: 'Scrub',
+    honeymaker: 'Ripen Nectar',
+    watercarrier: 'Fan & Cool',
+    nurse: 'Tend',
+    attendant: 'Groom the Queen',
+    drone: 'Mate'
 };
 
 function beeCardAbility(classKey, classInfo) {
@@ -562,6 +569,8 @@ const BeeCard = {
     _classSelectHTML(bee) {
         const groups = {};
         Object.entries(BEE_CLASSES).forEach(([key, info]) => {
+            // Hive Life: Drones are male, every other job is female.
+            if (bee.sex && !!info.maleOnly !== (bee.sex === 'm') && bee.class !== key) return;
             const category = info.category || 'Other';
             if (!groups[category]) groups[category] = [];
             groups[category].push(`<option value="${key}"${bee.class === key ? ' selected' : ''}>${info.icon} ${info.label}</option>`);
@@ -571,6 +580,7 @@ const BeeCard = {
             .map(([category, options]) => `<optgroup label="${category}">${options.join('')}</optgroup>`)
             .join('');
 
-        return `<select class="bee-card-class-select" title="Assign work"><option value="">Unassigned</option>${groupsHTML}</select>`;
+        const sexLabel = bee.sex === 'm' ? '♂ Male' : bee.sex === 'f' ? '♀ Female' : '';
+        return `<select class="bee-card-class-select" title="Assign work${sexLabel ? ' · ' + sexLabel : ''}"><option value="">Unassigned${sexLabel ? ' · ' + sexLabel : ''}</option>${groupsHTML}</select>`;
     }
 };

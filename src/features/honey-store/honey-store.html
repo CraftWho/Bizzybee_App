@@ -19,33 +19,28 @@
     <link rel="stylesheet" href="../../core/modal/modal.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
     <link rel="stylesheet" href="./honey-store.css">
 </head>
 <body>
 
-    <main class="store-container">
+    <!-- Honey Store v2 (Oct 2026): same look as Settings/Inventory. -->
+    <main class="pv2 hs2">
+        <h1 class="pv2-title">🍯 HONEY STORE</h1>
+        <p class="pv2-lead">Spend materials on gear that gives a bee a trait.</p>
 
-        <div class="panel page-header-panel">
-            <h2 class="page-title">🍯 <span class="gold-gradient-text">HONEY STORE</span></h2>
-            <p class="page-subtitle">Spend materials your Collector bees bring back on gear that grants traits - some of it even carries a chance to evolve the bee wearing it.</p>
-        </div>
+        <div class="stats hs-wallet" id="store-wallet-panel"></div>
 
-        <div class="store-wallet-panel panel" id="store-wallet-panel"></div>
+        <h2 class="sec">Special items</h2>
+        <section class="card" id="store-identity-row"></section>
 
-        <section class="panel store-identity-panel">
-            <h3>🪪 Named Beast Identity Card</h3>
-            <p class="store-identity-desc" id="store-identity-desc"></p>
-            <div class="store-identity-row" id="store-identity-row"></div>
+        <h2 class="sec">Trait gear</h2>
+        <div class="tiles" id="store-item-grid"></div>
+        <p class="note">Each item gives a bee a trait, and a Common or Rare bee a shot at Epic. Use them from a bee's card on the <a href="../colony-bees/colony-bees.html">Colony Bees</a> page.</p>
+
+        <section class="card hs-links">
+            <a class="row" href="../inventory/inventory.html"><span class="hx">🎒</span><span class="mid"><b>Inventory</b><small>Everything you own</small></span><span class="chev">›</span></a>
         </section>
-
-        <section class="panel">
-            <h3>🎁 Trait Gear</h3>
-            <p class="store-note">Each item grants its bee a themed trait, and gives any Common or Rare bee a shot at jumping straight to Epic. Apply purchased items from a bee's card in the <a href="../inventory/inventory.html">Inventory</a> roster.</p>
-            <div class="item-card-grid" id="store-item-grid"></div>
-        </section>
-
-        <a href="../inventory/inventory.html" class="store-inventory-link">🎒 View Purchased Items in Inventory →</a>
-
     </main>
 
     <script src="../../core/db.js"></script>
@@ -58,6 +53,7 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/page-v2/page-v2.js"></script>
     <script src="./honey-store.js"></script>
 </body>
 </html>

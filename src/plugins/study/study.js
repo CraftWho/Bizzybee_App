@@ -27,7 +27,7 @@ function renderStudyList() {
     const items = Vault.getStudyQueue();
 
     if (items.length === 0) {
-        container.innerHTML = '<p class="study-empty-state">Nothing queued yet - add your first topic above.</p>';
+        container.innerHTML = '<p class="sd-empty">Nothing queued yet. Tap "Add a topic" to start.</p>';
         return;
     }
 
@@ -44,22 +44,22 @@ function renderStudyList() {
     container.innerHTML = groups.map(status => {
         const groupItems = byStatus[status].sort((a, b) => (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1));
         return `
-            <div class="study-status-group">
-                <h4 class="study-status-heading">${escapeStudyHTML(status)}</h4>
+            <h2 class="sec">${escapeStudyHTML(status)}<small>${groupItems.length}</small></h2>
+            <div class="card">
                 ${groupItems.map(item => `
-                    <div class="study-item-row" data-item-id="${item.id}">
+                    <div class="study-item-row sd-row" data-item-id="${item.id}">
                         ${StatusDot.html(STUDY_PRIORITY_DOT_COLOR[(item.priority || 'medium').toLowerCase()] || 'gray', { title: `${item.priority} priority`, large: true })}
-                        <div class="study-item-main">
+                        <div class="mid">
                             ${item.link
-                                ? `<a class="study-item-topic study-item-topic--link" href="${escapeStudyAttr(item.link)}" target="_blank" rel="noopener noreferrer">${escapeStudyHTML(item.topic)}</a>`
-                                : `<span class="study-item-topic">${escapeStudyHTML(item.topic)}</span>`
+                                ? `<a href="${escapeStudyAttr(item.link)}" target="_blank" rel="noopener noreferrer">${escapeStudyHTML(item.topic)} ↗</a>`
+                                : `<b>${escapeStudyHTML(item.topic)}</b>`
                             }
-                            <span class="study-item-type">${escapeStudyHTML(item.type)}</span>
+                            <small>${escapeStudyHTML(item.type)} · ${escapeStudyHTML(item.priority || 'Medium')} priority</small>
                         </div>
-                        <select class="study-item-status-select" data-role="status">
+                        <select data-role="status" aria-label="Status">
                             ${STUDY_STATUS_ORDER.map(s => `<option value="${s}"${s === status ? ' selected' : ''}>${s}</option>`).join('')}
                         </select>
-                        <button type="button" class="study-item-remove" data-role="remove" aria-label="Remove from queue">🗑️</button>
+                        <button type="button" class="sd-del" data-role="remove" aria-label="Remove from queue">🗑️</button>
                     </div>
                 `).join('')}
             </div>

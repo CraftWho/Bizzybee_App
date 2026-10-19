@@ -17,117 +17,70 @@
     <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
     <link rel="stylesheet" href="../../core/toast/toast.css">
     <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
     <link rel="stylesheet" href="./account-security.css">
 </head>
 <body>
 
-    <main class="account-security-container">
+    <!-- Account Security v2 (Oct 2026): same look as Settings. Every id the
+         JS uses is unchanged. -->
+    <main class="pv2 as2">
+        <h1 class="pv2-title">🔐 SECURITY</h1>
+        <p class="pv2-lead">Two PINs: one guards Account Info, one locks the whole app on this device.</p>
 
-        <h2 class="account-security-title">🔐 <span class="gold-gradient-text">ACCOUNT SECURITY</span></h2>
+        <h2 class="sec">Account Info PIN</h2>
+        <section class="card">
+            <div class="row as-static"><span class="hx">🔢</span><span class="mid"><b>6-digit PIN</b><small>Locks <a href="../account-info/account-info.html">Account Info</a> and encrypts what's saved there.</small></span><span class="as-status" id="pin-status-text">Checking...</span></div>
 
-        <section class="panel">
-            <h3>🔢 PIN Status</h3>
-            <p class="account-security-intro">Your PIN locks <a href="../account-info/account-info.html">Account Info</a> and is the encryption key for anything saved there - there's no separate password to manage, just this one PIN.</p>
-            <p class="pin-status-line"><strong>Status:</strong> <span id="pin-status-text">Checking...</span></p>
+            <div class="as-form" id="pin-create-section" hidden>
+                <p class="as-help">Numbers only. There's no recovery if you forget it.</p>
+                <label class="lbl" for="create-pin-new">New PIN</label>
+                <input type="password" id="create-pin-new" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+                <label class="lbl" for="create-pin-confirm">Confirm PIN</label>
+                <input type="password" id="create-pin-confirm" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+                <p id="pin-create-error" class="as-error" hidden></p>
+                <div class="btns"><button type="button" class="btn solid" id="create-pin-btn">Create PIN</button></div>
+            </div>
+
+            <div class="as-form" id="pin-change-section" hidden>
+                <p class="as-help">Changing it re-encrypts your saved info under the new PIN. Nothing is lost.</p>
+                <label class="lbl" for="change-pin-current">Current PIN</label>
+                <input type="password" id="change-pin-current" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+                <label class="lbl" for="change-pin-new">New PIN</label>
+                <input type="password" id="change-pin-new" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+                <label class="lbl" for="change-pin-confirm">Confirm new PIN</label>
+                <input type="password" id="change-pin-confirm" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+                <p id="pin-change-error" class="as-error" hidden></p>
+                <div class="btns"><button type="button" class="btn solid" id="change-pin-btn">Change PIN</button><button type="button" class="btn danger" id="pin-forgot-btn">Forgot PIN?</button></div>
+            </div>
         </section>
 
-        <!-- Shown only when no PIN exists yet - first-time setup, same form
-             shape as account-info.html's own create screen. Creating it
-             here works identically to creating it there; whichever page
-             you happen to visit first is fine. -->
-        <section class="panel" id="pin-create-section" hidden>
-            <h3>Create a PIN</h3>
-            <p class="account-security-intro">Set a 6-digit PIN, numbers only. There's no recovery if you forget it, so pick one you'll remember.</p>
+        <h2 class="sec">App Lock</h2>
+        <section class="card">
+            <div class="row as-static"><span class="hx">🔒</span><span class="mid"><b>4-digit App Lock</b><small>Asks for a PIN when you come back after closing the app. Only on this device, never synced.</small></span><span class="as-status" id="app-lock-status-text">Checking...</span></div>
 
-            <div class="pin-field-group">
-                <label for="create-pin-new">New PIN</label>
-                <input type="password" id="create-pin-new" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
-            </div>
-            <div class="pin-field-group">
-                <label for="create-pin-confirm">Confirm PIN</label>
-                <input type="password" id="create-pin-confirm" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+            <div class="as-form" id="app-lock-create-section" hidden>
+                <p class="as-help">Numbers only. There's no recovery if you forget it on this device.</p>
+                <label class="lbl" for="app-lock-create-new">New PIN</label>
+                <input type="password" id="app-lock-create-new" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+                <label class="lbl" for="app-lock-create-confirm">Confirm PIN</label>
+                <input type="password" id="app-lock-create-confirm" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+                <p id="app-lock-create-error" class="as-error" hidden></p>
+                <div class="btns"><button type="button" class="btn solid" id="app-lock-create-btn">Turn on App Lock</button></div>
             </div>
 
-            <p id="pin-create-error" class="account-security-error" hidden></p>
-            <button id="create-pin-btn">Create PIN</button>
+            <div class="as-form" id="app-lock-manage-section" hidden>
+                <p class="as-help">Both need your current App Lock PIN. Leave "New PIN" blank to only remove it.</p>
+                <label class="lbl" for="app-lock-current">Current PIN</label>
+                <input type="password" id="app-lock-current" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+                <label class="lbl" for="app-lock-new">New PIN</label>
+                <input type="password" id="app-lock-new" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+                <label class="lbl" for="app-lock-confirm">Confirm new PIN</label>
+                <input type="password" id="app-lock-confirm" class="as-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+                <p id="app-lock-manage-error" class="as-error" hidden></p>
+                <div class="btns"><button type="button" class="btn solid" id="app-lock-change-btn">Change PIN</button><button type="button" class="btn danger" id="app-lock-remove-btn">Remove App Lock</button></div>
+            </div>
         </section>
-
-        <!-- Shown only when a PIN already exists - requires the CURRENT PIN
-             before accepting a new one, since the PIN is also the
-             encryption key for anything already saved on Account Info
-             (see account-security.js's changePin - it decrypts with the
-             old PIN and re-encrypts under the new one, so existing data
-             isn't stranded). -->
-        <section class="panel" id="pin-change-section" hidden>
-            <h3>Change PIN</h3>
-            <p class="account-security-intro">Changing your PIN re-encrypts any saved personal information under the new one - nothing is lost.</p>
-
-            <div class="pin-field-group">
-                <label for="change-pin-current">Current PIN</label>
-                <input type="password" id="change-pin-current" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
-            </div>
-            <div class="pin-field-group">
-                <label for="change-pin-new">New PIN</label>
-                <input type="password" id="change-pin-new" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
-            </div>
-            <div class="pin-field-group">
-                <label for="change-pin-confirm">Confirm New PIN</label>
-                <input type="password" id="change-pin-confirm" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
-            </div>
-
-            <p id="pin-change-error" class="account-security-error" hidden></p>
-            <button id="change-pin-btn">Change PIN</button>
-        </section>
-
-        <!-- App Lock: a completely separate 4-digit PIN from the 6-digit
-             one above - locks the WHOLE app, not just Account Info, and is
-             device-only (never synced, never part of Save/Load) - see
-             app.js's AppLock object and HANDOFF.md's App Lock entry. -->
-        <section class="panel">
-            <h3>🔒 App Lock</h3>
-            <p class="account-security-intro">A separate 4-digit PIN that locks the whole app - not just Account Info - whenever you close this tab or browser and come back, or open Bizzybee in a new tab. Normal tab-switching or refreshing doesn't trigger it. Device-only: never saved to the cloud or included in Save/Load transfers, so each device you use gets its own.</p>
-            <p class="pin-status-line"><strong>Status:</strong> <span id="app-lock-status-text">Checking...</span></p>
-        </section>
-
-        <section class="panel" id="app-lock-create-section" hidden>
-            <h3>Create an App Lock PIN</h3>
-            <p class="account-security-intro">Set a 4-digit PIN, numbers only. There's no recovery if you forget it on this device.</p>
-
-            <div class="pin-field-group">
-                <label for="app-lock-create-new">New PIN</label>
-                <input type="password" id="app-lock-create-new" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
-            </div>
-            <div class="pin-field-group">
-                <label for="app-lock-create-confirm">Confirm PIN</label>
-                <input type="password" id="app-lock-create-confirm" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
-            </div>
-
-            <p id="app-lock-create-error" class="account-security-error" hidden></p>
-            <button id="app-lock-create-btn">Create App Lock PIN</button>
-        </section>
-
-        <section class="panel" id="app-lock-manage-section" hidden>
-            <h3>Change or Remove App Lock PIN</h3>
-            <p class="account-security-intro">Both require your current App Lock PIN. Leave "New PIN" blank if you only want to remove App Lock from this device.</p>
-
-            <div class="pin-field-group">
-                <label for="app-lock-current">Current PIN</label>
-                <input type="password" id="app-lock-current" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
-            </div>
-            <div class="pin-field-group">
-                <label for="app-lock-new">New PIN</label>
-                <input type="password" id="app-lock-new" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
-            </div>
-            <div class="pin-field-group">
-                <label for="app-lock-confirm">Confirm New PIN</label>
-                <input type="password" id="app-lock-confirm" class="pin-input pin-input-4" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
-            </div>
-
-            <p id="app-lock-manage-error" class="account-security-error" hidden></p>
-            <button id="app-lock-change-btn">Change PIN</button>
-            <button id="app-lock-remove-btn" class="account-security-btn-danger">Remove App Lock</button>
-        </section>
-
     </main>
 
     <script src="../../core/db.js"></script>
@@ -141,6 +94,7 @@
     <script src="../../core/reminders/reminders.js"></script>
     <script src="../llm-engine/llm-engine.js"></script>
 
+    <script src="../../core/page-v2/page-v2.js"></script>
     <script src="./account-security.js"></script>
 </body>
 </html>

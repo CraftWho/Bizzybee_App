@@ -87,7 +87,9 @@ const Reminders = {
 
                 new Notification('🐝 Bizzybee Reminder', {
                     body: item.label,
-                    tag: key
+                    tag: key,
+                    icon: '/src/assets/icons/icon-192x192.png',
+                    badge: '/src/assets/icons/badge-96x96.png'
                 });
                 this._markFired(today, key);
             });
