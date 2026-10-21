@@ -4,7 +4,7 @@ A gamified productivity app with a gold-and-black honeycomb look. You finish rea
 
 It is a static web app: plain HTML, CSS and JavaScript, no framework and no build step. It installs on a phone as a Progressive Web App (PWA). Saves live in the browser, with optional encrypted Cloud Sync.
 
-For what's built and what's next, see [ROADMAP.md](ROADMAP.md). For Cloud Sync setup, see [CLOUD_SETUP.md](CLOUD_SETUP.md).
+For what's built and what's next, see [docs/ROADMAP.md](docs/ROADMAP.md). For Cloud Sync setup, see [docs/CLOUD_SETUP.md](docs/CLOUD_SETUP.md).
 
 ## Run it locally
 
@@ -37,6 +37,7 @@ index.html            the login page (the site's front door)
 sw.js                 service worker: push reminders + downloaded packs
 manifest.json         PWA install info
 netlify.toml          Netlify config + redirects for moved pages
+docs/                 roadmap and Cloud Sync setup
 netlify/functions/    server functions (cloud save, backups, push, Terminal access)
 netlify/lib/          code shared by those functions
 

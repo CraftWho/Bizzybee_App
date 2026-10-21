@@ -22,7 +22,8 @@ Thumbs.db
 .claude/
 
 # Private project docs - kept out of git (scrubbed from history 2026-10-08).
-# ROADMAP.md and CLOUD_SETUP.md in the repo are the shareable versions; the
+# docs/ROADMAP.md and docs/CLOUD_SETUP.md are the shareable versions; the
+# private ones now live in workshop/docs/private/ (Oct 2026). Old names kept below. The
 # full private ones are *.private.md.
 HANDOFF.md
 *.private.md
