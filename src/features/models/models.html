@@ -12,62 +12,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>🧬 Bee Models</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
-    <link rel="stylesheet" href="../../core/mech-bee/mech-bee.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/mech-bee/mech-bee.css">
     <link rel="stylesheet" href="./models.css">
 </head>
 <body>
 <div class="bm">
     <header class="bm-head">
         <h1>🧬 BEE MODELS</h1>
-        <p>Every bee in Bizzybee, as it really looks in the app: your royals, the life cycle from egg to hatch, worker cards, the bees that fly around your hive, marks, the 3D model, and every species.</p>
+        <p>Every kind of bee in Bizzybee. Each one stays a dark silhouette until you've met it.</p>
+        <div class="bm-prog"><div class="bm-bar"><i id="bm-bar"></i></div><b id="bm-count">0 / 0</b></div>
     </header>
 
-    <nav class="bm-tabs" id="bm-tabs">
-        <a href="#royals" class="on">♛ Royals</a><a href="#life">🥚 Life cycle</a><a href="#workers">🐝 Workers</a>
-        <a href="#hive">🏰 Hive bees</a><a href="#marks">✦ Marks</a><a href="#model3d">🧊 3D</a><a href="#species">📖 Species</a>
-    </nav>
+    <nav class="bm-tabs" id="bm-tabs"></nav>
 
-    <section class="bm-sec" id="royals">
-        <h2>Royals <small>Queen &amp; King · hatched from the egg gift</small></h2>
-        <p>Layered art: body, wings and crown are separate pieces, so the wings flap and the crown drops on at the end of the hatch.</p>
-        <div class="bm-grid two" id="royal-grid"></div>
-        <div class="bm-row">
-            <button class="bm-chip" data-r="fly" aria-pressed="true">Flying</button>
-            <button class="bm-chip" data-r="still" aria-pressed="false">Resting</button>
-            <button class="bm-chip" data-r="crown" aria-pressed="true">Crown on</button>
-        </div>
-    </section>
+    <div id="bm-secs"></div>
 
-    <section class="bm-sec lc" id="life">
-        <h2>Life cycle <small>egg → larva → pupa → hatch</small></h2>
-        <p>Every egg gets its own pattern from a number, so no two players' eggs match. Pick a style or roll a new one.</p>
-        <div class="bm-grid four" id="life-grid"></div>
-        <div class="bm-row" id="egg-styles"></div>
-    </section>
-
-    <section class="bm-sec wk" id="workers">
-        <h2>Workers <small>the card bee · 5 rarities × 4 elements</small></h2>
-        <p>The bee on every card. Rarity sets the frame and glow; the element tints its gold.</p>
-        <div class="bm-grid three" id="worker-grid"></div>
-        <div class="bm-row" id="worker-els"></div>
-    </section>
-
-    <section class="bm-sec" id="hive">
-        <h2>Hive bees <small>the mech bees that fly around your hive</small></h2>
-        <p>Each bee's stripe shows its element. They orbit, forage, land on the deck and fly in and out of the hive.</p>
-        <svg class="hive-scene" id="hive-scene" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet"><g class="ch-fly-back"></g><g class="ch-fly-front"></g></svg>
-    </section>
-
-    <section class="bm-sec" id="marks">
-        <h2>Marks <small>logo, badge, mascot</small></h2>
-        <div class="bm-grid four" id="marks-grid"></div>
-    </section>
+    <a class="bm-dex" href="../keeperdex/keeperdex.html">
+        <span class="bm-dex-ic">📘</span>
+        <span><b>Species</b><small>All the rarity × element species live in the KeeperDex.</small></span>
+        <span class="chev">›</span>
+    </a>
 
     <section class="bm-sec" id="model3d">
         <h2>3D model <small>work in progress</small></h2>
@@ -77,28 +43,29 @@
                 <a class="bm-chip" href="../plugin-hub/plugin-hub.html#bee3d">⬇️ Get the 3D Bee Model pack</a>
             </div>
         </div>
-        <p class="m3d-note">Drag to spin. Not finished yet - it will replace the flat art on cards and here once it is.</p>
+        <p class="m3d-note">Drag to spin. Not finished yet.</p>
     </section>
 
-    <section class="bm-sec sp-tile" id="species">
-        <h2>Species <small>the KeeperDex catalog</small></h2>
-        <p>Every species, shown with the card bee in its rarity and element - whether you've found it yet or not.</p>
-        <div class="bm-grid four" id="species-grid"></div>
-    </section>
+    <p class="bm-foot">Tap a tile. Found ones open up close; locked ones tell you how to find them. A bee you've met stays found, even if you later destroy or combine it.</p>
 </div>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
-    <script src="../../core/bee-card/bee-card.js"></script>
-    <script src="../../core/mech-bee/mech-bee.js"></script>
-    <script src="../../core/bee-art/bee-art.js"></script>
-    <script src="../onboarding/egg-designs.js"></script>
-    <script src="../../core/packs/packs.js"></script>
+<div class="bm-view" id="bm-view" hidden>
+    <div class="bm-view-box" role="dialog" aria-modal="true" aria-labelledby="bm-view-name">
+        <button type="button" class="bm-view-x" id="bm-view-x" aria-label="Close">✕</button>
+        <div class="bm-view-art" id="bm-view-art"></div>
+        <h2 id="bm-view-name"></h2>
+        <p id="bm-view-text"></p>
+        <small id="bm-view-date"></small>
+    </div>
+</div>
+<div class="bm-hint" id="bm-hint" role="status" aria-live="polite"></div>
+
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
+    <script src="../../core/ui/mech-bee/mech-bee.js"></script>
+    <script src="../../core/ui/bee-art/bee-art.js"></script>
+    <script src="../../core/ui/egg-designs/egg-designs.js"></script>
+    <script src="../../core/services/packs/packs.js"></script>
     <script src="./models.js"></script>
 </body>
 </html>

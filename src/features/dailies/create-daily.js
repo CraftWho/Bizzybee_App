@@ -2,7 +2,7 @@ console.log("/// CREATE DAILY PROTOCOLS INITIALIZED ///");
 
 // Create / edit a daily (rebuilt 2026-10-09 from Craft's Habitica photo,
 // same look as create-habit.html). Shared widgets (difficulty tiles,
-// checklist, reminders, Delete) are in src/core/task-form/task-form.js;
+// checklist, reminders, Delete) are in src/core/ui/task-form/task-form.js;
 // this page owns Scheduling and Adjust Streak. The top takes the
 // difficulty colour. Creating shows CREATE; editing shows DELETE and SAVE.
 

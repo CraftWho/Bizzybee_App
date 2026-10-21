@@ -89,7 +89,7 @@
     box-shadow: 0 0 12px var(--crimson);
 }
 
-/* Account Security v2 (Oct 2026). Shared look: core/page-v2/page-v2.css. */
+/* Account Security v2 (Oct 2026). Shared look: core/ui/page-v2/page-v2.css. */
 .as2 .as-static { cursor: default; }
 .as2 .as-static:hover { background: none; }
 .as2 .as-static a { color: var(--gold); }

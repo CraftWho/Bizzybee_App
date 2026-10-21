@@ -142,7 +142,7 @@ function readPersonalInfoForm() {
 }
 
 // --- Habitica sync -------------------------------------------------------
-// The two-way sync itself lives in src/core/habitica-sync/ and runs on
+// The two-way sync itself lives in src/core/services/habitica-sync/ and runs on
 // every page. This page only hands it the key: your Habitica User ID and
 // API Token stay encrypted here under your PIN, and after you unlock, a
 // copy is kept on this device (not in your save, not in the cloud) so the

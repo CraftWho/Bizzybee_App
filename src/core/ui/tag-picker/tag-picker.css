@@ -1,0 +1,53 @@
+/* --- TAG PICKER - fully automatic, no text input (see tag-picker.js's
+   rescan/findMatchingTerms). The only manual action left is dismissing a
+   chip via ×.
+
+   Extracted out of create-daily.css, create-todo.css and create-habit.css,
+   which each carried a byte-for-byte identical copy of this block (both
+   todo's and habit's own comments even said "duplicated from
+   create-daily.css") - see the project-tuning pass before Hive Defense.
+   Each page's own "-tags-note" caption paragraph (it names that page's
+   own known-term sources) stays page-owned, not part of this shared
+   block. --- */
+.tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.tags-empty {
+    color: #666;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a1a1a;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-start);
+    border-radius: 20px;
+    padding: 5px 10px 5px 14px;
+    font-size: 0.85rem;
+}
+
+.tag-remove {
+    background: transparent;
+    border: none;
+    color: #999;
+    font-size: 0.9rem;
+    padding: 0 2px;
+    box-shadow: none;
+}
+
+.tag-remove:hover {
+    color: var(--crimson);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Typed tags (Oct 2026) */
+.tag-add { margin: 4px 0 6px; }

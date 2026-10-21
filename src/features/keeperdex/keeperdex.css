@@ -1,4 +1,4 @@
-/* KeeperDex v2 (Oct 2026). Shared look: core/page-v2/page-v2.css. */
+/* KeeperDex v2 (Oct 2026). Shared look: core/ui/page-v2/page-v2.css. */
 .kd2 .kd-progress { padding: 14px 16px; margin-bottom: 12px; }
 .kd2 .kd-progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
 .kd2 .kd-progress-top b { font: 700 .95rem var(--font-main, monospace); color: var(--gold2); }

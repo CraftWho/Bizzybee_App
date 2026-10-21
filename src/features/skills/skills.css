@@ -50,7 +50,7 @@ h2.sk-sec::after { content: ""; flex: 1; height: 1px; background: linear-gradien
 .sk-mid small { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; }
 .sk-bar { height: 8px; margin-top: 6px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
 .sk-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8b0a1e, var(--cr) 35%, #b8861e 70%, var(--gold)); }
-.sk-lvl { flex: none; padding: 8px 10px; border-radius: 10px; border: 0; background: var(--cr); color: #fff; font: 700 .74rem system-ui, sans-serif; box-shadow: 0 0 10px rgba(220, 20, 60, .5); transform: none; cursor: pointer; animation: sk-pulse 1.4s ease-in-out infinite; }
+.sk-lvl { flex: none; padding: 8px 12px; border-radius: 10px; border: 0; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; font: 800 .74rem var(--font-main, monospace); letter-spacing: .06em; box-shadow: 0 0 0 2px rgba(220, 20, 60, .55), 0 0 12px rgba(255, 204, 0, .35); transform: none; cursor: pointer; animation: sk-pulse 1.4s ease-in-out infinite; }
 @keyframes sk-pulse { 50% { box-shadow: 0 0 18px rgba(220, 20, 60, .9); } }
 .sk-empty { margin: 0; color: var(--muted); font-size: .85rem; text-align: center; padding: 14px 4px; }
 

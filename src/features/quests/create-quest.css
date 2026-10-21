@@ -1,5 +1,5 @@
 /* Create / edit quest - the parts only Quests has. The shared form look is
-   in src/core/task-form/task-form.css. */
+   in src/core/ui/task-form/task-form.css. */
 .hf-seg.cq-type { grid-template-columns: repeat(2, 1fr); }
 .hf .cq-type button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; }
 .cq-type b { font-size: 1rem; }
@@ -54,3 +54,9 @@
 .cq-switch b { font-size: .95rem; color: var(--hf-text); }
 .cq-switch small { font-size: .78rem; color: var(--hf-muted); }
 #cq-more[hidden] { display: none; }
+
+/* Quest tags (Oct 2026) */
+.cq-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.cq-tags:empty { display: none; }
+.cq-tag { display: inline-flex; align-items: center; gap: 4px; padding: 5px 6px 5px 12px; border-radius: 99px; background: #2a1f0b; border: 1px solid rgba(255, 204, 0, .4); color: #ffcc00; font: 700 .8rem system-ui, sans-serif; }
+.hf .cq-tag button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 204, 0, .15); color: #ffcc00; font-size: .9rem; line-height: 1; cursor: pointer; }

@@ -620,7 +620,7 @@ $('introMake').onclick = () => {
 // Life cycle: crack -> larva -> pupa -> ready -> hatch -> crowning
 // ---------------------------------------------------------------------------
 // The royals' art (ROYAL_ART, royalStack) and the brood cell (hexP, larvaSVG,
-// cellSVG) live in src/core/bee-art/bee-art.js, shared with Bee Models.
+// cellSVG) live in src/core/ui/bee-art/bee-art.js, shared with Bee Models.
 
 // ---- growing cracks: every tap grows the web, the light, the shake and the buzz ----
 function crackWeb(seed, n, inside, startPt, scale = 1) {

@@ -1,0 +1,646 @@
+/* ==========================================================================
+   BEE CARD - shared mechanics
+   Card box, 3D flip, and the editable-mode controls (rename, job select,
+   evolve / rebirth / trait item / Named Beast buttons). The look itself is
+   the v2 block further down. See bee-card.js for BeeCard.render().
+   ========================================================================== */
+
+.bee-card {
+    width: 260px;
+    aspect-ratio: 63 / 88;
+    perspective: 1200px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+}
+
+.bee-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.bee-card.is-flipped .bee-card-inner {
+    transform: rotateY(180deg);
+}
+
+.bee-card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.bee-card-front {
+    position: relative;
+    height: 100%;
+}
+
+.bee-card-back {
+    transform: rotateY(180deg);
+}
+
+/* Shine sweep keyframes - still used by the Inventory tiles (inventory.css). */
+@keyframes bee-card-shine {
+    0% { transform: translate(-20%, -20%); }
+    100% { transform: translate(20%, 20%); }
+}
+
+/* --- Editable-mode controls --- */
+.bee-card-rename-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+}
+
+.bee-card-rename-btn:hover {
+    opacity: 1;
+    transform: none;
+    box-shadow: none;
+}
+
+.bee-card-item-action {
+    display: flex;
+    gap: 6px;
+}
+
+.bee-card-evolve-btn,
+.bee-card-apply-trait-btn,
+.bee-card-identity-btn,
+.bee-card-rebirth-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--gold-start);
+    color: var(--gold-start);
+    cursor: pointer;
+}
+
+.bee-card-evolve-btn:hover,
+.bee-card-apply-trait-btn:hover,
+.bee-card-identity-btn:hover,
+.bee-card-rebirth-btn:hover {
+    background: var(--gold-start);
+    color: #000;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Rebirth Stone is the rarest action - gold glow sets it apart. */
+.bee-card-rebirth-btn {
+    border-color: #ffd700;
+    color: #ffd700;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.35);
+}
+
+.bee-card-rebirth-btn:hover {
+    background: #ffd700;
+    color: #000;
+}
+
+.bee-card-identity-btn:hover {
+    background: #b0140e;
+    color: #fff;
+}
+
+.bee-card-trait-item-select,
+.bee-card-class-select {
+    min-width: 0;
+    background: #0a0a0a;
+    border: 1px solid #444;
+    color: #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.bee-card-trait-item-select {
+    flex: 1.4;
+    padding: 4px;
+}
+
+/* --- Grid wrapper (Gacha collection, KeeperDex) --- */
+.bee-card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: flex-start;
+}
+
+/* ==========================================================================
+   BEE CARD v2 - mech/brass collector card (Oct 2026 redesign)
+   One visual language for every card in the app: BeeCard (owned bees),
+   KeeperDexCard (reference entries) and the Inventory cover-flow tile
+   (art window only). Each root gets .bc-v2 plus a rarity class
+   (.bc-r-common ... .bc-r-named) and an element class (.bc-e-fire ...).
+   The old v1 card design is archived in archive/cards-v1/ (outside src/).
+
+   Sizing: all inner sizes use cqw (percent of the card's own width), so
+   the card scales cleanly from any width - the Inventory grid shrinks the
+   full card with transform:scale, and this keeps working.
+
+   Colour model: the card body stays dark. Rarity lives in the metal trim
+   (--m1/--m2/--m3), the forest art background, the aura/glow (--glow) and
+   the accent colour (--rc). The bee's gold parts take the ELEMENT colour
+   (--tint) through a mask (card-bee-gold-mask.webp).
+   ========================================================================== */
+
+.bee-card.bc-v2,
+.keeperdex-card.bc-v2 {
+    width: 260px;
+    aspect-ratio: 63 / 88;
+    container-type: inline-size;
+    --ink: #0b0b0c;
+    --body: #131416;
+    --body2: #1b1d20;
+    --txt: #f1ede2;
+    --dim: #a9a596;
+}
+
+/* --- rarity themes: accent, glow, metal, forest palette --- */
+.bc-v2.bc-r-common    { --rc:#aaaaaa; --glow:transparent;          --m1:#d6d9dc; --m2:#878c91; --m3:#33373b;
+    --sky1:#5f6866; --sky2:#3a4240; --f1:#2d3533; --f2:#1f2624; --f3:#121716; --fog:#4c5553; --light:transparent; }
+.bc-v2.bc-r-rare      { --rc:#4aa3ff; --glow:rgba(74,163,255,.45); --m1:#b8dcff; --m2:#3a86d8; --m3:#0f2c52;
+    --sky1:#6fa6d6; --sky2:#2b5470; --f1:#24504f; --f2:#17363a; --f3:#0b1c1f; --fog:#4f86b0; --light:#bfe3ff; }
+.bc-v2.bc-r-epic      { --rc:#b06bff; --glow:rgba(176,107,255,.5); --m1:#e2caff; --m2:#9358ea; --m3:#32145e;
+    --sky1:#a389d6; --sky2:#43356e; --f1:#2e4048; --f2:#1d2a33; --f3:#0e161b; --fog:#7a64b8; --light:#e2ccff; }
+.bc-v2.bc-r-legendary { --rc:#ffd700; --glow:rgba(255,215,0,.5);   --m1:#fff3b8; --m2:#dcaa22; --m3:#6e4806;
+    --sky1:#f4d77a; --sky2:#8a6a25; --f1:#3f5530; --f2:#283a20; --f3:#131d10; --fog:#d4ac48; --light:#fff3c0; }
+.bc-v2.bc-r-named     { --rc:#d42a1e; --glow:rgba(170,18,12,.6);   --m1:#f2875a; --m2:#b0140e; --m3:#3e0302;
+    --sky1:#a8321a; --sky2:#4a0e06; --f1:#33221a; --f2:#211510; --f3:#100806; --fog:#8a2210; --light:#ffb060; }
+/* Royal: the founder (the Queen/King from the egg gift) - gold frame, crimson glow, sunrise sky. */
+.bc-v2.bc-r-royal     { --rc:#ffd700; --glow:rgba(212,42,30,.6);   --m1:#fff3b8; --m2:#dcaa22; --m3:#6e1a08;
+    --sky1:#f0a050; --sky2:#8a2416; --f1:#3a1c12; --f2:#24110b; --f3:#110705; --fog:#c0582a; --light:#ffd27a; }
+
+/* --- element tint for the bee's gold parts --- */
+.bc-v2.bc-e-fire  { --tint:#ff5a1f; }
+.bc-v2.bc-e-water { --tint:#2f9bff; }
+.bc-v2.bc-e-earth { --tint:#4fb83a; }
+.bc-v2.bc-e-wind  { --tint:#5fe0cc; }
+.bc-v2.bc-e-none  { --tint:transparent; }
+
+/* --- the two faces: dark body inside a metallic gradient border --- */
+.bc-v2 .bee-card-face {
+    padding: 0;
+    gap: 0;
+    border-radius: 3.6cqw;
+    border: 1cqw solid transparent;
+    outline: none;
+    background:
+        radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--rc) 12%, transparent), transparent 55%) padding-box,
+        linear-gradient(var(--body2), var(--body)) padding-box,
+        linear-gradient(135deg, var(--m1) 0%, var(--m2) 25%, var(--m3) 50%, var(--m2) 75%, var(--m1) 100%) border-box;
+    box-shadow: 0 0 0 .4cqw #000, 0 0 7cqw var(--glow), 0 1.5cqw 5cqw rgba(0, 0, 0, .6);
+    color: var(--txt);
+}
+.bc-v2.bc-r-common .bee-card-face {
+    box-shadow: 0 0 0 .4cqw #000, 0 1.5cqw 5cqw rgba(0, 0, 0, .6);
+}
+
+/* Faint honeycomb across the body, fading out toward the edges. */
+.bc-v2 .bc-hexbg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .07;
+    background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2724.25%27%20height%3D%2742.00%27%3E%3Cpath%20d%3D%27M0.00%20-14.00L12.12%20-7.00L12.12%207.00L0.00%2014.00L-12.12%207.00L-12.12%20-7.00ZM24.25%20-14.00L36.37%20-7.00L36.37%207.00L24.25%2014.00L12.12%207.00L12.12%20-7.00ZM12.12%207.00L24.25%2014.00L24.25%2028.00L12.12%2035.00L-0.00%2028.00L0.00%2014.00ZM0.00%2028.00L12.12%2035.00L12.12%2049.00L0.00%2056.00L-12.12%2049.00L-12.12%2035.00ZM24.25%2028.00L36.37%2035.00L36.37%2049.00L24.25%2056.00L12.12%2049.00L12.12%2035.00Z%27%20fill%3D%27none%27%20stroke%3D%27white%27%20stroke-width%3D%271.1%27/%3E%3C/svg%3E") center / 7.2cqw auto repeat;
+    -webkit-mask: radial-gradient(ellipse at 50% 45%, #000 30%, transparent 95%);
+    mask: radial-gradient(ellipse at 50% 45%, #000 30%, transparent 95%);
+}
+
+/* Thin inner trim line in the rarity metal. */
+.bc-v2 .bc-trim {
+    position: absolute;
+    inset: 1.4cqw;
+    border-radius: 2.6cqw;
+    pointer-events: none;
+    border: .35cqw solid color-mix(in srgb, var(--m2) 55%, transparent);
+    box-shadow: inset 0 0 0 .3cqw rgba(0, 0, 0, .5);
+}
+
+/* Screw-head rivets (card corners + art frame). */
+.bc-v2 .bc-rv {
+    position: absolute;
+    width: 2.4cqw;
+    height: 2.4cqw;
+    border-radius: 50%;
+    z-index: 4;
+    background: radial-gradient(circle at 35% 30%, var(--m1), var(--m2) 48%, var(--m3));
+    box-shadow: 0 .25cqw .4cqw rgba(0, 0, 0, .6);
+}
+.bc-v2 .bc-rv::after {
+    content: "";
+    position: absolute;
+    left: 20%;
+    right: 20%;
+    top: 46%;
+    height: .35cqw;
+    background: rgba(0, 0, 0, .45);
+    transform: rotate(-35deg);
+}
+.bc-v2 .bc-tl { top: 2.4cqw; left: 2.4cqw; }
+.bc-v2 .bc-tr { top: 2.4cqw; right: 2.4cqw; }
+.bc-v2 .bc-bl { bottom: 2.4cqw; left: 2.4cqw; }
+.bc-v2 .bc-br { bottom: 2.4cqw; right: 2.4cqw; }
+
+/* --- FRONT layout --- */
+.bc-v2 .bee-card-front {
+    display: flex;
+    flex-direction: column;
+    gap: 2cqw;
+    padding: 2.8cqw 4.4cqw 2.6cqw;
+}
+.bc-v2 .bee-card-front > :not(.bc-hexbg):not(.bc-trim):not(.bc-rv):not(.bc-sparkles) {
+    position: relative;
+    z-index: 1;
+}
+
+/* Top line: rarity pill + name + (rename) + element hex. */
+.bc-v2 .bc-top {
+    display: flex;
+    align-items: center;
+    gap: 2cqw;
+    min-height: 8.5cqw;
+}
+.bc-v2 .bc-rpill {
+    flex: none;
+    font: 800 2.9cqw/1 ui-monospace, Menlo, Consolas, monospace;
+    letter-spacing: .1em;
+    color: #fff;
+    text-shadow: 0 .25cqw 0 rgba(0, 0, 0, .5);
+    background: linear-gradient(135deg, var(--m1), var(--m2) 45%, var(--m3));
+    border-radius: 1.2cqw;
+    padding: 1cqw 1.6cqw .9cqw;
+    box-shadow: 0 0 3cqw var(--glow);
+}
+.bc-v2.bc-r-legendary .bc-rpill,
+.bc-v2.bc-r-common .bc-rpill { color: #1a1205; text-shadow: none; }
+.bc-v2.bc-r-common .bc-rpill { background: #8a8d91; box-shadow: none; }
+.bc-v2 .bee-card-name {
+    flex: 1;
+    min-width: 0;
+    font: 800 6.6cqw/1.05 "Trebuchet MS", system-ui, sans-serif;
+    color: var(--txt);
+}
+.bc-v2 .bee-card-name.bc-long { font-size: 5cqw; }
+.bc-v2 .bee-card-rename-btn { font-size: 3.4cqw; }
+.bc-v2 .bc-elhex {
+    flex: none;
+    position: relative;
+    width: 7.6cqw;
+    height: 8.6cqw;
+    display: grid;
+    place-items: center;
+    font-size: 4.2cqw;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    background: linear-gradient(135deg, var(--m1), var(--m2) 45%, var(--m3));
+}
+.bc-v2 .bc-elhex::after {
+    content: "";
+    position: absolute;
+    inset: .55cqw;
+    clip-path: inherit;
+    background: #161719;
+}
+.bc-v2 .bc-elhex span { position: relative; z-index: 1; }
+
+/* Art window: forest scene + aura + bee. Also used, on its own, as the
+   Inventory cover-flow tile (.bc-tile - the tile IS the art window). */
+.bc-v2 .bc-art,
+.bc-v2.bc-tile {
+    flex: 0 0 47%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2.2cqw;
+    border: .8cqw solid #000;
+    background: var(--f3);
+    box-shadow: 0 0 0 .55cqw var(--m2), 0 0 0 .8cqw var(--m3), inset 0 0 6cqw rgba(0, 0, 0, .55);
+}
+.bc-v2.bc-tile { container-type: inline-size; padding: 0; border-width: 3px; border-radius: 10px; }
+.bc-v2 .bc-art .bc-rv,
+.bc-v2.bc-tile .bc-rv { width: 2cqw; height: 2cqw; }
+.bc-v2.bc-tile .bc-rv { width: 4cqw; height: 4cqw; }
+.bc-v2.bc-tile .bc-tl { top: 3cqw; left: 3cqw; }
+.bc-v2.bc-tile .bc-tr { top: 3cqw; right: 3cqw; }
+.bc-v2.bc-tile .bc-cls { width: 18cqw; height: 18cqw; font-size: 10cqw; right: 4cqw; bottom: 4cqw; }
+.bc-v2.bc-tile .bc-elhex-mini { position: absolute; top: 4cqw; left: 50%; transform: translateX(-50%); z-index: 4;
+    font-size: 9cqw; line-height: 1; filter: drop-shadow(0 .6cqw 1cqw rgba(0, 0, 0, .7)); }
+.bc-v2 .bc-art .bc-tl { top: 1.2cqw; left: 1.2cqw; }
+.bc-v2 .bc-art .bc-tr { top: 1.2cqw; right: 1.2cqw; }
+.bc-v2 .bc-art .bc-bl { bottom: 1.2cqw; left: 1.2cqw; }
+.bc-v2 .bc-forest { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.bc-v2 .bc-forest .bc-rays { opacity: .16; mix-blend-mode: screen; animation: bc-rays 6s ease-in-out infinite; }
+.bc-v2.bc-r-common .bc-forest .bc-rays,
+.bc-v2.bc-r-common .bc-forest .bc-sun { display: none; }
+@keyframes bc-rays { 0%, 100% { opacity: .1; } 50% { opacity: .22; } }
+
+.bc-v2 .bc-aura {
+    position: absolute;
+    left: 50%;
+    top: 54%;
+    width: 62%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: screen;
+    background: radial-gradient(circle, color-mix(in srgb, var(--rc) 85%, #fff) 0%, var(--rc) 25%, transparent 68%);
+    opacity: .75;
+    filter: blur(1.5cqw);
+    animation: bc-pulse 3.2s ease-in-out infinite;
+}
+.bc-v2.bc-r-common .bc-aura { display: none; }
+@keyframes bc-pulse {
+    0%, 100% { opacity: .55; transform: translate(-50%, -50%) scale(.92); }
+    50%      { opacity: .85; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+.bc-v2 .bc-beewrap { position: absolute; inset: 5% 7%; animation: bc-bob 3.2s ease-in-out infinite; }
+.bc-v2 .bc-beewrap img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 2.2cqw var(--rc)) drop-shadow(0 2cqw 2cqw rgba(0, 0, 0, .5));
+    user-select: none;
+}
+.bc-v2.bc-r-common .bc-beewrap img {
+    filter: saturate(.55) brightness(.9) drop-shadow(0 2cqw 2cqw rgba(0, 0, 0, .5));
+}
+/* KeeperDex "???" entries: the bee as a dark shape. */
+.bc-v2 .bc-beewrap.bc-silhouette img { filter: brightness(0) opacity(.55) !important; }
+@keyframes bc-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5%); } }
+/* Royal art: the Queen/King layers stacked (body + wings), centred in the window. */
+.bc-v2 .bc-beewrap--royal { inset: 3% 4%; display: grid; place-items: center; }
+.bc-v2 .bc-royal { position: relative; width: 100%; max-height: 100%; aspect-ratio: 1; }
+.bc-v2 .bc-royal img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+    filter: drop-shadow(0 0 2cqw rgba(255, 200, 80, .55)) drop-shadow(0 2cqw 2cqw rgba(0, 0, 0, .5)); }
+.bc-v2 .bc-beewrap--royal.bc-silhouette img { filter: brightness(0) opacity(.55) !important; }
+
+/* Colour layer masked to the bee's gold parts only. */
+.bc-v2 .bc-tint {
+    position: absolute;
+    inset: 0;
+    background: var(--tint, transparent);
+    mix-blend-mode: color;
+    opacity: .9;
+    -webkit-mask: var(--bc-gold-mask) center / contain no-repeat;
+    mask: var(--bc-gold-mask) center / contain no-repeat;
+}
+.bc-v2.bc-r-common .bc-tint { opacity: .45; }
+
+/* Foil sweep (Legendary + Named). */
+.bc-v2 .bc-foil { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; opacity: 0; }
+.bc-v2.bc-r-legendary .bc-foil,
+.bc-v2.bc-r-named .bc-foil,
+.bc-v2.bc-r-royal .bc-foil {
+    opacity: 1;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .5) 45%, rgba(255, 240, 180, .22) 50%, transparent 62%) -150% 0 / 250% 100% no-repeat;
+    animation: bc-foil 3.6s ease-in-out infinite;
+}
+.bc-v2.bc-r-named .bc-foil {
+    background-image: linear-gradient(115deg, transparent 30%, rgba(230, 60, 20, .4) 42%, rgba(255, 190, 90, .35) 50%, transparent 62%);
+}
+@keyframes bc-foil { 0% { background-position: -150% 0; } 60%, 100% { background-position: 150% 0; } }
+
+/* Gold sparkles (Legendary). */
+.bc-v2 .bc-sparkles { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.bc-v2 .bc-spk {
+    position: absolute;
+    width: var(--s);
+    height: var(--s);
+    transform: translate(-50%, -50%) scale(0);
+    background: radial-gradient(circle, #fff 0 18%, #ffe27a 40%, #d4a017 70%);
+    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    filter: drop-shadow(0 0 1cqw #ffd700);
+    animation: bc-twinkle var(--d) ease-in-out infinite;
+    animation-delay: var(--dl);
+}
+@keyframes bc-twinkle {
+    0%, 100% { transform: translate(-50%, -50%) scale(0) rotate(0); }
+    45%      { transform: translate(-50%, -50%) scale(1) rotate(45deg); opacity: 1; }
+    70%      { transform: translate(-50%, -50%) scale(.3) rotate(90deg); opacity: 0; }
+}
+
+.bc-v2 .bc-cls {
+    position: absolute;
+    right: 1.8cqw;
+    bottom: 1.8cqw;
+    z-index: 4;
+    width: 7.6cqw;
+    height: 7.6cqw;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 4cqw;
+    background: rgba(0, 0, 0, .6);
+    border: .35cqw solid var(--m2);
+}
+
+/* Dex plate. */
+.bc-v2 .bc-dex {
+    display: flex;
+    justify-content: space-between;
+    gap: 2cqw;
+    font: 600 2.9cqw/1 ui-monospace, Menlo, Consolas, monospace;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    background: linear-gradient(#17191c, #0c0d0f);
+    border: .3cqw solid var(--m2);
+    border-radius: 1cqw;
+    padding: 1.3cqw 2.2cqw;
+    box-shadow: inset 0 .3cqw 0 rgba(255, 255, 255, .05);
+}
+.bc-v2 .bc-dex b { color: var(--m1); }
+.bc-v2 .bc-dex-species { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Abilities - the "attacks" area. Shrinks first if action rows need room. */
+.bc-v2 .bc-abil {
+    display: grid;
+    gap: 1.6cqw;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    align-content: start;
+}
+.bc-v2 .bc-ab { display: grid; grid-template-columns: 6.4cqw 1fr; gap: .6cqw 2cqw; align-items: start; }
+.bc-v2 .bc-ic {
+    grid-row: span 2;
+    width: 6.4cqw;
+    height: 6.4cqw;
+    border-radius: 1.6cqw;
+    display: grid;
+    place-items: center;
+    font-size: 3.6cqw;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--m2) 35%, #111), #0e0f11);
+    border: .3cqw solid var(--m2);
+}
+.bc-v2 .bc-ab h4 {
+    margin: .2cqw 0 0;
+    font: 800 3.6cqw/1.1 system-ui, sans-serif;
+    color: var(--txt);
+    display: flex;
+    align-items: baseline;
+    gap: 1.6cqw;
+}
+.bc-v2 .bc-ab h4 small {
+    font: 700 2.4cqw/1 ui-monospace, monospace;
+    letter-spacing: .1em;
+    color: var(--rc);
+    text-transform: uppercase;
+}
+.bc-v2 .bc-ab p {
+    margin: 0;
+    font: 500 2.85cqw/1.3 system-ui, sans-serif;
+    color: var(--dim);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.bc-v2 .bc-ab.bc-locked { opacity: .55; }
+/* 3+ entries: one line of text each so no row gets cut in half. */
+.bc-v2 .bc-abil.bc-many { gap: .8cqw; }
+.bc-v2 .bc-abil.bc-many .bc-ab { grid-template-columns: 5.4cqw 1fr; gap: .2cqw 1.8cqw; }
+.bc-v2 .bc-abil.bc-many .bc-ic { width: 5.4cqw; height: 5.4cqw; font-size: 3cqw; }
+.bc-v2 .bc-abil.bc-many .bc-ab h4 { font-size: 3.2cqw; }
+.bc-v2 .bc-abil.bc-many .bc-ab p { -webkit-line-clamp: 1; font-size: 2.6cqw; }
+/* Editable card with action buttons: drop flavor + collector line for room. */
+.bc-v2 .bc-has-actions .bee-card-flavor,
+.bc-v2 .bc-has-actions .bc-coll { display: none; }
+
+/* Evolve / trait / identity actions (editable mode only). */
+.bc-v2 .bee-card-item-action { flex: none; gap: 1.6cqw; }
+.bc-v2 .bee-card-evolve-btn,
+.bc-v2 .bee-card-apply-trait-btn,
+.bc-v2 .bee-card-identity-btn,
+.bc-v2 .bee-card-rebirth-btn { font-size: 2.8cqw; padding: 1.4cqw 1.6cqw; border-radius: 1.2cqw; }
+.bc-v2 .bee-card-identity-btn { border-color: var(--rc); color: #ff8a70; }
+.bc-v2 .bee-card-trait-item-select { font-size: 2.6cqw; }
+
+/* Weakness / job / obtained bar. */
+.bc-v2 .bc-bar {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    border-top: .3cqw solid color-mix(in srgb, var(--m2) 45%, #222);
+    border-bottom: .3cqw solid color-mix(in srgb, var(--m2) 45%, #222);
+    padding: 1.2cqw 0;
+}
+.bc-v2 .bc-bar > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .6cqw;
+    min-width: 0;
+    font: 700 2.9cqw/1 system-ui, sans-serif;
+    color: var(--txt);
+    padding: 0 1cqw;
+}
+.bc-v2 .bc-bar > div + div { border-left: .3cqw solid color-mix(in srgb, var(--m2) 45%, #222); }
+.bc-v2 .bc-bar small {
+    font: 600 2.2cqw/1 ui-monospace, monospace;
+    letter-spacing: .08em;
+    color: var(--dim);
+    text-transform: uppercase;
+}
+.bc-v2 .bc-bar em { font-style: normal; }
+.bc-v2 .bc-bar .bee-card-class-select {
+    width: 100%;
+    font-size: 2.6cqw;
+    padding: .4cqw .6cqw;
+    border-radius: 1cqw;
+    border-color: var(--m2);
+}
+
+/* Flavor + collector line. */
+.bc-v2 .bee-card-flavor {
+    flex: none;
+    margin: 0;
+    font: italic 500 2.7cqw/1.3 Georgia, serif;
+    color: rgba(241, 237, 226, .72);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.bc-v2 .bc-coll {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2.4cqw;
+    font: 600 2.5cqw/1 ui-monospace, monospace;
+    color: #77746b;
+}
+.bc-v2 .bc-coll b { color: var(--rc); letter-spacing: .1em; font-size: 3.6cqw; }
+
+/* --- BACK: the BizzyBee badge --- */
+.bc-v2 .bee-card-back { display: grid; place-items: center; }
+.bc-v2 .bc-back-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5cqw;
+}
+.bc-v2 .bc-logo {
+    width: 72cqw;
+    filter: drop-shadow(0 0 5cqw var(--glow)) drop-shadow(0 2cqw 3cqw rgba(0, 0, 0, .6));
+    animation: bc-float 4s ease-in-out infinite;
+    user-select: none;
+}
+@keyframes bc-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2%); } }
+.bc-v2 .bee-card-flip-hint {
+    margin: 0;
+    font: 600 2.7cqw/1 ui-monospace, monospace;
+    color: rgba(255, 255, 255, .45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bc-v2 .bc-logo,
+    .bc-v2 .bc-spk,
+    .bc-v2 .bc-rays,
+    .bc-v2 .bc-beewrap,
+    .bc-v2 .bc-aura,
+    .bc-v2 .bc-foil { animation: none; }
+}
+
+/* ---- Named Beast titles (Oct 2026, approved demo) ----
+   Gold ribbon with the title under the name, a gold+crimson double frame,
+   gold corner trim, a crown on the art, a holo shine and the title power. */
+.bc-v2.bc-titled .bee-card-face { box-shadow: 0 0 0 .4cqw #000, 0 0 0 1.1cqw #e8b84a, 0 0 9cqw var(--glow), 0 0 18cqw rgba(255, 180, 60, .22), 0 1.5cqw 5cqw rgba(0, 0, 0, .6); }
+.bc-v2.bc-titled .bc-trim { border-color: #e8b84a; border-width: .45cqw;
+    -webkit-mask: linear-gradient(#000 0 0) top left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) top right / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom right / 14cqw 14cqw no-repeat;
+    mask: linear-gradient(#000 0 0) top left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) top right / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom right / 14cqw 14cqw no-repeat; }
+.bc-v2.bc-titled .bee-card-name { font-family: Georgia, "Times New Roman", serif; background: linear-gradient(180deg, #fff6d0, #f2c14e 55%, #b07a12); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bc-v2 .bc-ribbon { margin: .4cqw auto 1.4cqw; width: 84%; text-align: center; font: 800 3.4cqw/1 Georgia, "Times New Roman", serif; letter-spacing: .2em; color: #2a1000;
+    padding: 1.6cqw 0 1.4cqw; background: linear-gradient(180deg, #ffe9a8, #e8b84a 50%, #b47e14); clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
+    text-shadow: 0 .2cqw 0 rgba(255, 255, 255, .4); white-space: nowrap; overflow: hidden; }
+.bc-v2.bc-titled .bc-art { flex-basis: 40%; border-color: #000; box-shadow: 0 0 0 .55cqw #e8b84a, 0 0 0 .8cqw #6e0b06, inset 0 0 6cqw rgba(0, 0, 0, .55); }
+.bc-v2 .bc-crest { position: absolute; top: 1.5cqw; left: 50%; transform: translateX(-50%); z-index: 4; font-size: 6cqw; line-height: 1; filter: drop-shadow(0 0 2cqw #ffcc00); }
+.bc-v2 .bc-title-ab .bc-ic { background: linear-gradient(160deg, #e8b84a, #7a4a06); }
+.bc-v2 .bc-title-ab h4 { color: #ffd977; }
+.bc-v2 .bc-title-ab.bc-off { opacity: .6; }
+.bc-v2.bc-titled .bee-card-flavor { font-family: Georgia, "Times New Roman", serif; color: #e9d8b0; }
+.bc-v2.bc-titled .bee-card-front::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 6; mix-blend-mode: screen;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 230, 160, .16) 45%, rgba(255, 120, 220, .1) 52%, transparent 65%) 150% 0 / 250% 100% no-repeat; animation: bc-holo 4.5s linear infinite; }
+@keyframes bc-holo { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .bc-v2.bc-titled .bee-card-front::after { animation: none; } }
+
+/* Natural talent (Oct 2026): "⭐ Born Forager" on the art; bright when the
+   bee is doing that job. */
+.bc-v2 .bc-talent { position: absolute; left: 2cqw; bottom: 2cqw; z-index: 4; padding: 1cqw 2cqw; border-radius: 99px; background: rgba(0, 0, 0, .62); border: .35cqw solid rgba(255, 204, 0, .35); color: #e9dfc2; font: 700 2.7cqw/1 system-ui, sans-serif; white-space: nowrap; }
+.bc-v2 .bc-talent.on { background: rgba(60, 40, 0, .78); border-color: #ffcc00; color: #ffd977; box-shadow: 0 0 2.5cqw rgba(255, 204, 0, .45); }

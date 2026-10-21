@@ -1,5 +1,5 @@
 /* To-Dos list (rebuilt 2026-10-09). The header card and rows are shared
-   with Dailies: src/core/task-row/task-row.css (on top of habit-row.css). */
+   with Dailies: src/core/ui/task-row/task-row.css (on top of habit-row.css). */
 .todos-container {
     width: 100%;
     max-width: 700px;

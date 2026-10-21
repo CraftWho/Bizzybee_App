@@ -12,15 +12,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>🏰 Hive Mind</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/mech-bee/mech-bee.css">
-    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
-    <link rel="stylesheet" href="../../core/modal/modal.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/bee-name/bee-name.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/mech-bee/mech-bee.css">
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
+    <link rel="stylesheet" href="../../core/ui/bee-name/bee-name.css">
     <link rel="stylesheet" href="./colony.css">
 </head>
 <body>
@@ -37,7 +33,7 @@
 
             <!-- Full-page hive art behind everything on this view (fixed,
                  colony.css). The hive (colony-hive.js) is one SVG; your bees
-                 fly inside it via MechBeeScene (src/core/mech-bee/). -->
+                 fly inside it via MechBeeScene (src/core/ui/mech-bee/). -->
             <div class="colony-nest-scene" id="colony-nest-scene">
                 <div class="colony-hive-stage" id="colony-hive-stage"></div>
             </div>
@@ -92,20 +88,14 @@
         <p class="colony-card-hint">Tap the card to flip it. Tap outside to close.</p>
     </div>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js"></script>
 
-    <script src="../../core/bee-card/bee-card.js"></script>
-    <script src="../../core/mech-bee/mech-bee.js"></script>
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
+    <script src="../../core/ui/mech-bee/mech-bee.js"></script>
     <script src="./colony-hive.js"></script>
     <script src="./colony-interior.js"></script>
-    <script src="../../core/bee-name/bee-name.js"></script>
+    <script src="../../core/ui/bee-name/bee-name.js"></script>
+    <script src="../../core/ui/egg-designs/egg-designs.js"></script>
     <script src="./colony-life.js"></script>
     <script src="./colony.js"></script>
 </body>

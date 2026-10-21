@@ -1,0 +1,39 @@
+/* Chat modal for talking to Eevee (EeveeChat, in llm-engine.js). Built on
+   the shared modal shell (src/core/ui/modal/modal.css) - only the chat-specific
+   log/input styling lives here. Distinct class names from settings.css's
+   inline chat panel (.eevee-chat-*) since both can be loaded on the same
+   page without colliding. */
+.eevee-chat-modal-log {
+    max-height: 320px;
+    overflow-y: auto;
+    background: #0a0a0a;
+    border-left: 3px solid #555;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.eevee-chat-modal-line {
+    color: #ccc;
+    line-height: 1.5;
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+}
+
+.eevee-chat-modal-line strong {
+    color: var(--gold-start);
+}
+
+.eevee-chat-modal-line--pending {
+    color: #777;
+    font-style: italic;
+}
+
+.eevee-chat-modal-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.eevee-chat-modal-input-row input {
+    flex: 1;
+    padding: 10px 12px;
+}

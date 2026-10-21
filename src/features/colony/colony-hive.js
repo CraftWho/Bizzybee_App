@@ -10,7 +10,7 @@ console.log("/// COLONY HIVE MODULE ONLINE ///");
 // engine needs (entrance, deck spots, orbit area). The hive grows with the
 // player's level - see COLONY_HIVE_TIERS and nestTier() in colony.js.
 // The bees are drawn and moved by MechBee / MechBeeScene
-// (src/core/mech-bee/), inside the two empty layers this SVG provides:
+// (src/core/ui/mech-bee/), inside the two empty layers this SVG provides:
 // .ch-fly-back (behind the hive) and .ch-fly-front (in front of it).
 // Animation classes (.ch-sway, .ch-cell, .ch-firefly, .ch-glow) live in
 // colony.css.

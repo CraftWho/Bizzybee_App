@@ -12,22 +12,20 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>🍯 Honey Store</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/item-card/item-card.css">
-    <link rel="stylesheet" href="../../core/modal/modal.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/item-card/item-card.css">
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
     <link rel="stylesheet" href="./honey-store.css">
 </head>
 <body>
 
     <!-- Honey Store v2 (Oct 2026): same look as Settings/Inventory. -->
     <main class="pv2 hs2">
-        <h1 class="pv2-title">🍯 HONEY STORE</h1>
-        <p class="pv2-lead">Spend materials on gear that gives a bee a trait.</p>
+        <header class="pv2-head">
+            <h1 class="pv2-title">🍯 HONEY STORE</h1>
+            <p class="pv2-lead">Spend materials on gear that gives a bee a trait.</p>
+        </header>
 
         <div class="stats hs-wallet" id="store-wallet-panel"></div>
 
@@ -43,17 +41,10 @@
         </section>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/item-card/item-card.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/item-card/item-card.js"></script>
 
-    <script src="../../core/page-v2/page-v2.js"></script>
+    <script src="../../core/ui/page-v2/page-v2.js"></script>
     <script src="./honey-store.js"></script>
 </body>
 </html>

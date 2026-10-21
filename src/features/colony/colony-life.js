@@ -66,7 +66,7 @@ const HiveLife = (() => {
             const el = document.createElement('span');
             el.className = 'hl-bee' + kind + (bee && bee.life && bee.life.faintedAt ? ' is-faint' : '');
             el.setAttribute('aria-hidden', 'true');
-            el.innerHTML = kind === ' is-egg' ? '<span class="hl-b">🥚</span>' : `<span class="hl-b">🐝</span>${kind === ' is-queen' ? '<span class="hl-tag">👑</span>' : ''}`;
+            el.innerHTML = kind === ' is-egg' ? `<span class="hl-b hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(bee) : '🥚'}</span>` : `<span class="hl-b">🐝</span>${kind === ' is-queen' ? '<span class="hl-tag">👑</span>' : ''}`;
             hive.appendChild(el);
             const w = { el, box, x: (box[0] + box[2]) / 2, y: (box[1] + box[3]) / 2, bee, still: kind === ' is-egg' || !!(bee && bee.life && bee.life.faintedAt) };
             walkers.push(w); place(w);
@@ -181,9 +181,13 @@ const HiveLife = (() => {
         return `<p class="hl-note">Resting bees get stamina back each day. Tap a fainted bee to revive it.</p>`;
     }
 
+    // ⭐ = the bee's natural talent (+20% at it). A Named Beast's job is
+    // locked by its title, so its picker is shown but can't change.
     function jobSelect(bee, allowed, { blank = '— No job (rest) —', mark = [] } = {}) {
+        const locked = typeof beeLockedJob === 'function' ? beeLockedJob(bee) : null;
+        if (locked) return `<select class="hl-job" disabled aria-label="${esc(bee.name)}'s job is set by its title" title="Set by its title"><option>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option></select>`;
         return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="Job for ${esc(bee.name)}">
-            <option value="">${blank}</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
+            <option value="">${blank}</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
     }
     function beeRow(bee, c, today) {
         const f = beeFeeling(bee, today);
@@ -212,7 +216,7 @@ const HiveLife = (() => {
             html += `<h3 class="hl-sub">Eggs (${eggs.length})</h3>`;
             html += eggs.length ? eggs.map(b => {
                 const left = broodDaysLeft(b, today, n);
-                return `<div class="hl-row is-egg"><span class="hl-rface">🥚</span><button type="button" class="hl-who-btn" data-card="${esc(b.id)}"><b>${esc(b.name)}</b><small>${b.sex === 'm' ? '♂ Male' : '♀ Female'} · hatches ${left <= 1 ? 'tomorrow' : `in ${left} days`}</small></button>
+                return `<div class="hl-row is-egg"><span class="hl-rface hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span><button type="button" class="hl-who-btn" data-card="${esc(b.id)}"><b>${esc(b.name)}</b><small>${b.sex === 'm' ? '♂ Male' : '♀ Female'}${b.talent && BEE_CLASSES[b.talent] ? ` · ⭐ born ${esc(BEE_CLASSES[b.talent].label)}` : ''} · hatches ${left <= 1 ? 'tomorrow' : `in ${left} days`}</small></button>
                     <button type="button" class="hl-ren" data-ren="${esc(b.id)}" aria-label="Rename ${esc(b.name)}">✏️</button>
                     ${jobSelect(b, jobsFor(b), { blank: 'Pick a job…' })}</div>`;
             }).join('') + '<p class="hl-note">The job starts the moment the bee hatches. Only males can be Drones, and males can only be Drones.</p>'
@@ -227,7 +231,7 @@ const HiveLife = (() => {
                     ${jobSelect(b, jobsFor(b, c.jobs), { blank: 'Assign…' })}</div>`;
             }).join('');
         }
-        if (c.jobs.length) html += '<p class="hl-note">★ = jobs done in this comb. Changing a job moves the bee to that job\'s comb.</p>';
+        if (c.jobs.length) html += '<p class="hl-note">★ = jobs done in this comb. ⭐ = the bee\'s natural talent (+20% at it). 🔒 = a Named Beast, its title sets its job.</p>';
         html += '</div>';
 
         const fresh = !sheet;

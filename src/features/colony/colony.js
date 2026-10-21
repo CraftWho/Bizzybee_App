@@ -78,7 +78,7 @@ let colonyHiveEntrance = null;
 // the exterior half of your real bees orbiting it (names shown, stripes in
 // their element colour), worker bees pacing the landing deck, and random
 // foragers leaving / coming back through the entrance. All bee movement is
-// MechBeeScene (src/core/mech-bee/mech-bee.js).
+// MechBeeScene (src/core/ui/mech-bee/mech-bee.js).
 function renderExterior() {
     const user = Vault.getUser();
     const tier = nestTier(user.level);
@@ -264,7 +264,7 @@ const COLONY_QUEEN_ASSETS = document.currentScript
 let colonyInterior = null;
 
 function colonyDayISO(daysAgo) {
-    return new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
+    return shiftISODate(todayISO(), -daysAgo);
 }
 
 // Honey and decay now live in db.js (Vault.getHiveHoney) so Home's hive

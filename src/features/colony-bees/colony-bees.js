@@ -30,11 +30,11 @@ function cbJobText(b) {
         const left = broodDaysLeft(b, todayISO(), cbNurses());
         return `🥚 Egg · hatches ${left <= 1 ? 'tomorrow' : `in ${left} days`}${job ? ` · will be a ${job.label}` : ''}`;
     }
-    return job ? `${job.icon} ${job.label}` : '💤 No job';
+    return job ? `${b.talent === b.class && b.rarity !== 'Named' ? '⭐ ' : ''}${job.icon} ${job.label}` : '💤 No job';
 }
 // The bee's own art (same picture as its card), as a small square.
 function cbArt(b, cls = '') {
-    if (cbIsEgg(b)) return `<span class="hx r-${PV2.esc(b.rarity)} ${cls}">🥚</span>`;
+    if (cbIsEgg(b)) return `<span class="cb-egg ${cls}" aria-hidden="true">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span>`;
     const key = String(b.rarity || 'common').toLowerCase();
     const rarityKey = (typeof BEE_CARD_RARITY_KEYS !== 'undefined' && BEE_CARD_RARITY_KEYS.includes(key)) ? key : 'common';
     const el = b.element && typeof BEE_ELEMENTS !== 'undefined' && BEE_ELEMENTS[b.element] ? b.element : 'none';
@@ -89,8 +89,12 @@ function cbRender() {
             btn.dataset.bee = b.id;
             btn.style.setProperty('--tile-color', typeof beeCardColor === 'function' ? beeCardColor(b.rarity) : '#888');
             btn.setAttribute('aria-label', `${b.name}, ${b.rarity}, ${cbJobText(b)}`);
-            btn.innerHTML = `<div class="cb-tile-scale"><div></div></div>${cbIsEgg(b) ? '' : `<span class="cb-face">${cbFeeling(b).face}</span>`}`;
-            BeeCard.render(btn.querySelector('.cb-tile-scale > div'), b, { editable: false });
+            // Eggs: a plain black card with the egg on it - no stats yet.
+            if (cbIsEgg(b)) btn.innerHTML = `<div class="cb-egg-card">${cbArt(b)}</div>`;
+            else {
+                btn.innerHTML = `<div class="cb-tile-scale"><div></div></div><span class="cb-face">${cbFeeling(b).face}</span>`;
+                BeeCard.render(btn.querySelector('.cb-tile-scale > div'), b, { editable: false });
+            }
             grid.appendChild(btn);
         });
         requestAnimationFrame(() => {
@@ -103,7 +107,7 @@ function cbRender() {
         const f = cbFeeling(b);
         return `<button type="button" class="row" data-bee="${esc(b.id)}">
             <span class="cb-av">${cbArt(b)}${cbIsEgg(b) ? '' : `<span class="cb-face">${f.face}</span>`}</span>
-            <span class="mid"><b>${esc(b.name)}${b.sex === 'm' ? ' ♂' : ''}</b><small><span class="cb-rar" style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</span> · ${esc(cbJobText(b))}</small></span>
+            <span class="mid"><b>${esc(b.name)}${b.sex === 'm' ? ' ♂' : ''}</b><small><span class="cb-rar" style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</span>${b.title && typeof NAMED_TITLES !== 'undefined' && NAMED_TITLES[b.title] ? ` · <span class="cb-title">\u201c${esc(NAMED_TITLES[b.title].label)}\u201d</span>` : ''} · ${esc(cbJobText(b))}</small></span>
             <span class="chev">›</span></button>`;
     }).join('')}</div>`;
 }
@@ -119,18 +123,23 @@ function cbOpenBee(id) {
     const f = cbFeeling(b);
     const L = b.life;
     const jobs = Object.keys(BEE_CLASSES).filter(j => !!BEE_CLASSES[j].maleOnly === (b.sex === 'm'));
-    const jobPicker = cbIsRoyal(b) ? '' : `<div class="cb-job"><label for="cb-job-sel">${cbIsEgg(b) ? 'Job when hatched' : 'Job'}</label>
-        <select id="cb-job-sel"><option value="">${cbIsEgg(b) ? 'Pick a job…' : '— No job (rest) —'}</option>${jobs.map(j => `<option value="${j}"${b.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}</option>`).join('')}</select></div>`;
+    const locked = typeof beeLockedJob === 'function' ? beeLockedJob(b) : null;
+    const talent = b.talent && BEE_CLASSES[b.talent] && b.rarity !== 'Named' ? BEE_CLASSES[b.talent] : null;
+    const jobPicker = cbIsRoyal(b) ? '' : locked
+        ? `<div class="cb-job"><label>Job</label><select disabled><option>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option></select></div><p>🔒 Its title sets its job.</p>`
+        : `<div class="cb-job"><label for="cb-job-sel">${cbIsEgg(b) ? 'Job when hatched' : 'Job'}</label>
+        <select id="cb-job-sel"><option value="">${cbIsEgg(b) ? 'Pick a job…' : '— No job (rest) —'}</option>${jobs.map(j => `<option value="${j}"${b.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${b.talent === j ? ' ⭐' : ''}</option>`).join('')}</select></div>
+        ${talent ? `<p>⭐ Natural talent: <b style="color:var(--ink)">${talent.icon} ${esc(talent.label)}</b>. It's 20% better at that job${b.class === b.talent ? ', and doing it now' : ''}.</p>` : ''}`;
     const box = PV2.sheet(`
         <div class="head"><span class="cb-av">${cbArt(b, 'big')}</span>
-            <div><h2>${esc(b.name)}</h2><small style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</small>${b.sex ? ` <small>· ${b.sex === 'm' ? '♂ Male' : '♀ Female'}</small>` : ''}<br><small>${esc(cbJobText(b))}</small></div>
+            <div><h2>${esc(b.name)}${b.title && typeof NAMED_TITLES !== 'undefined' && NAMED_TITLES[b.title] ? ` <span class="cb-title">\u201c${esc(NAMED_TITLES[b.title].label)}\u201d</span>` : ''}</h2><small style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</small>${b.sex ? ` <small>· ${b.sex === 'm' ? '♂ Male' : '♀ Female'}</small>` : ''}<br><small>${esc(cbJobText(b))}</small></div>
             <button type="button" class="x" data-close aria-label="Close">×</button></div>
         <p>${f.face} ${esc(f.why)}${cbIsEgg(b) ? '. The job starts the moment it hatches.' : ''}</p>
         <div class="cb-name"></div>
         ${L && !cbIsEgg(b) ? cbVital('❤️', 'Health', L.health, '#5fd38a') + cbVital('⚡', 'Stamina', L.stamina, '#5aa9ff') + cbVital('🍯', 'Fullness', L.fullness, '#ffcc00') + cbVital('😊', 'Happiness', L.happiness, '#e58fff') : ''}
         ${jobPicker}
         <div class="btns">
-            <button type="button" class="btn solid" data-act="card">🃏 Open card</button>
+            ${cbIsEgg(b) ? '' : '<button type="button" class="btn solid" data-act="card">🃏 Open card</button>'}
             <a class="btn" href="../colony/colony.html">🏰 Hive Mind</a>
         </div>
         <p>The card has items and evolve.${L && L.faintedAt ? ' Revive fainted bees inside the hive (Rest Comb).' : ''}</p>`, b.name);
@@ -146,7 +155,8 @@ function cbOpenBee(id) {
         cbRender();
         cbOpenBee(b.id);
     });
-    box.querySelector('[data-act=card]').addEventListener('click', () => { PV2.close(); cbOpenCard(b.id); });
+    const cardBtn = box.querySelector('[data-act=card]');
+    if (cardBtn) cardBtn.addEventListener('click', () => { PV2.close(); cbOpenCard(b.id); });
 }
 
 // The real, editable bee card (bee-card.js).
@@ -182,6 +192,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const show = new URLSearchParams(window.location.search).get('show');
     if (show && CB_TABS.some(([k]) => k === show)) cbState.tab = show;
     cbRender();
+    // ?bee=<id> (the level-up reward's "See my bee") opens that bee.
+    const beeId = new URLSearchParams(window.location.search).get('bee');
+    if (beeId && Vault.getColonyBees().some(b => b.id === beeId)) cbOpenBee(beeId);
 
     document.getElementById('cb-q').addEventListener('input', (e) => { cbState.q = e.target.value; cbRender(); });
     document.getElementById('cb-sort').addEventListener('change', (e) => { cbState.sort = e.target.value; cbSave(); cbRender(); });

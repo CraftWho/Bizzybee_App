@@ -71,21 +71,7 @@ document.getElementById('sk-mastery').addEventListener('click', async e => {
     const b = e.target.closest('.sk-lvl');
     if (!b || b.disabled) return;
     b.disabled = true;
-    const r = await Vault.levelUpSkill(b.dataset.cat);
-    if (!r) { render(); return; }
-    const mat = (id) => { const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id); return m ? `${m.icon} ${m.label}` : id; };
-    const loot = [
-        ...(r.materials || []).map(id => `<div><b>${mat(id).split(' ')[0]}</b>${esc(mat(id).split(' ').slice(1).join(' '))}</div>`),
-        r.pollen ? `<div><b>🌼</b>${r.pollen} pollen</div>` : '',
-        r.bonusMaterialId ? `<div><b>${mat(r.bonusMaterialId).split(' ')[0]}</b>bonus</div>` : '',
-        r.ticketsGranted ? `<div><b>🎟️</b>${r.ticketsGranted} ticket${r.ticketsGranted > 1 ? 's' : ''}</div>` : '',
-        ...(r.bees || []).map(bee => `<div><b>🐝</b>${esc(bee.name)}</div>`)
-    ].join('');
-    openSheet(`<div class="sk-reward"><div class="sk-burst">${r.newLevel}</div>
-        <h1>${esc(r.category)} reached level ${r.newLevel}${r.stageUp ? ` · ${esc(r.stage)}!` : '!'}</h1>
-        ${r.stageUp ? `<p>New stage: <b>${esc(r.stage)}</b></p>` : ''}
-        <div class="sk-loot">${loot}</div>
-        <button type="button" class="sk-go" data-close>Collect</button></div>`);
+    await AppShell.levelUpSkill(b.dataset.cat);
     render();
 });
 

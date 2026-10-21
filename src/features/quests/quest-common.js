@@ -103,18 +103,40 @@ const QuestUI = {
         </div>`;
     },
 
+    // 348 -> "5:48", 4920 -> "1 h 22 min"
+    fmtDur(sec) {
+        sec = Math.round(Number(sec) || 0);
+        if (sec >= 3600) { const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return m ? `${h} h ${m} min` : `${h} h`; }
+        return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    },
+    fmtTotal(sec) {
+        const m = Math.round((Number(sec) || 0) / 60);
+        if (m < 60) return `${m} min`;
+        const h = m / 60;
+        return `${h >= 10 ? Math.round(h * 10) / 10 : Math.round(h * 10) / 10} hrs`;
+    },
+    // Ghost challenges: one little ghost each, green once done.
+    ghostsHTML(done, total) {
+        const g = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a5.5 5.5 0 0 0-5.5 5.5v7.5l1.8-1.4 1.8 1.4L8 13.1l1.9 1.4 1.8-1.4 1.8 1.4V7A5.5 5.5 0 0 0 8 1.5z"/><circle cx="6" cy="7" r="1" fill="#120e07"/><circle cx="10" cy="7" r="1" fill="#120e07"/></svg>';
+        const icons = Array.from({ length: Math.min(total, 12) }, (_, i) => `<i class="${i < done ? 'on' : ''}">${g}</i>`).join('');
+        return `<span class="qt-ghosts" title="${done} of ${total} ghost challenges done">${icons}${total > 12 ? `<b>+${total - 12}</b>` : ''}</span>`;
+    },
+
     taskStyle(task) {
         return HABIT_DIFFICULTY_STYLE[task.difficulty] || HABIT_DIFFICULTY_STYLE.Easy;
     },
 
     // A quest task row with a hexagon check in its difficulty colour.
-    // Uses the shared Dailies / To-Dos check look (src/core/task-row/).
+    // Uses the shared Dailies / To-Dos check look (src/core/ui/task-row/).
     taskRowHTML(task, { compact = false } = {}) {
         const s = this.taskStyle(task);
         const label = task.link
             ? `<a class="qt-label" href="${this.esc(task.link)}" target="_blank" rel="noopener noreferrer" data-no-hold>${this.esc(task.label)} <span aria-hidden="true">↗</span></a>`
             : `<span class="qt-label">${this.esc(task.label)}</span>`;
         const meta = [`<span class="dr-xp">+${task.xp} XP</span>`];
+        // Course lessons (Oct 2026): exact length and the ghost challenges in it.
+        if (!compact && (task.durSec || task.minutes)) meta.push(`<span class="qt-dur">⏱ ${this.fmtDur(task.durSec || task.minutes * 60)}</span>`);
+        if (!compact && task.ghosts) meta.push(this.ghostsHTML(task.ghostsDone || 0, task.ghosts));
         if (!compact && task.difficulty) meta.unshift(`<span class="qt-diff">${this.esc(task.difficulty)}</span>`);
         if (!compact && task.completed && task.dateCompleted) meta.push(`<span class="qt-when">✓ ${this.esc(this.shortDate(task.dateCompleted))}</span>`);
         return `<li class="qt dr-row${task.completed ? ' done' : ''}" data-task-id="${this.esc(task.id)}" style="--dc:${s.color};--dk:${s.ink}">
@@ -133,7 +155,8 @@ const QuestUI = {
         const nowDone = !task.completed;
         const quest = Vault.toggleTask(questId, taskId);
         if (rowEl) TaskRow.animateCheck(rowEl, nowDone, task.xp);
-        if (nowDone) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'quest', id: taskId, questId }), 450);
+        // Course lessons already know their length - no "how long?" pop-up.
+        if (nowDone && !task.durSec) setTimeout(() => typeof TimeLog !== 'undefined' && TimeLog.ask({ kind: 'quest', id: taskId, questId }), 450);
         if (quest && !wasDone && quest.status === 'completed') {
             Toast.show(`🏆 Quest complete: ${quest.title}`, 'positive');
             if (navigator.vibrate) navigator.vibrate([30, 40, 60]);

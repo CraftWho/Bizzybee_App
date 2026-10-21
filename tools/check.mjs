@@ -8,7 +8,7 @@ function walk(path) {
         return entry.isDirectory() ? walk(file) : /\.(js|mjs)$/.test(file) ? [file] : [];
     });
 }
-for (const file of [...walk('src'), ...walk('netlify'), 'login.js', 'reset-password.js']) {
+for (const file of [...walk('src'), ...walk('netlify')]) {
     const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
     if (result.status !== 0) { console.error(result.stderr); process.exit(1); }
 }

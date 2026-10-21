@@ -157,3 +157,76 @@ test('bee names: new bees get real names; old default names are replaced once, r
     const full = h.g('BEE_NAME_POOL').slice();
     assert.match(h.g('randomBeeName')(full), / (II|III)$/);
 });
+
+test('named titles: old Named names split into name + title; Identity Card keeps the name; title powers', async () => {
+    const h = harness({ colony: { bees: [
+        bee('n1', { rarity: 'Named', name: 'Comet The Relentless' }),
+        bee('n2', { rarity: 'Named', name: 'Sir Kin' }),
+        bee('c1', { name: 'Hazel', class: 'guardian', sex: 'f' })
+    ], tickets: 0 }, inventory: { materials: {}, items: { 'identity-card': 1 }, fragments: {} } });
+    await h.vault.init();
+    const [n1, n2] = h.vault.getColonyBees();
+    assert.equal(n1.name, 'Comet');
+    assert.equal(n1.title, 'relentless');
+    assert.equal(n2.name, 'Sir Kin');
+    assert.ok(h.g('NAMED_TITLES')[n2.title]);
+    const r = h.vault.evolveToNamed('c1', 'identity-card');
+    assert.equal(r.bee.name, 'Hazel');
+    assert.equal(r.bee.rarity, 'Named');
+    assert.ok(r.bee.title);
+    r.bee.title = 'guardian'; r.bee.class = 'guardian';
+    assert.ok(h.g('beeTitlePower')(r.bee, 'guardian'));
+    // the title locks the job
+    assert.equal(h.vault.assignBeeClass('c1', 'collector'), null);
+    assert.ok(h.vault.assignBeeClass('c1', 'guardian'));
+    assert.equal(h.g('beeLockedJob')(r.bee), 'guardian');
+    assert.equal(h.g('beeFullName')(n1), 'Comet “The Relentless”');
+});
+
+test('talents: every normal bee is born with one; Named Beasts and the Queen have none', async () => {
+    const h = harness({ colony: { bees: [bee('a', { sex: 'f' }), bee('m', { sex: 'm' }), bee('r', { rarity: 'Royal' })], tickets: 0 } });
+    await h.vault.init();
+    const [a, m, r] = h.vault.getColonyBees();
+    assert.ok(h.g('BEE_CLASSES')[a.talent] && !h.g('BEE_CLASSES')[a.talent].maleOnly);
+    assert.equal(m.talent, 'drone');
+    assert.equal(r.talent, undefined);
+    a.class = a.talent;
+    assert.equal(h.g('beeTalentBoost')(a), 1.2);
+    const fresh = h.vault.awardBee('gacha');
+    assert.ok(fresh.talent);
+});
+
+test('bee models: finds are remembered after the bee is gone; first visit has no NEW tags', async () => {
+    const h = harness({ colony: { bees: [bee('a', { element: 'water', class: 'collector' })], tickets: 0 } });
+    await h.vault.init();
+    const seen = h.vault.getSeenModels();
+    assert.ok(seen['rar:Common'] && seen['el:water'] && seen['hive:worker']);
+    assert.ok(!seen['rar:Legendary'] && !seen['el:wind']);
+    assert.ok(h.vault.getViewedModels().includes('el:water'));       // already had it: no NEW
+    h.vault.addColonyBee(bee('n', { rarity: 'Named', title: 'wanderer', element: 'wind' }));
+    assert.ok(h.vault.getSeenModels()['title:wanderer']);
+    assert.ok(!h.vault.getViewedModels().includes('title:wanderer')); // a new find: NEW
+    h.vault.markModelViewed('title:wanderer');
+    assert.ok(h.vault.getViewedModels().includes('title:wanderer'));
+    h.vault.destroyBee('n');
+    const after = h.vault.getSeenModels();
+    assert.ok(after['title:wanderer'] && after['el:wind'] && after['rar:Named']);
+});
+
+test('#CamelCase: splits into words, still matches its task, old terms and tags are renamed', async () => {
+    const h = harness({ plugins: { dictionary: true },
+        dictionary: [{ id: 't1', name: 'TimeManagement', category: 'Productivity', source: 'hashtag' }, { id: 't2', name: 'HTML', category: 'HTML', source: 'hashtag' }],
+        todos: [{ id: 'x', label: 'Plan week #TimeManagement', tags: ['TimeManagement'], completed: false }],
+        skillLevels: { TimeManagement: { level: 3, leveledUpAt: null } }, timeXPVersion: 1 });
+    await h.vault.init();
+    assert.equal(h.g('splitTagWords("TimeManagement")'), 'Time Management');
+    assert.equal(h.g('splitTagWords("CSSGrid")'), 'CSS Grid');
+    assert.equal(h.g('splitTagWords("HTML")'), 'HTML');
+    assert.deepEqual([...h.g('findHashtags("go #TimeManagement and #event-loop")')], ['Time Management', 'event loop']);
+    const names = h.vault.getDictionaryTerms().map(t => t.name);
+    assert.ok(names.includes('Time Management') && names.includes('HTML') && !names.includes('TimeManagement'));
+    assert.deepEqual([...h.vault.state.todos[0].tags], ['Time Management']);
+    assert.equal(h.vault.state.skillLevels['Time Management'].level, 3);
+    const cats = h.g(`skillMatcher(Vault.state.dictionary)('Read about #TimeManagement', [])`).map(c => c.category);
+    assert.ok(cats.includes('Productivity'));
+});

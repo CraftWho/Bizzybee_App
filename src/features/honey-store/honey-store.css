@@ -1,4 +1,4 @@
-/* Honey Store v2 (Oct 2026). Shared look: core/page-v2/page-v2.css. */
+/* Honey Store v2 (Oct 2026). Shared look: core/ui/page-v2/page-v2.css. */
 .hs2 .hs-wallet { grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .hs2 .hs-wallet > div { padding: 9px 2px; }
 .hs2 .hs-coins { border-color: rgba(255, 204, 0, .45) !important; background: rgba(255, 204, 0, .08) !important; }

@@ -3,7 +3,7 @@ console.log("/// CREATE TO-DO PROTOCOLS INITIALIZED ///");
 // Create / edit a to-do (rebuilt 2026-10-09, same look as the Habit and
 // Daily forms). Coloured top with Title + Notes, then Checklist,
 // Difficulty, Due Date, Reminders and Tags. Shared widgets live in
-// src/core/task-form/task-form.js. Creating shows CREATE; editing shows
+// src/core/ui/task-form/task-form.js. Creating shows CREATE; editing shows
 // DELETE and SAVE.
 
 // One-off tiers - a To-Do happens once, so it uses Quest tasks' higher XP

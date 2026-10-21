@@ -22,50 +22,38 @@ function renderCollectionCounters() {
 }
 
 // --- SUMMON POPUP --------------------------------------------------------
-// Shared by a Pollinate pull and a successful Combine - spins a warp/
-// galaxy animation (colored to match the result's rarity, so a Legendary
-// pull already "feels" special before the reveal), then swaps to the
-// actual bee rendered as a full (read-only) BeeCard.
+// Shared by a Pollinate pull and a successful Combine. The full-screen
+// effect (gacha-fx.js) plays first - a pull by default, or whatever `play`
+// returns (combine) - then the result panel shows the real BeeCard.
+async function showSummonReveal(bee, { title, play } = {}) {
+    if (typeof GachaFX !== 'undefined') {
+        try { await (play ? play() : GachaFX.pull(bee)); } catch (e) { console.error(e); }
+    }
+    return showSummonResult(bee, { title });
+}
 
-function showSummonReveal(bee, { title } = {}) {
+function showSummonResult(bee, { title } = {}) {
     const overlay = document.getElementById('gacha-summon-overlay');
-    const stage = document.getElementById('gacha-summon-stage');
     const resultPanel = document.getElementById('gacha-summon-result');
     const titleEl = document.getElementById('gacha-summon-title');
     const cardHost = document.getElementById('gacha-summon-card');
     const closeBtn = document.getElementById('gacha-summon-close');
-    if (!overlay || !stage || !resultPanel || !cardHost) return;
-
-    stage.style.setProperty('--warp-color', beeColor(bee.rarity));
+    if (!overlay || !resultPanel || !cardHost) return;
 
     overlay.hidden = false;
-    stage.hidden = false;
-    stage.classList.add('is-spinning');
-    resultPanel.hidden = true;
-    cardHost.innerHTML = '';
+    titleEl.textContent = title || `${bee.name} joined the colony!`;
+    BeeCard.render(cardHost, bee, { editable: false });
+    // Name it now (Oct 2026): a random name is already set; 🎲 for another.
+    const nameHost = document.getElementById('gacha-summon-name');
+    if (nameHost && typeof BeeName !== 'undefined' && bee.rarity !== 'Royal') {
+        BeeName.mount(nameHost, bee, {
+            label: 'Name your new bee',
+            onSaved: (r) => { titleEl.textContent = `${r.name} joined the colony!`; BeeCard.render(cardHost, r, { editable: false }); }
+        });
+    } else if (nameHost) nameHost.innerHTML = '';
+    resultPanel.hidden = false;
 
-    const SPIN_DURATION_MS = 1600;
-    setTimeout(() => {
-        stage.classList.remove('is-spinning');
-        stage.hidden = true;
-
-        titleEl.textContent = title || `${bee.name} joined the colony!`;
-        BeeCard.render(cardHost, bee, { editable: false });
-        // Name it now (Oct 2026): a random name is already set; 🎲 for another.
-        const nameHost = document.getElementById('gacha-summon-name');
-        if (nameHost && typeof BeeName !== 'undefined' && bee.rarity !== 'Royal') {
-            BeeName.mount(nameHost, bee, {
-                label: 'Name your new bee',
-                onSaved: (r) => { titleEl.textContent = `${r.name} joined the colony!`; BeeCard.render(cardHost, r, { editable: false }); }
-            });
-        } else if (nameHost) nameHost.innerHTML = '';
-        resultPanel.hidden = false;
-    }, SPIN_DURATION_MS);
-
-    closeBtn.addEventListener('click', () => {
-        overlay.hidden = true;
-        stage.classList.remove('is-spinning');
-    }, { once: true });
+    closeBtn.addEventListener('click', () => { overlay.hidden = true; }, { once: true });
 }
 
 // Oct 2026: no more free pulls - each costs a ticket, with a guaranteed
@@ -86,7 +74,7 @@ function pollinateForNewBee() {
 // db.js's _syncLevelUpBees/_awardQuestTicketIfSignificant). Unwrapping one
 // is a tap-or-swipe "tear the foil" reveal, guaranteed to produce a Named
 // Beast (the only way to get that rarity - see BEE_RARITIES in db.js).
-// This keeps its own foil-tear animation rather than the warp popup above
+// This keeps its own foil-tear animation rather than the summon popup above
 // - a different, deliberately more "precious single pull" moment.
 
 // Ten pulls at once: a quick grid of what you got (best first), pity
@@ -154,7 +142,7 @@ function unwrapFoilCard() {
 
     back.innerHTML = `
         <span class="gacha-foil-reveal-icon" id="gacha-foil-reveal-icon"></span>
-        <span class="gacha-foil-reveal-name" style="color:${beeColor(bee.rarity)};">${bee.name}</span>
+        <span class="gacha-foil-reveal-name" style="color:${beeColor(bee.rarity)};">${typeof beeFullName === 'function' ? beeFullName(bee) : bee.name}</span>
         <span class="gacha-foil-reveal-rarity">✨ Named Beast</span>
     `;
     wrap.classList.add('is-torn');
@@ -162,7 +150,7 @@ function unwrapFoilCard() {
     const iconEl = document.getElementById('gacha-foil-reveal-icon');
     if (iconEl) NanoBee.render(iconEl, 'swarm', { color: beeColor(bee.rarity), hideCore: true, noFlight: true });
 
-    Toast.show(`🎟️ Unwrapped ${bee.name}!`, 'positive');
+    Toast.show(`🎟️ Unwrapped ${typeof beeFullName === 'function' ? beeFullName(bee) : bee.name}!`, 'positive');
     document.getElementById('gacha-ticket-count').textContent = Vault.getTicketCount();
     const pbtn = document.getElementById('gacha-pollinate-btn');
     if (pbtn) pbtn.disabled = Vault.getTicketCount() < 1;
@@ -237,7 +225,7 @@ function lootSummaryHTML(loot) {
     }).join(', ');
 }
 
-function handleDestroy() {
+async function handleDestroy() {
     const select = document.getElementById('gacha-destroy-select');
     const beeId = select.value;
     if (!beeId) {
@@ -249,8 +237,12 @@ function handleDestroy() {
     if (!bee) return;
     if (!confirm(`Destroy ${bee.name}? This can't be undone.`)) return;
 
+    const snapshot = JSON.parse(JSON.stringify(bee));
     const result = Vault.destroyBee(beeId);
     if (!result) return;
+    renderRefineSelects();
+    renderCollectionCounters();
+    if (typeof GachaFX !== 'undefined') { try { await GachaFX.destroy(snapshot, result.loot); } catch (e) { console.error(e); } }
 
     const lootText = lootSummaryHTML(result.loot);
     document.getElementById('gacha-destroy-result').textContent = `Got: ${lootText}`;
@@ -278,6 +270,7 @@ function handleCombine() {
     if (!beeA || !beeB) return;
     if (!confirm(`Combine ${beeA.name} and ${beeB.name}? Both will be consumed.`)) return;
 
+    const snapA = JSON.parse(JSON.stringify(beeA)), snapB = JSON.parse(JSON.stringify(beeB));
     const result = Vault.combineBees(idA, idB);
     if (!result) {
         Toast.show('Combine failed - pick two different bees.', 'negative');
@@ -292,7 +285,8 @@ function handleCombine() {
     renderRefineSelects();
     renderCollectionCounters();
     showSummonReveal(result.newBee, {
-        title: result.upgraded ? `✨ Upgraded into ${result.newBee.name}!` : `🧬 ${result.newBee.name} emerged!`
+        title: result.upgraded ? `✨ Upgraded into ${result.newBee.name}!` : `🧬 ${result.newBee.name} emerged!`,
+        play: typeof GachaFX !== 'undefined' ? () => GachaFX.combine(snapA, snapB, result.newBee, result.upgraded) : null
     });
 }
 

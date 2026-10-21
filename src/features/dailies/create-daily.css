@@ -1,6 +1,6 @@
 /* Create / edit daily - the parts only Dailies has (scheduling, streak).
    The shared form look (top bar, fields, difficulty, checklist, reminders,
-   tags, .hf-box) is in src/core/task-form/. */
+   tags, .hf-box) is in src/core/ui/task-form/. */
 
 /* scheduling */
 .hf-box + .df-two { margin-top: 10px; }

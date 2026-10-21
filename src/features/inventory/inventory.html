@@ -12,21 +12,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>🎒 Inventory</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/modal/modal.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
     <link rel="stylesheet" href="./inventory.css">
 </head>
 <body>
     <!-- Inventory v2 (Oct 2026, approved demo): same look as Settings.
          Colony Bees moved to its own page (../colony-bees/). -->
     <main class="pv2 inv2">
-        <h1 class="pv2-title">🎒 INVENTORY</h1>
-        <p class="pv2-lead">Everything your bees bring back.</p>
+        <header class="pv2-head">
+            <h1 class="pv2-title">🎒 INVENTORY</h1>
+            <p class="pv2-lead">Everything your bees bring back.</p>
+        </header>
 
         <section class="card">
             <a class="row" href="../colony-bees/colony-bees.html">
@@ -44,15 +42,8 @@
         <p class="note" id="inv-hint"></p>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
-    <script src="../../core/page-v2/page-v2.js"></script>
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/page-v2/page-v2.js"></script>
 
     <script src="./inventory.js"></script>
 </body>

@@ -56,6 +56,59 @@ function statsHTML(quest) {
     </section>`;
 }
 
+// Course quests (Oct 2026): tasks that carry a `module` (and maybe a
+// `section`) show as drop-downs - module > chapter > lessons - like the
+// course itself. Each header shows % done, lessons, ghost challenges and
+// time. The one holding your next lesson starts open; what you open or
+// close is remembered while you're on the page.
+const openGroups = new Set();
+let openSeeded = false;
+function groupStats(list) {
+    const done = list.filter(t => t.completed).length;
+    const sec = list.reduce((s, t) => s + (Number(t.durSec) || plannedMinutes(t) * 60), 0);
+    const g = list.reduce((s, t) => s + (t.ghosts || 0), 0), gd = list.reduce((s, t) => s + (t.ghostsDone || 0), 0);
+    const pct = list.length ? Math.round(done / list.length * 100) : 0;
+    return `<span class="qg-stats"><b class="${pct === 100 ? 'full' : ''}">${pct}%</b><span>${done}/${list.length}</span>${g ? `<span class="qg-gh">👻 ${gd}/${g}</span>` : ''}<span>${QuestUI.fmtTotal(sec)}</span></span>`;
+}
+function groupedTasksHTML(tasks) {
+    const modules = [];
+    tasks.forEach(t => {
+        // Tasks with no chapter stay plain rows, in their place.
+        if (!t.module) { modules.push({ loose: t }); return; }
+        const name = t.module;
+        let m = modules.find(x => x.name === name);
+        if (!m) modules.push(m = { name, blocks: [], all: [] });
+        m.all.push(t);
+        const last = m.blocks[m.blocks.length - 1];
+        if (t.section) {
+            if (last && last.section === t.section) last.tasks.push(t);
+            else m.blocks.push({ section: t.section, tasks: [t] });
+        } else m.blocks.push({ task: t });
+    });
+    if (!openSeeded) {
+        openSeeded = true;
+        const next = tasks.find(t => !t.completed);
+        if (next) { openGroups.add('m:' + (next.module || 'Other')); if (next.section) openGroups.add('s:' + (next.module || 'Other') + '>' + next.section); }
+    }
+    let n = 0;
+    return `<div class="qg" id="qd-tasks">${modules.map(m => {
+        if (m.loose) return `<ul class="qt-list">${QuestUI.taskRowHTML(m.loose)}</ul>`;
+        const mi = n++;
+        const mk = 'm:' + m.name;
+        return `<details class="qg-mod${m.all.every(t => t.completed) ? ' done' : ''}" data-key="${esc(mk)}"${openGroups.has(mk) ? ' open' : ''}>
+            <summary><span class="qg-n">${mi + 1}</span><span class="qg-t">${esc(m.name)}</span>${groupStats(m.all)}</summary>
+            <div class="qg-body">${m.blocks.map(b => {
+                if (b.task) return `<ul class="qt-list">${QuestUI.taskRowHTML(b.task)}</ul>`;
+                const sk = 's:' + m.name + '>' + b.section;
+                return `<details class="qg-sec${b.tasks.every(t => t.completed) ? ' done' : ''}" data-key="${esc(sk)}"${openGroups.has(sk) ? ' open' : ''}>
+                    <summary><span class="qg-t">${esc(b.section)}</span>${groupStats(b.tasks)}</summary>
+                    <ul class="qt-list">${b.tasks.map(t => QuestUI.taskRowHTML(t)).join('')}</ul>
+                </details>`;
+            }).join('')}</div>
+        </details>`;
+    }).join('')}</div>`;
+}
+
 function tasksHTML(quest) {
     const tasks = quest.tasks || [];
     const p = QuestUI.progress(quest);
@@ -66,7 +119,7 @@ function tasksHTML(quest) {
     return `<section class="qd-sec">
         <h2 class="qd-h">Tasks <span>${p.done} of ${p.total} done</span></h2>
         <div class="qa-bar qd-bar-prog"><i style="width:${p.pct}%"></i></div>
-        ${tasks.length ? `<ul class="qt-list" id="qd-tasks">${tasks.map(t => QuestUI.taskRowHTML(t)).join('')}</ul>` : '<p class="qd-muted">No tasks yet. Break this goal into steps you can finish in a day or two.</p>'}
+        ${tasks.length ? (tasks.some(t => t.module) ? groupedTasksHTML(tasks) : `<ul class="qt-list" id="qd-tasks">${tasks.map(t => QuestUI.taskRowHTML(t)).join('')}</ul>`) : '<p class="qd-muted">No tasks yet. Break this goal into steps you can finish in a day or two.</p>'}
         ${addingTask ? `<div class="qd-add-form" id="qd-task-form">
             <input type="text" id="qd-task-input" placeholder="New task" maxlength="140" autocomplete="off">
             <div class="qd-segs" id="qd-task-diff">${diffButtons}</div>
@@ -89,16 +142,36 @@ function sourceHTML(quest) {
     </section>`;
 }
 
+// One ghost log row: name, XP (hidden when 0), the result buttons.
+function ghostRowHTML(g) {
+    const count = g.ghosts ? `<small class="qd-ghost-n">${QuestUI.ghostsHTML(g.ghostsDone || 0, g.ghosts)}</small>` : '';
+    return `
+            <li class="qd-ghost s-${esc(g.status)}" data-ghost-id="${esc(g.id)}">
+                <div class="qd-ghost-top"><span class="qd-ghost-name">${esc(g.name)}${count}</span>${g.xp ? `<span class="dr-xp">+${g.xp} XP</span>` : ''}
+                    <button type="button" class="qd-x${armedGhost === g.id ? ' armed' : ''}" data-act="ghost-remove" aria-label="Remove ${esc(g.name)}">${armedGhost === g.id ? 'Tap again' : '×'}</button></div>
+                <div class="qd-ghost-states" role="radiogroup" aria-label="Result">${GHOST_STATES.map(st => `<button type="button" role="radio" aria-checked="${g.status === st.key}" class="g-${st.key}${g.status === st.key ? ' on' : ''}" data-act="ghost-status" data-status="${st.key}" title="${st.label}">${st.short}</button>`).join('')}</div>
+            </li>`;
+}
+// Course ghost logs (Oct 2026): grouped by module, like the tasks.
+function groupedGhostsHTML(logs) {
+    const mods = [];
+    logs.forEach(g => { const n = g.module || 'Other'; let m = mods.find(x => x.name === n); if (!m) mods.push(m = { name: n, logs: [] }); m.logs.push(g); });
+    return `<div class="qg">${mods.map(m => {
+        const k = 'g:' + m.name;
+        const full = m.logs.filter(g => g.status === 'green').length;
+        const ghosts = m.logs.reduce((a, g) => a + (g.ghosts || 0), 0), gd = m.logs.reduce((a, g) => a + (g.ghostsDone || 0), 0);
+        return `<details class="qg-mod${full === m.logs.length ? ' done' : ''}" data-key="${esc(k)}"${openGroups.has(k) ? ' open' : ''}>
+            <summary><span class="qg-n">👻</span><span class="qg-t">${esc(m.name)}</span><span class="qg-stats"><b class="${full === m.logs.length ? 'full' : ''}">${full}/${m.logs.length}</b><span>lessons</span><span class="qg-gh">👻 ${gd}/${ghosts}</span></span></summary>
+            <div class="qg-body"><ul class="qd-ghosts">${m.logs.map(ghostRowHTML).join('')}</ul></div>
+        </details>`;
+    }).join('')}</div>`;
+}
+
 function ghostHTML(quest) {
     const logs = Vault.getGhostLogs(quest.id);
     return `<section class="qd-sec">
         <h2 class="qd-h">👻 Ghost Logs <span>Challenges you try without help</span></h2>
-        ${logs.length ? `<ul class="qd-ghosts">${logs.map(g => `
-            <li class="qd-ghost s-${esc(g.status)}" data-ghost-id="${esc(g.id)}">
-                <div class="qd-ghost-top"><span class="qd-ghost-name">${esc(g.name)}</span><span class="dr-xp">+${g.xp} XP</span>
-                    <button type="button" class="qd-x${armedGhost === g.id ? ' armed' : ''}" data-act="ghost-remove" aria-label="Remove ${esc(g.name)}">${armedGhost === g.id ? 'Tap again' : '×'}</button></div>
-                <div class="qd-ghost-states" role="radiogroup" aria-label="Result">${GHOST_STATES.map(s => `<button type="button" role="radio" aria-checked="${g.status === s.key}" class="g-${s.key}${g.status === s.key ? ' on' : ''}" data-act="ghost-status" data-status="${s.key}" title="${s.label}">${s.short}</button>`).join('')}</div>
-            </li>`).join('')}</ul>` : '<p class="qd-muted">None yet. Add a challenge, then mark how it went: tried, partial or full.</p>'}
+        ${logs.length ? (logs.some(g => g.module) ? groupedGhostsHTML(logs) : `<ul class="qd-ghosts">${logs.map(ghostRowHTML).join('')}</ul>`) : '<p class="qd-muted">None yet. Add a challenge, then mark how it went: tried, partial or full.</p>'}
         ${addingGhost ? `<div class="qd-add-form" id="qd-ghost-form">
             <input type="text" id="qd-ghost-name" placeholder="Challenge name" maxlength="140" autocomplete="off">
             <input type="number" id="qd-ghost-xp" placeholder="XP" min="0" inputmode="numeric">
@@ -197,6 +270,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     render();
 
     const root = document.getElementById('qd');
+    // Remember which drop-downs are open across re-renders.
+    root.addEventListener('toggle', (event) => {
+        const d = event.target;
+        if (!d.matches || !d.matches('details[data-key]')) return;
+        if (d.open) openGroups.add(d.dataset.key); else openGroups.delete(d.dataset.key);
+    }, true);
     root.addEventListener('click', (event) => {
         const t = event.target;
         if (t.closest('#qd-focus')) {
