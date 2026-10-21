@@ -8,6 +8,21 @@ console.log("/// CREATE QUEST PROTOCOLS INITIALIZED ///");
 // of the quest (ghost logs, side quests, unlocks...) is never touched here.
 
 let editingQuestId = null;
+// Quest tags (Oct 2026): typed by hand, count toward skills for every task.
+let questTags = [];
+function renderTags() {
+    const host = document.getElementById('cq-tags');
+    host.innerHTML = questTags.map((t, i) => `<span class="cq-tag">${QuestUI.esc(t)}<button type="button" data-tag="${i}" aria-label="Remove ${QuestUI.esc(t)}">×</button></span>`).join('');
+}
+function addTagFromInput() {
+    const input = document.getElementById('cq-tag-input');
+    input.value.split(',').map(t => t.replace(/^#/, '').trim()).filter(Boolean).forEach(t => {
+        const name = typeof splitTagWords === 'function' ? splitTagWords(t) : t;
+        if (!questTags.some(x => x.toLowerCase() === name.toLowerCase())) questTags.push(name);
+    });
+    input.value = '';
+    renderTags();
+}
 let category = 'main';
 let taskEditor = null;
 let deleteArmed = false;
@@ -43,7 +58,7 @@ function rowXP(item) {
 }
 
 function renderTotal() {
-    const items = taskEditor.all().filter(i => i.text.trim());
+    const items = taskEditor.all().filter(i => i.text.trim() && !i.chapter);
     const xp = items.reduce((sum, i) => sum + rowXP(i), 0);
     const mins = items.reduce((sum, i) => sum + rowMinutes(i), 0);
     document.getElementById('cq-total').textContent = items.length ? `${items.length} task${items.length === 1 ? '' : 's'} · ${fmtMin(mins)} · ${xp} XP` : '';
@@ -62,7 +77,14 @@ function loadExisting(quest) {
     document.getElementById('quest-title-input').value = quest.title || '';
     document.getElementById('quest-objective-input').value = quest.objective || '';
     category = quest.category === 'side' ? 'side' : 'main';
-    taskEditor.set((quest.tasks || []).map(t => ({
+    // A chapter row goes in wherever a task's chapter (module) changes.
+    const rows = [];
+    let chapter = null;
+    (quest.tasks || []).forEach(t => {
+        if ((t.module || null) !== chapter) { chapter = t.module || null; if (chapter) rows.push({ text: chapter, chapter: true }); }
+        rows.push(t);
+    });
+    taskEditor.set(rows.map(t => t.chapter ? t : ({
         id: t.id,
         text: t.label || '',
         difficulty: QUEST_DIFFICULTY_TIERS.some(x => x.level === t.difficulty) ? t.difficulty : 'Easy',
@@ -77,6 +99,7 @@ function loadExisting(quest) {
         document.getElementById('cq-source-url').value = quest.source.url || '';
     }
     document.getElementById('cq-focus').checked = Vault.getActiveQuestId() === quest.id;
+    questTags = [...(quest.tags || [])];
     document.getElementById('hf-heading').textContent = '';
     document.getElementById('hf-delete').hidden = false;
     document.getElementById('hf-save').textContent = 'SAVE';
@@ -97,7 +120,10 @@ function saveQuest() {
         Toast.show('Give this quest a title first.', 'negative');
         return;
     }
-    const tasks = taskEditor.get();
+    // Chapter rows set the chapter (module) of the tasks under them.
+    const tasks = [];
+    let chapter = null;
+    taskEditor.get().forEach(i => { if (i.chapter) chapter = i.text; else tasks.push({ ...i, module: chapter }); });
     if (!tasks.length) {
         TaskForm.nudge(document.getElementById('cq-task-add'));
         Toast.show('Add at least one task. Quests are finished one task at a time.', 'negative');
@@ -111,7 +137,8 @@ function saveQuest() {
         objective: document.getElementById('quest-objective-input').value.trim(),
         category,
         source: url ? { label: document.getElementById('cq-source-label').value.trim(), url } : null,
-        tasks: tasks.map(i => ({ id: i.existing ? i.id : null, label: i.text, difficulty: i.difficulty, xp: rowXP(i), minutes: i.minutes || null })),
+        tasks: tasks.map(i => ({ id: i.existing ? i.id : null, label: i.text, difficulty: i.difficulty, xp: rowXP(i), minutes: i.minutes || null, module: i.module || null })),
+        tags: (addTagFromInput(), questTags),
         makeActive: document.getElementById('cq-focus').checked
     });
     if (!document.getElementById('cq-focus').checked && editingQuestId && Vault.getActiveQuestId() === editingQuestId) {
@@ -156,6 +183,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     renderColour();
     renderTotal();
+    renderTags();
+    document.getElementById('cq-tag-input').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); addTagFromInput(); }
+    });
+    document.getElementById('cq-tag-input').addEventListener('blur', addTagFromInput);
+    document.getElementById('cq-tags').addEventListener('click', (event) => {
+        const x = event.target.closest('[data-tag]');
+        if (!x) return;
+        questTags.splice(Number(x.dataset.tag), 1);
+        renderTags();
+    });
 
     document.getElementById('cq-type').addEventListener('click', (event) => {
         const b = event.target.closest('[data-cat]');
@@ -166,6 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cq-tasks').addEventListener('input', renderTotal);
     document.getElementById('cq-tasks').addEventListener('click', () => setTimeout(renderTotal, 0));
     document.getElementById('cq-task-add').addEventListener('click', () => setTimeout(renderTotal, 0));
+    document.getElementById('cq-chapter-add').addEventListener('click', () => taskEditor.addChapter());
 
     TaskForm.privacyToggle(document.getElementById('hf-tip-btn'), document.getElementById('hf-tip'));
     document.getElementById('quest-title-input').addEventListener('keydown', (event) => {

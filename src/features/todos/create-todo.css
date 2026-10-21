@@ -1,5 +1,5 @@
 /* Create / edit to-do - the parts only To-Dos has (due date row and quick
-   picks). The shared form look is in src/core/task-form/. */
+   picks). The shared form look is in src/core/ui/task-form/. */
 .tf-due { display: flex; align-items: center; gap: 8px; }
 .tf-due .hf-box { flex: 1; }
 .hf button.tf-due-clear { background: #1d1810; border-radius: 12px; height: 54px; width: 48px; }

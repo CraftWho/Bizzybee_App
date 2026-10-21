@@ -12,12 +12,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>⚙️ Settings</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/modal/modal.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
     <link rel="stylesheet" href="./settings.css">
 
     <!-- Netlify Identity widget - handles login/signup/logout UI and JWT
@@ -94,6 +90,9 @@
             <a class="row" href="../sync/sync.html"><span class="hx">🔄</span><span class="mid"><b>Phone Sync</b><small>Calendar feed link for Android</small></span><span class="chev">›</span></a>
         </section>
 
+        <h2 class="sec">Text &amp; look</h2>
+        <section class="card" id="look-card"></section>
+
         <h2 class="sec">Tracking</h2>
         <section class="card">
             <div class="row"><span class="hx">⏱️</span><span class="mid"><b>Ask how long it took</b><small>Pop-up after you finish a task. XP is about 1 per minute.</small></span><label class="toggle-switch"><input type="checkbox" id="timelog-toggle" aria-label="Ask how long it took" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
@@ -126,7 +125,7 @@
         <section class="card">
             <div class="row"><span class="hx">💬</span><span class="mid"><b>Export conversations</b><small>Everything you and Eevee said (.jsonl)</small></span><button id="export-conversations-btn" class="btn" type="button">Export</button></div>
             <div class="row"><span class="hx">📜</span><span class="mid"><b>Export quest data</b><small>Quest and career history (.json)</small></span><button id="export-quests-btn" class="btn" type="button">Export</button></div>
-            <a class="row" href="../../../suggestions.html"><span class="hx">✉️</span><span class="mid"><b>Send feedback</b><small>Ideas and bug reports</small></span><span class="chev">›</span></a>
+            <a class="row" href="../suggestions/suggestions.html"><span class="hx">✉️</span><span class="mid"><b>Send feedback</b><small>Ideas and bug reports</small></span><span class="chev">›</span></a>
         </section>
 
         <div id="dev-section" hidden>
@@ -139,21 +138,12 @@
         <section class="card"><button id="logout-btn" class="row logout" type="button">Log out</button></section>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/folder-backup.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/crypto-lite.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js" data-with="services/folder-backup.js crypto-lite.js"></script>
 
-    <script src="../../core/account-recovery.js"></script>
+    <script src="../../core/login/account-recovery.js"></script>
 <script src="./cloud-controls.js"></script>
 <script src="./local-cloud-download.js"></script>
-<script src="../../core/push/push.js"></script>
+<script src="../../core/services/push/push.js"></script>
 <script src="./settings.js"></script>
 </body>
 </html>

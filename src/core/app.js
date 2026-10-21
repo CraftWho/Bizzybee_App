@@ -115,6 +115,140 @@ const CREATE_TARGETS = {
 };
 const SHELL_HEX = '36,5 67,23 67,57 36,75 5,57 5,23';
 
+// --- Appearance (Oct 2026): Settings > Text & look -----------------------
+// Title colour, text colour, text size, bold text and high contrast. Saved
+// on this device (localStorage) and applied on every page as soon as app.js
+// loads, through one <style> tag of overrides.
+const Appearance = {
+    KEY: 'bizzybee_look',
+    TITLES: ['#ffcc00', '#ffffff', '#ff8a3d', '#5fd6ff', '#7fe08a', '#ff8aa0'],
+    TEXTS: ['#f1ede2', '#ffffff', '#ffe9b0', '#d8e8ff'],
+    // Paragraph text = the grey descriptions, notes and help lines.
+    PARAS: ['#a69a80', '#d9cfb4', '#efe6cc', '#ffffff', '#ffe9b0', '#d8e8ff'],
+    SIZES: { S: 93.75, M: 100, L: 112.5, XL: 125 },
+    PSIZES: { S: 0.92, M: 1, L: 1.12, XL: 1.25 },
+    get() {
+        try { return Object.assign({ title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false }, JSON.parse(localStorage.getItem(this.KEY) || '{}')); }
+        catch { return { title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false }; }
+    },
+    set(patch) {
+        const next = patch ? Object.assign(this.get(), patch) : {};
+        try { if (patch) localStorage.setItem(this.KEY, JSON.stringify(next)); else localStorage.removeItem(this.KEY); } catch { /* storage off */ }
+        this.apply();
+    },
+    apply() {
+        const v = this.get();
+        let tag = document.getElementById('bb-look');
+        if (!tag) { tag = document.createElement('style'); tag.id = 'bb-look'; (document.head || document.documentElement).appendChild(tag); }
+        const css = [];
+        if (v.size && v.size !== 'M' && this.SIZES[v.size]) css.push(`html { font-size: ${this.SIZES[v.size]}% !important; }`);
+        if (v.title) css.push(`.pv2-title, .dl-title, .cm-title, .page-title, .settings-title, .ah-name, .pv2 .sec, .stv2 h2.sec, .dl-sec, .hl-sec, .sec, .ds-pop h2, .pv2-sheet .head h2, .home-today-title b, .gfx-msg { color: ${v.title} !important; }
+            .gold-gradient-text { background: none !important; -webkit-text-fill-color: ${v.title} !important; color: ${v.title} !important; }`);
+        if (v.text) css.push(`body, .dr-title, .hr-title, .pv2 .row .mid b, .stv2 .row .mid b, .pv2 .tile b, .ds-item b, .ds-save b, .hl-who-btn b, .hl-row b, .card b, .home-help-t b { color: ${v.text} !important; }`);
+        if (v.contrast) css.push(`:root, .pv2, .stv2 { --muted: #efe6cc !important; --shell-muted: #e9dfc2 !important; }
+            small, .pv2-lead, .note, .dr-meta, .dr-notes, .hr-notes, .hr-meta, .ds-sub, .hl-note, .hl-hint, .page-subtitle, .ah-meta, .ah-line, .row .mid small { color: #e9dfc2 !important; }`);
+        const para = v.para || (v.contrast ? '#efe6cc' : null);
+        const pk = this.PSIZES[v.psize] || 1;
+        if (para || pk !== 1) css.push(this._paraCSS(para, pk));
+        if (v.bold) css.push(`body * { font-weight: 600 !important; } body b, body strong, body h1, body h2, body h3, .pv2-title, .dl-title { font-weight: 800 !important; }`);
+        tag.textContent = css.join('\n');
+    },
+    // Is this CSS color one of the app's muted greys? Pages set that grey in
+    // many ways (var(--muted), #a69a80, #888, faded white...), so instead of a
+    // hand-kept list, read every stylesheet and catch them all.
+    _isMuted(val) {
+        if (!val) return false;
+        if (/var\(--(muted|shell-muted|hf-muted)\)/.test(val)) return true;
+        let r, g, b, a = 1, m;
+        if ((m = val.match(/^#([0-9a-f]{3}|[0-9a-f]{6})\b/i))) {
+            let h = m[1]; if (h.length === 3) h = h.split('').map(c => c + c).join('');
+            r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+        } else if ((m = val.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,/]+([\d.]+))?/i))) {
+            r = +m[1]; g = +m[2]; b = +m[3]; if (m[4] !== undefined) a = +m[4];
+        } else return false;
+        const hi = Math.max(r, g, b), lo = Math.min(r, g, b);
+        if (a < 1) return lo > 200 && a >= 0.3 && a <= 0.8;      // faded white text
+        return hi - lo <= 50 && hi >= 100 && hi <= 215;           // grey / beige grey
+    },
+    _mutedRules() {
+        if (this._rules && this._rules.n === document.styleSheets.length) return this._rules;
+        const out = []; const seen = new Set();
+        const walk = (rules) => {
+            for (const r of rules) {
+                if (r.cssRules && !r.selectorText) { try { walk(r.cssRules); } catch { /* skip */ } continue; }
+                if (!r.selectorText || !r.style) continue;
+                if (!this._isMuted(r.style.getPropertyValue('color').trim())) continue;
+                if (/::?(before|after)|:hover|:focus|:active|disabled/.test(r.selectorText)) continue;
+                // Leave tabs, buttons and the dock alone: their active state
+                // sets its own color, and !important here would beat it.
+                if (/button|btn|tab|dock|nav|seg|chip|pill|toggle|\[aria-|input|select|::placeholder/i.test(r.selectorText)) continue;
+                if (seen.has(r.selectorText)) continue;
+                seen.add(r.selectorText);
+                out.push({ sel: r.selectorText, fs: r.style.getPropertyValue('font-size').trim() });
+            }
+        };
+        for (const sh of document.styleSheets) {
+            if (sh.ownerNode && sh.ownerNode.id === 'bb-look') continue;
+            try { walk(sh.cssRules); } catch { /* cross-origin sheet */ }
+        }
+        out.n = document.styleSheets.length;
+        return (this._rules = out);
+    },
+    _paraCSS(color, k) {
+        const css = [];
+        const base = 'small, .pv2-lead, .page-subtitle, .note, .hint';
+        if (color) {
+            css.push(`:root, .pv2, .stv2, body { --muted: ${color} !important; --shell-muted: ${color} !important; --hf-muted: ${color} !important; }`);
+            css.push(`${base} { color: ${color} !important; }`);
+        }
+        if (k !== 1) css.push(`${base} { font-size: calc(${k} * 1em) !important; } small small { font-size: inherit !important; }`);
+        for (const r of this._mutedRules()) {
+            const d = [];
+            if (color) d.push(`color: ${color} !important`);
+            if (k !== 1 && r.fs && !/var\(|calc\(/.test(r.fs)) d.push(`font-size: calc(${r.fs} * ${k}) !important`);
+            if (d.length) css.push(`${r.sel} { ${d.join('; ')}; }`);
+        }
+        return css.join('\n');
+    },
+    // Settings page: the controls (settings.html #look-card).
+    mountSettings(host) {
+        if (!host) return;
+        const render = () => {
+            const v = this.get();
+            const sw = (key, list, def) => list.map(c => `<button type="button" class="look-sw" data-k="${key}" data-v="${c}" style="background:${c}" aria-label="${c}" aria-pressed="${(v[key] || def) === c}"></button>`).join('');
+            host.innerHTML = `
+                <div class="row"><span class="hx">🔠</span><span class="mid"><b>Title color</b><small>Page titles and section labels</small></span></div>
+                <div class="look-line">${sw('title', this.TITLES, this.TITLES[0])}</div>
+                <div class="row"><span class="hx">✏️</span><span class="mid"><b>Text color</b><small>Task names and main text</small></span></div>
+                <div class="look-line">${sw('text', this.TEXTS, this.TEXTS[0])}</div>
+                <div class="row"><span class="hx">📝</span><span class="mid"><b>Paragraph color</b><small>Descriptions, notes and grey help text</small></span></div>
+                <div class="look-line">${sw('para', this.PARAS, this.PARAS[0])}</div>
+                <div class="row"><span class="hx">🔎</span><span class="mid"><b>Paragraph size</b><small>Only the small grey text</small></span><span class="look-seg">${Object.keys(this.PSIZES).map(k => `<button type="button" data-psize="${k}" aria-pressed="${v.psize === k}">${k}</button>`).join('')}</span></div>
+                <div class="row"><span class="hx">🔍</span><span class="mid"><b>Text size</b></span><span class="look-seg">${Object.keys(this.SIZES).map(k => `<button type="button" data-size="${k}" aria-pressed="${v.size === k}">${k}</button>`).join('')}</span></div>
+                <div class="row"><span class="hx">🅱️</span><span class="mid"><b>Bold text</b><small>Thicker letters everywhere</small></span><label class="toggle-switch"><input type="checkbox" data-flag="bold" aria-label="Bold text"${v.bold ? ' checked' : ''}><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+                <div class="row"><span class="hx">🌗</span><span class="mid"><b>High contrast</b><small>Bright cream paragraphs (if no paragraph color is picked)</small></span><label class="toggle-switch"><input type="checkbox" data-flag="contrast" aria-label="High contrast"${v.contrast ? ' checked' : ''}><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+                <div class="btns"><button type="button" class="btn" data-reset>Reset to default</button></div>`;
+        };
+        render();
+        host.addEventListener('click', (e) => {
+            const s = e.target.closest('.look-sw');
+            if (s) { const def = { title: this.TITLES[0], text: this.TEXTS[0], para: this.PARAS[0] }[s.dataset.k]; this.set({ [s.dataset.k]: s.dataset.v === def ? null : s.dataset.v }); render(); return; }
+            const pz = e.target.closest('[data-psize]');
+            if (pz) { this.set({ psize: pz.dataset.psize }); render(); return; }
+            const z = e.target.closest('[data-size]');
+            if (z) { this.set({ size: z.dataset.size }); render(); return; }
+            if (e.target.closest('[data-reset]')) { this.set(null); render(); }
+        });
+        host.addEventListener('change', (e) => {
+            const f = e.target.closest('[data-flag]');
+            if (f) { this.set({ [f.dataset.flag]: f.checked }); }
+        });
+    }
+};
+Appearance.apply();
+// Stylesheets may still be loading now; read them again once they are in.
+window.addEventListener('load', () => { Appearance._rules = null; Appearance.apply(); });
+
 const AppShell = {
     root: '../../..',
     key: 'home',
@@ -283,8 +417,25 @@ const AppShell = {
     },
 
     // Start My Day (Oct 2026): first open of a new day asks about
-    // yesterday's dailies and to-dos (src/core/day-start/, loaded on demand).
+    // yesterday's dailies and to-dos (src/core/ui/day-start/, loaded on demand).
+    // A new day can start while the app stays open (Oct 2026). At your 12 am
+    // (checked every minute, and when you come back to the app) the page
+    // reloads so dailies reset and Start My Day opens. Create/edit screens
+    // wait until you leave them, so nothing you're typing is lost.
+    watchNewDay() {
+        if (this._dayWatch || typeof todayISO !== 'function') return;
+        const loadedOn = todayISO();
+        const check = () => {
+            if (todayISO() === loadedOn || this.key.startsWith('create-') || this.key === 'onboarding') return;
+            if (document.querySelector('.lvr, .gfx.on, dialog[open]')) return;   // mid-celebration: next check
+            window.location.reload();
+        };
+        this._dayWatch = setInterval(check, 60000);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    },
+
     dayStart() {
+        this.watchNewDay();
         try {
             if (typeof Vault.getDayReview !== 'function' || this.key.startsWith('create-') || this.key === 'onboarding') return;
             if (typeof Vault.isOnboarding === 'function' && Vault.isOnboarding()) return;
@@ -293,10 +444,10 @@ const AppShell = {
             const show = () => setTimeout(() => { if (typeof DayStart !== 'undefined') DayStart.open(Vault.getDayReview()); }, 900);
             if (typeof DayStart !== 'undefined') { show(); return; }
             const css = document.createElement('link');
-            css.rel = 'stylesheet'; css.href = this.url('src/core/day-start/day-start.css');
+            css.rel = 'stylesheet'; css.href = this.url('src/core/ui/day-start/day-start.css');
             document.head.appendChild(css);
             const js = document.createElement('script');
-            js.src = this.url('src/core/day-start/day-start.js');
+            js.src = this.url('src/core/ui/day-start/day-start.js');
             js.onload = show;
             document.body.appendChild(js);
         } catch (e) { console.error('Start My Day failed', e); }
@@ -325,8 +476,47 @@ const AppShell = {
         this.flutter();
         this.burst();
         const formatted = this.formatReward(reward);
+        try { await this.loadLevelBar(); } catch (e) { /* falls back to a toast */ }
         if (typeof LevelBar !== 'undefined' && LevelBar.celebrate) LevelBar.celebrate(formatted);
         else if (typeof Toast !== 'undefined') Toast.show(`🎉 ${formatted.title}`, 'positive');
+    },
+
+    // Skill level-up (Skills page + Dashboard): claims the level, then shows
+    // the shared reward screen. Returns Vault.levelUpSkill's result or null.
+    async levelUpSkill(category) {
+        const r = await Vault.levelUpSkill(category);
+        if (!r) return null;
+        const M = (id) => (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
+        const counts = {};
+        (r.materials || []).forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+        const loot = (r.bees || []).map(bee => ({ bee }));
+        Object.entries(counts).forEach(([id, n]) => { const m = M(id); loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' }); });
+        if (r.pollen) loot.push({ icon: '🌼', name: 'Pollen', qty: r.pollen, sub: 'Common material' });
+        if (r.bonusMaterialId) { const m = M(r.bonusMaterialId); loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : r.bonusMaterialId, qty: 1, sub: 'Bonus' }); }
+        if (r.ticketsGranted) loot.push({ icon: '🎟️', name: r.ticketsGranted === 1 ? 'Gacha ticket' : 'Gacha tickets', qty: r.ticketsGranted, sub: 'Spend in the Pollination Chamber' });
+        const rich = {
+            cap: `${String(r.category).toUpperCase()} · SKILL`, level: r.newLevel, ribbon: r.stageUp ? 'NEW STAGE' : 'SKILL UP',
+            perks: r.stageUp ? [`🌱 New stage: ${r.stage}`] : [], loot,
+            beeId: (r.bees || []).length ? r.bees[0].id : null
+        };
+        try { await this.loadLevelBar(); } catch (e) { /* toast below */ }
+        if (typeof LevelBar !== 'undefined') LevelBar.celebrate({ title: `${r.category} reached Level ${r.newLevel}!`, lines: [], rich });
+        else if (typeof Toast !== 'undefined') Toast.show(`🎉 ${r.category} reached Level ${r.newLevel}!`, 'positive');
+        return r;
+    },
+
+    // The reward screen lives in level-bar.js; pages that don't load it get it now.
+    loadLevelBar() {
+        if (typeof LevelBar !== 'undefined') return Promise.resolve();
+        return new Promise((resolve) => {
+            const css = document.createElement('link');
+            css.rel = 'stylesheet'; css.href = this.url('src/core/ui/level-bar/level-bar.css');
+            document.head.appendChild(css);
+            const js = document.createElement('script');
+            js.src = this.url('src/core/ui/level-bar/level-bar.js');
+            js.onload = js.onerror = () => resolve();
+            document.body.appendChild(js);
+        });
     },
 
     formatReward(reward) {
@@ -347,7 +537,26 @@ const AppShell = {
             Object.entries(counts).forEach(([id, n]) => lines.push(`${material(id)} +${n}`));
         }
         if (lines.length === 0) lines.push('Onward!');
-        return { title: `Character reached Level ${reward.newLevel}!`, lines };
+
+        // The reward screen's tiles (LevelBar.celebrate's reward.rich).
+        const loot = reward.awardedBees.map(bee => ({ bee }));
+        if (reward.ticketsGranted > 0) loot.push({ icon: '🎟️', name: reward.ticketsGranted === 1 ? 'Gacha ticket' : 'Gacha tickets', qty: reward.ticketsGranted, sub: 'Spend in the Pollination Chamber' });
+        const mats = {};
+        reward.awardedMaterials.forEach(id => { mats[id] = (mats[id] || 0) + 1; });
+        Object.entries(mats).forEach(([id, n]) => {
+            const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
+            loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' });
+        });
+        const perks = ['❤️ Health refilled'];
+        if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level');
+        const bar = typeof Vault.getCharacterLevelBar === 'function' ? Vault.getCharacterLevelBar() : null;
+        const bee = reward.awardedBees.find(b => Vault.getColonyBees().some(x => x.id === b.id));
+        const rich = {
+            cap: 'CHARACTER LEVEL', level: reward.newLevel, ribbon: reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
+            next: bar ? { level: reward.newLevel + 1, now: bar.xpIntoLevel, cap: bar.cap } : null,
+            beeId: bee ? bee.id : null
+        };
+        return { title: `Character reached Level ${reward.newLevel}!`, lines, rich };
     },
 
     burst() {
@@ -556,14 +765,14 @@ class CodexSystem {
         if (document.querySelector('script[src*="time-log/time-log.js"]')) return;
         const css = document.createElement('link');
         css.rel = 'stylesheet';
-        css.href = '../../../src/core/time-log/time-log.css';
+        css.href = '../../../src/core/ui/time-log/time-log.css';
         document.head.appendChild(css);
         const script = document.createElement('script');
-        script.src = '../../../src/core/time-log/time-log.js';
+        script.src = '../../../src/core/ui/time-log/time-log.js';
         document.body.appendChild(script);
     }
 
-    // Phone reminders (src/core/push/push.js) - loads on every app page once
+    // Phone reminders (src/core/services/push/push.js) - loads on every app page once
     // they're turned on in Settings, so reminder times stay up to date.
     loadPhoneReminders() {
         const path = window.location.pathname;
@@ -572,11 +781,11 @@ class CodexSystem {
         if (localStorage.getItem('bizzybee_push_on') !== '1' || localStorage.getItem('bizzybee_dev_test') === '1') return;
         if (document.querySelector('script[src*="push/push.js"]')) return;
         const script = document.createElement('script');
-        script.src = '../../../src/core/push/push.js';
+        script.src = '../../../src/core/services/push/push.js';
         document.body.appendChild(script);
     }
 
-    // Habitica two-way sync (src/core/habitica-sync/) - loads on every app
+    // Habitica two-way sync (src/core/services/habitica-sync/) - loads on every app
     // page once this device has the Habitica key (Account Info saves it).
     loadHabiticaSync() {
         const path = window.location.pathname;
@@ -591,8 +800,8 @@ class CodexSystem {
             script.onerror = resolve;
             document.body.appendChild(script);
         });
-        const apiReady = typeof HabiticaAPI !== 'undefined' ? Promise.resolve() : add('src/core/habitica-api.js');
-        apiReady.then(() => add('src/core/habitica-sync/habitica-sync.js'));
+        const apiReady = typeof HabiticaAPI !== 'undefined' ? Promise.resolve() : add('src/core/services/habitica-api.js');
+        apiReady.then(() => add('src/core/services/habitica-sync/habitica-sync.js'));
     }
 
     // Dev tools (Craft, 2026-10-09).
@@ -751,7 +960,7 @@ class CodexSystem {
     // Only runs at all for 'identity' sessions - demo/personal sessions
     // never touch either script, so the app's normal weight is unchanged
     // for the common case. See HANDOFF.md's auto-sync entry and
-    // src/core/cloud-sync/cloud-sync.js for the rest of the design notes.
+    // src/core/services/cloud-sync/cloud-sync.js for the rest of the design notes.
     //
     // settings.html separately loads the Identity widget script itself
     // (statically, in its own <head>) for its manual Save/Load UI - that
@@ -769,9 +978,9 @@ class CodexSystem {
         const path = window.location.pathname;
         const isNestedPage = path.includes('features') || path.includes('plugins');
         if (!isNestedPage) return;
-        if (document.querySelector('script[src*="core/folder-backup.js"]')) return;
+        if (document.querySelector('script[src*="core/services/folder-backup.js"]')) return;
         const script = document.createElement('script');
-        script.src = '../../../src/core/folder-backup.js';
+        script.src = '../../../src/core/services/folder-backup.js';
         document.body.appendChild(script);
     }
 
@@ -787,7 +996,7 @@ class CodexSystem {
         const loadCloudSyncModule = () => {
             if (document.querySelector('script[src*="cloud-sync/cloud-sync.js"]')) return;
             const script = document.createElement('script');
-            script.src = `${rootPrefix}/src/core/cloud-sync/cloud-sync.js`;
+            script.src = `${rootPrefix}/src/core/services/cloud-sync/cloud-sync.js`;
             document.body.appendChild(script);
         };
 

@@ -11,7 +11,7 @@
 /* --- EXTERIOR: THE MECH HIVE ---
    The hive is one SVG built by colony-hive.js (rings/cells/deck/crown grow
    with level - see nestTier() in colony.js). Bees are drawn and moved by
-   MechBeeScene (src/core/mech-bee/). The old CSS hexagon nest is archived
+   MechBeeScene (src/core/ui/mech-bee/). The old CSS hexagon nest is archived
    in archive/colony-v1/. */
 .colony-nest-scene {
     display: none;
@@ -850,3 +850,9 @@ body.colony-outside #colony-exterior .cm-head, body.colony-inside #colony-interi
 .hl-wrap { padding: 0 14px; box-sizing: border-box; }
 .hl-info { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .hl-news { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; border-radius: 18px; }
+
+/* Eggs look like the starting egg (Oct 2026, EggDesign.forBee). */
+.hl-egg { display: inline-block; width: 16px; height: 20px; }
+.hl-egg svg { display: block; width: 100%; height: 100%; }
+.hl-bee.is-egg { width: 18px; height: 22px; margin: -11px 0 0 -9px; }
+.hl-rface.hl-egg { width: 22px; height: 28px; }

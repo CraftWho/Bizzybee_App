@@ -12,12 +12,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>📜 New Quest</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/task-form/task-form.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/task-form/task-form.css">
     <link rel="stylesheet" href="./create-quest.css">
 </head>
 <body class="task-form-page">
@@ -58,7 +54,10 @@
             <button type="button" class="df-add" id="cq-task-add">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New task
             </button>
-            <p class="hf-hint hf-hint-left">Steps you can finish in a day or two. Tap a task's difficulty to change it. The quest is done when every task is.</p>
+            <button type="button" class="df-add" id="cq-chapter-add">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New chapter
+            </button>
+            <p class="hf-hint hf-hint-left">Steps you can finish in a day or two. Tap a task's difficulty to change it. The quest is done when every task is. Add a chapter to group the tasks under it into a drop-down; drag rows to move them.</p>
 
             <h2 class="hf-h">Source <small>optional</small></h2>
             <label class="hf-box">
@@ -76,21 +75,22 @@
                 <span><b>Focus on this quest</b><small>Pins it to the top of Quests and to Home.</small></span>
             </label>
 
+            <h2 class="hf-h">Tags <small>optional</small></h2>
+            <div class="cq-tags" id="cq-tags"></div>
+            <label class="hf-box cq-tag-box">
+                <small>Add a tag</small>
+                <input type="text" id="cq-tag-input" maxlength="40" placeholder="e.g. JavaScript - press Enter" autocomplete="off" enterkeyhint="done">
+            </label>
+            <p class="hf-hint hf-hint-left">Every task in this quest counts toward these skills. Tasks also count toward skills named in their own text or chapter.</p>
+
             <p class="hf-hint hf-hint-left" id="cq-more" hidden>Ghost logs, side quests and unlocks live on the quest's own page.</p>
         </section>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js"></script>
 
-    <script src="../../core/habit-row/habit-row.js"></script>
-    <script src="../../core/task-form/task-form.js"></script>
+    <script src="../../core/ui/habit-row/habit-row.js"></script>
+    <script src="../../core/ui/task-form/task-form.js"></script>
     <script src="./quest-common.js"></script>
     <script src="./create-quest.js"></script>
 </body>

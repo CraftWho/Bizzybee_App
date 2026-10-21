@@ -12,11 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>🔐 Account Info</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
     <link rel="stylesheet" href="./account-info.css">
 </head>
 <body>
@@ -102,18 +98,7 @@
         </div>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/crypto-lite.js"></script>
-    <script src="../../core/auth.js"></script>
-    <script src="../../core/habitica-api.js"></script>
-    <script src="../../core/habitica-sync/habitica-sync.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js" data-with="crypto-lite.js login/auth.js services/habitica-api.js services/habitica-sync/habitica-sync.js"></script>
 
     <script src="./account-info.js"></script>
 </body>

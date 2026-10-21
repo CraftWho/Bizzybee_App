@@ -84,15 +84,21 @@
 
     // XP comes from finished work, so "add XP" adds a finished To-Do named
     // "🛠 Dev XP" (easy to spot and remove with "Clear dev XP").
+    // XP per To-Do now comes from its difficulty, so add Hard dev To-Dos
+    // until enough XP has landed.
+    function devTodo() {
+        Vault.addTodo({ label: '🛠 Dev XP', difficulty: 'Hard', notes: 'Added by the dev panel.' });
+        const todos = Vault.getTodos();
+        Vault.toggleTodoComplete(todos[todos.length - 1].id);
+    }
     function addXP(amount) {
-        Vault.addTodo({ label: '🛠 Dev XP', xp: amount, difficulty: 'Easy', notes: 'Added by the dev panel.' });
-        const id = Vault.getTodos()[Vault.getTodos().length - 1].id;
-        Vault.toggleTodoComplete(id);
+        const start = Vault.getUser().totalXP;
+        for (let i = 0; i < 200 && Vault.getUser().totalXP - start < amount; i++) devTodo();
         reload();
     }
     function fillBar() {
-        const bar = Vault.getCharacterLevelBar();
-        addXP(Math.max(1, bar.cap - bar.xpIntoLevel));
+        for (let i = 0; i < 200 && !Vault.getCharacterLevelBar().maxed; i++) devTodo();
+        reload();
     }
     function clearDevXP() {
         Vault.getTodos().filter(t => t.label === '🛠 Dev XP').forEach(t => Vault.removeTodo(t.id));
@@ -109,6 +115,87 @@
         });
         toast(`🐝 Added a ${rarity} bee`);
     }
+    // ---- previews (Oct 2026): play effects with made-up bees, nothing saved --
+    const loaded = {};
+    function need(files) {
+        return Promise.all(files.map(f => loaded[f] || (loaded[f] = new Promise((res) => {
+            const tail = f.replace(/^src\//, '');
+            if (f.endsWith('.css')) {
+                if (document.querySelector(`link[href$="${tail}"]`)) return res();
+                const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `${root}/${f}`;
+                l.onload = l.onerror = () => res(); document.head.appendChild(l);
+            } else {
+                if (document.querySelector(`script[src$="${tail}"]`)) return res();
+                const sc = document.createElement('script'); sc.src = `${root}/${f}`;
+                sc.onload = sc.onerror = () => res(); document.body.appendChild(sc);
+            }
+        }))));
+    }
+    const CARD_FILES = ['src/core/ui/bee-card/bee-card.css', 'src/core/ui/bee-card/bee-card.js'];
+    const FX_FILES = [...CARD_FILES, 'src/features/gacha/gacha-fx.css', 'src/features/gacha/gacha-fx.js'];
+    function fakeBee(rarity) {
+        const bee = {
+            id: 'dev-' + Math.random().toString(36).slice(2), rarity, class: null, sex: 'f',
+            name: randomBeeName(Vault.getColonyBees().map(b => b.name)),
+            obtainedAt: new Date().toISOString(), source: 'dev-preview', dexNumber: 99,
+            stats: rollBeeStats(rarity), weight: rollBeeWeight(rarity), element: rollBeeElement(), customNamed: false
+        };
+        if (rarity === 'Named') { bee.title = rollNamedTitle(); bee.class = beeLockedJob(bee); }
+        else bee.talent = pickBeeTalent(bee);
+        return bee;
+    }
+    const nextUp = { Common: 'Rare', Rare: 'Epic', Epic: 'Legendary', Legendary: 'Legendary' };
+    const PREVIEW = {
+        pull: (r) => need(FX_FILES).then(() => GachaFX.pull(fakeBee(r))),
+        destroy: () => need(FX_FILES).then(() => GachaFX.destroy(fakeBee('Rare'), ['pollen', 'royal-nectar', 'honey-drop'])),
+        combine: (up) => need(FX_FILES).then(() => { const r = up ? 'Epic' : 'Rare'; return GachaFX.combine(fakeBee(r), fakeBee(r), fakeBee(up ? nextUp[r] : r), !!up); }),
+        card: (r) => need(CARD_FILES).then(() => showCard(r === 'Royal' ? Vault.getRoyalBee() : fakeBee(r))),
+        reward: (lvl) => need([...CARD_FILES, 'src/core/ui/level-bar/level-bar.css', 'src/core/ui/level-bar/level-bar.js']).then(() => {
+            const newLevel = lvl || (Vault.getUser().level || 1) + 1;
+            LevelBar.celebrate(AppShell.formatReward({ newLevel, awardedBees: [fakeBee(newLevel % 10 === 0 ? 'Epic' : 'Rare')], ticketsGranted: 1 + Math.floor(newLevel / 10), awardedMaterials: ['pollen', 'pollen', 'royal-nectar'] }));
+        }),
+        rewardSkill: () => need(['src/core/ui/level-bar/level-bar.css', 'src/core/ui/level-bar/level-bar.js']).then(() => LevelBar.celebrate({
+            title: 'Coding reached Level 4!', lines: ['✨ Royal Nectar +1', '🌼 Pollen +1']
+        })),
+        dayStart: () => need(['src/core/ui/day-start/day-start.css', 'src/core/ui/day-start/day-start.js']).then(() => {
+            const y = shiftISODate(todayISO(), -1);
+            DayStart.open({
+                today: todayISO(), yesterday: y,
+                dailies: [{ id: 'dev-d1', label: 'Sample daily · Medium', difficulty: 'medium', xp: 30, streak: 4, checklist: [] },
+                          { id: 'dev-d2', label: 'Sample daily · Hard', difficulty: 'hard', xp: 60, streak: 12, checklist: [] }],
+                todos: [{ id: 'dev-t1', label: 'Sample To-Do', difficulty: 'easy', xp: 20 }],
+                guards: [], charms: 1
+            });
+        }),
+        toastGood: () => Toast.show('✅ A positive toast', 'positive'),
+        toastBad: () => Toast.show('⚠️ A negative toast', 'negative')
+    };
+    function showCard(bee) {
+        if (!bee) { toast('No royal yet - skip the egg first'); return; }
+        const o = document.createElement('div');
+        o.style.cssText = 'position:fixed;inset:0;z-index:2200;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px';
+        o.innerHTML = '<div class="dev-card-host" style="width:min(300px,86vw)"></div><p style="margin:0;color:#a69a80;font:12px system-ui">Tap the card to flip · tap outside to close</p>';
+        document.body.appendChild(o);
+        BeeCard.render(o.querySelector('.dev-card-host'), bee, { editable: false });
+        o.addEventListener('click', (e) => { if (e.target === o) o.remove(); });
+    }
+
+    // ---- hive life + tickets (these DO change the save) ---------------------
+    const today = () => todayISO();
+    const HIVE = {
+        tickets: (n) => { Vault.state.colony.tickets = (Vault.state.colony.tickets || 0) + n; Vault.save(); toast(`🎟️ +${n} tickets (${Vault.getTicketCount()})`); },
+        day: () => { Vault._ensureBeeLife(); Vault._lifeDay(today()); Vault.save(); reload(); },
+        raid: () => { Vault._ensureBeeLife(); Vault._raid(today()); Vault.save(); reload(); },
+        egg: () => { Vault.awardBee('gacha', 'Common'); toast('🥚 Egg added to the Nursery'); },
+        hatch: () => {
+            Vault._lifeBees().forEach(b => { if (b.life && b.life.hatchOn) b.life.hatchOn = today(); });
+            Vault._lifeDay(today()); Vault.save(); reload();
+        },
+        set: (key, val) => { Vault._lifeBees().forEach(b => { if (b.life && !b.life.hatchOn) b.life[key] = val; }); Vault.save(); reload(); },
+        heal: () => { Vault._lifeBees().forEach(b => { if (!b.life) return; Object.assign(b.life, { health: 100, stamina: 100, fullness: 100, happiness: 100, faintedAt: null }); }); Vault.save(); reload(); },
+        review: () => { const q = Vault._ensureQueen(); if (q) { q.reviewedOn = null; Vault.save(); } reload(); }
+    };
+
     function setRoyal(kind) {
         const royal = Vault.getRoyalBee();
         if (!royal) { toast('No royal yet - skip the egg first'); return; }
@@ -215,6 +302,7 @@
             `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
             `Royal: ${royal ? `${royal.royal} "${royal.name}"` : 'none'} · bees ${Vault.getColonyBees().length}`,
+            `Tickets ${Vault.getTicketCount()} · eggs ${Vault.getColonyBees().filter(x => x.life && x.life.hatchOn).length}`,
             `Habits ${Vault.getHabits().length} · To-Dos ${Vault.getTodos().length} · Dailies ${Vault.getDailyTasks().length}`
         ].join('\n');
     }
@@ -286,6 +374,45 @@
                 <button data-dev="rehatch">Re-show bee hatching</button>
             </div>
 
+            <h3>PREVIEW · NOTHING IS SAVED</h3>
+            <div class="dev-row">
+                ${['Common', 'Rare', 'Epic', 'Legendary', 'Named'].map(r => `<button data-dev="pv-pull" data-r="${r}">Pull · ${r}</button>`).join('')}
+                <button data-dev="pv-destroy">Destroy</button>
+                <button data-dev="pv-combine">Combine</button>
+                <button data-dev="pv-combine-up">Combine ↑ rarity</button>
+            </div>
+            <div class="dev-row" style="margin-top:6px">
+                ${['Common', 'Rare', 'Epic', 'Legendary', 'Named', 'Royal'].map(r => `<button data-dev="pv-card" data-r="${r}">Card · ${r}</button>`).join('')}
+            </div>
+            <div class="dev-row" style="margin-top:6px">
+                <button data-dev="pv-reward">Level-up reward</button>
+                <button data-dev="pv-reward-10">Reward · Level 10</button>
+                <button data-dev="pv-reward-skill">Reward · skill</button>
+                <button data-dev="pv-day">Start My Day (sample)</button>
+                <button data-dev="pv-toast">Toast ✓</button>
+                <button data-dev="pv-toast-bad">Toast ✗</button>
+            </div>
+
+            <h3>TICKETS</h3>
+            <div class="dev-row">
+                <button data-dev="tk-1">+1 ticket</button>
+                <button data-dev="tk-10">+10 tickets</button>
+                <a href="${root}/src/features/gacha/gacha.html">Pollination Chamber</a>
+            </div>
+
+            <h3>HIVE LIFE · CHANGES THE SAVE</h3>
+            <div class="dev-row">
+                <button data-dev="hv-day">Run a hive day</button>
+                <button data-dev="hv-raid">Raid now</button>
+                <button data-dev="hv-egg">+ Egg</button>
+                <button data-dev="hv-hatch">Hatch eggs now</button>
+                <button data-dev="hv-hungry">Hungry bees</button>
+                <button data-dev="hv-tired">Tired bees</button>
+                <button data-dev="hv-sad">Unhappy bees</button>
+                <button data-dev="hv-heal" class="go">Heal all</button>
+                <button data-dev="hv-review">Start My Day again</button>
+            </div>
+
             <h3>SAMPLE DATA</h3>
             <div class="dev-row">
                 <button data-dev="samples">Add sample habits + To-Dos</button>
@@ -331,7 +458,16 @@
                 bee: () => { addBee(b.dataset.r); open(); },
                 'royal-queen': () => setRoyal('queen'), 'royal-king': () => setRoyal('king'),
                 rehatch: () => { localStorage.setItem('bizzybee_colony_hatched', '[]'); toast('Bees will hatch again on the Hive page'); },
-                samples: addSamples, export: exportSave, import: () => fileInput.click()
+                samples: addSamples, export: exportSave, import: () => fileInput.click(),
+                'pv-pull': () => { close(); PREVIEW.pull(b.dataset.r); }, 'pv-destroy': () => { close(); PREVIEW.destroy(); },
+                'pv-combine': () => { close(); PREVIEW.combine(false); }, 'pv-combine-up': () => { close(); PREVIEW.combine(true); },
+                'pv-card': () => { close(); PREVIEW.card(b.dataset.r); }, 'pv-reward': () => { close(); PREVIEW.reward(); },
+                'pv-reward-10': () => { close(); PREVIEW.reward(10); }, 'pv-reward-skill': () => { close(); PREVIEW.rewardSkill(); },
+                'pv-day': () => { close(); PREVIEW.dayStart(); }, 'pv-toast': PREVIEW.toastGood, 'pv-toast-bad': PREVIEW.toastBad,
+                'tk-1': () => { HIVE.tickets(1); open(); }, 'tk-10': () => { HIVE.tickets(10); open(); },
+                'hv-day': HIVE.day, 'hv-raid': HIVE.raid, 'hv-egg': () => { HIVE.egg(); open(); }, 'hv-hatch': HIVE.hatch,
+                'hv-hungry': () => HIVE.set('fullness', 15), 'hv-tired': () => HIVE.set('stamina', 5), 'hv-sad': () => HIVE.set('happiness', 10),
+                'hv-heal': HIVE.heal, 'hv-review': HIVE.review
             };
             if (localDev) Object.assign(actions, { personal: loadPersonalFile, fresh: freshSave, signout: signOut });
             if (actions[a]) actions[a]();

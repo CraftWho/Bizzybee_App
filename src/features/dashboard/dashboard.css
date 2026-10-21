@@ -111,3 +111,13 @@
 .dbv2 .how td { padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
 .dbv2 .how td:last-child { text-align: right; color: var(--ink); }
 .dbv2 .new { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: var(--cr); color: #fff; font: 700 .58rem system-ui, sans-serif; letter-spacing: .06em; vertical-align: 2px; }
+
+/* Skill level-up button (Oct 2026) */
+.sk-up { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; margin: 10px 0 4px; padding: 11px 14px !important; border: 0 !important; border-radius: 12px !important;
+    background: linear-gradient(#ffd84a, #e6b52c) !important; color: #1a1000 !important; cursor: pointer; box-shadow: 0 0 0 2px rgba(220, 20, 60, .55), 0 0 18px rgba(255, 204, 0, .35) !important;
+    animation: sk-up-pulse 1.6s ease-in-out infinite; }
+.sk-up span { font: 800 .9rem var(--font-main, monospace); letter-spacing: .12em; }
+.sk-up small { font: 600 .72rem system-ui, sans-serif; color: #3a2800; }
+.sk-up:disabled { opacity: .6; animation: none; }
+@keyframes sk-up-pulse { 50% { box-shadow: 0 0 0 2px rgba(220, 20, 60, .9), 0 0 28px rgba(255, 204, 0, .6); } }
+@media (prefers-reduced-motion: reduce) { .sk-up { animation: none; } }

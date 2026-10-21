@@ -55,7 +55,17 @@ function initCloudSync() {
     document.getElementById('cloud-sync-logout-btn').onclick = () => netlifyIdentity.logout();
     const wire = (id, action) => { const button = document.getElementById(id); button.onclick = () => settingsAction(button, action); };
     wire('cloud-sync-push-btn', async () => {
-        if (!await cloudEngine().pushNow()) throw new Error('Cloud save is not complete. Check the sync status above.');
+        const engine = cloudEngine();
+        // Oct 2026: when both copies changed, Save to Cloud offers to keep this
+        // device's copy instead of just failing. The cloud copy is backed up first.
+        if (engine.hasConflict && engine.hasConflict()) {
+            if (!confirm('The cloud copy changed too. Save this device’s copy to the cloud? The current cloud copy is kept in Backups first.')) return;
+            await engine.useDeviceCopy();
+            refreshSyncCompare();
+            await refreshCloudBackups().catch(() => {});
+            return;
+        }
+        if (!await engine.pushNow()) throw new Error('Cloud save is not complete. Check the sync status above.');
         refreshSyncCompare();
     });
     wire('cloud-sync-pull-btn', async () => {
@@ -196,7 +206,7 @@ function initDeviceBackups() {
     updateLocalOnlyTimestamp();
 }
 
-// FolderBackup (src/core/folder-backup.js) may still be loading its own
+// FolderBackup (src/core/services/folder-backup.js) may still be loading its own
 // script tag when this runs - waitForFolderBackup() polls briefly rather
 // than assuming it's already a global.
 function waitForFolderBackup(tries = 20) {

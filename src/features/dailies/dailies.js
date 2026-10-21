@@ -5,7 +5,7 @@ console.log("/// DAILIES PROTOCOLS INITIALIZED ///");
 // check it off, tap the card to edit, hold to move. Dailies not due today
 // are dimmed and show when they're next due. The box on the right is the
 // checklist count; tap it to tick lines here (they reset every day, like
-// the daily itself). The card itself is TaskRow.dailyHTML (src/core/task-row/),
+// the daily itself). The card itself is TaskRow.dailyHTML (src/core/ui/task-row/),
 // shared with Home's Today panel.
 
 const openChecklists = new Set();

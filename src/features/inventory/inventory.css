@@ -1,4 +1,4 @@
-/* Inventory v2 (Oct 2026) - the shared look lives in core/page-v2/page-v2.css.
+/* Inventory v2 (Oct 2026) - the shared look lives in core/ui/page-v2/page-v2.css.
    Only page-specific bits here. */
 .inv2 .card a.row { color: var(--ink); }
 .inv2 .card a.row .mid b { font-size: 1rem; color: var(--gold2); }

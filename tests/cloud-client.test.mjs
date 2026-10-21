@@ -33,7 +33,7 @@ async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', 
             const result = await h.respond();
             return { ok: result.ok, status: result.ok ? 200 : 409, json: async () => result };
         } });
-    vm.runInContext(readFileSync(new URL('../src/core/cloud-sync/cloud-sync.js', import.meta.url), 'utf8') + '\nglobalThis.engine = CloudSyncAuto;', context);
+    vm.runInContext(readFileSync(new URL('../src/core/services/cloud-sync/cloud-sync.js', import.meta.url), 'utf8') + '\nglobalThis.engine = CloudSyncAuto;', context);
     h.engine = context.engine;
     await tick(); await tick();
     return h;
@@ -102,7 +102,7 @@ test('password reset verifies a recovery token before updating the account', asy
         calls.push({ url, options });
         return { ok: true, json: async () => ({ access_token: 'recovery-access' }) };
     } });
-    vm.runInContext(readFileSync(new URL('../src/core/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
+    vm.runInContext(readFileSync(new URL('../src/core/login/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
     await context.recovery.reset('email-token', 'a-long-new-password');
     assert.equal(calls[0].url, '/.netlify/identity/verify');
     assert.deepEqual(JSON.parse(calls[0].options.body), { type: 'recovery', token: 'email-token' });
@@ -112,7 +112,7 @@ test('password reset verifies a recovery token before updating the account', asy
 test('expired recovery token never attempts a password change', async () => {
     let count = 0;
     const context = vm.createContext({ AbortSignal, fetch: async () => { count++; return { ok: false }; } });
-    vm.runInContext(readFileSync(new URL('../src/core/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
+    vm.runInContext(readFileSync(new URL('../src/core/login/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
     await assert.rejects(context.recovery.reset('expired', 'long-password'));
     assert.equal(count, 1);
 });

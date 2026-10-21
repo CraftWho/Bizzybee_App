@@ -6,7 +6,7 @@ console.log("/// TO-DOS PLUGIN PROTOCOLS INITIALIZED ///");
 // Active (everything not done), Scheduled (has a due date, soonest first)
 // and Done (newest first, tap the hexagon to bring one back). The box on
 // the right is the checklist count; tap it to tick lines here.
-// The card itself is TaskRow.todoHTML (src/core/task-row/), shared with
+// The card itself is TaskRow.todoHTML (src/core/ui/task-row/), shared with
 // Home's Today panel.
 
 const openChecklists = new Set();

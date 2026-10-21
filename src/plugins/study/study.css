@@ -145,7 +145,7 @@ a.study-item-topic--link:hover {
     }
 }
 
-/* Study v2 (Oct 2026). Shared look: core/page-v2/page-v2.css. */
+/* Study v2 (Oct 2026). Shared look: core/ui/page-v2/page-v2.css. */
 .sd2 #study-app[hidden] { display: none; }
 .sd2 .sd-add { margin-bottom: 4px; }
 .sd2 .sd-add > summary { list-style: none; }

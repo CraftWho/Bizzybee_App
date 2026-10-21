@@ -91,7 +91,7 @@ const roadPos = (h) => Math.max(0, Math.min(100, Math.log10(Math.max(1, h)) / 4 
 function renderMastery(S) {
     const list = Vault.getSkillMatrix();
     const since = new Date(); since.setDate(since.getDate() - 30);
-    const sinceKey = since.toISOString().slice(0, 10);
+    const sinceKey = isoLocal(since);
     const recent = {};
     computeSkillContributions(S.dailyTasks, S.dictionary, S.quests, S.habits, S.todos).forEach(c => {
         if (c.date && dayKey(c.date) >= sinceKey && c.source !== 'history') recent[c.category] = (recent[c.category] || 0) + c.minutes;
@@ -115,7 +115,8 @@ function renderMastery(S) {
                 <div class="mid"><b>${esc(s.category)}</b><span class="stage" style="--sc:${s.stageColor}">${s.stage}</span></div>
                 <div class="hrs"><b>${fmtH(s.hours)} h</b><small>${(s.hours / GOAL_H * 100).toFixed(s.hours < 100 ? 2 : 1)}% of 10,000</small></div></div>
             <div class="bar" role="img" aria-label="${s.stage}: ${Math.round(stagePct)}% to ${s.nextStage || 'done'}"><i style="width:${stagePct}%"></i></div>
-            <div class="cap"><span>${s.nextStage ? `${fmtH(s.hoursToNextStage)} h to <b>${s.nextStage}</b>` : 'Top stage'}</span><span>${s.maxed ? `<a href="../skills/skills.html">⬆ Level ${s.level + 1} ready</a>` : `Level ${s.level}`}</span></div>
+            <div class="cap"><span>${s.nextStage ? `${fmtH(s.hoursToNextStage)} h to <b>${s.nextStage}</b>` : 'Top stage'}</span><span>Level ${s.level}</span></div>
+            ${s.maxed ? `<button type="button" class="sk-up" data-cat="${esc(s.category)}"><span>⬆ Level up</span><small>Level ${s.level + 1} is ready · tap for rewards</small></button>` : ''}
             <div class="cap"><span>From: ${src}</span></div>
             <div class="road"><span class="line"></span><span class="fill" style="width:${roadPos(s.hours)}%"></span>${ticks}<span class="me" style="left:${roadPos(s.hours)}%"></span></div>
             <div class="road-lab"><span>1 h</span><span>10</span><span>100</span><span>1,000</span><span>10,000 h</span></div>
@@ -146,5 +147,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     render();
     window.addEventListener('time-logged', render);
+    // Skill level-up right here (Oct 2026), same reward screen as the Skills page.
+    document.getElementById('db-mastery').addEventListener('click', async (e) => {
+        const b = e.target.closest('.sk-up');
+        if (!b || b.disabled) return;
+        b.disabled = true;
+        await AppShell.levelUpSkill(b.dataset.cat);
+        render();
+    });
     Waggle.setActions(baseWaggleActions());
 });

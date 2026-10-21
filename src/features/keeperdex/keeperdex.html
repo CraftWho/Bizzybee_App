@@ -12,14 +12,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>📘 KeeperDex</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
-    <link rel="stylesheet" href="../../core/keeperdex-card/keeperdex-card.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/keeperdex-card/keeperdex-card.css">
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
     <link rel="stylesheet" href="./keeperdex.css">
 </head>
 <body>
@@ -27,8 +23,10 @@
     <!-- KeeperDex v2 (Oct 2026): same look as Settings/Inventory. Cards are
          shown small in a grid; tap one to see it full size. -->
     <main class="pv2 kd2">
-        <h1 class="pv2-title">📘 KEEPERDEX</h1>
-        <p class="pv2-lead">Every rarity and element the hive can make. Get a matching bee to reveal its entry.</p>
+        <header class="pv2-head">
+            <h1 class="pv2-title">📘 KEEPERDEX</h1>
+            <p class="pv2-lead">Every rarity and element the hive can make. Get a matching bee to reveal its entry.</p>
+        </header>
 
         <section class="card kd-progress">
             <div class="kd-progress-top"><b id="keeperdex-progress-text"></b><small id="keeperdex-progress-pct"></small></div>
@@ -45,18 +43,11 @@
         </section>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/bee-card/bee-card.js"></script>
-    <script src="../../core/keeperdex-card/keeperdex-card.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
+    <script src="../../core/ui/keeperdex-card/keeperdex-card.js"></script>
 
-    <script src="../../core/page-v2/page-v2.js"></script>
+    <script src="../../core/ui/page-v2/page-v2.js"></script>
     <script src="./keeperdex.js"></script>
 </body>
 </html>

@@ -11,14 +11,16 @@
     <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>💻 Terminal</title>
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
     <link rel="stylesheet" href="./terminal.css">
 </head>
 <body>
     <main class="tmv2">
+        <header class="pv2-head">
+            <h1 class="pv2-title">💻 TERMINAL</h1>
+            <p class="pv2-lead">Support console. Type commands to repair your save or check your access.</p>
+        </header>
         <div id="terminal-not-installed" class="tm-card" hidden>
             <p>The Terminal plugin isn't downloaded on this device.</p>
             <a href="../../features/plugin-hub/plugin-hub.html#terminal" class="tm-btn">🧩 Get it in Plugins &amp; Packs →</a>
@@ -35,12 +37,7 @@
         <div class="tm-chips" id="tm-chips" aria-label="Quick commands" hidden></div>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../features/llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js"></script>
     <script src="./terminal.js"></script>
 </body>
 </html>

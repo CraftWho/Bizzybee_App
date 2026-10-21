@@ -12,13 +12,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>✅ Create Habit</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../../features/llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/tag-picker/tag-picker.css">
-    <link rel="stylesheet" href="../../core/task-form/task-form.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/tag-picker/tag-picker.css">
+    <link rel="stylesheet" href="../../core/ui/task-form/task-form.css">
     <link rel="stylesheet" href="./create-habit.css">
 </head>
 <body class="habit-form-page">
@@ -86,22 +82,15 @@
 
             <h2 class="hf-h">Tags</h2>
             <div class="hf-tags" id="habit-tags-list"></div>
-            <p class="hf-hint hf-hint-left">Found automatically from your title and notes. Tap × to remove one.</p>
+            <p class="hf-hint hf-hint-left">Found automatically from your title and notes, or type your own. Tap × to remove one. Tags decide which skills this counts toward.</p>
         </section>
     </main>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../../features/llm-engine/llm-engine.js"></script>
-    <script src="../../core/tag-picker/tag-picker.js"></script>
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/tag-picker/tag-picker.js"></script>
 
-    <script src="../../core/habit-row/habit-row.js"></script>
-    <script src="../../core/task-form/task-form.js"></script>
+    <script src="../../core/ui/habit-row/habit-row.js"></script>
+    <script src="../../core/ui/task-form/task-form.js"></script>
     <script src="./create-habit.js"></script>
 </body>
 </html>

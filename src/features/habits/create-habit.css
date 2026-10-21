@@ -1,5 +1,5 @@
 /* Create / edit habit - the parts only Habits has. The shared form look
-   (top bar, fields, difficulty, tags) is in src/core/task-form/. */
+   (top bar, fields, difficulty, tags) is in src/core/ui/task-form/. */
 .hf-pn { display: flex; justify-content: center; gap: 34px; }
 .hf-toggle { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--hf-muted); font: 600 .95rem var(--hf-sans); cursor: pointer; }
 .hf-toggle svg { width: 48px; height: 52px; overflow: visible; transition: transform .25s cubic-bezier(.3, 1.5, .4, 1); }

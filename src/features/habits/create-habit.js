@@ -28,7 +28,7 @@ let deleteArmed = false;
 
 // Every term a tag could plausibly match against - same sources
 // create-daily.js's collectKnownTerms uses, plus existing Habit tags too.
-// Stays page-owned (see src/core/tag-picker/tag-picker.js) - only the
+// Stays page-owned (see src/core/ui/tag-picker/tag-picker.js) - only the
 // scan/render/dismiss mechanics around this are shared.
 function collectKnownTerms() {
     const terms = new Map();

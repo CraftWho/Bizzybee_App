@@ -315,3 +315,17 @@
 .stv2 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .stv2 .btn:focus-visible, .stv2 .row:focus-visible, .stv2 .toggle-switch input:focus-visible + .toggle-switch-track { outline: 2px solid var(--gold); outline-offset: 2px; }
 .stv2 .logout { justify-content: center; color: #ff8aa0; font-weight: 700; }
+
+/* Text & look (Oct 2026) - Appearance in app.js. */
+.stv2 .look-line { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 12px 48px; }
+.stv2 .look-sw { width: 30px; height: 30px; margin: 0; padding: 0; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .15); cursor: pointer; box-shadow: none; }
+.stv2 .look-sw[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px #000 inset, 0 0 10px rgba(255, 255, 255, .4); }
+.stv2 .look-sw:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.stv2 .look-seg { flex: none; display: flex; border: 1px solid rgba(255, 204, 0, .3); border-radius: 10px; overflow: hidden; }
+.stv2 .look-seg button { margin: 0; padding: 6px 10px; border: 0; border-radius: 0; background: none; box-shadow: none; color: #a69a80; font: 700 .74rem var(--font-main, monospace); cursor: pointer; }
+.stv2 .look-seg button[aria-pressed="true"] { background: #ffcc00; color: #241600; }
+
+/* Backup lists (Oct 2026): date on one line, its buttons right under it -
+   no tall empty gap on phones. */
+.stv2 .list .settings-action-row { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; justify-content: flex-start; gap: 6px 8px; padding: 10px 0; }
+.stv2 .list .settings-action-row span { flex: 1 0 100%; color: var(--ink, #f1ede2); font-size: .82rem; }

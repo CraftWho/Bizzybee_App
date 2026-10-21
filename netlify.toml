@@ -24,3 +24,19 @@
   from = "/src/features/dictionary/*"
   to = "/src/plugins/dictionary/:splat"
   status = 301
+
+# Oct 2026 cleanup: the login helper pages moved out of the project root.
+[[redirects]]
+  from = "/reset-password.html"
+  to = "/src/core/login/reset-password.html"
+  status = 301
+
+[[redirects]]
+  from = "/request-access.html"
+  to = "/src/features/request-access/request-access.html"
+  status = 301
+
+[[redirects]]
+  from = "/suggestions.html"
+  to = "/src/features/suggestions/suggestions.html"
+  status = 301

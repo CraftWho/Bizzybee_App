@@ -13,12 +13,11 @@ console.log("/// PLUGIN MANAGER ONLINE ///");
 // the actual list of plugins, their metadata, and whether there's
 // anything behind them yet (`status`). Plugins.toggle() is the only
 // place allowed to flip Vault's stored flag, specifically so a
-// 'coming-soon' plugin (see src/plugins/fitness, src/plugins/diet,
-// src/plugins/recovery - all still empty stub files) can never actually
-// be switched on by mistake before it has a real page behind it.
+// 'coming-soon' plugin (Fitness, Diet, Recovery - no folder yet) can
+// never actually be switched on by mistake before it has a real page.
 
 // status: 'available' once a plugin has a real page/feature behind it;
-// 'coming-soon' means the folder is scaffolded (see src/plugins/*/) but
+// 'coming-soon' means it's planned but
 // there's genuinely nothing there yet - Plugin Hub shows these but
 // doesn't let you toggle them.
 const PLUGIN_CATALOG = [

@@ -11,6 +11,7 @@ function downloadFile(content, filename, mimeType) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof Appearance !== 'undefined') Appearance.mountSettings(document.getElementById('look-card'));
     try { await Vault.init(); } catch (error) { Toast.show(error.message, "negative"); }
 
     Waggle.setActions(baseWaggleActions());
@@ -188,7 +189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
-// Phone reminders (src/core/push/push.js).
+// Phone reminders (src/core/services/push/push.js).
 function initPhoneReminders() {
     const toggle = document.getElementById('push-toggle');
     const names = document.getElementById('push-names-toggle');

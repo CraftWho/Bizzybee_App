@@ -12,24 +12,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>🌼 Pollination Chamber</title>
 
-    <link rel="stylesheet" href="../../core/global.css">
-    <link rel="stylesheet" href="../../core/hive-mind/hive-mind.css">
-    <link rel="stylesheet" href="../../core/hive-mind/nano-bee.css">
-    <link rel="stylesheet" href="../../core/bee-card/bee-card.css">
-    <link rel="stylesheet" href="../../core/modal/modal.css">
-    <link rel="stylesheet" href="../../core/toast/toast.css">
-    <link rel="stylesheet" href="../llm-engine/llm-engine.css">
-    <link rel="stylesheet" href="../../core/bee-name/bee-name.css">
-    <link rel="stylesheet" href="../../core/page-v2/page-v2.css">
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
+    <link rel="stylesheet" href="../../core/ui/bee-name/bee-name.css">
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
     <link rel="stylesheet" href="./gacha.css">
+    <link rel="stylesheet" href="./gacha-fx.css">
 </head>
 <body>
 
     <!-- Pollination Chamber v2 (Oct 2026): same look as Settings. Ids the JS
          uses are unchanged; the foil card and pull results keep their art. -->
     <main class="pv2 ga2">
-        <h1 class="pv2-title">🌼 POLLINATION</h1>
-        <p class="pv2-lead">Spend tickets on new bees, refine your collection, or save up for a Named Beast.</p>
+        <header class="pv2-head">
+            <h1 class="pv2-title">🌼 POLLINATION</h1>
+            <p class="pv2-lead">Spend tickets on new bees, refine your collection, or save up for a Named Beast.</p>
+        </header>
 
         <div class="stats">
             <div><b>🎟️ <span id="gacha-ticket-count">0</span></b><small>Tickets</small></div>
@@ -89,16 +88,10 @@
         </section>
     </main>
 
-    <!-- Gacha summon popup - spinning warp/galaxy animation, then reveals
+    <!-- Gacha summon popup - after the gacha-fx effect, reveals
          the pulled or fused bee as a full BeeCard. See gacha.js's
          showSummonReveal(). -->
     <div class="gacha-summon-overlay" id="gacha-summon-overlay" hidden>
-        <div class="gacha-summon-stage" id="gacha-summon-stage">
-            <div class="gacha-warp-ring gacha-warp-ring--1"></div>
-            <div class="gacha-warp-ring gacha-warp-ring--2"></div>
-            <div class="gacha-warp-ring gacha-warp-ring--3"></div>
-            <div class="gacha-warp-core"></div>
-        </div>
         <div class="gacha-summon-result" id="gacha-summon-result" hidden>
             <p class="gacha-summon-title" id="gacha-summon-title"></p>
             <div class="gacha-summon-card" id="gacha-summon-card"></div>
@@ -107,18 +100,12 @@
         </div>
     </div>
 
-    <script src="../../core/db.js"></script>
-    <script src="../../core/plugins.js"></script>
-    <script src="../../core/app.js"></script>
-    <script src="../../core/hive-mind/nano-bee.js"></script>
-    <script src="../../core/bee-card/bee-card.js"></script>
-    <script src="../../core/hive-mind/hive-mind.js"></script>
-    <script src="../../core/toast/toast.js"></script>
-    <script src="../../core/reminders/reminders.js"></script>
-    <script src="../llm-engine/llm-engine.js"></script>
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
 
-    <script src="../../core/bee-name/bee-name.js"></script>
-    <script src="../../core/page-v2/page-v2.js"></script>
+    <script src="../../core/ui/bee-name/bee-name.js"></script>
+    <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="./gacha-fx.js"></script>
     <script src="./gacha.js"></script>
 </body>
 </html>

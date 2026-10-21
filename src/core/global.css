@@ -227,7 +227,7 @@ body::before {
 }
 
 /* --- 06. (removed) --- Profile's real markup moved to .avatar-hex/.stats-grid
-   (profile.css) and the shared LevelBar (src/core/level-bar/) long ago;
+   (profile.css) and the shared LevelBar (src/core/ui/level-bar/) long ago;
    this section's rules (.profile-hero, .hero-stats, .octagon-frame,
    .progress-bar/.fill) were dead - confirmed zero references anywhere in
    src/ - and were removed rather than relocated during the modularity

@@ -145,8 +145,14 @@ function computeTodoXP(todos) {
     return (todos || []).filter(t => t.completed).reduce((sum, t) => sum + completionXP(t, t.minutesSpent), 0);
 }
 
+// Oct 2026: dates are YOUR day, not UTC's. toISOString() switched days at
+// UTC midnight (late afternoon/evening in the US), so Start My Day, streaks
+// and dailies rolled over early. A new day now starts at your 12 am.
+function localISO(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 function todayISO() {
-    return new Date().toISOString().slice(0, 10);
+    return localISO();
 }
 
 // Start-of-current-period ISO date for a Habit's Reset Counter cadence -
@@ -159,12 +165,12 @@ function habitPeriodStartISO(resetCounter, now = new Date()) {
     if (resetCounter === 'weekly') {
         const start = new Date(now);
         start.setDate(start.getDate() - start.getDay());
-        return start.toISOString().slice(0, 10);
+        return localISO(start);
     }
     if (resetCounter === 'monthly') {
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     }
-    return now.toISOString().slice(0, 10);
+    return localISO(now);
 }
 
 // Word-boundary-ish, case-insensitive "does this term appear in this text"
@@ -237,22 +243,39 @@ function skillMatcher(dictionaryTerms) {
             const cat = byName[name.toLowerCase()] || name;
             if (!out.has(cat)) out.set(cat, `tag ${name}`);
         });
-        const hay = ` ${String(text || '').toLowerCase()} `;
+        const hay = ` ${withHashtagWords(String(text || '')).toLowerCase()} `;
         terms.forEach(t => { if (!out.has(t.category) && t.re.test(hay)) out.set(t.category, `"${t.name}"`); });
         return [...out].map(([category, via]) => ({ category, via }));
     };
 }
+// Oct 2026: which words decide a QUEST task's skills. A task inside a
+// chapter (a course module) is matched on its chapter + sub-chapter names,
+// not the quest's whole description - a course description names every
+// skill, which made every lesson count toward all of them. Quest tags
+// (typed on the quest form) and a chapter's tags (quest.moduleTags) count
+// for every task they cover.
+function questSkillText(quest, task) {
+    if (!quest) return '';
+    if (task && task.module) return [task.module, task.section].filter(Boolean).join(' ');
+    return `${quest.title || ''} ${quest.objective || ''}`;
+}
+function questSkillTags(quest, task) {
+    if (!quest) return [];
+    const mod = task && task.module && quest.moduleTags ? (quest.moduleTags[task.module] || []) : [];
+    return [...(quest.tags || []), ...mod];
+}
+
 // Which skills a task would count toward (create forms show these as chips).
 function skillsForTask(task, dictionaryTerms, quest) {
-    const text = [quest && quest.title, quest && quest.objective, task.label, task.notes].filter(Boolean).join(' ');
-    return skillMatcher(dictionaryTerms)(text, (task.skillsOff ? [] : task.tags) || [])
+    const text = [questSkillText(quest, task), task.label, task.notes].filter(Boolean).join(' ');
+    return skillMatcher(dictionaryTerms)(text, [...((task.skillsOff ? [] : task.tags) || []), ...questSkillTags(quest, task)])
         .filter(s => !(task.skillsOff || []).includes(s.category));
 }
 
 function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos) {
     const match = skillMatcher(dictionaryTerms);
     const contributions = [];
-    const skillsOf = (task, extra) => match([extra, task.label, task.notes].filter(Boolean).join(' '), task.tags)
+    const skillsOf = (task, extra, extraTags) => match([extra, task.label, task.notes].filter(Boolean).join(' '), [...(task.tags || []), ...(extraTags || [])])
         .filter(s => !(task.skillsOff || []).includes(s.category));
     const push = (cats, task, minutes, date, source) => cats.forEach(({ category }) => contributions.push({
         category, label: task.label, minutes, xp: xpForMinutes(minutes, task.difficulty), date, source }));
@@ -278,7 +301,7 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, 
         (quest.tasks || []).forEach(task => {
             if (!task.completed) return;
             const source = Number(task.historyXP) > 0 ? 'history' : 'quest';
-            push(skillsOf(task, `${quest.title || ''} ${quest.objective || ''}`), task, completionMinutes(task, task.minutesSpent), task.dateCompleted || null, source);
+            push(skillsOf(task, questSkillText(quest, task), questSkillTags(quest, task)), task, completionMinutes(task, task.minutesSpent), task.dateCompleted || null, source);
         });
     });
     return contributions;
@@ -485,6 +508,74 @@ const BEE_RARITIES = [
 const NAMED_BEE_NOUNS = ['Stinger', 'Gem', 'Blaze', 'Nova', 'Comet', 'Ember', 'Onyx', 'Sable', 'Flicker', 'Talon'];
 const NAMED_BEE_TITLES = ['The Champ', 'The Collector', 'The Guardian', 'The Swift', 'The Bold', 'The Wanderer', 'The Relentless', 'The Keeper', 'The Bright', 'The Unyielding'];
 
+// Named Beast titles (Oct 2026, approved demo): every bee has a real name
+// now, so a Named Beast keeps its own name and gets a TITLE - e.g. Kin
+// "The Guardian". One random title, given when it becomes Named. Each title
+// has a small power that works while the bee does the matching job (job:
+// null = any job). Older Named Beasts ("Comet The Relentless") are split
+// into name + title once (_splitNamedTitles).
+const NAMED_TITLES = {
+    guardian: { label: 'The Guardian', icon: '🛡️', power: 'Unbreakable', text: '+15% raid defense while a Guard Bee.', job: 'guardian', quote: 'No raider passes while {n} stands at the gate.' },
+    collector: { label: 'The Collector', icon: '🌾', power: 'Deep Pockets', text: 'Brings back materials 10% more often while a Forager.', job: 'collector', quote: '{n} never comes home empty.' },
+    swift: { label: 'The Swift', icon: '💨', power: 'Tailwind', text: 'Scout ticket finds +2% while a Scout.', job: 'scout', quote: 'Faster than the morning breeze.' },
+    keeper: { label: 'The Keeper', icon: '🍯', power: 'Honeyhand', text: 'Makes Honey Drops more often while a Honey Maker.', job: 'honeymaker', quote: 'The hive eats well because of {n}.' },
+    healer: { label: 'The Healer', icon: '💗', power: 'Soft Touch', text: 'Counts as two Nurses for healing while a Nurse Bee.', job: 'nurse', quote: 'Every bruise mends under {n}\u2019s care.' },
+    architect: { label: 'The Architect', icon: '🏗️', power: 'Master Builder', text: '+1 quest loot roll while a Comb Builder (still max 3).', job: 'architect', quote: 'Every cell {n} builds stands for a hundred seasons.' },
+    relentless: { label: 'The Relentless', icon: '🔥', power: 'Never Tired', text: 'Loses stamina 25% slower on any job.', job: null, quote: '{n} works until the work is done.' },
+    bright: { label: 'The Bright', icon: '✨', power: 'Lucky Star', text: '+3% chance of a gacha ticket when you finish a task.', job: null, quote: 'Luck follows {n} like pollen.' },
+    champ: { label: 'The Champ', icon: '🏆', power: 'Main Event', text: '+15% power in counter-raids.', job: null, quote: '{n} has never lost a fight worth winning.' },
+    bold: { label: 'The Bold', icon: '🦁', power: 'Fearless', text: 'Never hurt when a raid gets in.', job: null, quote: '{n} flies straight at the hornets.' },
+    wanderer: { label: 'The Wanderer', icon: '🧭', power: 'Far Flyer', text: 'Counts as two Scouts when guiding Foragers to rare finds.', job: 'scout', quote: '{n} knows every flower for a mile.' },
+    unyielding: { label: 'The Unyielding', icon: '🧱', power: 'Iron Seal', text: '+15% raid defense while a Propolis Sealer.', job: 'barrier', quote: 'Cracks close wherever {n} goes.' }
+};
+const NAMED_TITLE_IDS = Object.keys(NAMED_TITLES);
+const rollNamedTitle = () => NAMED_TITLE_IDS[Math.floor(Math.random() * NAMED_TITLE_IDS.length)];
+// True when this bee's title power is switched on (its job matches).
+function beeTitlePower(bee, titleId) {
+    if (!bee || bee.rarity !== 'Named' || bee.title !== titleId) return false;
+    const t = NAMED_TITLES[titleId];
+    if (!t) return false;
+    if (!t.job) return true;
+    return bee.class === t.job;
+}
+// Oct 2026: a Named Beast's job is fixed by its title (The Guardian is
+// always a Guard Bee). Titles with no job (Relentless, Bright, Champ, Bold)
+// leave the job free. null = not locked.
+function beeLockedJob(bee) {
+    if (!bee || bee.rarity !== 'Named' || !bee.title) return null;
+    const t = NAMED_TITLES[bee.title];
+    return t && t.job ? t.job : null;
+}
+// Natural talent (Oct 2026): every normal bee is born best at one job.
+// Doing that job = +20% at it (BEE_TALENT_BOOST). Named Beasts have titles
+// instead; the Queen has neither.
+const BEE_TALENT_BOOST = 1.2;
+function beeTalentBoost(bee) {
+    return bee && bee.talent && bee.class === bee.talent && bee.rarity !== 'Named' ? BEE_TALENT_BOOST : 1;
+}
+function pickBeeTalent(bee, rand = Math.random) {
+    if (bee.sex === 'm') return 'drone';
+    const jobs = Object.keys(BEE_CLASSES).filter(k => !BEE_CLASSES[k].maleOnly);
+    return jobs[Math.floor(rand() * jobs.length)];
+}
+// Bee Models keys this bee counts toward (see Vault.getSeenModels).
+function beeModelKeys(bee) {
+    if (!bee) return [];
+    const k = [];
+    if (bee.rarity === 'Royal') { k.push('rar:Royal'); if (bee.royal) k.push('royal:' + bee.royal); return k; }
+    if (bee.rarity) k.push('rar:' + bee.rarity);
+    if (bee.element) k.push('el:' + bee.element);
+    if (bee.rarity === 'Named' && bee.title) k.push('title:' + bee.title);
+    if (bee.sex === 'm') k.push('life:drone');
+    return k;
+}
+// "Kin \u201cThe Guardian\u201d" for a Named Beast, the plain name otherwise.
+function beeFullName(bee) {
+    if (!bee) return '';
+    const t = bee.rarity === 'Named' && bee.title && NAMED_TITLES[bee.title];
+    return t ? `${bee.name} \u201c${t.label}\u201d` : bee.name;
+}
+
 function rollNamedBeeName() {
     const noun = NAMED_BEE_NOUNS[Math.floor(Math.random() * NAMED_BEE_NOUNS.length)];
     const title = NAMED_BEE_TITLES[Math.floor(Math.random() * NAMED_BEE_TITLES.length)];
@@ -509,7 +600,7 @@ function rollNamedBeeName() {
 // job is done by female workers, like a real hive.
 const BEE_CLASSES = {
     collector: { label: 'Forager', icon: '🌾', category: 'Gathering', zone: 'outside', stat: 'speed', description: 'Flies out to the flowers and brings back materials when you finish a task or daily.' },
-    scout: { label: 'Scout', icon: '🔭', category: 'Gathering', zone: 'outside', stat: 'speed', description: 'Dances to show the hive where food is. Small chance of a gacha ticket when you finish a task.' },
+    scout: { label: 'Scout', icon: '🔭', category: 'Gathering', zone: 'outside', stat: 'speed', description: 'Dances to show Foragers the best flowers: better odds of rare materials. Small chance of a gacha ticket when you finish a task.' },
     guardian: { label: 'Guard Bee', icon: '🛡️', category: 'Defense', zone: 'entrance', stat: 'defense', description: 'Fights raids at the entrance. Each Guard forgives one missed day of dailies per week (max 2).' },
     barrier: { label: 'Propolis Sealer', icon: '🟫', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Seals cracks with propolis (bee glue). Adds to raid defense.' },
     undertaker: { label: 'Undertaker', icon: '⚰️', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Carries fallen bees out of the hive. Each fallen bee leaves a little Pollen behind.' },
@@ -707,7 +798,7 @@ const STORE_ITEM_CATALOG = [
     // Start My Day (Oct 2026): saves one daily's streak on a miss, used
     // automatically. Paid in Honey coins, not materials.
     { id: 'streak-charm', label: 'Streak Charm', icon: '🎁', kind: 'charm', rarity: 'Rare', price: { currency: 'coins', amount: 25 }, description: "Saves one daily's streak when you miss it. Used up automatically in the morning, after your Guard Bees, and only on streaks of 2 days or more." },
-    { id: 'identity-card', label: 'Identity Card', icon: '🪪', kind: 'identity', rarity: 'Legendary', price: { materialId: 'royal-nectar', amount: 3 }, description: "Guarantees a bee evolves straight into a full Named Beast. Only works on a bee you haven't personally renamed." }
+    { id: 'identity-card', label: 'Identity Card', icon: '🪪', kind: 'identity', rarity: 'Legendary', price: { materialId: 'royal-nectar', amount: 3 }, description: "Guarantees a bee evolves straight into a full Named Beast. It keeps its name and earns a random title with a small power." }
 ];
 
 // Your real skill tree - a base feature, not a plugin. Flat catalog with
@@ -772,15 +863,29 @@ const QUEST_SPEED_FAST_BONUS_ROLLS = 1;
 // the task's first skill tag (or General), definition left to fill in.
 // Only words NEW to that text count, so deleting a term from the
 // Dictionary doesn't bring it back on the next edit.
+// Oct 2026: a capital starts a new word - #TimeManagement is "Time
+// Management", #CSSGrid is "CSS Grid", #HTML stays "HTML".
+function splitTagWords(name) {
+    return String(name || '')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+        .replace(/\s+/g, ' ').trim();
+}
 function findHashtags(text) {
     const out = [];
     const re = /(^|[\s(\[,;:])#([A-Za-z][A-Za-z0-9_+.\-]{0,39})/g;
     let m;
     while ((m = re.exec(String(text || '')))) {
-        const name = m[2].replace(/[.\-_]+$/, '').replace(/[-_]+/g, ' ').trim();
+        const name = splitTagWords(m[2].replace(/[.\-_]+$/, '').replace(/[-_]+/g, ' ')).trim();
         if (name) out.push(name);
     }
     return out;
+}
+// Text plus its #words written out ("#TimeManagement" -> "Time Management"),
+// so a Dictionary term still matches the task it was typed in.
+function withHashtagWords(text) {
+    const tags = findHashtags(text);
+    return tags.length ? `${text} \n ${tags.join(' \n ')}` : String(text || '');
 }
 function hashtagTextOf(item) {
     if (!item) return '';
@@ -1171,9 +1276,9 @@ const LIFE = {
     reviveCost: 10, jellyCost: 5, maleChance: 0.1, traitChance: 0.08,
     hungerPerDay: 15, feedPerTask: 4, eventsKept: 30,
     // Comb rooms (Oct 2026): new bees start as eggs in the Nursery for
-    // broodDays (a working Nurse Bee takes a day off). A bee with no job
+    // broodDays (5, Craft Oct 2026; a working Nurse Bee takes a day off). A bee with no job
     // for idleUpsetDays gets upset.
-    broodDays: 2, idleUpsetDays: 3
+    broodDays: 5, idleUpsetDays: 3
 };
 // Bee names (Oct 2026): new bees get a real name instead of "Common Bee
 // #12", so they're easy to tell apart. Old bees still on that default name
@@ -1293,6 +1398,13 @@ function ensureBeeLife(bee, today = todayISO(), { isNew = false } = {}) {
         changed = true;
     }
     if (!bee.class && !bee.life.hatchOn && !bee.life.idleSince) { bee.life.idleSince = today; changed = true; }
+    if (!bee.talent && bee.rarity !== 'Named') {
+        // Old bees get a stable talent from their id; new ones a random one.
+        let h = 7;
+        for (const ch of String(bee.id || bee.name || '')) h = (h * 33 + ch.charCodeAt(0)) >>> 0;
+        bee.talent = pickBeeTalent(bee, isNew ? Math.random : () => (h % 1000) / 1000);
+        changed = true;
+    }
     return changed;
 }
 
@@ -1496,6 +1608,8 @@ class DatabaseManager {
         // Hive Life (Oct 2026): sex + vitals on every bee, then the daily tick.
         this._ensureBeeLife();
         this._nameDefaultBees();
+        this._splitNamedTitles();
+        this._splitHashtagTerms();
         this._ensureQueen();
         this._pendingLifeEvents = this.hiveDailyTick();
         // Backfills state.dictionary onto any save from before the
@@ -2097,7 +2211,7 @@ class DatabaseManager {
         quest.status = allDone ? 'completed' : 'active';
 
         if (allDone && !wasCompleted) {
-            quest.dateCompleted = new Date().toISOString().slice(0, 10);
+            quest.dateCompleted = todayISO();
         } else if (!allDone) {
             quest.dateCompleted = null;
         }
@@ -2267,7 +2381,10 @@ class DatabaseManager {
 
         const { awardedBees, ticketsGranted, awardedMaterials } = this._syncLevelUpBees({ silent: true });
         // Hive Life: each working Queen's Attendant adds 1 Royal Nectar.
-        this._workers('attendant').forEach(() => { this._addMaterial('royal-nectar', 1); awardedMaterials.push('royal-nectar'); });
+        this._workers('attendant').forEach((b) => {
+            this._addMaterial('royal-nectar', 1); awardedMaterials.push('royal-nectar');
+            if (beeTalentBoost(b) > 1 && lifeRand() < 0.2) { this._addMaterial('royal-nectar', 1); awardedMaterials.push('royal-nectar'); }   // talent: 20% for one more
+        });
         if (this._workers('attendant').length) this.save();
 
         return {
@@ -2437,24 +2554,40 @@ class DatabaseManager {
         // Hive Life: every finished task feeds the hive; Scouts may find a ticket.
         this._feedHive();
         this._workers('scout').forEach(scout => {
-            if (lifeRand() < 0.03) {
+            if (lifeRand() < (0.03 + (beeTitlePower(scout, 'swift') ? 0.02 : 0)) * beeTalentBoost(scout)) {
                 this.state.colony.tickets = (this.state.colony.tickets || 0) + 1;
                 if (typeof Toast !== 'undefined') Toast.show(`🎟️ ${scout.name} the Scout found a gacha ticket!`, 'positive');
             }
         });
         // Foragers (collectors) only work while awake and rested; Speed helps.
         const collectors = this.getColonyBees().filter(b => b.class === 'collector' && (!b.life || beeCanWork(b)));
+        // Title "The Bright": +3% gacha ticket chance on every finished task.
+        this._lifeBees().filter(b => beeTitlePower(b, 'bright') && beeCanWork(b)).forEach(b => {
+            if (lifeRand() < 0.03) {
+                this.state.colony.tickets = (this.state.colony.tickets || 0) + 1;
+                if (typeof Toast !== 'undefined') Toast.show(`🎟️ ${b.name} \u201cThe Bright\u201d found a gacha ticket!`, 'positive');
+            }
+        });
         if (collectors.length === 0) { this.save(); return; }
 
         if (!this.state.inventory) this.state.inventory = { materials: {} };
         if (!this.state.inventory.materials) this.state.inventory.materials = {};
 
         const drops = [];
+        const guides = this._workers('scout').reduce((n, b) => n + (beeTitlePower(b, 'wanderer') ? 2 : 1) * beeTalentBoost(b), 0);
         collectors.forEach(bee => {
             const speed = (bee.stats && bee.stats.speed) || 0;
-            const chance = (COLLECTOR_DROP_CHANCE - 0.1 + Math.min(0.25, speed / 120)) * (bee.life && bee.life.birthTrait === 'swift-wings' ? 1.1 : 1);
+            const chance = (COLLECTOR_DROP_CHANCE - 0.1 + Math.min(0.25, speed / 120)) * (bee.life && bee.life.birthTrait === 'swift-wings' ? 1.1 : 1)
+                * (beeTitlePower(bee, 'collector') ? 1.1 : 1) * beeTalentBoost(bee);
             if (Math.random() < chance) {
-                const materialId = rollMaterialDrop();
+                // Scouts guide Foragers to better flowers: a chance to roll
+                // twice and keep the rarer material (12% per Scout, max 45%).
+                let materialId = rollMaterialDrop();
+                if (Math.random() < Math.min(0.45, guides * 0.12)) {
+                    const second = rollMaterialDrop();
+                    const rank = (id) => MATERIAL_DROP_TABLE.findIndex(m => m.id === id);
+                    if (rank(second) > rank(materialId)) materialId = second;
+                }
                 this.state.inventory.materials[materialId] = (this.state.inventory.materials[materialId] || 0) + 1;
                 drops.push({ bee, materialId });
             }
@@ -2516,7 +2649,7 @@ class DatabaseManager {
             else if (daysElapsed <= QUEST_SPEED_FAST_DAYS) speedBonusRolls = QUEST_SPEED_FAST_BONUS_ROLLS;
         }
 
-        const totalRolls = baseRolls + speedBonusRolls + Math.min(3, this._workers('architect').length);
+        const totalRolls = baseRolls + speedBonusRolls + Math.min(3, this._workers('architect').reduce((n, b) => n + (beeTitlePower(b, 'architect') ? 2 : 1), 0));
         const materialsDropped = [];
         for (let i = 0; i < totalRolls; i++) {
             const materialId = rollMaterialDrop();
@@ -2832,7 +2965,7 @@ class DatabaseManager {
     // are kept; new rows become new tasks; rows left out are removed.
     // Everything else on the quest (ghost logs, side quests, codex
     // unlocks, repo task...) is left alone. Returns the quest.
-    saveQuestForm(questId, { title, objective, category, source, tasks, makeActive }) {
+    saveQuestForm(questId, { title, objective, category, source, tasks, makeActive, tags }) {
         if (!this.state) return null;
         if (!this.state.quests) this.state.quests = [];
         const stamp = Date.now();
@@ -2857,13 +2990,21 @@ class DatabaseManager {
         quest.objective = objective || '';
         quest.category = category === 'side' ? 'side' : 'main';
         quest.source = source && source.url ? { label: source.label || source.url, url: source.url } : null;
+        if (Array.isArray(tags)) quest.tags = [...new Set(tags.map(t => String(t).trim()).filter(Boolean))];
         quest.tasks = (tasks || []).map((row, index) => {
             const prev = row.id && old.find(t => t.id === row.id);
             const minutes = Number(row.minutes) > 0 ? Number(row.minutes) : (prev ? prev.minutes || null : null);
-            if (prev) return { ...prev, label: row.label, difficulty: row.difficulty || null, minutes, xp: Number(row.xp) || 0 };
+            const module = row.module || null;
+            if (prev) {
+                const next = { ...prev, label: row.label, difficulty: row.difficulty || null, minutes, xp: Number(row.xp) || 0, module };
+                if (!module || module !== prev.module) delete next.section;   // moved chapter: drop the old sub-chapter
+                if (!module) delete next.module;
+                return next;
+            }
             return {
                 id: `${quest.id.toLowerCase()}-t${stamp}-${index}`,
                 label: row.label,
+                ...(module ? { module } : {}),
                 minutes,
                 xp: Number(row.xp) || 0,
                 completed: false,
@@ -2932,8 +3073,48 @@ class DatabaseManager {
 
         ensureBeeLife(bee, todayISO(), { isNew: true });
         this.state.colony.bees.push(bee);
+        this._noteModels(beeModelKeys(bee));
         this.save();
         return bee;
+    }
+
+    // ---- Bee Models (Oct 2026): which kinds of bee you've met ----------------
+    // colony.seenModels = { key: 'YYYY-MM-DD' } - kept even if the bee is later
+    // destroyed or combined. colony.modelsViewed = keys you've tapped (NEW tag).
+    _noteModels(keys) {
+        if (!this.state || !this.state.colony || !keys.length) return false;
+        const seen = this.state.colony.seenModels || (this.state.colony.seenModels = {});
+        let changed = false;
+        keys.forEach(k => { if (!seen[k]) { seen[k] = todayISO(); changed = true; } });
+        return changed;
+    }
+    getSeenModels() {
+        if (!this.state || !this.state.colony) return {};
+        const c = this.state.colony, keys = [];
+        (c.bees || []).forEach(b => keys.push(...beeModelKeys(b)));
+        const working = (c.bees || []).filter(b => b.class && b.rarity !== 'Royal' && !(b.life && (b.life.hatchOn || b.life.faintedAt))).length;
+        if (working > 0) keys.push('hive:worker');
+        if (working >= 10) keys.push('hive:swarm');
+        if ((c.lifeEvents || []).some(e => e.type === 'raid-won' || e.type === 'raid-lost')) keys.push('hive:raider');
+        const o = this.getOnboarding ? this.getOnboarding() : null;
+        const order = ['egg', 'larva', 'pupa', 'ready'];
+        const at = !o || o.stage === 'done' ? order.length : Math.max(0, order.indexOf(o.stage)) + 1;
+        order.slice(0, at).forEach(k => keys.push('life:' + k));
+        if ((c.bees || []).some(b => b.life && b.life.hatchOn)) keys.push('life:egg');
+        if (this._noteModels(keys)) this.save();
+        return Object.assign({}, c.seenModels || {});
+    }
+    getViewedModels() {
+        if (!this.state || !this.state.colony) return [];
+        // First visit: everything you already have counts as seen, so only
+        // later finds get the NEW tag.
+        if (!this.state.colony.modelsViewed) { this.state.colony.modelsViewed = Object.keys(this.getSeenModels()); this.save(); }
+        return this.state.colony.modelsViewed;
+    }
+    markModelViewed(key) {
+        if (!this.state || !this.state.colony) return;
+        const v = this.state.colony.modelsViewed || (this.state.colony.modelsViewed = []);
+        if (!v.includes(key)) { v.push(key); this.save(); }
     }
 
     // Rolls a brand new bee via the shared rarity table and stores it -
@@ -2991,6 +3172,9 @@ class DatabaseManager {
         const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
         if (className && !BEE_CLASSES[className]) return null;
+        // Named Beasts: the title fixes the job.
+        const locked = beeLockedJob(bee);
+        if (locked && className !== locked) return null;
         // Hive Life: only male bees can be Drones, and Drones do nothing else.
         if (className && bee.sex) {
             const maleOnly = !!BEE_CLASSES[className].maleOnly;
@@ -3052,7 +3236,9 @@ class DatabaseManager {
         this.state.colony.tickets -= NAMED_BEAST_TICKETS;
         const bee = {
             id: generateBeeId(),
-            name: rollNamedBeeName(),
+            name: randomBeeName(this.getColonyBees().map(b => b.name)),
+            title: rollNamedTitle(),
+            sex: 'f',
             rarity: 'Named',
             class: null,
             obtainedAt: new Date().toISOString(),
@@ -3066,6 +3252,8 @@ class DatabaseManager {
             // redacted picked - starts false like every other bee, same rule.
             customNamed: false
         };
+        bee.class = beeLockedJob(bee);            // its title sets its job
+        if (bee.class) bee.jobSince = todayISO();
         return this.addColonyBee(bee); // also saves - persists the ticket spend + the new bee together
     }
 
@@ -3360,13 +3548,21 @@ class DatabaseManager {
         if (!item) return null;
 
         const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
-        if (!bee || bee.rarity === 'Named' || bee.rarity === 'Royal' || bee.customNamed) return null;
+        if (!bee || bee.rarity === 'Named' || bee.rarity === 'Royal') return null;
         if (!this._consumeItem(itemId, 1)) return null;
 
+        // Oct 2026: the bee keeps its name and earns a random title.
         bee.rarity = 'Named';
-        bee.name = rollNamedBeeName();
+        bee.title = rollNamedTitle();
+        const locked = beeLockedJob(bee);
+        if (locked) {
+            if (bee.class !== locked) { bee.class = locked; bee.jobSince = todayISO(); }
+            bee.sex = 'f';
+            if (bee.life) delete bee.life.idleSince;
+        }
         bee.stats = rollBeeStats('Named');
         bee.weight = rollBeeWeight('Named');
+        this._noteModels(beeModelKeys(bee));
 
         this.save();
         return { bee };
@@ -3528,7 +3724,7 @@ class DatabaseManager {
         return task;
     }
 
-    // Generic feed for the sitewide Reminders engine (src/core/reminders/) -
+    // Generic feed for the sitewide Reminders engine (src/core/services/reminders/) -
     // that module is core infra loaded on every page and must never know a
     // "daily task" exists; this is the one place allowed to make that
     // translation, since Vault is already the accepted single spot every
@@ -4393,7 +4589,7 @@ class DatabaseManager {
     }
 
     // 7d. Logic: Account PIN. A user-CREATED 6-digit numeric PIN, hashed
-    // (SHA-256 via Auth.sha256Hex - src/core/auth.js, loaded on every page
+    // (SHA-256 via Auth.sha256Hex - src/core/login/auth.js, loaded on every page
     // that calls these - reused rather than duplicated) and stored as
     // state.accountPinHash. This is NOT the same thing as login.js's
     // PERSONAL_PASSWORD_HASH (a fixed constant baked into source, gating
@@ -4543,7 +4739,7 @@ class DatabaseManager {
 
     // 7e. Habitica: the old one-way import's id list (state.habiticaImportedIds)
     // is no longer used - two-way sync keeps state.habiticaLinks instead
-    // (src/core/habitica-sync/). Old saves still carry the list; it's harmless.
+    // (src/core/services/habitica-sync/). Old saves still carry the list; it's harmless.
 
 
     // --- Onboarding (the egg gift) ------------------------------------------
@@ -4737,7 +4933,7 @@ class DatabaseManager {
         // Hive size comes from level only (Oct 2026): 8 cells + 3 per level.
         // It never drops below one home cell per bee (+ the royal cell).
         const CAP = 320, BASE = 8, PER_LEVEL = 3, DAYS = 14;
-        const dayISO = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+        const dayISO = n => shiftISODate(todayISO(), -n);
         const user = this.getUser() || { level: 1, currentXP: 0, nextLevelXP: 1 };
         const bees = this.getColonyBees();
         const ids = [];
@@ -4833,6 +5029,54 @@ Object.assign(DatabaseManager.prototype, {
         todo.forEach(b => { b.name = randomBeeName(bees.map(x => x.name)); });
         this.save();
     },
+    // One time: "Comet The Relentless" -> name "Comet", title relentless.
+    // A Named Beast with any other name keeps it and gets a random title.
+    // Oct 2026: Dictionary words made from #CamelCase get their spaces
+    // ("TimeManagement" -> "Time Management"), and tags, skill categories
+    // and skill levels that used the old name follow. Runs once per term.
+    _splitHashtagTerms() {
+        const dict = this.state && this.state.dictionary;
+        if (!dict || !dict.length) return;
+        const renames = {};
+        for (const t of dict) {
+            if (!t || t.source !== 'hashtag' || !t.name) continue;
+            const split = splitTagWords(t.name);
+            if (split !== t.name) renames[t.name.toLowerCase()] = split;
+        }
+        if (!Object.keys(renames).length) return;
+        const fix = (n) => (n && renames[String(n).toLowerCase()]) || n;
+        const seen = new Set();
+        this.state.dictionary = dict.filter(t => {
+            if (!t) return false;
+            t.name = fix(t.name);
+            t.category = fix(t.category);
+            const key = String(t.name).toLowerCase();
+            if (seen.has(key)) return false;          // "Time Management" already existed: keep one
+            seen.add(key);
+            return true;
+        });
+        const fixTags = (item) => { if (item && Array.isArray(item.tags)) item.tags = [...new Set(item.tags.map(fix))]; if (item && Array.isArray(item.skillsOff)) item.skillsOff = item.skillsOff.map(fix); };
+        (this.state.dailyTasks || []).forEach(fixTags);
+        (this.state.habits || []).forEach(fixTags);
+        (this.state.todos || []).forEach(fixTags);
+        (this.state.quests || []).forEach(q => (q.tasks || []).forEach(fixTags));
+        const lv = this.state.skillLevels || {};
+        Object.keys(lv).forEach(k => { const n = fix(k); if (n !== k && !lv[n]) { lv[n] = lv[k]; delete lv[k]; } });
+        this.save();
+    },
+
+    _splitNamedTitles() {
+        const bees = this.getColonyBees().filter(b => b.rarity === 'Named' && !b.title);
+        if (!bees.length) return;
+        bees.forEach(b => {
+            const m = /^(.+?) (The \w+)$/.exec(String(b.name || ''));
+            const id = m && NAMED_TITLE_IDS.find(k => NAMED_TITLES[k].label === m[2]);
+            if (id) { b.name = m[1]; b.title = id; } else b.title = rollNamedTitle();
+            const locked = beeLockedJob(b);
+            if (locked && b.class !== locked) { b.class = locked; b.jobSince = todayISO(); b.sex = 'f'; if (b.life) delete b.life.idleSince; }
+        });
+        this.save();
+    },
     randomBeeName() {
         return randomBeeName(this.getColonyBees().map(b => b.name));
     },
@@ -4860,7 +5104,7 @@ Object.assign(DatabaseManager.prototype, {
         const streak = this.getHiveStreak();
         const bees = this._lifeBees();
         if (!bees.length) return;
-        const nurses = this._workers('nurse').length;
+        const nurses = this._workers('nurse').reduce((n, b) => n + (beeTitlePower(b, 'healer') ? 2 : 1) * beeTalentBoost(b), 0);
         const water = this._workers('watercarrier').length;
         const avgFull = bees.reduce((n, b) => n + b.life.fullness, 0) / bees.length;
         const stoutBonus = avgFull >= 80 ? bees.filter(b => b.life.birthTrait === 'stout-heart').length * 2 : 0;
@@ -4881,7 +5125,7 @@ Object.assign(DatabaseManager.prototype, {
             L.fullness = clampVital(L.fullness - LIFE.hungerPerDay * (L.birthTrait === 'deep-stomach' ? 0.75 : 1));
             if (L.fullness <= 0) L.health = clampVital(L.health - 20);
             else if (L.fullness >= 50) L.health = clampVital(L.health + 5 + Math.min(2, nurses) * 2);
-            if (b.class) L.stamina = clampVital(L.stamina - (water ? 6 : 8) + (L.fullness >= 60 ? 12 : 0));
+            if (b.class) L.stamina = clampVital(L.stamina - (water ? 6 : 8) * (beeTitlePower(b, 'relentless') ? 0.75 : 1) + (L.fullness >= 60 ? 12 : 0));
             else L.stamina = clampVital(L.stamina + 25);
             if (L.stamina <= 0) L.health = clampVital(L.health - 5);
             L.happiness = clampVital(L.happiness + (streak > 0 ? 4 : streak < 0 ? -6 : 0) + stoutBonus);
@@ -4896,9 +5140,9 @@ Object.assign(DatabaseManager.prototype, {
         });
 
         // Honey Makers: 40% each, 3 Pollen -> 1 Honey Drop.
-        this._workers('honeymaker').forEach(() => {
+        this._workers('honeymaker').forEach((hm) => {
             const m = (this.state.inventory && this.state.inventory.materials) || {};
-            if (lifeRand() < 0.4 && (m.pollen || 0) >= 3) { this._addMaterial('pollen', -3); this._addMaterial('honey-drop', 1); this._lifeEvent('honey', '🍯 Honey Makers turned 3 Pollen into a Honey Drop.'); }
+            if (lifeRand() < (beeTitlePower(hm, 'keeper') ? 0.5 : 0.4) * beeTalentBoost(hm) && (m.pollen || 0) >= 3) { this._addMaterial('pollen', -3); this._addMaterial('honey-drop', 1); this._lifeEvent('honey', '🍯 Honey Makers turned 3 Pollen into a Honey Drop.'); }
         });
         // Drones: 30% each day, the next pull gets a better shot at Rare.
         if (this._workers('drone').length && !c.droneBoost && lifeRand() < 0.3) { c.droneBoost = true; this._lifeEvent('drone', '♂️ A Drone mated with your Queen. Your next pull has a better shot at Rare.'); }
@@ -4920,16 +5164,17 @@ Object.assign(DatabaseManager.prototype, {
         const enemy = RAID_ENEMIES[Math.floor(lifeRand() * RAID_ENEMIES.length)];
         const level = (this.getUser() || {}).level || 1;
         const def = 15
-            + this._workers('guardian').reduce((n, b) => n + (b.stats.defense || 0) + (b.life.birthTrait === 'iron-shell' ? 10 : 0), 0)
-            + this._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4), 0);
+            + this._workers('guardian').reduce((n, b) => n + Math.round(((b.stats.defense || 0) + (b.life.birthTrait === 'iron-shell' ? 10 : 0)) * (beeTitlePower(b, 'guardian') ? 1.15 : 1) * beeTalentBoost(b)), 0)
+            + this._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4 * (beeTitlePower(b, 'unyielding') ? 1.15 : 1) * beeTalentBoost(b)), 0);
         const atk = Math.round((25 + level * 4 + lifeRand() * 40) * enemy.power);
         if (def >= atk) {
             this._workers('guardian').forEach(b => { b.life.stamina = clampVital(b.life.stamina - 15); });
             this._addMaterial('pollen', 1);
+            this._noteModels(['hive:raider']);
             this._lifeEvent('raid-won', `${enemy.icon} ${enemy.label} repelled! Defense ${def} vs ${atk}. +1 🌼 Pollen.`);
             return;
         }
-        const pool = this._lifeBees().filter(b => !b.life.faintedAt && !b.life.hatchOn);
+        const pool = this._lifeBees().filter(b => !b.life.faintedAt && !b.life.hatchOn && !beeTitlePower(b, 'bold'));
         const guards = pool.filter(b => b.class === 'guardian' || b.class === 'barrier');
         const hurt = [];
         for (let i = 0; i < Math.min(2, pool.length); i++) {
@@ -4943,6 +5188,7 @@ Object.assign(DatabaseManager.prototype, {
         }
         const sad = this._workers('cleaner').length ? 4 : 10;
         this._lifeBees().forEach(b => { b.life.happiness = clampVital(b.life.happiness - sad); });
+        this._noteModels(['hive:raider']);
         this._lifeEvent('raid-lost', `${enemy.icon} ${enemy.label} broke in (defense ${def} vs ${atk}). ${hurt.map(b => `${b.name}${b.life.faintedAt ? ' fainted' : ' was hurt'}`).join(', ') || 'Everyone is shaken'}.`);
     },
 
@@ -4965,7 +5211,7 @@ Object.assign(DatabaseManager.prototype, {
         const team = this._lifeBees().filter(b => !b.life.faintedAt && !b.life.hatchOn && b.life.stamina >= 30).sort((a, b) => power(b) - power(a)).slice(0, 3);
         if (!team.length) return { ok: false, error: 'No bee has the stamina to raid. Let them rest and eat.' };
         const level = (this.getUser() || {}).level || 1;
-        const ours = team.reduce((n, b) => n + power(b), 0);
+        const ours = Math.round(team.reduce((n, b) => n + power(b) * (beeTitlePower(b, 'champ') ? 1.15 : 1), 0));
         const theirs = Math.round(40 + level * 6 + lifeRand() * 60);
         const won = ours >= theirs;
         c.lastCounterRaid = today;

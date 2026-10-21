@@ -3,7 +3,7 @@ console.log("/// HABITS PLUGIN PROTOCOLS INITIALIZED ///");
 // A recurring "reward/punish" action, Habitica-style - not a checklist
 // task like Dailies, just a running +/- tally. Rebuilt 2026-10-08 (Craft):
 // every habit is its own card with hexagon + / − buttons in its difficulty
-// colour (src/core/habit-row/). Tap the name to edit, hold to move.
+// colour (src/core/ui/habit-row/). Tap the name to edit, hold to move.
 // Creating and editing happen on create-habit.html; the dock's + goes there.
 
 function renderHabits() {

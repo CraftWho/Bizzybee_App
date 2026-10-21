@@ -159,3 +159,28 @@
 .qd-adv { margin: 0 0 20px; padding: 12px 14px; border-radius: 16px; background: #0d0a05; border: 1px solid rgba(255, 255, 255, .05); }
 .qd-adv summary { cursor: pointer; font-size: .85rem; color: #8a7e62; }
 .qd-adv textarea { width: 100%; min-height: 240px; margin: 8px 0; padding: 10px; border: 1px solid #3a3222; border-radius: 10px; background: #070503; color: #d8ceb6; font: .78rem/1.45 ui-monospace, Consolas, monospace; }
+
+/* Course quests (Oct 2026): module > chapter > lesson drop-downs. */
+.qg { display: flex; flex-direction: column; gap: 8px; }
+.qg details > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.qg details > summary::-webkit-details-marker { display: none; }
+.qg details > summary::after { content: "›"; margin-left: 4px; color: #c2b48f; font-size: 1.2rem; transition: transform .2s; flex: none; }
+.qg details[open] > summary::after { transform: rotate(90deg); }
+.qg-mod { border-radius: 16px; background: #17110a; border: 1px solid rgba(255, 204, 0, .14); }
+.qg-mod > summary { padding: 12px 12px; }
+.qg-mod.done { border-color: rgba(61, 220, 132, .35); }
+.qg-n { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #2a1f0b; color: #ffcc00; font: 800 .78rem var(--font-main, monospace); }
+.qg-mod.done .qg-n { background: #1f5a3a; color: #bff5d5; }
+.qg-t { flex: 1; min-width: 0; font: 700 .92rem system-ui, sans-serif; color: #f1ede2; }
+.qg-sec .qg-t { font-weight: 600; font-size: .86rem; }
+.qg-stats { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 8px; font: 600 .68rem var(--font-main, monospace); color: #c2b48f; text-align: right; }
+.qg-stats b { color: #ffcc00; }
+.qg-stats b.full { color: #3ddc84; }
+.qg-body { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 10px; }
+.qg-sec { border-radius: 12px; background: #120d06; border: 1px solid rgba(255, 255, 255, .05); }
+.qg-sec > summary { padding: 10px 10px; }
+.qg-sec.done > summary .qg-t { color: #bff5d5; }
+.qg-sec > .qt-list { padding: 0 6px 8px; }
+
+.qd-ghost-n { display: block; margin-top: 3px; }
+.qg .qd-ghosts { margin: 0; }

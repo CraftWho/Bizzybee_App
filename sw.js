@@ -1,5 +1,5 @@
 // Bizzybee service worker (Oct 2026): phone reminders (web push) and
-// downloaded packs (src/core/packs/packs.js). It never caches the app
+// downloaded packs (src/core/services/packs/packs.js). It never caches the app
 // itself, so it can't serve a stale app. Pack files: network first, stored
 // copy when offline. The big 3D model: stored copy first (saves data).
 self.addEventListener('install', () => self.skipWaiting());

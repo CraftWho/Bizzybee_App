@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+    <title>💬 Feedback & Suggestions - Bizzybee</title>
+
+    <link rel="stylesheet" href="../../core/global.css">
+    <link rel="stylesheet" href="../../core/ui/hive-mind/nano-bee.css">
+    <link rel="stylesheet" href="../../core/login/login.css">
+    <link rel="stylesheet" href="./suggestions.css">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body class="login-body">
+
+    <main class="login-container">
+        <div class="hive-core-bg"></div>
+
+        <div class="login-card">
+            <h1 class="gold-gradient-text">Feedback & Suggestions</h1>
+            <p class="subtitle">Leave a review or a suggestion - redacted reads every one and can reply straight to your email.</p>
+
+            <!-- A second, separate Netlify Form from Request Access
+                 (different name="" so they land as separate lists in the
+                 Netlify dashboard). Same detection/handling mechanics - see
+                 request-access.html's comment and HANDOFF.md's Request
+                 Access entry for the full writeup, this page just reuses
+                 the same pattern for a different purpose.
+
+                 The name="email" field below is what makes "reply straight
+                 from your inbox" actually work with zero extra code: per
+                 Netlify's own docs, a field literally named "email" is
+                 automatically used as the Reply-To address on the
+                 notification email, so hitting Reply in redacted's inbox goes
+                 straight back to the submitter - no email-sending service,
+                 no serverless function, nothing else to build. -->
+            <form id="suggestions-form" class="auth-form" name="suggestions" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+                <input type="hidden" name="form-name" value="suggestions">
+                <p class="request-access-honeypot" aria-hidden="true">
+                    <label>Don't fill this out if you're human: <input name="bot-field" type="text" tabindex="-1" autocomplete="off"></label>
+                </p>
+
+                <div class="input-group-auth star-rating-group">
+                    <label>Rating (optional)</label>
+                    <!-- CSS-only star picker: reverse DOM order (5 down to
+                         1) + flex-direction: row-reverse in suggestions.css
+                         so the visual left-to-right order reads correctly
+                         while :checked/:hover's ~ sibling selector can
+                         still light up "this star and everything before
+                         it" using only later siblings, which is all CSS
+                         selectors can match. No JS needed for the picking
+                         itself. Not required - a suggestion doesn't always
+                         come with a star opinion attached. -->
+                    <div class="star-rating">
+                        <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 stars">★</label>
+                        <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">★</label>
+                        <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">★</label>
+                        <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">★</label>
+                        <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">★</label>
+                    </div>
+                </div>
+
+                <div class="input-group-auth">
+                    <label for="suggestions-name">Name</label>
+                    <input type="text" id="suggestions-name" name="name" autocomplete="name" required>
+                </div>
+
+                <div class="input-group-auth">
+                    <label for="suggestions-email">Email</label>
+                    <input type="email" id="suggestions-email" name="email" autocomplete="email" required>
+                </div>
+
+                <div class="input-group-auth">
+                    <label for="suggestions-message">Review or suggestion</label>
+                    <textarea id="suggestions-message" name="message" rows="5" required></textarea>
+                </div>
+
+                <p id="suggestions-error" class="login-error" hidden></p>
+
+                <button type="submit" id="suggestions-submit-btn">Send Feedback</button>
+            </form>
+
+            <div id="suggestions-sent" class="request-access-sent" hidden>
+                <p class="request-access-sent-icon">✅</p>
+                <p class="request-access-sent-text">Thanks for the feedback! redacted will read it, and can reply to you directly by email.</p>
+            </div>
+
+            <div class="auth-footer">
+                <a href="../../../index.html" class="btn-link">← Back to Login</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../core/ui/hive-mind/nano-bee.js"></script>
+    <script src="./suggestions.js"></script>
+</body>
+</html>

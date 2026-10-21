@@ -25,36 +25,41 @@ It is a static web app (HTML, CSS, plain JavaScript, no build step). Saves live 
 | **Dailies, To-Dos, Quests** | Full create / edit flows, checklists, due dates, schedules, reminders. |
 | **The hive** | A mechanical hive outside, honeycomb inside. Honey grows with your bees and level; missed tasks and bad habits make cells decay. New bees hatch from their cell. |
 | **Bee cards** | Collectible cards with rarity, element, stats and class. Pollination Chamber (gacha), Inventory, KeeperDex. |
+| **Bee Models** | Every kind of bee (royals, life cycle, rarities, elements, Named titles, hive bees) stays a silhouette until you've met it. |
 | **Leveling** | Character level bar with a Level Up celebration and rewards. Skill matrix and skill tree on the Dashboard / Skills pages. |
-| **Plugins** | Optional add-ons: Habits, To-Dos, Calendar, Study. |
+| **Plugins** | Optional add-ons: Calendar, Dictionary, Study, Terminal. |
 | **Accounts & saves** | Device saves with recovery copies, full save export / import, encrypted Cloud Sync with scheduled backups (see `CLOUD_SETUP.md`). |
 
 ## Next up
 
-1. **Models page** - every bee type in a gallery, hidden until you've encountered it.
-2. **Shared Hive** - hives that more than one player can contribute to.
-3. **Favor system** - a reputation / challenge loop between players and their hive.
-4. **Dailies and To-Dos create screens** in the same style as the new habit screen.
-5. **Bee mechanics** - stats, elements and classes exist but don't do anything yet (no battles or hive jobs).
-6. **3D bee model** - started, paused.
-7. **Calendar connections** - Google Calendar first if it ever happens; health-app connections are much harder from a browser.
+1. **Shared Hive** - hives that more than one player can contribute to.
+2. **Favor system** - a reputation / challenge loop between players and their hive.
+3. **Dailies and To-Dos create screens** in the same style as the new habit screen.
+4. **Bee mechanics** - stats, elements and classes exist but don't do anything yet (no battles or hive jobs).
+5. **3D bee model** - started, paused.
+6. **Calendar connections** - Google Calendar first if it ever happens; health-app connections are much harder from a browser.
 
 ## Ideas parking lot
 
-- Real currency for the Pollination Chamber (it's free while testing).
+- Real currency for the Pollination Chamber (pulls cost tickets for now).
 - Themes beyond gold-and-black.
 - An in-app companion character that comments on your progress.
 
 ## How the code is laid out
 
 ```
-index.html, login.js     the login page (project root)
-src/core/                shared code every page uses (db.js = the save, app.js = top bar + dock)
+index.html               the login page (project root)
+src/core/                shared code (db.js = the save, app.js = top bar + dock, boot.js = page loader)
+src/core/login/          login, password reset, auth
+src/core/ui/             shared interface pieces (bee card, toast, task rows...)
+src/core/services/       background parts (cloud sync, push, reminders, Habitica)
 src/features/<page>/     one folder per page (html + css + js)
 src/plugins/<plugin>/    optional add-on pages
 src/assets/              art (bees, icons, 3D)
 tests/                   automated checks (run: npm run check)
 ```
+
+See `README.md` for details.
 
 ## Rules of the road
 
