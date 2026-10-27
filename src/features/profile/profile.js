@@ -25,7 +25,7 @@ function renderHero() {
     document.getElementById('pf-hero').innerHTML = `<div class="prof">
         <div class="avatar"><img id="pf-avatar" src="${photo ? esc(photo) : '../../assets/images/me.jpg'}" alt=""></div>
         <div class="who"><span class="hi">Profile</span><b>${esc(name)}</b><span class="title">👑 ${kind} of the hive${user.title ? ` · ${esc(user.title)}` : ''}</span>
-            <div class="lv"><span class="chip">LV ${bar.level}</span><div class="bar"><i style="width:${bar.percentage}%"></i></div></div>
+            <div class="lv"><span class="chip">${levelLabel(bar.level)}</span><div class="bar"><i style="width:${bar.percentage}%"></i></div></div>
             <small style="color:var(--muted);font-size:.72rem">${bar.xpIntoLevel.toLocaleString()}/${bar.cap.toLocaleString()} XP · ${user.totalXP.toLocaleString()} XP total (≈ ${Math.round(user.totalXP / 60)} h)</small>
             ${bar.maxed ? '<button type="button" class="lvup" id="pf-lvup">⬆ Level up</button>' : ''}</div></div>`;
     const img = document.getElementById('pf-avatar');

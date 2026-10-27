@@ -329,10 +329,31 @@ const AppShell = {
         });
 
         if (this.isHome) {
+            // Oct 27 2026 fix: shrinking the header used to pull the page up,
+            // which on short pages scrolled it back under the threshold and
+            // the header flickered big/small. Now the space the header gives
+            // up stays as a margin, so the page never moves.
+            const heights = () => {
+                const full = head.classList.contains('compact') ? null : head.offsetHeight;
+                const clone = head.cloneNode(true);
+                clone.classList.add('compact');
+                clone.style.cssText = `position:absolute;visibility:hidden;left:0;top:-9999px;width:${head.offsetWidth}px;transition:none`;
+                document.body.appendChild(clone);
+                const small = clone.offsetHeight;
+                clone.remove();
+                return { full, small };
+            };
+            let h = null;
+            const apply = () => { head.style.marginBottom = this.compact && h && h.full ? `${Math.max(0, h.full - h.small)}px` : ''; };
             window.addEventListener('scroll', () => {
                 const want = this.compact ? window.scrollY > 24 : window.scrollY > 120;
-                if (want !== this.compact) { this.compact = want; head.classList.toggle('compact', want); }
+                if (want === this.compact) return;
+                if (want && (!h || !h.full)) h = heights();
+                this.compact = want;
+                head.classList.toggle('compact', want);
+                apply();
             }, { passive: true });
+            window.addEventListener('resize', () => { if (!this.compact) h = null; });
         }
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             setTimeout(() => this.flutter(), 1200);
@@ -388,10 +409,14 @@ const AppShell = {
             : royal.name && royal.name !== name
                 ? `👑 ${title} <b>${esc(royal.name)}</b> rules your hive`
                 : `👑 <b>${title}</b> of the hive`;
-        q('.ah-chip').textContent = `LV ${bar.level}`;
+        q('.ah-chip').textContent = levelLabel(bar.level);
+        // Bar colour changes every 10 levels (purple-pink for Tiers).
+        const [lvA, lvB] = levelColor(bar.level);
+        document.documentElement.style.setProperty('--lv-a', lvA);
+        document.documentElement.style.setProperty('--lv-b', lvB);
         q('.ah-bar i').style.width = `${Math.max(0, Math.min(100, bar.percentage))}%`;
         q('.ah-xp').innerHTML = `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
-        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to Level ${bar.level + 1}`;
+        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to ${levelName(bar.level + 1)}`;
         q('.ah-chip').classList.toggle('ready', !!bar.maxed);
         const qs = typeof Vault.getQueenStats === 'function' ? Vault.getQueenStats() : null;
         if (qs) {
@@ -443,6 +468,8 @@ const AppShell = {
             if (!review) return;
             const show = () => setTimeout(() => { if (typeof DayStart !== 'undefined') DayStart.open(Vault.getDayReview()); }, 900);
             if (typeof DayStart !== 'undefined') { show(); return; }
+            if (this._dayStartLoading) return;   // already on its way (it used to load twice)
+            this._dayStartLoading = true;
             const css = document.createElement('link');
             css.rel = 'stylesheet'; css.href = this.url('src/core/ui/day-start/day-start.css');
             document.head.appendChild(css);
@@ -547,16 +574,19 @@ const AppShell = {
             const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
             loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' });
         });
+        const isTier = reward.newLevel > LEVEL_CAP;
         const perks = ['❤️ Health refilled'];
-        if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level');
+        if (isTier) perks.push('👑 Guaranteed Epic bee');
+        else if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level · new bar colour');
         const bar = typeof Vault.getCharacterLevelBar === 'function' ? Vault.getCharacterLevelBar() : null;
         const bee = reward.awardedBees.find(b => Vault.getColonyBees().some(x => x.id === b.id));
         const rich = {
-            cap: 'CHARACTER LEVEL', level: reward.newLevel, ribbon: reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
-            next: bar ? { level: reward.newLevel + 1, now: bar.xpIntoLevel, cap: bar.cap } : null,
+            cap: isTier ? 'PRESTIGE TIER' : 'CHARACTER LEVEL', level: isTier ? reward.newLevel - LEVEL_CAP : reward.newLevel,
+            ribbon: isTier ? (reward.newLevel === LEVEL_CAP + 1 ? 'PRESTIGE' : 'TIER UP') : reward.newLevel === LEVEL_CAP ? 'MAX LEVEL' : reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
+            next: bar ? { level: levelName(reward.newLevel + 1), now: bar.xpIntoLevel, cap: bar.cap } : null,
             beeId: bee ? bee.id : null
         };
-        return { title: `Character reached Level ${reward.newLevel}!`, lines, rich };
+        return { title: `Character reached ${levelName(reward.newLevel)}!`, lines, rich };
     },
 
     burst() {
@@ -755,6 +785,50 @@ class CodexSystem {
         this.loadHabiticaSync();
         this.loadPhoneReminders();
         this.loadTimeLog();
+        this.loadHints();
+        this.loadPullRefresh();
+        this.loadNative();
+    }
+
+    // Phone features in the Android app (src/core/services/native/native.js).
+    loadNative() {
+        if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
+        if (document.querySelector('script[src*="native/native.js"]')) return;
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        const script = document.createElement('script');
+        script.src = nested ? '../../../src/core/services/native/native.js' : 'src/core/services/native/native.js';
+        document.body.appendChild(script);
+    }
+
+    // Pull down at the top to sync and reload (src/core/ui/pull-refresh/).
+    loadPullRefresh() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/') || !('ontouchstart' in window)) return;
+        if (document.querySelector('script[src*="pull-refresh.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/ui/pull-refresh/pull-refresh.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/pull-refresh/pull-refresh.js';
+        document.body.appendChild(script);
+    }
+
+    // Page tips + Hive Coach (src/core/ui/hints/). Settings > Hints.
+    loadHints() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/') || path.includes('/request-access/')) return;
+        if (document.querySelector('script[src*="hints/hints.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/ui/hints/hints.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/hints/hints.js';
+        document.body.appendChild(script);
     }
 
     // "How long did it take?" pop-up after a check-off (time-log.js).
@@ -1047,6 +1121,7 @@ class CodexSystem {
         if (path.includes('dailies.html')) return 'dailies';
         if (path.includes('create-daily.html')) return 'create-daily';
         if (path.includes('calendar.html')) return 'calendar';
+        if (path.includes('projects.html')) return 'projects';
         if (path.includes('create-habit.html')) return 'create-habit';
         if (path.includes('habits.html')) return 'habits';
         if (path.includes('create-todo.html')) return 'create-todo';

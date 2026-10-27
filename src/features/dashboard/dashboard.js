@@ -31,7 +31,7 @@ function renderTiles(S) {
     const hoursLeft = Math.max(0, (bar.cap - bar.xpIntoLevel) / 60);
     document.getElementById('db-tiles').innerHTML = `
         <div class="tile hero"><small>Total XP</small><b>${user.totalXP.toLocaleString()}</b><span>≈ ${fmtH(user.totalXP / 60)} h of work</span></div>
-        <div class="tile"><small>Level</small><b>${bar.level}</b><div class="bar"><i style="width:${bar.percentage}%"></i></div><span>${bar.maxed ? 'Ready - claim it on Home' : `~${fmtH(hoursLeft)} h to Level ${bar.level + 1}`}</span></div>
+        <div class="tile"><small>${bar.level > LEVEL_CAP ? 'Prestige Tier' : 'Level'}</small><b>${bar.level > LEVEL_CAP ? bar.level - LEVEL_CAP : bar.level}</b><div class="bar"><i style="width:${bar.percentage}%"></i></div><span>${bar.maxed ? 'Ready - claim it on Home' : `~${fmtH(hoursLeft)} h to ${levelName(bar.level + 1)}`}</span></div>
         <div class="tile"><small>Best streak</small><b>${best}</b><span>days in a row</span></div>
         <div class="tile"><small>Quests done</small><b>${questsDone}</b><span>${(S.quests || []).length - questsDone} in progress</span></div>`;
 }

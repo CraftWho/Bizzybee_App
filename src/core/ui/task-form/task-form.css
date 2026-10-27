@@ -77,7 +77,11 @@ body.habit-form-page, body.task-form-page { padding-bottom: 0; }
 .hf-notes textarea { font-size: 1rem; min-height: 52px; }
 
 /* dark body */
-.hf-body { max-width: 640px; margin: 0 auto; padding: 18px 16px 48px; }
+/* Oct 27 2026: the form body sits on a panel, like every other page,
+   so its text never floats right on the honeycomb. */
+.hf-body { max-width: 640px; margin: 14px auto 120px; padding: 6px 16px 22px; box-sizing: border-box; width: calc(100% - 24px); border-radius: 18px; background: rgba(14, 10, 4, .92); border: 1px solid rgba(255, 204, 0, .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); }
+.hf-body > .hf-h:first-child { margin-top: 14px; }
+.hf-body > .hf-h:not(:first-child) { padding-top: 16px; border-top: 1px solid rgba(255, 204, 0, .08); }
 .hf-h { margin: 24px 2px 10px; font: 600 1.05rem var(--hf-sans); color: var(--hf-text); background: none; border: 0; padding: 0; text-align: left; }
 .hf-h small { margin-left: 6px; font-weight: 500; font-size: .78rem; color: var(--hf-muted); }
 .hf-hint { margin: 10px 0 0; text-align: center; font-size: .8rem; color: var(--hf-muted); }
@@ -194,3 +198,7 @@ body.habit-form-page, body.task-form-page { padding-bottom: 0; }
 .df-cl-row.chapter { margin-top: 6px; background: #2a1f0b; border-color: rgba(255, 204, 0, .35); }
 .df-cl-row.chapter .df-cl-text { font-weight: 800; color: #ffcc00; letter-spacing: .02em; }
 .df-cl-row.chapter .df-cl-text::placeholder { color: rgba(255, 204, 0, .5); }
+
+.tf-due-time { margin-top: 8px; }
+.tf-due-time[hidden] { display: none; }
+.tf-due-time small i { font-style: normal; opacity: .7; }

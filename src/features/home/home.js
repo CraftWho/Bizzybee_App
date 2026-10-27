@@ -265,6 +265,7 @@ const APP_ICONS = {
     map: '<path d="M3.5 7 10 4.5l8 3 6.5-2.5v16.5L18 24l-8-3-6.5 2.5z"/><path d="M10 4.5v16.5M18 7.5V24"/>',
     dashboard: '<path d="M4 23h20"/><rect x="6" y="13" width="3.5" height="7" rx="1"/><rect x="12.2" y="8" width="3.5" height="12" rx="1"/><rect x="18.5" y="4.5" width="3.5" height="15.5" rx="1"/>',
     profile: '<circle cx="14" cy="9.5" r="4.5"/><path d="M5 24c1-5 4.5-7.5 9-7.5s8 2.5 9 7.5"/>',
+    projects: '<path d="M5 9h18v13H5z"/><path d="M10 9V6h8v3M5 14h18"/>',
     'plugin-hub': '<path d="M11 4.5h2.5a2 2 0 1 1 4 0H20v5.5a2 2 0 1 0 0 4V20h-5.5a2 2 0 1 0-4 0H5v-5.5a2 2 0 1 1 0-4V4.5z"/>',
     'hive-archive': '<rect x="4" y="5" width="20" height="5.5" rx="1.5"/><path d="M5.5 10.5V22a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V10.5M11.5 14.5h5"/>',
     settings: '<circle cx="14" cy="14" r="3.6"/><path d="M14 3.5v3M14 21.5v3M24.5 14h-3M6.5 14h-3M21.4 6.6l-2.1 2.1M8.7 19.3l-2.1 2.1M21.4 21.4l-2.1-2.1M8.7 8.7 6.6 6.6"/><circle cx="14" cy="14" r="7.5"/>',

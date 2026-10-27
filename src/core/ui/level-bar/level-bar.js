@@ -232,7 +232,7 @@ const LevelBar = {
                     <div class="lvr-perks">${(rich.perks || []).map(p => `<span>${esc(p)}</span>`).join('')}</div>
                     <div class="lvr-bees">${(rich.loot || []).filter(l => l.bee).map(l => LevelBar._lootHTML(l)).join('')}</div>
                     <div class="lvr-loot">${(rich.loot || []).filter(l => !l.bee).map(l => LevelBar._lootHTML(l)).join('')}</div>
-                    ${rich.next ? `<p class="lvr-next">Level ${esc(String(rich.next.level))}: ${esc(String(rich.next.now))} / ${esc(String(rich.next.cap))} XP</p><div class="lvr-bar"><i></i></div>` : ''}
+                    ${rich.next ? `<p class="lvr-next">${typeof rich.next.level === 'number' ? 'Level ' : ''}${esc(String(rich.next.level))}: ${esc(String(rich.next.now))} / ${esc(String(rich.next.cap))} XP</p><div class="lvr-bar"><i></i></div>` : ''}
                     <div class="lvr-btns">
                         ${rich.beeId ? '<button type="button" class="lvr-btn" data-lvr="bee">🐝 See my bee</button>' : ''}
                         <button type="button" class="lvr-btn gold" data-lvr="close">Collect</button>

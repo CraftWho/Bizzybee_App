@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initPasswordReset();
     initPhoneReminders();
     initTimeTracking();
+    initHints();
+    initPhoneFeatures();
     initHistoryImport();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
@@ -169,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const royal = typeof Vault.getRoyalBee === 'function' ? Vault.getRoyalBee() : null;
         const bar = Vault.getCharacterLevelBar();
         document.getElementById('st-name').textContent = Vault.state.displayName || (royal && royal.name) || (Vault.getUser() || {}).name || 'Beekeeper';
-        document.getElementById('st-level').textContent = bar ? `Level ${bar.level}` : '';
+        document.getElementById('st-level').textContent = bar ? levelName(bar.level) : '';
         if (royal) document.getElementById('st-avatar').textContent = royal.royal === 'king' ? '🤴' : '👑';
     } catch { /* keep defaults */ }
 
@@ -260,6 +262,122 @@ function initHistoryImport() {
             status.textContent = error.message || 'Could not read that file.';
             Toast.show(status.textContent, 'negative');
         }
+    });
+}
+
+// Phone features (src/core/services/native/native.js). Only works in the
+// Android app; the website shows a link to get it.
+function initPhoneFeatures(tries = 0) {
+    const host = document.getElementById('phone-features');
+    if (!host) return;
+    // In the app, native.js loads a moment after this page; wait for it.
+    if (typeof BizzyNative === 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && tries < 40) {
+        setTimeout(() => initPhoneFeatures(tries + 1), 100);
+        return;
+    }
+    const N = typeof BizzyNative !== 'undefined' ? BizzyNative : null;
+    if (!N || !N.isApp) {
+        host.innerHTML = `<a class="row" href="https://github.com/CraftWho/Bizzybee_App/releases/latest" target="_blank" rel="noopener"><span class="hx">📱</span><span class="mid"><b>Get the Android app</b><small>Phone reminders that work offline, Smart Notifications, vibration and more.</small></span><span class="chev">›</span></a>`;
+        return;
+    }
+    // In the app, the phone schedules reminders itself, so hide web push.
+    const pushRow = document.getElementById('push-toggle')?.closest('.row');
+    if (pushRow) { pushRow.hidden = true; const inner = pushRow.nextElementSibling; if (inner && inner.classList.contains('inner')) inner.hidden = true; }
+    const sw = (id, on, label) => `<label class="toggle-switch"><input type="checkbox" id="${id}" aria-label="${label}"${on ? ' checked' : ''}><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label>`;
+    const soon = '<span class="pf-soon">NEXT UPDATE</span>';
+    const p = N.prefs;
+    host.innerHTML = `
+        <div class="row"><span class="hx">🔔</span><span class="mid"><b>Phone reminders</b><small id="pf-rem-status">Your reminder times, sent by the phone. Tap Done or Snooze on the alert.</small></span>${sw('pf-rem', p.reminders(), 'Phone reminders')}</div>
+        <div class="pf-sub" id="pf-sound-sub">
+            <label>🔊 Reminder sound <span class="pf-pick"><select id="pf-sound"><option value="default">Phone default</option><option value="none">Silent</option></select><button type="button" class="pf-play" data-play="sound" aria-label="Play reminder sound">▶</button></span></label>
+            <label>⏰ Alarm sound <span class="pf-pick"><select id="pf-alarm"><option value="default">Phone alarm</option><option value="none">Silent</option></select><button type="button" class="pf-play" data-play="alarm" aria-label="Play alarm sound">▶</button></span></label>
+            <label>〰️ Vibration rhythm <span class="pf-pick"><select id="pf-rhythm"></select><button type="button" class="pf-play" data-play="rhythm" aria-label="Feel the rhythm">▶</button></span></label>
+            <small id="pf-sound-note">Alarm sound is for To-Do deadlines with Smart Notifications.</small>
+        </div>
+        <div class="row"><span class="hx">🧠</span><span class="mid"><b>Smart Notifications <span class="pf-beta">BETA</span></b><small>Harder tasks and close deadlines remind you more, and louder, until they're done.</small></span>${sw('pf-smart', p.smart(), 'Smart Notifications')}</div>
+        <div class="pf-sub" id="pf-smart-sub"${p.smart() ? '' : ' hidden'}>
+            <label>Quiet hours <select id="pf-quiet"><option value="22-7">10 PM – 7 AM</option><option value="23-8">11 PM – 8 AM</option><option value="off">Off</option></select></label>
+            <label>How much it nags <select id="pf-level"><option value="gentle">Gentle</option><option value="normal">Normal</option><option value="relentless">Relentless</option></select></label>
+            <small>Quiet hours pause the nudges. A To-Do deadline alarm still rings. To-Dos with no reminder time count 9 PM on the due day as the deadline.</small>
+        </div>
+        <div class="row" id="pf-exact" hidden><span class="hx">⏰</span><span class="mid"><b>Exact timing is off</b><small>Android may delay reminders by a few minutes. Turn on "Alarms &amp; reminders" for BizzyBee.</small></span><button type="button" class="btn" id="pf-exact-btn">Fix</button></div>
+        <div class="row"><span class="hx">🧪</span><span class="mid"><b>Send a test</b><small>A loud test alert in 5 seconds. Lock your phone to see it.</small></span><button type="button" class="btn" id="pf-test">Test</button></div>
+        <div class="row"><span class="hx">📳</span><span class="mid"><b>Vibration</b><small>Feel the egg hatch, level-ups, pulls and finished tasks.</small></span>${sw('pf-buzz', p.vibration(), 'Vibration')}</div>
+        <div class="row"><span class="hx">👆</span><span class="mid"><b>Fingerprint unlock</b><small>Open the app with your fingerprint instead of the PIN.</small></span>${soon}</div>
+        <div class="row"><span class="hx">👟</span><span class="mid"><b>Steps</b><small>From Health Connect. Step dailies finish themselves and give Fitness XP.</small></span>${soon}</div>
+        <div class="row"><span class="hx">📅</span><span class="mid"><b>Phone calendar</b><small>See your phone's events in Calendar. Add To-Do due dates to it.</small></span>${soon}</div>
+        <div class="row"><span class="hx">⚡</span><span class="mid"><b>Shortcuts &amp; sharing</b><small>Long-press the icon for Start My Day or New To-Do. Share text from any app to make a To-Do.</small></span>${soon}</div>`;
+    const $ = (id) => document.getElementById(id);
+    $('pf-quiet').value = p.quiet(); $('pf-level').value = p.level();
+    // Sound + rhythm (needs app 1.0.5+, which has the native BeeAlerts piece).
+    $('pf-rhythm').innerHTML = Object.entries(N.RHYTHMS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
+    $('pf-rhythm').value = p.rhythm();
+    if (!N.hasAlertSettings()) {
+        $('pf-sound-sub').querySelectorAll('select, button').forEach(x => { x.disabled = true; });
+        $('pf-sound-note').textContent = 'Update the app to the newest version on GitHub to pick sounds and rhythms.';
+    } else {
+        const q = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const fill = async (sel, kind, cur) => {
+            const r = await N.sounds(kind);
+            sel.insertAdjacentHTML('beforeend', (r.sounds || []).map(x => `<option value="${q(x.uri)}">${q(x.title)}</option>`).join(''));
+            sel.value = cur;
+            if (sel.value !== cur) sel.value = 'default';
+        };
+        fill($('pf-sound'), 'notification', p.sound());
+        fill($('pf-alarm'), 'alarm', p.alarmSound());
+    }
+    $('pf-sound').addEventListener('change', e => { N.set('sound', e.target.value); N.previewSound(e.target.value, false); });
+    $('pf-alarm').addEventListener('change', e => { N.set('alarmSound', e.target.value); N.previewSound(e.target.value, true); });
+    $('pf-rhythm').addEventListener('change', e => { N.set('rhythm', e.target.value); N.previewRhythm(e.target.value); });
+    $('pf-sound-sub').addEventListener('click', e => {
+        const b = e.target.closest('[data-play]');
+        if (!b) return;
+        e.preventDefault();
+        if (b.dataset.play === 'rhythm') N.previewRhythm($('pf-rhythm').value);
+        else N.previewSound(b.dataset.play === 'alarm' ? $('pf-alarm').value : $('pf-sound').value, b.dataset.play === 'alarm');
+    });
+    const status = async () => {
+        const perm = await N.permission(false);
+        $('pf-rem-status').textContent = perm === 'granted' ? (p.reminders() ? 'On. Works offline. Tap Done or Snooze on the alert.' : 'Off.') : 'Notifications are blocked. Turn this on to allow them.';
+        $('pf-exact').hidden = !(p.reminders() && !(await N.exactAlarmsOk()));
+    };
+    $('pf-rem').addEventListener('change', async e => {
+        if (e.target.checked && (await N.permission(true)) !== 'granted') { e.target.checked = false; Toast.show('Allow notifications for BizzyBee in Android settings.', 'negative'); }
+        N.set('rem', e.target.checked); status();
+    });
+    $('pf-smart').addEventListener('change', async e => {
+        if (e.target.checked && (await N.permission(true)) !== 'granted') { e.target.checked = false; return; }
+        N.set('smart', e.target.checked); $('pf-smart-sub').hidden = !e.target.checked;
+        Toast.show(e.target.checked ? '🧠 Smart Notifications on. Hard tasks will keep after you.' : 'Smart Notifications off.', 'positive');
+    });
+    $('pf-quiet').addEventListener('change', e => N.set('quiet', e.target.value));
+    $('pf-level').addEventListener('change', e => N.set('level', e.target.value));
+    $('pf-buzz').addEventListener('change', e => { N.set('buzz', e.target.checked); Toast.show(e.target.checked ? '📳 Vibration on.' : 'Vibration off. Reopen the app to apply.', 'positive'); if (e.target.checked) N.buzz(60); });
+    $('pf-exact-btn').addEventListener('click', () => N.openExactAlarmSettings());
+    $('pf-test').addEventListener('click', async () => {
+        if ((await N.permission(true)) !== 'granted') return;
+        const ln = window.Capacitor.Plugins.LocalNotifications;
+        await ln.schedule({ notifications: [{ id: 424242, title: '🐝 Test alert', body: 'Phone reminders work. Tap Done or Snooze to try them.', channelId: N.channelFor(3),
+            schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true }, smallIcon: 'ic_stat_bee', iconColor: '#FFCC00', extra: { test: true } }] });
+        Toast.show('🧪 Test alert in 5 seconds.', 'positive');
+    });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') status(); });
+    status();
+}
+
+// Hints + Hive Coach (src/core/ui/hints/hints.js).
+function initHints() {
+    const toggle = document.getElementById('hints-toggle');
+    if (!toggle) return;
+    toggle.checked = Vault.hintsOn();
+    toggle.addEventListener('change', () => {
+        if (typeof Hints !== 'undefined') Hints.setOn(toggle.checked); else Vault.setHintsOn(toggle.checked);
+        Toast.show(toggle.checked ? '💡 Hints on.' : 'Hints off.', 'positive');
+    });
+    document.getElementById('hints-reset').addEventListener('click', () => {
+        if (typeof Hints !== 'undefined') Hints.resetAll(); else Vault.resetHints();
+        toggle.checked = true;
+        Toast.show('💡 Every page will show its tips again.', 'positive');
     });
 }
 
