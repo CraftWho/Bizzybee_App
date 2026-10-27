@@ -190,6 +190,8 @@ function openColonyBeeCard(bee) {
     const overlay = document.getElementById('colony-card-overlay');
     const host = document.getElementById('colony-card-host');
     if (!overlay || !host || typeof BeeCard === 'undefined') return;
+    // Eggs keep their card secret until they hatch (Oct 27 2026).
+    if (typeof beeIsBrood === 'function' && beeIsBrood(bee)) { window.location.href = `../colony-bees/colony-bees.html?bee=${encodeURIComponent(bee.id)}`; return; }
     // BeeCard.render() keeps one flip listener per host (dataset guard), so
     // the same host is simply re-rendered for each bee.
     host.innerHTML = '';

@@ -15,7 +15,7 @@ const CloudSyncAuto = (() => {
     }
     function failure(message) {
         status(message);
-        if (message !== lastError && typeof Toast !== 'undefined') Toast.show(message + ' Open Settings for recovery options.', 'negative');
+        if (message !== lastError && typeof Toast !== 'undefined') Toast.show(message, 'negative', { action: { label: 'Open Settings', href: '/src/features/settings/settings.html#cloud' } });
         lastError = message;
     }
     function sameAccount() {
@@ -183,13 +183,36 @@ const CloudSyncAuto = (() => {
         if (!ready) start(netlifyIdentity.currentUser());
         else if (enabled() && dirty() && !conflict) pushNow();
     }, 30000);
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && enabled() && dirty()) pushNow();
+    // Coming back to the app (Oct 27 2026): a phone keeps the app "open" in
+    // the background, so newer cloud changes from another device never
+    // showed up. Now: send this device's changes first, then load a newer
+    // cloud copy if there is one (only when this device has nothing unsent).
+    async function refreshFromCloud() {
+        if (!ready || running || conflict || !sameAccount()) return 'skip';
+        if (dirty()) { await pushNow(); return 'pushed'; }
+        running = true;
+        try {
+            const result = await request('load-state');
+            if (!result.data || result.revision === revision) return 'same';
+            if (dirty()) return 'skip';
+            const imported = Vault.importFullState(result.data, { fromCloud: true });
+            if (!imported.ok) throw new Error(imported.error);
+            acknowledge(result);
+            return 'updated';
+        } finally { running = false; }
+    }
+    let hiddenAt = 0;
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+        if (enabled() && dirty()) { pushNow(); return; }
+        if (!enabled() || Date.now() - hiddenAt < 20000) return;
+        if (document.querySelector('.lvr, .gfx.on, dialog[open], .pj-sheet-bg:not([hidden]), .dc-sheet-bg:not([hidden])')) return;
+        try { if (await refreshFromCloud() === 'updated') window.location.reload(); } catch {}
     });
     netlifyIdentity.on('init', start);
     netlifyIdentity.on('login', start);
     netlifyIdentity.on('logout', () => { ready = false; accountId = null; clearTimeout(timer); });
     netlifyIdentity.init();
     if (netlifyIdentity.currentUser()) start(netlifyIdentity.currentUser());
-    return { isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule };
+    return { isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule, refreshFromCloud };
 })();

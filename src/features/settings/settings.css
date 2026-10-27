@@ -329,3 +329,16 @@
    no tall empty gap on phones. */
 .stv2 .list .settings-action-row { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; justify-content: flex-start; gap: 6px 8px; padding: 10px 0; }
 .stv2 .list .settings-action-row span { flex: 1 0 100%; color: var(--ink, #f1ede2); font-size: .82rem; }
+
+/* Phone features (Oct 27 2026) */
+.stv2 .pf-beta { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: #5a2a8a; color: #f0d8ff; font: 800 .58rem var(--font-main, monospace); letter-spacing: .06em; vertical-align: 2px; }
+.stv2 .pf-soon { flex: none; padding: 3px 7px; border-radius: 6px; background: #1d1810; border: 1px solid rgba(255, 204, 0, .25); color: var(--muted); font: 700 .58rem var(--font-main, monospace); letter-spacing: .06em; }
+.stv2 .pf-sub { margin: 0 0 10px 56px; padding: 10px 12px; border-radius: 12px; background: #120d06; border: 1px dashed rgba(255, 204, 0, .25); color: var(--muted); font-size: .8rem; }
+.stv2 .pf-sub[hidden], .stv2 .row[hidden] { display: none; }
+.stv2 .pf-sub label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 8px; color: var(--ink); }
+.stv2 .pf-sub select { background: #0a0703; color: var(--ink); border: 1px solid rgba(255, 204, 0, .3); border-radius: 8px; padding: 5px 6px; font: inherit; }
+.stv2 .pf-sub small { display: block; font-size: .72rem; line-height: 1.4; }
+.stv2 .pf-pick { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.stv2 .pf-pick select { max-width: 150px; }
+.stv2 .pf-play { flex: none; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 204, 0, .4); background: #1a140b; color: var(--gold, #ffcc00); font-size: .7rem; cursor: pointer; }
+.stv2 .pf-play:disabled, .stv2 .pf-sub select:disabled { opacity: .45; }

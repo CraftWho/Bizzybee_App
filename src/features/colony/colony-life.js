@@ -10,7 +10,7 @@
 const HiveLife = (() => {
     const COMBS = [
         { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34.5, y: 1, text: 'Your Queen lives here. Attendants groom her. Drones wait to mate with her.' },
-        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse'], x: 3, y: 17, text: 'New bees start as eggs here. Pick their job before they hatch. Nurses speed hatching and healing.' },
+        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse'], x: 3, y: 17, text: 'New bees start as eggs here. What hatches is a surprise. Nurses speed hatching and healing.' },
         { id: 'honey', icon: '🍯', name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'], x: 66, y: 17, text: 'Food for the hive. Honey Makers make Honey Drops. Water Carriers keep workers fresh.' },
         { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner'], x: 34.5, y: 33, text: 'Comb Builders add quest loot. Cleaners soften lost raids.' },
         { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 3, y: 49, text: 'Bees with no job, tired bees and fainted bees. Give idle bees work or they get upset.' },
@@ -216,10 +216,10 @@ const HiveLife = (() => {
             html += `<h3 class="hl-sub">Eggs (${eggs.length})</h3>`;
             html += eggs.length ? eggs.map(b => {
                 const left = broodDaysLeft(b, today, n);
-                return `<div class="hl-row is-egg"><span class="hl-rface hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span><button type="button" class="hl-who-btn" data-card="${esc(b.id)}"><b>${esc(b.name)}</b><small>${b.sex === 'm' ? '♂ Male' : '♀ Female'}${b.talent && BEE_CLASSES[b.talent] ? ` · ⭐ born ${esc(BEE_CLASSES[b.talent].label)}` : ''} · hatches ${left <= 1 ? 'tomorrow' : `in ${left} days`}</small></button>
-                    <button type="button" class="hl-ren" data-ren="${esc(b.id)}" aria-label="Rename ${esc(b.name)}">✏️</button>
-                    ${jobSelect(b, jobsFor(b), { blank: 'Pick a job…' })}</div>`;
-            }).join('') + '<p class="hl-note">The job starts the moment the bee hatches. Only males can be Drones, and males can only be Drones.</p>'
+                // Eggs keep everything secret until they hatch (Oct 27 2026).
+                return `<div class="hl-row is-egg"><span class="hl-rface hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span><span class="hl-who-btn"><b>${esc(b.name)}</b><small>🥚 Mystery egg · hatches ${left <= 1 ? 'tomorrow' : `in ${left} days`}</small></span>
+                    <button type="button" class="hl-ren" data-ren="${esc(b.id)}" aria-label="Rename ${esc(b.name)}">✏️</button></div>`;
+            }).join('') + '<p class="hl-note">What hatches is a surprise. Pick its job once it hatches.</p>'
                 : '<p class="hl-note">No eggs right now. New bees from the Pollination Chamber, level-ups and skills start here.</p>';
         }
         html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
@@ -295,11 +295,18 @@ const HiveLife = (() => {
         const mats = (Vault.state.inventory && Vault.state.inventory.materials) || {};
         const drops = mats['honey-drop'] || 0, jelly = mats['royal-jelly'] || 0;
         const faintDays = L.faintedAt ? (daysBetween(L.faintedAt, todayISO()) || 0) : 0;
+        if (L.hatchOn) {
+            const left = broodDaysLeft(bee, todayISO(), Vault._workers('nurse').length);
+            host.innerHTML = `<div class="hl-panel"><div class="hl-panel-head"><b>${esc(bee.name)}</b><span>🥚 Mystery egg</span></div>
+                <p class="hl-trait">Still an egg in the Nursery. Hatches ${left <= 1 ? 'tomorrow' : 'in ' + left + ' days'}. What's inside is a secret until then.</p></div>`;
+            return;
+        }
         host.innerHTML = `<div class="hl-panel${L.faintedAt ? ' is-faint' : ''}">
             <div class="hl-panel-head"><b>${esc(bee.name)}</b><span>${bee.sex === 'm' ? '♂ Male' : '♀ Female'} · ${mood.face} ${mood.label}</span></div>
             ${L.hatchOn ? `<p class="hl-trait">🥚 Still an egg in the Nursery. Hatches ${broodDaysLeft(bee, todayISO(), Vault._workers('nurse').length) <= 1 ? 'tomorrow' : 'in ' + broodDaysLeft(bee, todayISO(), Vault._workers('nurse').length) + ' days'}.</p>` : `<p class="hl-hint" style="margin:0 0 4px">${beeFeeling(bee).face} ${esc(beeFeeling(bee).why)}</p>`}
             ${vitalRow('❤️', 'Health', L.health, '#5fd38a')}
             ${vitalRow('⚡', 'Stamina', L.stamina, '#5aa9ff')}
+            ${vitalRow('🥱', 'Fatigue', L.fatigue || 0, '#ff8a3d')}
             ${vitalRow('🍯', 'Fullness', L.fullness, '#ffcc00')}
             ${vitalRow('😊', 'Happiness', L.happiness, '#e58fff')}
             ${LIFE.deathEnabled

@@ -326,6 +326,36 @@
         fab.setAttribute('aria-label', 'Dev tools');
         fab.textContent = '🛠';
         document.body.appendChild(fab);
+        // Oct 27 2026: drag the 🛠 anywhere so it never covers a button.
+        // The spot is remembered on this device. A short tap still opens it.
+        (() => {
+            const KEY = 'bizzybee_dev_fab_pos';
+            const place = (x, y) => {
+                const w = fab.offsetWidth || 40, h = fab.offsetHeight || 40;
+                x = Math.max(4, Math.min(window.innerWidth - w - 4, x));
+                y = Math.max(4, Math.min(window.innerHeight - h - 4, y));
+                Object.assign(fab.style, { left: x + 'px', top: y + 'px', right: 'auto', bottom: 'auto' });
+                return { x, y };
+            };
+            try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) place(p.x * window.innerWidth, p.y * window.innerHeight); } catch {}
+            let start = null, moved = false;
+            fab.style.touchAction = 'none';
+            fab.addEventListener('pointerdown', e => { const r = fab.getBoundingClientRect(); start = { px: e.clientX, py: e.clientY, x: r.left, y: r.top }; moved = false; fab.setPointerCapture(e.pointerId); });
+            fab.addEventListener('pointermove', e => {
+                if (!start) return;
+                const dx = e.clientX - start.px, dy = e.clientY - start.py;
+                if (!moved && Math.hypot(dx, dy) < 8) return;
+                moved = true;
+                place(start.x + dx, start.y + dy);
+            });
+            fab.addEventListener('pointerup', () => {
+                if (start && moved) { const r = fab.getBoundingClientRect(); try { localStorage.setItem(KEY, JSON.stringify({ x: r.left / window.innerWidth, y: r.top / window.innerHeight })); } catch {} }
+                start = null;
+            });
+            // A drag isn't a tap: swallow the click that follows it.
+            fab.addEventListener('click', e => { if (moved) { e.stopImmediatePropagation(); e.preventDefault(); moved = false; } }, true);
+            window.addEventListener('resize', () => { const r = fab.getBoundingClientRect(); if (fab.style.left) place(r.left, r.top); });
+        })();
 
         const testBlock = localDev ? '' : `
             <h3>TEST SAVE</h3>

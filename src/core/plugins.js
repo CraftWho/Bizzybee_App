@@ -59,6 +59,13 @@ const PLUGIN_CATALOG = [
         ]
     },
     {
+        id: 'projects',
+        icon: '🛠️',
+        label: 'Projects',
+        status: 'available',
+        description: 'A gallery of everything you build. Live links with a preview, code links, and folder paths for projects that only live on your computer.'
+    },
+    {
         id: 'terminal',
         icon: '💻',
         label: 'Terminal',

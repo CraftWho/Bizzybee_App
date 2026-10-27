@@ -224,7 +224,7 @@ test('a rejected Identity token cannot read a cloud save', async () => {
 });
 
 // ---- time-based XP (Oct 2026) ----
-test('time XP: minutes from titles, effort and the 10,000-hour level curve', async () => {
+test('time XP: minutes from titles, effort and the gentle level curve with Tiers', async () => {
     const h = vaultHarness(); await h.vault.init();
     const g = (code) => vm.runInContext(code, h.context);
     assert.equal(g('minutesFromText("Scrimba study for 20 minutes")'), 20);
@@ -232,8 +232,10 @@ test('time XP: minutes from titles, effort and the 10,000-hour level curve', asy
     assert.equal(g('minutesFromText("HTML MASTER")'), null);
     assert.equal(g('xpForMinutes(30, "Hard")'), 45);
     assert.ok(g('xpForMinutes(3, "Trivial")') < g('xpForMinutes(15, "Easy")'));
-    assert.equal(g('computeLevelProgress(1200).level'), 5);          // 20 h -> level 5
-    assert.equal(g('computeLevelProgress(60 * 9900).level'), 100);   // ~10,000 h -> level 100
+    assert.equal(g('computeLevelProgress(1200).level'), 6);          // 20 h -> level 6 (gentle curve)
+    assert.equal(g('computeLevelProgress(41340).level'), 50);        // level 50 cap
+    assert.equal(g('computeLevelProgress(41340 + 12000).level'), 52); // then a Tier every 6,000 XP
+    assert.equal(g('levelLabel(52)'), '✦ TIER 2');
 });
 test('time XP: logged minutes change a completion, history counts, level never jumps on its own', async () => {
     const old = JSON.parse(sample());

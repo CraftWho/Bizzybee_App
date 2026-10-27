@@ -52,7 +52,8 @@ function cbSorted(list) {
     const l = list.slice();
     const time = (b) => new Date(b.obtainedAt || 0).getTime();
     if (cbState.sort === 'old') l.sort((a, b) => time(a) - time(b));
-    else if (cbState.sort === 'rarity') l.sort((a, b) => CB_RARITY_RANK.indexOf(a.rarity) - CB_RARITY_RANK.indexOf(b.rarity) || time(b) - time(a));
+    // Eggs keep their rarity secret, so they always sort last here.
+    else if (cbState.sort === 'rarity') { const rank = (b) => cbIsEgg(b) ? 999 : CB_RARITY_RANK.indexOf(b.rarity); l.sort((a, b) => rank(a) - rank(b) || time(b) - time(a)); }
     else if (cbState.sort === 'mood') l.sort((a, b) => CB_MOOD_RANK.indexOf(cbFeeling(a).key) - CB_MOOD_RANK.indexOf(cbFeeling(b).key));
     else if (cbState.sort === 'name') l.sort((a, b) => String(a.name).localeCompare(String(b.name)));
     else l.sort((a, b) => time(b) - time(a));
@@ -87,8 +88,8 @@ function cbRender() {
             btn.type = 'button';
             btn.className = 'cb-tile' + (cbIsEgg(b) ? ' is-egg' : '');
             btn.dataset.bee = b.id;
-            btn.style.setProperty('--tile-color', typeof beeCardColor === 'function' ? beeCardColor(b.rarity) : '#888');
-            btn.setAttribute('aria-label', `${b.name}, ${b.rarity}, ${cbJobText(b)}`);
+            btn.style.setProperty('--tile-color', cbIsEgg(b) ? '#8a7e62' : (typeof beeCardColor === 'function' ? beeCardColor(b.rarity) : '#888'));
+            btn.setAttribute('aria-label', cbIsEgg(b) ? `${b.name}, egg, ${cbJobText(b)}` : `${b.name}, ${b.rarity}, ${cbJobText(b)}`);
             // Eggs: a plain black card with the egg on it - no stats yet.
             if (cbIsEgg(b)) btn.innerHTML = `<div class="cb-egg-card">${cbArt(b)}</div>`;
             else {
@@ -107,7 +108,7 @@ function cbRender() {
         const f = cbFeeling(b);
         return `<button type="button" class="row" data-bee="${esc(b.id)}">
             <span class="cb-av">${cbArt(b)}${cbIsEgg(b) ? '' : `<span class="cb-face">${f.face}</span>`}</span>
-            <span class="mid"><b>${esc(b.name)}${b.sex === 'm' ? ' ♂' : ''}</b><small><span class="cb-rar" style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</span>${b.title && typeof NAMED_TITLES !== 'undefined' && NAMED_TITLES[b.title] ? ` · <span class="cb-title">\u201c${esc(NAMED_TITLES[b.title].label)}\u201d</span>` : ''} · ${esc(cbJobText(b))}</small></span>
+            <span class="mid"><b>${esc(b.name)}${b.sex === 'm' && !cbIsEgg(b) ? ' ♂' : ''}</b><small>${cbIsEgg(b) ? '<span class="cb-rar">🥚 Mystery egg</span>' : `<span class="cb-rar" style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</span>`}${b.title && typeof NAMED_TITLES !== 'undefined' && NAMED_TITLES[b.title] ? ` · <span class="cb-title">\u201c${esc(NAMED_TITLES[b.title].label)}\u201d</span>` : ''} · ${esc(cbJobText(b))}</small></span>
             <span class="chev">›</span></button>`;
     }).join('')}</div>`;
 }
@@ -130,13 +131,26 @@ function cbOpenBee(id) {
         : `<div class="cb-job"><label for="cb-job-sel">${cbIsEgg(b) ? 'Job when hatched' : 'Job'}</label>
         <select id="cb-job-sel"><option value="">${cbIsEgg(b) ? 'Pick a job…' : '— No job (rest) —'}</option>${jobs.map(j => `<option value="${j}"${b.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${b.talent === j ? ' ⭐' : ''}</option>`).join('')}</select></div>
         ${talent ? `<p>⭐ Natural talent: <b style="color:var(--ink)">${talent.icon} ${esc(talent.label)}</b>. It's 20% better at that job${b.class === b.talent ? ', and doing it now' : ''}.</p>` : ''}`;
+    // Eggs (Oct 27 2026): everything stays a secret until it hatches. No
+    // rarity, sex, talent, stats, card or job until then.
+    if (cbIsEgg(b)) {
+        const egg = PV2.sheet(`
+            <div class="head"><span class="cb-av">${cbArt(b, 'big')}</span>
+                <div><h2>${esc(b.name)}</h2><small>🥚 Mystery egg</small><br><small>${esc(cbJobText(b))}</small></div>
+                <button type="button" class="x" data-close aria-label="Close">×</button></div>
+            <p>What's inside is a secret until it hatches. You can pick its job after that.</p>
+            <div class="cb-name"></div>
+            <p>Nurses help eggs hatch a day sooner.</p>`, b.name);
+        BeeName.mount(egg.querySelector('.cb-name'), b, { onSaved: (r, changed) => { if (changed) { cbRender(); cbOpenBee(b.id); } } });
+        return;
+    }
     const box = PV2.sheet(`
         <div class="head"><span class="cb-av">${cbArt(b, 'big')}</span>
             <div><h2>${esc(b.name)}${b.title && typeof NAMED_TITLES !== 'undefined' && NAMED_TITLES[b.title] ? ` <span class="cb-title">\u201c${esc(NAMED_TITLES[b.title].label)}\u201d</span>` : ''}</h2><small style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</small>${b.sex ? ` <small>· ${b.sex === 'm' ? '♂ Male' : '♀ Female'}</small>` : ''}<br><small>${esc(cbJobText(b))}</small></div>
             <button type="button" class="x" data-close aria-label="Close">×</button></div>
         <p>${f.face} ${esc(f.why)}${cbIsEgg(b) ? '. The job starts the moment it hatches.' : ''}</p>
         <div class="cb-name"></div>
-        ${L && !cbIsEgg(b) ? cbVital('❤️', 'Health', L.health, '#5fd38a') + cbVital('⚡', 'Stamina', L.stamina, '#5aa9ff') + cbVital('🍯', 'Fullness', L.fullness, '#ffcc00') + cbVital('😊', 'Happiness', L.happiness, '#e58fff') : ''}
+        ${L && !cbIsEgg(b) ? cbVital('❤️', 'Health', L.health, '#5fd38a') + cbVital('⚡', 'Stamina', L.stamina, '#5aa9ff') + cbVital('🥱', 'Fatigue', L.fatigue || 0, '#ff8a3d') + cbVital('🍯', 'Fullness', L.fullness, '#ffcc00') + cbVital('😊', 'Happiness', L.happiness, '#e58fff') : ''}
         ${jobPicker}
         <div class="btns">
             ${cbIsEgg(b) ? '' : '<button type="button" class="btn solid" data-act="card">🃏 Open card</button>'}

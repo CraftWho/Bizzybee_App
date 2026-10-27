@@ -97,7 +97,7 @@ test('hive life: with death paused, a long-fainted or old bee stays in the hive'
     assert.equal(h.vault.getFallenBees().length, 0);
 });
 
-test('comb rooms: new bees start as eggs, keep a picked job, and hatch (faster with a Nurse)', async () => {
+test('comb rooms: new bees start as eggs, can\'t take a job until they hatch, and hatch (faster with a Nurse)', async () => {
     const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: daysAgo(5), faintedAt: null, royalJelly: false, birthTrait: null, ...o });
     const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const h = harness({ colony: { bees: [
@@ -116,7 +116,8 @@ test('comb rooms: new bees start as eggs, keep a picked job, and hatch (faster w
     const fresh = h.vault.awardBee('gacha');
     assert.ok(h.g('beeIsBrood')(fresh));
     assert.equal(h.g('beeCanWork')(fresh), false);
-    assert.ok(h.vault.assignBeeClass(fresh.id, 'honeymaker'));
+    assert.equal(h.vault.assignBeeClass(fresh.id, 'honeymaker'), null);   // eggs keep everything secret (Oct 27 2026)
+    assert.equal(fresh.class, null);
     assert.equal(fresh.life.idleSince, undefined);
     assert.equal(h.g('beeFeeling')(fresh).key, 'egg');
 });

@@ -62,6 +62,7 @@ function isoPlusDays(n) {
 function renderDue() {
     const value = document.getElementById('todo-due-date').value;
     document.getElementById('todo-due-clear').hidden = !value;
+    document.getElementById('todo-due-time-box').hidden = !value;
     document.querySelectorAll('#todo-due-quick [data-days]').forEach(b => b.classList.toggle('on', value === isoPlusDays(Number(b.dataset.days))));
     let hint = 'Optional. Leave it blank for a to-do with no deadline.';
     if (value) {
@@ -82,6 +83,7 @@ function loadExistingTodo(todo) {
     selectedDifficulty = TODO_DIFFICULTY_TIERS.some(t => t.level === todo.difficulty) ? todo.difficulty : 'Easy';
     selectedXP = Number(todo.xp) || TODO_DIFFICULTY_TIERS.find(t => t.level === selectedDifficulty).xp;
     document.getElementById('todo-due-date').value = todo.dueDate || '';
+    document.getElementById('todo-due-time').value = todo.dueTime || '';
     checklistEditor.set(todo.checklist || []);
     reminderEditor.set(todo.reminders || []);
     TagPicker.render(document.getElementById('todo-tags-list'), todo.tags || []);
@@ -114,6 +116,7 @@ function saveTodo() {
         // Checklist ticks on a to-do stay ticked, so keep each item's done.
         checklist: checklistEditor.get().map(i => ({ id: i.id, text: i.text, done: !!i.done })),
         dueDate: document.getElementById('todo-due-date').value || null,
+        dueTime: (document.getElementById('todo-due-date').value && document.getElementById('todo-due-time').value) || null,
         reminders: reminderEditor.get(),
         tags: TagPicker.getTags(document.getElementById('todo-tags-list')),
         ...timePicker.get()
