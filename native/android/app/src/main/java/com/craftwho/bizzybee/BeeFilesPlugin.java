@@ -143,6 +143,15 @@ public class BeeFilesPlugin extends Plugin {
         }
     }
 
+    /** Opens Android's App info page for BizzyBee (Permissions live there). */
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i);
+        call.resolve();
+    }
+
     /** Lists backup files: { files: [name...] } (newest first). */
     @PluginMethod
     public void list(PluginCall call) {
