@@ -788,6 +788,38 @@ class CodexSystem {
         this.loadHints();
         this.loadPullRefresh();
         this.loadNative();
+        this.loadUpdates();
+        this.loadPhone();
+    }
+
+    // Permissions, steps, weather, photos, phone backups (src/core/services/phone/).
+    loadPhone() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/')) return;
+        if (document.querySelector('script[src*="phone/phone.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/services/phone/phone.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/services/phone/phone.js';
+        document.body.appendChild(script);
+    }
+
+    // What's New + app updates (src/core/ui/updates/). Every app page.
+    loadUpdates() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/')) return;
+        if (document.querySelector('script[src*="updates/updates.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/ui/updates/updates.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/updates/updates.js';
+        document.body.appendChild(script);
     }
 
     // Phone features in the Android app (src/core/services/native/native.js).

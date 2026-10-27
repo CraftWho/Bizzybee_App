@@ -85,6 +85,7 @@
             <div class="row"><span class="hx">🔔</span><span class="mid"><b>Phone reminders</b><small id="push-status" role="status" aria-live="polite">Checking…</small></span><label class="toggle-switch"><input type="checkbox" id="push-toggle" aria-label="Phone reminders on this device"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
             <div class="inner">
                 <div class="row"><span class="mid"><b>Show task names</b><small>Off = "You have a task reminder"</small></span><label class="toggle-switch"><input type="checkbox" id="push-names-toggle" aria-label="Show task names in notifications" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+                <div class="row"><span class="mid"><b>Evening check-in</b><small>"3 dailies left today", even with no reminder times set</small></span><select id="push-checkin" aria-label="Evening check-in"><option value="off">Off</option><option value="18:00">6 PM</option><option value="19:00">7 PM</option><option value="20:00">8 PM</option><option value="21:00">9 PM</option><option value="22:00">10 PM</option></select></div>
                 <div class="row"><span class="mid"><b>Send a test</b><small>Arrives in a few seconds</small></span><button id="push-test-btn" class="btn" type="button" disabled>Test</button></div>
             </div>
             <a class="row" href="../sync/sync.html"><span class="hx">🔄</span><span class="mid"><b>Phone Sync</b><small>Calendar feed link for Android</small></span><span class="chev">›</span></a>
@@ -92,6 +93,12 @@
 
         <h2 class="sec">Phone features</h2>
         <section class="card" id="phone-features"></section>
+
+        <h2 class="sec" id="permissions">Permissions</h2>
+        <section class="card" id="permissions-card"><p class="pm-note">Loading…</p></section>
+
+        <h2 class="sec" id="weather">Weather</h2>
+        <section class="card" id="weather-card"></section>
 
         <h2 class="sec">Text &amp; look</h2>
         <section class="card" id="look-card"></section>
@@ -129,6 +136,9 @@
                 </div>
             </details>
         </section>
+
+        <h2 class="sec" id="about">About</h2>
+        <section class="card" id="about-card"></section>
 
         <h2 class="sec">Eevee &amp; help</h2>
         <section class="card">

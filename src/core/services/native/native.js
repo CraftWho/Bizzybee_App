@@ -113,6 +113,20 @@ const BizzyNative = (() => {
                 times.slice(1).forEach(tm => add('daily', t, at(day, tm), 2, 'Reminder', '', false, `${day}-${tm}`, true));
             });
         }
+        // Evening check-in (Oct 27 2026): "3 dailies left today" at a time you pick.
+        const ci = localStorage.getItem('bizzybee_checkin') || '20:00';
+        if (/^\d{2}:\d{2}$/.test(ci)) {
+            for (let i = 0; i < DAYS; i++) {
+                const d = new Date(now); d.setDate(d.getDate() + i);
+                const day = dayStr(d);
+                const left = (S.dailyTasks || []).filter(t => (typeof isDailyDueOn !== 'function' || isDailyDueOn(t, day)) && !(t.completedDates || []).includes(day)).length;
+                if (!left) continue;
+                const when = at(day, ci);
+                if (isNaN(when) || when.getTime() < now + 30000) continue;
+                out.push({ key: `checkin:${day}`, at: when, level: 2, sticky: false, kind: 'checkin', taskId: null,
+                    title: '🐝 Evening check-in', body: `${left} ${left === 1 ? 'daily' : 'dailies'} left today. Finish them to keep your streak.` });
+            }
+        }
         (S.todos || []).forEach(t => {
             if (t.completed || !t.dueDate) return;
             const times = (t.reminders || []).map(r => r.time).filter(x => /^\d{2}:\d{2}$/.test(x || '')).sort();
@@ -170,7 +184,7 @@ const BizzyNative = (() => {
         return p.display;
     }
 
-    let busy = false, again = false;
+    let busy = false, again = false, asked = false;
     async function reschedule() {
         const ln = LN();
         if (!ln || typeof Vault === 'undefined' || !Vault.state) return;
@@ -181,13 +195,22 @@ const BizzyNative = (() => {
             const pending = await ln.getPending();
             const ours = (pending.notifications || []).filter(n => !(n.extra && n.extra.snoozed));
             if (ours.length) await ln.cancel({ notifications: ours.map(n => ({ id: n.id })) });
-            if (!prefs.reminders() || (await permission(false)) !== 'granted') return;
+            if (!prefs.reminders()) return;
             const plan = buildPlan();
             if (!plan.length) return;
+            // Ask at the moment it's needed: there's something to remind you about.
+            if ((await permission(false)) !== 'granted') {
+                if (!asked && typeof BizzyPhone !== 'undefined' && !/settings\.html/.test(location.pathname)) {
+                    asked = true;
+                    busy = false;
+                    if ((await BizzyPhone.ask('notifications')) === 'granted') reschedule();
+                }
+                return;
+            }
             await ln.schedule({ notifications: plan.map(a => ({
                 id: idOf(a.key), title: a.title, body: a.body, channelId: CH[a.level],
                 schedule: { at: a.at, allowWhileIdle: true },
-                actionTypeId: 'bb-task', ongoing: a.sticky, autoCancel: !a.sticky,
+                actionTypeId: a.kind === 'checkin' ? undefined : 'bb-task', ongoing: a.sticky, autoCancel: !a.sticky,
                 smallIcon: 'ic_stat_bee', iconColor: '#FFCC00', group: 'bizzybee',
                 extra: { kind: a.kind, taskId: a.taskId, level: a.level },
             })) });
@@ -197,6 +220,7 @@ const BizzyNative = (() => {
 
     async function onAction(ev) {
         const n = ev.notification || {}, x = n.extra || {};
+        if (x.kind === 'checkin') { if (!location.pathname.endsWith('dailies/dailies.html')) location.href = `${location.origin}/src/features/dailies/dailies.html`; return; }
         if (!x.taskId) return;
         if (typeof Vault !== 'undefined') await Vault.init();
         if (ev.actionId === 'done') {

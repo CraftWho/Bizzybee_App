@@ -61,6 +61,19 @@ const BizzyPush = (() => {
                 t.reminders.forEach(r => add(`${t.id}-${r.id}`, day, r.time, t.label, '/src/features/dailies/dailies.html'));
             });
         }
+        // Evening check-in (Oct 27 2026): works even with no reminder times set.
+        const ci = localStorage.getItem('bizzybee_checkin') || '20:00';
+        if (/^\d{2}:\d{2}$/.test(ci)) {
+            for (let i = 0; i < DAYS; i++) {
+                const d = new Date(); d.setDate(d.getDate() + i);
+                const day = dayStr(d);
+                const left = (Vault.state.dailyTasks || []).filter(t => isDailyDueOn(t, day) && !(t.completedDates || []).includes(day)).length;
+                if (!left) continue;
+                const at = new Date(`${day}T${ci}:00`);
+                if (isNaN(at) || at.getTime() < now - 60000) continue;
+                out.push({ id: `checkin-${day}-${ci}`, at: at.toISOString(), title: '🐝 Evening check-in', body: `${left} ${left === 1 ? 'daily' : 'dailies'} left today. Finish them to keep your streak.`, url: '/src/features/dailies/dailies.html' });
+            }
+        }
         (Vault.state.todos || []).forEach(t => {
             if (t.completed || !t.dueDate || !(t.reminders || []).length) return;
             t.reminders.forEach(r => add(`${t.id}-${r.id}`, t.dueDate, r.time, t.label, '/src/features/todos/todos.html'));
