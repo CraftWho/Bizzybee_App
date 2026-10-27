@@ -8,8 +8,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // CI sets these from the run number, so every release can update the last one.
-        versionCode (System.getenv("BB_VERSION_CODE") ?: "1") as int
-        versionName System.getenv("BB_VERSION_NAME") ?: "1.0"
+        versionCode = Integer.parseInt(System.getenv("BB_VERSION_CODE") ?: "1")
+        versionName = System.getenv("BB_VERSION_NAME") ?: "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
