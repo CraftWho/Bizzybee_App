@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTimeTracking();
     initHints();
     initPhoneFeatures();
+    initAbout();
+    initPermissions();
+    initWeather();
     initHistoryImport();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
@@ -193,6 +196,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Phone reminders (src/core/services/push/push.js).
 function initPhoneReminders() {
+    const checkin = document.getElementById('push-checkin');
+    if (checkin) {
+        checkin.value = localStorage.getItem('bizzybee_checkin') || '20:00';
+        checkin.addEventListener('change', () => { localStorage.setItem('bizzybee_checkin', checkin.value); localStorage.removeItem('bizzybee_push_hash'); if (typeof BizzyPush !== 'undefined') BizzyPush.refresh(); });
+    }
     const toggle = document.getElementById('push-toggle');
     const names = document.getElementById('push-names-toggle');
     const test = document.getElementById('push-test-btn');
@@ -265,6 +273,14 @@ function initHistoryImport() {
     });
 }
 
+// About: versions, app updates, What's New (src/core/ui/updates/updates.js).
+function initAbout(tries = 0) {
+    const host = document.getElementById('about-card');
+    if (!host) return;
+    if (typeof BizzyUpdates === 'undefined') { if (tries < 50) setTimeout(() => initAbout(tries + 1), 100); return; }
+    BizzyUpdates.renderAbout(host);
+}
+
 // Phone features (src/core/services/native/native.js). Only works in the
 // Android app; the website shows a link to get it.
 function initPhoneFeatures(tries = 0) {
@@ -301,6 +317,7 @@ function initPhoneFeatures(tries = 0) {
             <small>Quiet hours pause the nudges. A To-Do deadline alarm still rings. To-Dos with no reminder time count 9 PM on the due day as the deadline.</small>
         </div>
         <div class="row" id="pf-exact" hidden><span class="hx">⏰</span><span class="mid"><b>Exact timing is off</b><small>Android may delay reminders by a few minutes. Turn on "Alarms &amp; reminders" for BizzyBee.</small></span><button type="button" class="btn" id="pf-exact-btn">Fix</button></div>
+        <div class="row"><span class="hx">🌙</span><span class="mid"><b>Evening check-in</b><small>"3 dailies left today", even with no reminder times set</small></span><select id="pf-checkin" aria-label="Evening check-in"><option value="off">Off</option><option value="18:00">6 PM</option><option value="19:00">7 PM</option><option value="20:00">8 PM</option><option value="21:00">9 PM</option><option value="22:00">10 PM</option></select></div>
         <div class="row"><span class="hx">🧪</span><span class="mid"><b>Send a test</b><small>A loud test alert in 5 seconds. Lock your phone to see it.</small></span><button type="button" class="btn" id="pf-test">Test</button></div>
         <div class="row"><span class="hx">📳</span><span class="mid"><b>Vibration</b><small>Feel the egg hatch, level-ups, pulls and finished tasks.</small></span>${sw('pf-buzz', p.vibration(), 'Vibration')}</div>
         <div class="row"><span class="hx">👆</span><span class="mid"><b>Fingerprint unlock</b><small>Open the app with your fingerprint instead of the PIN.</small></span>${soon}</div>
@@ -309,6 +326,8 @@ function initPhoneFeatures(tries = 0) {
         <div class="row"><span class="hx">⚡</span><span class="mid"><b>Shortcuts &amp; sharing</b><small>Long-press the icon for Start My Day or New To-Do. Share text from any app to make a To-Do.</small></span>${soon}</div>`;
     const $ = (id) => document.getElementById(id);
     $('pf-quiet').value = p.quiet(); $('pf-level').value = p.level();
+    $('pf-checkin').value = localStorage.getItem('bizzybee_checkin') || '20:00';
+    $('pf-checkin').addEventListener('change', e => { localStorage.setItem('bizzybee_checkin', e.target.value); N.reschedule(); });
     // Sound + rhythm (needs app 1.0.5+, which has the native BeeAlerts piece).
     $('pf-rhythm').innerHTML = Object.entries(N.RHYTHMS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
     $('pf-rhythm').value = p.rhythm();
@@ -390,4 +409,67 @@ function initTimeTracking() {
         localStorage.setItem('bizzybee_ask_time', toggle.checked ? 'on' : 'off');
         Toast.show(toggle.checked ? '⏱️ Will ask how long things take.' : 'Planned times will count.', 'positive');
     });
+}
+
+// Permissions + Weather (src/core/services/phone/phone.js, Oct 27 2026).
+function initPermissions(tries = 0) {
+    const host = document.getElementById('permissions-card');
+    if (!host) return;
+    if (typeof BizzyPhone === 'undefined') { if (tries < 50) setTimeout(() => initPermissions(tries + 1), 100); return; }
+    BizzyPhone.renderPage(host);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') BizzyPhone.renderPage(host); });
+}
+
+function initWeather(tries = 0) {
+    const host = document.getElementById('weather-card');
+    if (!host) return;
+    if (typeof BizzyPhone === 'undefined') { if (tries < 50) setTimeout(() => initWeather(tries + 1), 100); return; }
+    const W = BizzyPhone.Weather;
+    const q = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const city = W.city();
+    host.innerHTML = `
+        <div class="row"><span class="hx">🌦️</span><span class="mid"><b>Weather on Home</b><small id="wx-now">Off</small></span>
+            <select id="wx-mode" aria-label="Weather"><option value="off">Off</option><option value="area">My area</option><option value="city">A city</option></select></div>
+        <div class="pf-sub" id="wx-city-box" hidden>
+            <label>City <span class="pf-pick"><input id="wx-city" placeholder="e.g. Kissimmee" value="${q(city ? city.name.split(',')[0] : '')}"><button type="button" class="btn" id="wx-find">Find</button></span></label>
+            <div id="wx-results"></div>
+            <small>No permission needed when you pick a city.</small>
+        </div>
+        <div class="row"><span class="hx">🌡️</span><span class="mid"><b>Units</b><small>Fahrenheit or Celsius</small></span>
+            <select id="wx-unit" aria-label="Units"><option value="F">°F</option><option value="C">°C</option></select></div>`;
+    const $ = (id) => document.getElementById(id);
+    $('wx-mode').value = W.mode(); $('wx-unit').value = W.unit();
+    const refresh = async () => {
+        $('wx-city-box').hidden = $('wx-mode').value !== 'city';
+        if (W.mode() === 'off') { $('wx-now').textContent = 'Off'; return; }
+        $('wx-now').textContent = 'Checking…';
+        const w = await W.now().catch(() => null);
+        $('wx-now').textContent = w ? `${w.icon} ${w.temp}°${w.unit} · ${w.text} · ${w.place}` : (W.mode() === 'city' ? 'Pick a city below.' : 'Allow approximate location to see it.');
+    };
+    $('wx-mode').addEventListener('change', async e => {
+        const m = e.target.value;
+        if (m === 'area') {
+            const r = await BizzyPhone.ask('location', { force: true });
+            if (r !== 'granted') { e.target.value = W.mode(); Toast.show('Pick "A city" instead. No permission needed.', 'neutral'); return; }
+        }
+        if (m === 'city' && !W.city()) { W.setMode('off'); $('wx-city-box').hidden = false; $('wx-city').focus(); return; }
+        W.setMode(m); refresh();
+    });
+    $('wx-unit').addEventListener('change', e => { W.setUnit(e.target.value); refresh(); });
+    $('wx-find').addEventListener('click', async () => {
+        const v = $('wx-city').value.trim();
+        if (!v) return;
+        $('wx-results').innerHTML = '<small>Searching…</small>';
+        const list = await W.findCity(v).catch(() => []);
+        $('wx-results').innerHTML = list.length ? list.map((c, i) => `<button type="button" class="btn wx-pick" data-i="${i}">${q(c.name)}</button>`).join('') : '<small>No match. Try another spelling.</small>';
+        $('wx-results').onclick = (e) => {
+            const b = e.target.closest('.wx-pick');
+            if (!b) return;
+            W.setCity(list[Number(b.dataset.i)]);
+            $('wx-mode').value = 'city';
+            $('wx-results').innerHTML = '';
+            refresh();
+        };
+    });
+    refresh();
 }

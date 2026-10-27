@@ -1,0 +1,25 @@
+/* Permissions + phone features (Oct 27 2026, approved demo). */
+.pm-scrim { position: fixed; inset: 0; z-index: 9860; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .7); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.pm-sheet { width: min(560px, 100%); box-sizing: border-box; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: #120d05; border-top: 2px solid #dc143c; color: #f1ede2; text-align: center; animation: pmIn .28s ease; }
+@keyframes pmIn { from { transform: translateY(30px); opacity: 0; } }
+.pm-hex { position: relative; isolation: isolate; width: 64px; height: 70px; margin: 0 auto 10px; display: grid; place-items: center; font-size: 1.8rem; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #ffe680, #ffcc00 50%, #8a6000); }
+.pm-hex::before { content: ""; position: absolute; inset: 3px; clip-path: inherit; background: #140c02; z-index: -1; }
+.pm-sheet h2 { margin: 0; padding: 0; border: 0; background: none; text-align: center; font: 800 1rem var(--font-main, ui-monospace, monospace); letter-spacing: .1em; color: #ffcc00; }
+.pm-sheet p { margin: 8px 0; color: #c2b48f; font-size: .88rem; line-height: 1.45; }
+.pm-sheet ul { margin: 8px 0 0; padding-left: 20px; text-align: left; color: #c2b48f; font-size: .82rem; }
+.pm-btns { display: flex; gap: 8px; margin-top: 16px; }
+.pm-btn { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .4); background: #1a140b; color: #f1ede2; font: 700 .85rem var(--font-main, ui-monospace, monospace); cursor: pointer; }
+.pm-btn.go { border: 0; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; }
+.pm-btn:disabled { opacity: .6; }
+.stv2 .pm-st { flex: none; padding: 3px 7px; border-radius: 7px; font: 800 .56rem var(--font-main, monospace); letter-spacing: .05em; }
+.stv2 .pm-st.on { background: #123a22; color: #3ddc84; }
+.stv2 .pm-st.off { background: #1d1810; color: #c2b48f; border: 1px solid #3a2a0a; }
+.stv2 .pm-st.no { background: #3a1018; color: #ff8fa3; }
+.stv2 .pm-st.none { background: #14202e; color: #9fd0ff; }
+.stv2 .pm-note { margin: 8px 0 4px; color: #c2b48f; font-size: .76rem; }
+.stv2 #permissions-card .row { flex-wrap: wrap; }
+.stv2 #permissions-card .row .btn { margin-left: auto; }
+/* Home: steps + weather chips */
+.ph-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 auto 12px; max-width: 760px; padding: 0 2px; }
+.ph-chip { padding: 7px 12px; border-radius: 999px; background: rgba(14, 10, 4, .92); border: 1px solid rgba(255, 204, 0, .22); color: #f1ede2; font: 600 .8rem system-ui, sans-serif; }
+@media (prefers-reduced-motion: reduce) { .pm-sheet { animation: none; } }

@@ -30,6 +30,11 @@ function renderHero() {
             ${bar.maxed ? '<button type="button" class="lvup" id="pf-lvup">⬆ Level up</button>' : ''}</div></div>`;
     const img = document.getElementById('pf-avatar');
     img.onerror = () => { img.onerror = null; img.src = '../../assets/images/avatar-placeholder.svg'; };
+    // Oct 27 2026: tap your picture to take a new one or pick one (camera /
+    // Android photo picker; the camera is asked for only when you use it).
+    img.style.cursor = 'pointer';
+    img.title = 'Change photo';
+    img.onclick = () => changePhoto();
 }
 
 function renderRoyal() {
@@ -117,3 +122,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     render();
     Waggle.setActions(baseWaggleActions());
 });
+
+function changePhoto() {
+    if (typeof BizzyPhone === 'undefined' || typeof Vault.setProfilePhoto !== 'function') return;
+    const s = document.createElement('div');
+    s.className = 'pm-scrim';
+    s.innerHTML = `<div class="pm-sheet" role="dialog" aria-modal="true" aria-label="Change photo"><div class="pm-hex">🖼️</div><h2>CHANGE PHOTO</h2>
+        <p>Take a new picture or pick one. Only that photo is used.</p>
+        <div class="pm-btns"><button type="button" class="pm-btn" data-src="camera">📷 Take photo</button><button type="button" class="pm-btn" data-src="photos">🖼️ Choose photo</button></div>
+        <div class="pm-btns"><button type="button" class="pm-btn" data-src="cancel">Cancel</button></div></div>`;
+    s.addEventListener('click', async e => {
+        const b = e.target.closest('[data-src]');
+        if (e.target !== s && !b) return;
+        s.remove();
+        if (!b || b.dataset.src === 'cancel') return;
+        const url = await BizzyPhone.Photo.pick(b.dataset.src);
+        if (!url) return;
+        Vault.setProfilePhoto(url);
+        renderHero();
+        Toast.show('📸 New profile photo saved.', 'positive');
+    });
+    document.body.appendChild(s);
+}
