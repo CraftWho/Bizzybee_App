@@ -46,5 +46,5 @@ jobs:
           tag_name: android-v1.0.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           name: BizzyBee Android 1.0.${{ github.run_number }}
-          body: Install on your phone. Updates install over the old version. Adds phone reminders, Smart Notifications (beta) and vibration.
+          body: Install on your phone, or tap Update in the app (Settings › About). Updates install over the old version.
           files: BizzyBee-1.0.${{ github.run_number }}.apk

@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // BizzyBee's own native pieces (registered before the bridge starts).
         registerPlugin(BeeAlertsPlugin.class);
+        registerPlugin(BeeUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
