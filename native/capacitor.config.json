@@ -1,0 +1,25 @@
+{
+  "appId": "com.craftwho.bizzybee",
+  "appName": "BizzyBee",
+  "webDir": "shell",
+  "server": {
+    "url": "https://bizzybeee.netlify.app/",
+    "androidScheme": "https",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "backgroundColor": "#050402"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#050402",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "backgroundColor": "#050402",
+      "style": "DARK",
+      "overlaysWebView": false
+    }
+  }
+}
