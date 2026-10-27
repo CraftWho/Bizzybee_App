@@ -20,6 +20,10 @@
       "backgroundColor": "#050402",
       "style": "DARK",
       "overlaysWebView": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_bee",
+      "iconColor": "#FFCC00"
     }
   }
 }
