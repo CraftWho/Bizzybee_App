@@ -23,3 +23,32 @@
 .ph-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 auto 12px; max-width: 760px; padding: 0 2px; }
 .ph-chip { padding: 7px 12px; border-radius: 999px; background: rgba(14, 10, 4, .92); border: 1px solid rgba(255, 204, 0, .22); color: #f1ede2; font: 600 .8rem system-ui, sans-serif; }
 @media (prefers-reduced-motion: reduce) { .pm-sheet { animation: none; } }
+
+/* Animated weather icons (Oct 28 2026): header, Home, Hive Mind. */
+.wxi { width: 1.25em; height: 1.25em; overflow: visible; vertical-align: middle; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wxi-sun circle { fill: #ffd84a; }
+.wxi-rays { stroke: #ffd84a; stroke-width: 1.7; transform-origin: 12px 12px; animation: wxiSpin 14s linear infinite; }
+.wxi-moon path { fill: #e9e6d6; }
+.wxi-star { fill: #fff; animation: wxiTwinkle 2.4s ease-in-out infinite; }
+.wxi-cloud { fill: #dfe6ee; stroke: #9aa7b4; stroke-width: .6; }
+.wxi-cloud.wxi-dark { fill: #8a96a3; stroke: #5d6772; }
+.wxi-drift { animation: wxiDrift 6s ease-in-out infinite alternate; }
+.wxi-behind { transform: translate(-3px, -3px) scale(.8); transform-origin: 12px 12px; }
+.wxi-drop { stroke: #7cc4ff; stroke-width: 1.6; animation: wxiFall 1.1s linear infinite; }
+.wxi-drop.wxi-fast { animation-duration: .7s; }
+.wxi-drop:nth-of-type(2) { animation-delay: .35s; } .wxi-drop:nth-of-type(3) { animation-delay: .7s; } .wxi-drop:nth-of-type(4) { animation-delay: .2s; }
+.wxi-flake { fill: #fff; animation: wxiSnow 2.4s linear infinite; }
+.wxi-flake:nth-of-type(2) { animation-delay: .8s; } .wxi-flake:nth-of-type(3) { animation-delay: 1.6s; }
+.wxi-bolt { fill: #ffd84a; animation: wxiFlash 2.6s steps(1) infinite; }
+.wxi-fog { stroke: #c9d1d9; stroke-width: 1.8; animation: wxiFog 3.5s ease-in-out infinite alternate; }
+.wxi-fog:nth-of-type(2) { animation-delay: -1.2s; }
+@keyframes wxiSpin { to { transform: rotate(360deg); } }
+@keyframes wxiTwinkle { 50% { opacity: .2; } }
+@keyframes wxiDrift { from { transform: translateX(-1.2px); } to { transform: translateX(1.2px); } }
+@keyframes wxiFall { from { transform: translateY(-3px); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(3px); opacity: 0; } }
+@keyframes wxiSnow { from { transform: translate(0, -3px); opacity: 0; } 30% { opacity: 1; } to { transform: translate(1.5px, 3px); opacity: 0; } }
+@keyframes wxiFlash { 0%, 100% { opacity: 0; } 8% { opacity: 1; } 12% { opacity: .2; } 16% { opacity: 1; } 22% { opacity: 0; } }
+@keyframes wxiFog { from { transform: translateX(-2px); } to { transform: translateX(2px); } }
+.ah-wx { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 6px; border-radius: 999px; background: rgba(255, 204, 0, .08); border: 1px solid rgba(255, 204, 0, .22); color: #f1ede2; font: 700 .74rem var(--font-main, ui-monospace, monospace); text-decoration: none; }
+.ah-wx .wxi { width: 18px; height: 18px; }
+@media (prefers-reduced-motion: reduce) { .wxi * { animation: none !important; } }

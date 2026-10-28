@@ -176,3 +176,26 @@
 .home-help:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
 @keyframes homeHelpBob { 50% { transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .home-help-ic { animation: none; } }
+
+/* XP today: what you finished today (Oct 28 2026) */
+button.home-stat { border: 0; background: none; font: inherit; cursor: pointer; }
+.xt-scrim { position: fixed; inset: 0; z-index: 9800; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .7); }
+.xt-sheet { width: min(560px, 100%); max-height: 80vh; display: flex; flex-direction: column; box-sizing: border-box; padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: #120d05; border-top: 2px solid #34c77b; color: #f1ede2; animation: xtIn .25s ease; }
+@keyframes xtIn { from { transform: translateY(30px); opacity: 0; } }
+.xt-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.xt-head h2 { margin: 0; padding: 0; border: 0; background: none; color: #ffcc00; font: 800 1rem var(--font-main, ui-monospace, monospace); letter-spacing: .12em; text-align: left; }
+.xt-head small { color: #c2b48f; font-size: .76rem; }
+.xt-total { color: #34c77b; font: 800 1.2rem var(--font-main, ui-monospace, monospace); white-space: nowrap; }
+.xt-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.xt-list li { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-top: 1px solid rgba(255, 204, 0, .08); }
+.xt-ic { font-size: 1.15rem; width: 26px; text-align: center; }
+.xt-mid { flex: 1; min-width: 0; }
+.xt-mid b { display: block; font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xt-mid small { color: #c2b48f; font-size: .72rem; }
+.xt-xp { color: #34c77b; font: 800 .85rem var(--font-main, ui-monospace, monospace); }
+.xt-xp.neg { color: #ff6b6b; }
+.xt-empty { color: #c2b48f; font-size: .86rem; margin: 10px 0; }
+.xt-btns { display: flex; gap: 8px; margin-top: 12px; }
+.xt-btn { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .4); background: #1a140b; color: #f1ede2; font: 700 .85rem var(--font-main, ui-monospace, monospace); text-align: center; text-decoration: none; cursor: pointer; }
+.xt-btn.gold { border: 0; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; }
+@media (prefers-reduced-motion: reduce) { .xt-sheet { animation: none; } }

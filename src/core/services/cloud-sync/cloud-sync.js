@@ -51,9 +51,40 @@ const CloudSyncAuto = (() => {
         clearTimeout(timer);
         timer = setTimeout(() => { if (enabled()) pushNow(); }, 1500);
     }
+    // Save merge (Oct 28 2026): when this device and the cloud both have
+    // changes, combine them (mergeSaves in db.js) instead of stopping.
+    // The cloud keeps the replaced copy in Backups.
+    let merging = false;
+    async function autoMerge(cloud, tries = 0) {
+        if (merging || typeof mergeSaves !== 'function') return false;
+        merging = true; running = true;
+        try {
+            const remote = cloud && cloud.data ? cloud : await request('load-state');
+            if (remote.data) {
+                const merged = mergeSaves(JSON.parse(Vault.exportFullState()), JSON.parse(remote.data));
+                const imported = Vault.importFullState(JSON.stringify(merged), { fromCloud: false });
+                if (!imported.ok) throw new Error(imported.error);
+            }
+            conflict = false;
+            const result = await request('save-state', { data: Vault.exportFullState(), revision: remote.revision ?? null, preservePrevious: true });
+            acknowledge(result);
+            localStorage.setItem(Vault.storageKey + ':dirty', 'false');
+            lastError = '';
+            status('Synced this device and the cloud · ' + new Date(result.updatedAt).toLocaleString());
+            if (typeof Toast !== 'undefined') Toast.show('🔄 Synced this device and the cloud. Nothing was lost.', 'positive');
+            if (!document.querySelector('.lvr, .gfx.on, dialog[open], .pm-scrim, .up-scrim, .wn-scrim')) setTimeout(() => window.location.reload(), 1400);
+            return true;
+        } catch (error) {
+            merging = false; running = false;
+            if (conflict && tries < 1) return await autoMerge(null, tries + 1);   // the cloud moved again: once more
+            conflict = true;
+            failure("Couldn't combine this device and the cloud automatically: " + error.message);
+            return false;
+        } finally { merging = false; running = false; }
+    }
     async function pushNow() {
         if (!ready || running || !sameAccount()) return false;
-        if (conflict) { status('Both copies have changes. Choose a copy in Cloud settings.'); return false; }
+        if (conflict) return autoMerge();
         running = true;
         const snapshot = Vault.exportFullState();
         try {
@@ -67,7 +98,11 @@ const CloudSyncAuto = (() => {
                 status('Saved to encrypted cloud storage · ' + new Date(result.updatedAt).toLocaleString());
             } else schedule();
             return true;
-        } catch (error) { failure(error.message + ' Your device copy is retained.'); return false; }
+        } catch (error) {
+            running = false;
+            if (conflict) return await autoMerge();
+            failure(error.message + ' Your device copy is retained.'); return false;
+        }
         finally { running = false; }
     }
     async function pullLatest() {
@@ -155,9 +190,10 @@ const CloudSyncAuto = (() => {
             const before = Vault.exportFullState();
             const beforeStored = localStorage.getItem(Vault.storageKey);
             const result = await request('load-state');
+            let needsMerge = false;
             if (result.data && revision !== result.revision) {
-                if (revision !== null && dirty()) conflict = true;
-                else if (before !== Vault.exportFullState() || beforeStored !== localStorage.getItem(Vault.storageKey)) conflict = true;
+                if (revision !== null && dirty()) needsMerge = true;
+                else if (before !== Vault.exportFullState() || beforeStored !== localStorage.getItem(Vault.storageKey)) needsMerge = true;
                 else {
                     const imported = Vault.importFullState(result.data, { fromCloud: true });
                     if (!imported.ok) throw new Error(imported.error);
@@ -167,6 +203,7 @@ const CloudSyncAuto = (() => {
                 }
             } else acknowledge(result);
             ready = true;
+            if (needsMerge) { conflict = true; window.dispatchEvent(new Event('cloud-sync-ready')); if (typeof mergeSaves === 'function') await autoMerge(result); else failure('Both copies have changes. Choose a copy in Cloud settings.'); return; }
             if (conflict) failure('Both copies have changes. Choose a copy in Cloud settings.');
             else if ((dirty() || (result.data && !result.encrypted)) && enabled()) schedule();
             else status(result.encrypted ? 'Cloud save is encrypted and up to date.' : 'Ready to save to encrypted cloud storage.');

@@ -4,7 +4,7 @@ console.log("/// HOME PROTOCOLS INITIALIZED ///");
 //   - your royal + name + level bar live in the app's top bar (app.js
 //     AppShell), full size on this page - the Level Up button is there too
 //   - hive strip: four stats, each opening its own page (bees -> Colony,
-//     XP today -> Dashboard, best streak -> Dailies, focus quest -> Quests)
+//     XP today -> today's list, current streak -> Dailies, focus quest -> Quests)
 //   - Today: a dropdown with Dailies / Habits / To-Dos / Quest tabs, using
 //     the exact same cards as those tabs (TaskRow, HabitRow, QuestUI).
 //     Closed by default on phones, open on wide screens.
@@ -55,6 +55,63 @@ function xpToday() {
     return xp;
 }
 
+// Everything finished today, for the XP today list (Oct 28 2026). Built
+// from today's data, so it starts fresh at midnight on its own.
+function doneToday() {
+    const today = todayISO();
+    const out = [];
+    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) out.push({ icon: '☀️', kind: 'Daily', label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[today] && t._days[today].t) || 0 }); });
+    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) out.push({ icon: '✅', kind: 'To-Do', label: t.label, xp: Number(t.xp) || 0, t: t._mt || 0 }); });
+    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => {
+        if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) out.push({ icon: '🗺️', kind: q.title, label: t.label, xp: Number(t.xp) || 0, t: Date.parse(t.dateCompleted) || 0 });
+    }));
+    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => {
+        const taps = (h.history || []).filter(x => x.date === today);
+        const plus = taps.filter(x => x.direction === 'positive').length, minus = taps.length - plus;
+        const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
+        if (plus) out.push({ icon: '🔁', kind: `Habit${plus > 1 ? ` ×${plus}` : ''}`, label: h.label, xp: plus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
+        if (minus) out.push({ icon: '😖', kind: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, label: h.label, xp: -minus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
+    });
+    return out.sort((a, b) => b.t - a.t);
+}
+
+function openDoneToday() {
+    if (document.querySelector('.xt-scrim')) return;
+    const list = doneToday();
+    const total = list.reduce((n, x) => n + x.xp, 0);
+    const s = document.createElement('div');
+    s.className = 'xt-scrim';
+    s.innerHTML = `<div class="xt-sheet" role="dialog" aria-modal="true" aria-label="Done today">
+        <div class="xt-head"><div><h2>DONE TODAY</h2><small>${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · starts fresh at midnight</small></div>
+            <b class="xt-total">${total > 0 ? '+' : ''}${total} XP</b></div>
+        ${list.length ? `<ul class="xt-list">${list.map(x => `<li><span class="xt-ic" aria-hidden="true">${x.icon}</span><span class="xt-mid"><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.kind)}</small></span><span class="xt-xp${x.xp < 0 ? ' neg' : ''}">${x.xp > 0 ? '+' : ''}${x.xp}</span></li>`).join('')}</ul>`
+            : '<p class="xt-empty">Nothing finished yet today. Check off a daily to get started.</p>'}
+        <div class="xt-btns"><a class="xt-btn" href="../dashboard/dashboard.html">Dashboard</a><button type="button" class="xt-btn gold" data-k="close">Close</button></div></div>`;
+    const close = () => s.remove();
+    s.addEventListener('click', e => { if (e.target === s || e.target.closest('[data-k="close"]')) close(); });
+    document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
+    document.body.appendChild(s);
+    s.querySelector('[data-k="close"]').focus();
+}
+
+// Days in a row with every daily done (today counts once it's all done).
+function currentStreak() {
+    const list = (Vault.state && Vault.state.dailyTasks) || [];
+    if (!list.length) return 0;
+    const today = todayISO();
+    const dueOn = (day) => list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
+    const allDone = (day) => dueOn(day).every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day));
+    let n = 0;
+    if (dueOn(today).length && allDone(today)) n++;
+    for (let i = 1; i <= 730; i++) {
+        const day = shiftISODate(today, -i);
+        if (!dueOn(day).length) continue;
+        if (!allDone(day)) break;
+        n++;
+    }
+    return n;
+}
+
 // ---- hive strip: four stats, each to its own page ----
 const STRIP_ICONS = {
     bees: '<path d="M12 6.5a3 3 0 1 1 0 .1"/><path d="M8.5 11h7l-.8 7.5a2.7 2.7 0 0 1-5.4 0z"/><path d="M8.8 14h6.4M9.2 16.8h5.6M8.5 11C5 8 3 9.5 4.2 11.8S8.2 13 8.5 11zM15.5 11c3.5-3 5.5-1.5 4.3.8S15.8 13 15.5 11z"/>',
@@ -65,21 +122,23 @@ const STRIP_ICONS = {
 
 function renderHive() {
     const hive = Vault.getHiveHoney();
-    const streak = Vault.getDailyTasks().reduce((m, t) => Math.max(m, t.streak || 0), 0);
+    const streak = currentStreak();
     const quest = Vault.getQuests().find(q => q.id === Vault.getActiveQuestId());
     const qp = quest && typeof QuestUI !== 'undefined' ? QuestUI.progress(quest).pct : null;
     const xp = xpToday();
     const stats = [
         { key: 'bees', value: hive.bees, label: 'Bees', href: '../colony/colony.html', color: '#ffcc00' },
-        { key: 'xp', value: `${xp > 0 ? '+' : ''}${xp}`, label: 'XP today', href: '../dashboard/dashboard.html', color: '#34c77b' },
-        { key: 'streak', value: streak, label: 'Best streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
+        { key: 'xp', value: `${xp > 0 ? '+' : ''}${xp}`, label: 'XP today', button: true, color: '#34c77b' },
+        { key: 'streak', value: streak, label: 'Current streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
         { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
     ];
-    document.getElementById('home-hive').innerHTML = stats.map(s => `
-        <a class="home-stat" href="${s.href}" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}">
+    const host = document.getElementById('home-hive');
+    host.innerHTML = stats.map(s => `
+        <${s.button ? 'button type="button" data-done-today' : `a href="${s.href}"`} class="home-stat" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}${s.button ? '. Show what you finished today' : ''}">
             <svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>
             <b>${escapeHTML(s.value)}</b><small>${escapeHTML(s.label)}</small>
-        </a>`).join('');
+        </${s.button ? 'button' : 'a'}>`).join('');
+    host.querySelector('[data-done-today]').onclick = openDoneToday;
 }
 
 // ---- Bees that need help (Hive Life moods) ----
@@ -269,6 +328,7 @@ const APP_ICONS = {
     'plugin-hub': '<path d="M11 4.5h2.5a2 2 0 1 1 4 0H20v5.5a2 2 0 1 0 0 4V20h-5.5a2 2 0 1 0-4 0H5v-5.5a2 2 0 1 1 0-4V4.5z"/>',
     'hive-archive': '<rect x="4" y="5" width="20" height="5.5" rx="1.5"/><path d="M5.5 10.5V22a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V10.5M11.5 14.5h5"/>',
     settings: '<circle cx="14" cy="14" r="3.6"/><path d="M14 3.5v3M14 21.5v3M24.5 14h-3M6.5 14h-3M21.4 6.6l-2.1 2.1M8.7 19.3l-2.1 2.1M21.4 21.4l-2.1-2.1M8.7 8.7 6.6 6.6"/><circle cx="14" cy="14" r="7.5"/>',
+    notifications: '<path d="M8 19.5V13a6 6 0 0 1 12 0v6.5l2 2H6z"/><path d="M11.8 23.5a2.4 2.4 0 0 0 4.4 0M14 4.5v2.5"/>',
     plugin: '<path d="M14 3.5 23 8.7v10.6L14 24.5 5 19.3V8.7z"/><path d="M14 9v10M9 14h10"/>'
 };
 // One grid, no categories (Craft, 2026-10-10) - like a phone's home
@@ -278,7 +338,7 @@ const HOME_APPS = [
     { key: 'colony', label: 'Colony' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
     { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
-    { key: 'hive-archive', label: 'Hive Archive' }, { key: 'settings', label: 'Settings' }
+    { key: 'hive-archive', label: 'Hive Archive' }, { key: 'notifications', label: 'Notifications' }, { key: 'settings', label: 'Settings' }
 ];
 // Habits and To-Dos are in the dock, so only the other installed plugins
 // (Calendar, Study...) join the grid.
@@ -411,6 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderBeeHelp();
     renderToday();
     renderAppGrid();
+    if (new URLSearchParams(location.search).get('devdone') === '1') setTimeout(openDoneToday, 600);   // dev tools
     setupToday();
 
     Waggle.setActions(baseWaggleActions());

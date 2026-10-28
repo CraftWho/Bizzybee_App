@@ -977,3 +977,9 @@ body.ob-nodock .app-dock { display: none; }
 .ah-coins { flex: none; padding: 3px 8px; border-radius: 999px; background: rgba(255, 204, 0, .1); border: 1px solid rgba(255, 204, 0, .3); color: var(--shell-honey); font: 700 .72rem var(--font-main); white-space: nowrap; }
 .app-head.compact .ah-hp { opacity: 0; max-height: 0; margin: 0; }
 @media (prefers-reduced-motion: reduce) { .ah-hpbar.low i { animation: none; } }
+
+/* Opened from a notification (Oct 28 2026): the item glows for a few seconds. */
+.bb-focus { position: relative; z-index: 2; animation: bbFocus 1.4s ease-in-out 3; border-radius: 14px; }
+@keyframes bbFocus { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0); } 50% { box-shadow: 0 0 0 3px #ffcc00, 0 0 24px 6px rgba(255, 204, 0, .45); } }
+@media (prefers-reduced-motion: reduce) { .bb-focus { animation: none; box-shadow: 0 0 0 3px #ffcc00; } }
+.app-lock-bio { margin-top: 14px; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .45); background: #1a140b; color: #ffcc00; font: 700 .85rem var(--font-main, ui-monospace, monospace); cursor: pointer; }
