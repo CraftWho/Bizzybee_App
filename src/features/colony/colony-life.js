@@ -13,7 +13,7 @@ const HiveLife = (() => {
         { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse'], x: 3, y: 17, text: 'New bees start as eggs here. What hatches is a surprise. Nurses speed hatching and healing.' },
         { id: 'honey', icon: '🍯', name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'], x: 66, y: 17, text: 'Food for the hive. Honey Makers make Honey Drops. Water Carriers keep workers fresh.' },
         { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner'], x: 34.5, y: 33, text: 'Comb Builders add quest loot. Cleaners soften lost raids.' },
-        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 3, y: 49, text: 'Bees with no job, tired bees and fainted bees. Give idle bees work or they get upset.' },
+        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 3, y: 49, text: 'Bees with no job, tired bees and fainted bees. Resting bees eat and fill back up. Give idle bees work or they get upset.' },
         { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 66, y: 49, text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' }
     ];
     const ZONE_ROOM = { royal: 'royal', brood: 'nursery', honey: 'honey', comb: 'workshop', entrance: 'entrance', outside: 'entrance' };

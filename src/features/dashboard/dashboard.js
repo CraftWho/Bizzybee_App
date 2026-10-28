@@ -133,8 +133,20 @@ function renderMastery(S) {
     document.getElementById('db-mastery').innerHTML = html;
 }
 
+// "Pick your skills" card (Oct 28 2026) until you have at least one skill.
+// It opens by itself once, the first time you visit with no skills.
+function renderStarter() {
+    const host = document.getElementById('db-starter');
+    if (!host || typeof StarterSkills === 'undefined') return;
+    host.hidden = StarterSkills.hasSkills();
+    if (host.hidden) return;
+    host.innerHTML = `<button type="button" class="ss-card" id="db-starter-btn"><span class="i">🌱</span><span><b>Pick your skills</b><small>Choose what you're working on. Your tasks start counting toward it.</small></span><span class="chev">›</span></button>`;
+    document.getElementById('db-starter-btn').onclick = async () => { await StarterSkills.open(); render(); };
+}
+
 function render() {
     const S = Vault.state;
+    renderStarter();
     const m = xpByDay(S);
     renderTiles(S);
     renderMastery(S);
@@ -147,6 +159,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     render();
     window.addEventListener('time-logged', render);
+    if (typeof StarterSkills !== 'undefined' && !StarterSkills.hasSkills() && !(Vault.state.starterSkills || {}).seen) {
+        Vault.state.starterSkills = { ...(Vault.state.starterSkills || {}), seen: true };
+        Vault.save();
+        setTimeout(async () => { await StarterSkills.open(); render(); }, 600);
+    }
     // Skill level-up right here (Oct 2026), same reward screen as the Skills page.
     document.getElementById('db-mastery').addEventListener('click', async (e) => {
         const b = e.target.closest('.sk-up');

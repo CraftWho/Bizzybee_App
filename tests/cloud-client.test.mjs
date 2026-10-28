@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const fixture = () => ({ schemaVersion: 8, user: { name: 'Bee' }, quests: [], profilePhoto: 'photo-data' });
-async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', remote = fixture(), auto = true, failLoad = false } = {}) {
+async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', remote = fixture(), auto = true, failLoad = false, merge = false } = {}) {
     const key = 'bizzybee_user_data:alice';
     const state = fixture();
     const data = new Map([['bizzybee_session', 'identity'], ['bizzybee_cloud_owner', 'alice'], [key, JSON.stringify(state)],
@@ -33,6 +33,7 @@ async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', 
             const result = await h.respond();
             return { ok: result.ok, status: result.ok ? 200 : 409, json: async () => result };
         } });
+    if (merge) { const db = readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8'); vm.runInContext(db.slice(db.indexOf('const MERGE_LISTS'), db.indexOf('const Vault = new DatabaseManager()')) + '\nglobalThis.mergeSaves = mergeSaves;', context); }
     vm.runInContext(readFileSync(new URL('../src/core/services/cloud-sync/cloud-sync.js', import.meta.url), 'utf8') + '\nglobalThis.engine = CloudSyncAuto;', context);
     h.engine = context.engine;
     await tick(); await tick();
@@ -70,9 +71,18 @@ test('new device loads cloud progress instead of overwriting it', async () => {
     assert.equal(h.imports, 1); assert.equal(h.reloaded, 1); assert.equal(h.posts.length, 0);
     assert.equal(h.Vault.state.user.name, 'Cloud Bee');
 });
-test('pending device changes plus a newer cloud revision pause for conflict resolution', async () => {
+test('without the merge code, both copies changed means pause (never overwrite)', async () => {
     const h = await harness({ dirty: true, remoteRevision: 'r9' });
     assert.equal(h.imports, 0); assert.equal(await h.engine.pushNow(), false); assert.equal(h.posts.length, 0);
+});
+test('with the merge code, both copies are combined and saved once', async () => {
+    const remote = fixture(); remote.quests = [{ id: 'q1', name: 'Cloud quest' }];
+    const h = await harness({ dirty: true, remoteRevision: 'r9', remote, merge: true });
+    await tick(); await tick();
+    assert.equal(h.posts.length, 1); assert.equal(h.posts[0].revision, 'r9'); assert.equal(h.posts[0].preservePrevious, true);
+    const sent = JSON.parse(h.posts[0].data);
+    assert.equal(sent.quests[0].name, 'Cloud quest'); assert.equal(sent.profilePhoto, 'photo-data');
+    assert.equal(h.data.get(h.key + ':dirty'), 'false');
 });
 test('server conflict leaves pending changes intact', async () => {
     const h = await harness({ dirty: true });
@@ -96,23 +106,15 @@ test('photo-sized uploads use normal fetch rather than an exit-time keepalive', 
     await h.engine.pushNow(); assert.equal(JSON.parse(h.posts[0].data).profilePhoto.length, 200000);
 });
 
-test('password reset verifies a recovery token before updating the account', async () => {
+test('password reset: verifies the recovery token first, and stops if it expired', async () => {
+    const recovery = (fetch) => { const c = vm.createContext({ AbortSignal, fetch }); vm.runInContext(readFileSync(new URL('../src/core/login/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', c); return c.recovery; };
     const calls = [];
-    const context = vm.createContext({ AbortSignal, fetch: async (url, options) => {
-        calls.push({ url, options });
-        return { ok: true, json: async () => ({ access_token: 'recovery-access' }) };
-    } });
-    vm.runInContext(readFileSync(new URL('../src/core/login/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
-    await context.recovery.reset('email-token', 'a-long-new-password');
+    await recovery(async (url, options) => { calls.push({ url, options }); return { ok: true, json: async () => ({ access_token: 'recovery-access' }) }; }).reset('email-token', 'a-long-new-password');
     assert.equal(calls[0].url, '/.netlify/identity/verify');
     assert.deepEqual(JSON.parse(calls[0].options.body), { type: 'recovery', token: 'email-token' });
     assert.equal(calls[1].options.headers.Authorization, 'Bearer recovery-access');
     assert.equal(calls[1].url, '/.netlify/identity/user');
-});
-test('expired recovery token never attempts a password change', async () => {
     let count = 0;
-    const context = vm.createContext({ AbortSignal, fetch: async () => { count++; return { ok: false }; } });
-    vm.runInContext(readFileSync(new URL('../src/core/login/account-recovery.js', import.meta.url), 'utf8') + '\nglobalThis.recovery = AccountRecovery;', context);
-    await assert.rejects(context.recovery.reset('expired', 'long-password'));
+    await assert.rejects(recovery(async () => { count++; return { ok: false }; }).reset('expired', 'long-password'));
     assert.equal(count, 1);
 });

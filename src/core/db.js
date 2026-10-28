@@ -1307,6 +1307,8 @@ const LIFE = {
     // stat makes worn-out bees rest. Fatigue climbs while working and drops
     // while resting; at 100 the bee must rest for restDays.
     fatiguePerWorkDay: 12, fatigueRest: 30, restDays: 2, sickDays: 3, injuredDays: 2,
+    // Oct 28 2026 (Craft): bees in the Rest Comb eat. Resting refills fullness.
+    restFeedPerDay: 25,
     // Comb rooms (Oct 2026): new bees start as eggs in the Nursery for
     // broodDays (5, Craft Oct 2026; a working Nurse Bee takes a day off). A bee with no job
     // for idleUpsetDays gets upset.
@@ -1994,6 +1996,11 @@ class DatabaseManager {
                 // claiming "just now" for data it didn't actually author. This
                 // is what Settings' Cloud-vs-Local comparison reads to tell you
                 // which copy is actually newer (see getLastLocalUpdate() below).
+                // Save merge (Oct 28 2026): stamp what changed since the last save.
+                if (this._shadow === undefined) {
+                    try { const prev = JSON.parse(localStorage.getItem(this.storageKey) || 'null'); this._shadow = prev ? stampSaveChanges(prev, null) : null; } catch { this._shadow = null; }
+                }
+                this._shadow = stampSaveChanges(this.state, this._shadow);
                 this.state.updatedAt = new Date().toISOString();
                 localStorage.setItem(this.storageKey + ':dirty', 'true');
                 localStorage.setItem(this.storageKey, JSON.stringify(this.state));
@@ -3820,6 +3827,11 @@ class DatabaseManager {
         const index = task.completedDates.indexOf(today);
         const justCompleted = index === -1;
 
+        // Save merge: remember when this day was checked or unchecked.
+        task._days = task._days || {};
+        task._days[today] = { done: justCompleted, t: Date.now() };
+        const cut = shiftISODate(today, -90);
+        Object.keys(task._days).forEach(d => { if (d < cut) delete task._days[d]; });
         if (justCompleted) {
             task.completedDates.push(today);
         } else {
@@ -4394,6 +4406,32 @@ class DatabaseManager {
         return term;
     }
 
+    // Starter skills (Oct 28 2026): each picked skill's word pack goes into
+    // the Dictionary under that skill. null = skipped for now. Returns how
+    // many words were added.
+    setStarterSkills(list) {
+        if (!this.state) return 0;
+        if (!list) {
+            this.state.starterSkills = { ...(this.state.starterSkills || {}), skipped: true, seen: true };
+            this.save();
+            return 0;
+        }
+        if (!this.state.dictionary) this.state.dictionary = [];
+        const have = new Set(this.state.dictionary.map(t => String(t.name || '').toLowerCase()));
+        let added = 0;
+        list.forEach(({ name, words }) => (words || []).forEach(w => {
+            const key = String(w).toLowerCase();
+            if (!key || have.has(key)) return;
+            have.add(key);
+            this.state.dictionary.push({ id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: String(w), definition: '',
+                category: String(name).trim(), createdAt: new Date().toISOString(), source: 'starter' });
+            added++;
+        }));
+        this.state.starterSkills = { done: true, seen: true, picked: list.map(x => x.name) };
+        this.save();
+        return added;
+    }
+
     updateDictionaryTerm(termId, { name, definition, category }) {
         if (!this.state || !this.state.dictionary) return null;
 
@@ -4574,6 +4612,7 @@ class DatabaseManager {
             localStorage.setItem(this.storageKey + ':dirty', fromCloud ? 'false' : 'true');
             localStorage.setItem(this.storageKey, JSON.stringify(parsed));
             this.state = parsed;
+            this._shadow = undefined;   // save merge: new baseline on the next save
             if (!fromCloud) window.dispatchEvent(new Event('vault-saved'));
             return { ok: true };
         } catch (error) {
@@ -5250,6 +5289,7 @@ Object.assign(DatabaseManager.prototype, {
             if (L.fatigue == null) L.fatigue = 0;
             if (working) L.fatigue = clampVital(L.fatigue + LIFE.fatiguePerWorkDay * (water ? 0.75 : 1) * (beeTitlePower(b, 'relentless') ? 0.6 : 1));
             else L.fatigue = clampVital(L.fatigue - LIFE.fatigueRest);
+            if (!working) L.fullness = clampVital(L.fullness + LIFE.restFeedPerDay);   // resting bees eat
             if (working && L.fatigue >= 100) {
                 L.restUntil = shiftISODate(day, LIFE.restDays);
                 this._lifeEvent('rest', `😴 ${b.name} is exhausted and must rest for ${LIFE.restDays} days.`, { beeId: b.id });
@@ -5662,5 +5702,146 @@ Object.assign(DatabaseManager.prototype, {
         this.save();
     },
 });
+
+// =====================================================================
+// SAVE MERGE (Oct 28 2026). Two copies of a save (this device + cloud)
+// are combined instead of showing a conflict screen.
+//  - Every item (daily, to-do, habit, quest, quest task, bee, term,
+//    project) gets _mt, the time it last changed (stamped in save()).
+//  - Same item changed on both: the newer change wins ("last action wins").
+//  - Dailies: each day's check / uncheck has its own time (_days), so a
+//    day done on one device and another day done on the other both stay.
+//  - Habit taps from both devices are kept.
+//  - Deleted items leave a tombstone (_tomb) so an old copy can't bring
+//    them back.
+//  - Everything else (colony stats, inventory, settings): the copy saved
+//    most recently wins. The cloud keeps the replaced copy as a backup.
+// =====================================================================
+const MERGE_LISTS = [
+    ['dailyTasks', (s) => s.dailyTasks],
+    ['todos', (s) => s.todos],
+    ['habits', (s) => s.habits],
+    ['quests', (s) => s.quests],
+    ['bees', (s) => s.colony && s.colony.bees],
+    ['dictionary', (s) => s.dictionary],
+    ['projects', (s) => s.profile && s.profile.projects],
+];
+const mergeKeyOf = (item) => item && (item.id || item.name || null);
+const mergeStamp = (item) => Number(item && item._mt) || 0;
+const mergeClone = (o) => JSON.parse(JSON.stringify(o));
+
+// What counts as "this item changed" (nested quest tasks are tracked on their own).
+function mergeFingerprint(kind, item) {
+    if (kind === 'quests') {
+        const { tasks, ghostLogs, _mt, ...rest } = item;
+        void tasks; void ghostLogs; void _mt;
+        return JSON.stringify(rest);
+    }
+    const { _mt, ...rest } = item;
+    void _mt;
+    return JSON.stringify(rest);
+}
+
+// Called from save(): stamps _mt on changed items and tombstones deleted ones.
+function stampSaveChanges(state, shadow, now = Date.now()) {
+    const next = {};
+    state._tomb = state._tomb || {};
+    const walk = (kind, list) => {
+        if (!Array.isArray(list)) return;
+        const seen = new Set();
+        list.forEach(item => {
+            const key = mergeKeyOf(item);
+            if (!key) return;
+            const id = `${kind}:${key}`;
+            seen.add(id);
+            const fp = mergeFingerprint(kind, item);
+            if (shadow && shadow[id] !== undefined && shadow[id] !== fp) item._mt = now;
+            else if (!item._mt && shadow && shadow[id] === undefined) item._mt = now;   // new item
+            next[id] = fp;
+            if (kind === 'quests') walk(`qt:${key}`, item.tasks);
+        });
+        if (shadow) Object.keys(shadow).forEach(id => {
+            if (id.startsWith(`${kind}:`) && !seen.has(id)) state._tomb[id] = now;
+        });
+    };
+    MERGE_LISTS.forEach(([kind, get]) => walk(kind, get(state)));
+    // Tombstones older than 90 days are forgotten.
+    const old = now - 90 * 86400000;
+    Object.keys(state._tomb).forEach(k => { if (state._tomb[k] < old) delete state._tomb[k]; });
+    return next;
+}
+
+// One daily from two copies: newer item wins, then each day's check/uncheck by its own time.
+function mergeDaily(winner, other) {
+    const out = mergeClone(winner);
+    const days = { ...(other._days || {}) };
+    Object.entries(winner._days || {}).forEach(([d, r]) => { if (!days[d] || r.t >= days[d].t) days[d] = r; });
+    const set = new Set([...(winner.completedDates || []), ...(other.completedDates || [])]);
+    Object.entries(days).forEach(([d, r]) => { if (r.done) set.add(d); else set.delete(d); });
+    out.completedDates = [...set].sort();
+    out.savedDates = [...new Set([...(winner.savedDates || []), ...(other.savedDates || [])])].sort();
+    if (Object.keys(days).length) out._days = days;
+    return out;
+}
+
+function mergeList(kind, a, b, tomb) {
+    const A = Array.isArray(a) ? a : [], B = Array.isArray(b) ? b : [];
+    const mapB = new Map(B.map(x => [mergeKeyOf(x), x]));
+    const out = [];
+    const dead = (item) => { const t = tomb[`${kind}:${mergeKeyOf(item)}`]; return t && t >= mergeStamp(item); };
+    const both = (x, y) => {
+        const win = mergeStamp(y) > mergeStamp(x) ? y : x, lose = win === x ? y : x;
+        if (kind === 'dailyTasks') return mergeDaily(win, lose);
+        let res = mergeClone(win);
+        if (kind === 'habits') {
+            const seen = new Set();
+            res.history = [...(win.history || []), ...(lose.history || [])].filter(h => { const k = JSON.stringify(h); if (seen.has(k)) return false; seen.add(k); return true; });
+        }
+        if (kind === 'quests') {
+            const key = mergeKeyOf(win);
+            res.tasks = mergeList(`qt:${key}`, x.tasks, y.tasks, tomb);
+            if (x.ghostLogs || y.ghostLogs) {
+                const seen = new Set();
+                res.ghostLogs = [...(x.ghostLogs || []), ...(y.ghostLogs || [])].filter(g => { const k = g.id || JSON.stringify(g); if (seen.has(k)) return false; seen.add(k); return true; });
+            }
+        }
+        return res;
+    };
+    A.forEach(x => {
+        const key = mergeKeyOf(x);
+        const y = key != null ? mapB.get(key) : null;
+        if (y) { mapB.delete(key); const r = both(x, y); if (!dead(r)) out.push(r); }
+        else if (!dead(x)) out.push(mergeClone(x));
+    });
+    mapB.forEach(y => { if (!dead(y)) out.push(mergeClone(y)); });
+    return out;
+}
+
+// Merge two whole saves (plain objects). Returns a new object.
+function mergeSaves(a, b) {
+    const ta = Date.parse(a.updatedAt || 0) || 0, tb = Date.parse(b.updatedAt || 0) || 0;
+    const base = tb > ta ? b : a, other = base === a ? b : a;
+    const out = mergeClone(base);
+    const tomb = { ...(other._tomb || {}) };
+    Object.entries(base._tomb || {}).forEach(([k, t]) => { if (!tomb[k] || t > tomb[k]) tomb[k] = t; });
+    out._tomb = tomb;
+    out.dailyTasks = mergeList('dailyTasks', base.dailyTasks, other.dailyTasks, tomb);
+    out.todos = mergeList('todos', base.todos, other.todos, tomb);
+    out.habits = mergeList('habits', base.habits, other.habits, tomb);
+    out.quests = mergeList('quests', base.quests, other.quests, tomb);
+    if (out.colony) out.colony.bees = mergeList('bees', base.colony && base.colony.bees, other.colony && other.colony.bees, tomb);
+    if (base.dictionary || other.dictionary) out.dictionary = mergeList('dictionary', base.dictionary, other.dictionary, tomb);
+    if (out.profile || other.profile) {
+        out.profile = out.profile || mergeClone(other.profile);
+        out.profile.projects = mergeList('projects', base.profile && base.profile.projects, other.profile && other.profile.projects, tomb);
+    }
+    // Steps per day: keep the higher count.
+    if (base.steps || other.steps) {
+        out.steps = { ...(other.steps || {}) };
+        Object.entries(base.steps || {}).forEach(([d, n]) => { out.steps[d] = Math.max(n, out.steps[d] || 0); });
+    }
+    out.updatedAt = new Date(Math.max(ta, tb) || Date.now()).toISOString();
+    return out;
+}
 
 const Vault = new DatabaseManager();

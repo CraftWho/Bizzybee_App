@@ -6,7 +6,7 @@
 import webpush from 'web-push';
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json } from '../lib/cloud-store.mjs';
-import { pushStore, cleanSubscription, cleanSchedule, vapid, MAX_SUBS } from '../lib/push-store.mjs';
+import { pushStore, cleanSubscription, cleanSchedule, vapid, nextAt, bumpNext, MAX_SUBS } from '../lib/push-store.mjs';
 
 export default async (req) => {
     const keys = vapid();
@@ -46,7 +46,7 @@ export default async (req) => {
         if (Array.isArray(body.schedule)) next.schedule = cleanSchedule(body.schedule);
         if (!subs.length) { await store.delete(user.id); return json({ ok: true, devices: 0 }); }
         const result = await store.setJSON(user.id, next, current ? { onlyIfMatch: current.etag } : { onlyIfNew: true });
-        if (result.modified) return json({ ok: true, devices: subs.length, upcoming: next.schedule.length });
+        if (result.modified) { await bumpNext(store, nextAt(next)).catch(() => {}); return json({ ok: true, devices: subs.length, upcoming: next.schedule.length }); }
     }
     return json({ ok: false, error: 'Busy - please retry.' }, 409);
 };

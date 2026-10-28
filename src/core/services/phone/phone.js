@@ -84,7 +84,31 @@ const BizzyPhone = (() => {
             async check() { try { return (await P('BeeFiles').status()).picked ? 'granted' : 'prompt'; } catch { return 'unsupported'; } },
             async request() { const r = await P('BeeFiles').pickFolder(); return r.picked ? 'granted' : 'prompt'; },
         },
-        biometric: { icon: '👆', title: 'Face & fingerprint', why: 'Your phone checks it. BizzyBee never sees or stores it.', soon: true },
+        biometric: {
+            icon: '👆', title: 'Face & fingerprint', why: 'Unlock with your face or fingerprint. Your phone checks it. BizzyBee never sees or stores it.', app: true,
+            card: ['USE FACE OR FINGERPRINT?', 'Unlock BizzyBee with your face or fingerprint instead of typing the App Lock PIN.', ['Turn it on next to your App Lock PIN.', 'The PIN still works.']],
+            async check() {
+                if (typeof AppLock === 'undefined' || !(await AppLock.bioAvailable())) return 'unsupported';
+                return AppLock.bioOn() ? 'granted' : 'prompt';
+            },
+            async request() { location.href = `${location.origin}/src/features/account-security/account-security.html`; return 'prompt'; },
+            settings() { this.request(); },
+        },
+        calendar: {
+            icon: '📅', title: 'Phone calendar', why: 'See your phone events in Calendar. Add To-Do due dates to it.', app: true,
+            card: ['USE YOUR PHONE CALENDAR?', 'BizzyBee reads your events to show them in its Calendar, and adds your To-Do due dates. Nothing leaves your phone.', ['You pick which of the two to turn on.', 'Turning it off removes the To-Dos it added.']],
+            async check() {
+                const c = P('CapacitorCalendar');
+                if (!c) return 'unsupported';
+                try {
+                    const r = (await c.checkPermission({ scope: 'readCalendar' })).result;
+                    const w = (await c.checkPermission({ scope: 'writeCalendar' })).result;
+                    if (r === 'granted' && w === 'granted') return 'granted';
+                    return (r === 'denied' || w === 'denied') ? 'denied' : 'prompt';
+                } catch { return 'unsupported'; }
+            },
+            async request() { return norm((await P('CapacitorCalendar').requestFullCalendarAccess()).result); },
+        },
         install: {
             icon: '⬆️', title: 'Install updates', why: 'Asked the first time you update the app', app: true,
             async check() { try { return (await P('BeeUpdater').canInstall()).allowed ? 'granted' : 'prompt'; } catch { return 'unsupported'; } },
@@ -209,8 +233,129 @@ const BizzyPhone = (() => {
         },
     };
 
+    // ------------------------------------------------------- phone calendar
+    // Two switches (Settings › Phone features): show phone events in the
+    // Calendar plugin, and add To-Do due dates to the phone's calendar. Which
+    // phone event belongs to which To-Do is kept on this phone only.
+    const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const Calendar = {
+        showOn: () => get('bb_cal_show') === 'on',
+        addOn: () => get('bb_cal_todos') === 'on',
+        map() { try { return JSON.parse(get('bb_cal_map') || '{}') || {}; } catch { return {}; } },
+        saveMap(m) { set('bb_cal_map', Object.keys(m).length ? JSON.stringify(m) : null); },
+        async allow() { return (await ask('calendar', { force: true })) === 'granted'; },
+        async setShow(on) {
+            if (on && !(await this.allow())) return false;
+            set('bb_cal_show', on ? 'on' : null);
+            return true;
+        },
+        async setAdd(on) {
+            if (on && !(await this.allow())) return false;
+            set('bb_cal_todos', on ? 'on' : null);
+            if (on) await this.syncTodos(); else await this.removeAll();
+            return true;
+        },
+        // Phone events in a time range: [{ id, date, time, title }]. Skips the To-Dos we added.
+        async events(from, to) {
+            const c = P('CapacitorCalendar');
+            if (!c || !this.showOn() || (await DEFS.calendar.check()) !== 'granted') return [];
+            const ours = new Set(Object.values(this.map()).map(x => String(x.e)));
+            const r = await c.listEventsInRange({ from, to });
+            return (r.result || []).filter(e => !ours.has(String(e.id))).map(e => {
+                const d = new Date(e.startDate);
+                // All-day events are stored at midnight UTC.
+                const day = e.isAllDay ? new Date(d.getTime() + d.getTimezoneOffset() * 60000) : d;
+                return { id: String(e.id), date: ymd(day), time: e.isAllDay ? '' : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), title: e.title || '(No title)' };
+            });
+        },
+        // Add / update / remove To-Do due dates in the phone calendar.
+        async syncTodos() {
+            const c = P('CapacitorCalendar');
+            if (!c || !this.addOn() || typeof Vault === 'undefined' || !Vault.state) return;
+            if ((await DEFS.calendar.check()) !== 'granted') return;
+            const m = this.map();
+            const todos = new Map((Vault.state.todos || []).map(t => [t.id, t]));
+            const drop = async (id) => { try { await c.deleteEvent({ id: String(m[id].e) }); } catch {} delete m[id]; };
+            for (const id of Object.keys(m)) { const t = todos.get(id); if (!t || t.completed || !t.dueDate) await drop(id); }
+            for (const t of todos.values()) {
+                if (t.completed || !t.dueDate) continue;
+                const sig = `${t.label}|${t.dueDate}|${t.dueTime || ''}`;
+                if (m[t.id] && m[t.id].s === sig) continue;
+                if (m[t.id]) await drop(t.id);
+                const [y, mo, d] = t.dueDate.split('-').map(Number);
+                let opts;
+                if (t.dueTime) { const [h, mi] = t.dueTime.split(':').map(Number); const st = new Date(y, mo - 1, d, h, mi).getTime(); opts = { startDate: st, endDate: st + 30 * 60000, isAllDay: false }; }
+                else { const st = Date.UTC(y, mo - 1, d); opts = { startDate: st, endDate: st + 86400000, isAllDay: true }; }
+                try {
+                    const r = await c.createEvent({ title: `✅ ${t.label}`, description: 'To-Do from BizzyBee', ...opts });
+                    if (r && r.id) m[t.id] = { e: String(r.id), s: sig };
+                } catch (e) { console.warn('calendar add', e && e.message); }
+            }
+            this.saveMap(m);
+        },
+        async removeAll() {
+            const c = P('CapacitorCalendar');
+            const m = this.map();
+            if (c) for (const id of Object.keys(m)) { try { await c.deleteEvent({ id: String(m[id].e) }); } catch {} }
+            this.saveMap({});
+        },
+    };
+
     // ---------------------------------------------------------------- weather
     const WCODE = { 0: ['☀️', 'Clear'], 1: ['🌤️', 'Mostly clear'], 2: ['⛅', 'Partly cloudy'], 3: ['☁️', 'Cloudy'], 45: ['🌫️', 'Fog'], 48: ['🌫️', 'Fog'], 51: ['🌦️', 'Drizzle'], 53: ['🌦️', 'Drizzle'], 55: ['🌦️', 'Drizzle'], 61: ['🌧️', 'Rain'], 63: ['🌧️', 'Rain'], 65: ['🌧️', 'Heavy rain'], 71: ['🌨️', 'Snow'], 73: ['🌨️', 'Snow'], 75: ['❄️', 'Heavy snow'], 80: ['🌦️', 'Showers'], 81: ['🌧️', 'Showers'], 82: ['⛈️', 'Heavy showers'], 95: ['⛈️', 'Storms'], 96: ['⛈️', 'Storms'], 99: ['⛈️', 'Storms'] };
+    // Weather code -> a simple kind, for the animated icons and the Hive Mind sky.
+    function kindOf(code) {
+        if (code == null) return 'clear';
+        if (code <= 1) return code === 0 ? 'clear' : 'mostly';
+        if (code === 2) return 'partly';
+        if (code === 3) return 'cloudy';
+        if (code === 45 || code === 48) return 'fog';
+        if (code >= 51 && code <= 57) return 'drizzle';
+        if (code === 65 || code === 67 || code === 82) return 'heavy';
+        if ((code >= 61 && code <= 66) || code === 80 || code === 81) return 'rain';
+        if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+        if (code >= 95) return 'storm';
+        return 'cloudy';
+    }
+    // Small animated icon (header, widgets). Pure SVG + CSS (phone.css).
+    function iconSVG(kind, isDay = true) {
+        const sun = '<g class="wxi-sun"><circle cx="12" cy="12" r="4.2"/><g class="wxi-rays">' + Array.from({ length: 8 }, (_, i) => `<path d="M12 3.2v2.2" transform="rotate(${i * 45} 12 12)"/>`).join('') + '</g></g>';
+        const moon = '<g class="wxi-moon"><path d="M15.5 4.5a7.5 7.5 0 1 0 4 12.6A6.3 6.3 0 0 1 15.5 4.5z"/><circle class="wxi-star" cx="19.5" cy="5" r=".9"/></g>';
+        const cloud = (cls = '') => `<path class="wxi-cloud ${cls}" d="M7.2 18.5h10a3.7 3.7 0 0 0 .3-7.4 5.2 5.2 0 0 0-10-.9A3.9 3.9 0 0 0 7.2 18.5z"/>`;
+        const lines = (cls, n, ch) => Array.from({ length: n }, (_, i) => ch(i)).map(x => `<g class="${cls}">${x}</g>`).join('');
+        const body = {
+            clear: isDay ? sun : moon,
+            mostly: isDay ? sun : moon,
+            partly: `<g class="wxi-behind">${isDay ? sun : moon}</g>${cloud('wxi-drift')}`,
+            cloudy: cloud('wxi-drift'),
+            fog: lines('wxi-fog', 3, i => `<path d="M${4 + i}  ${9 + i * 4}h${15 - i * 2}"/>`),
+            drizzle: cloud() + lines('wxi-drop', 2, i => `<path d="M${10 + i * 4} 20.2v1.6"/>`),
+            rain: cloud() + lines('wxi-drop', 3, i => `<path d="M${8.5 + i * 3.5} 20v2.4"/>`),
+            heavy: cloud('wxi-dark') + lines('wxi-drop wxi-fast', 4, i => `<path d="M${7.5 + i * 3} 19.8v3"/>`),
+            snow: cloud() + lines('wxi-flake', 3, i => `<circle cx="${8.5 + i * 3.5}" cy="21" r=".9"/>`),
+            storm: cloud('wxi-dark') + '<path class="wxi-bolt" d="M12.8 15.5 10.6 19h2.2l-1.4 3.6 3.6-4.7h-2.3l1.4-2.4z"/>',
+        }[kind] || sun;
+        return `<svg class="wxi wxi-${kind}" viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
+    }
+    // Weather in the app header, next to the level bar. Tap opens Settings › Weather.
+    async function headerWeather() {
+        const row = document.querySelector('.app-head .ah-lvl');
+        if (!row) return;
+        const w = await Weather.now().catch(() => null);
+        let el = row.querySelector('.ah-wx');
+        if (!w) { if (el) el.remove(); return; }
+        if (!el) {
+            el = document.createElement('a');
+            el.className = 'ah-wx';
+            el.href = `${location.origin}/src/features/settings/settings.html#weather`;
+            el.addEventListener('click', e => e.stopPropagation());
+            row.appendChild(el);
+        }
+        el.title = `${w.text} · ${w.place}`;
+        el.setAttribute('aria-label', `Weather: ${w.temp} degrees, ${w.text}`);
+        el.innerHTML = `${iconSVG(w.kind || kindOf(w.code), w.isDay !== false)}<span>${w.temp}°</span>`;
+    }
+
     const Weather = {
         mode: () => get('bb_weather', 'off'),            // off | area | city
         unit: () => get('bb_weather_unit', 'F'),
@@ -232,14 +377,18 @@ const BizzyPhone = (() => {
         },
         async now() {
             if (this.mode() === 'off') return null;
-            try { const c = JSON.parse(get('bb_weather_cache') || 'null'); if (c && Date.now() - c.at < 30 * 60000 && c.unit === this.unit()) return c; } catch {}
+            try { const c = JSON.parse(get('bb_weather_cache') || 'null'); if (c && c.v === 2 && Date.now() - c.at < 30 * 60000 && c.unit === this.unit()) return c; } catch {}
             const w = await this.where().catch(() => null);
             if (!w) return null;
             const u = this.unit() === 'C' ? 'celsius' : 'fahrenheit';
-            const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${w.lat}&longitude=${w.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=${u}&timezone=auto&forecast_days=1`).then(x => x.json()).catch(() => null);
+            const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${w.lat}&longitude=${w.lon}&current=temperature_2m,weather_code,is_day,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&temperature_unit=${u}&wind_speed_unit=kmh&timezone=auto&forecast_days=1`).then(x => x.json()).catch(() => null);
             if (!r || !r.current) return null;
             const [icon, text] = WCODE[r.current.weather_code] || ['🌡️', 'Weather'];
-            const out = { at: Date.now(), unit: this.unit(), place: w.name, temp: Math.round(r.current.temperature_2m), icon, text,
+            const code = r.current.weather_code;
+            const out = { v: 2, at: Date.now(), unit: this.unit(), place: w.name, temp: Math.round(r.current.temperature_2m), icon, text, code, kind: kindOf(code),
+                isDay: r.current.is_day === 1, wind: Math.round(r.current.wind_speed_10m || 0),
+                // "2026-10-28T07:21" in the place's own time: read as local clock time.
+                sunrise: Date.parse(r.daily.sunrise[0]) || null, sunset: Date.parse(r.daily.sunset[0]) || null,
                 hi: Math.round(r.daily.temperature_2m_max[0]), lo: Math.round(r.daily.temperature_2m_min[0]), rain: r.daily.precipitation_probability_max[0] };
             set('bb_weather_cache', JSON.stringify(out));
             return out;
@@ -317,7 +466,7 @@ const BizzyPhone = (() => {
         const steps = isApp ? await Steps.sync().catch(() => null) : null;
         if (steps != null) parts.push(`<span class="ph-chip">👟 ${steps.toLocaleString()} steps</span>`);
         const w = await Weather.now().catch(() => null);
-        if (w) parts.push(`<span class="ph-chip" title="${esc(w.place)}">${w.icon} ${w.temp}°${w.unit} · ${esc(w.text)} · ${w.hi}°/${w.lo}°${w.rain >= 40 ? ` · ${w.rain}% rain` : ''}</span>`);
+        if (w) parts.push(`<span class="ph-chip" title="${esc(w.place)}">${iconSVG(w.kind || kindOf(w.code), w.isDay !== false)} ${w.temp}°${w.unit} · ${esc(w.text)} · ${w.hi}°/${w.lo}°${w.rain >= 40 ? ` · ${w.rain}% rain` : ''}</span>`);
         let el = document.getElementById('ph-strip');
         if (!parts.length) { if (el) el.remove(); return; }
         if (!el) {
@@ -334,12 +483,14 @@ const BizzyPhone = (() => {
         if (!/\/(features|plugins)\//.test(path) || /\/onboarding\//.test(path)) return;
         const go = () => {
             homeStrip();
-            if (isApp) { Backup.auto(); if (!/home\.html/.test(path)) Steps.sync(); }
+            headerWeather();
+            if (isApp) { Backup.auto(); if (!/home\.html/.test(path)) Steps.sync(); Calendar.syncTodos(); }
         };
+        if (isApp) { let ct = null; window.addEventListener('vault-saved', () => { clearTimeout(ct); ct = setTimeout(() => Calendar.syncTodos(), 4000); }); }
         (typeof Vault !== 'undefined' ? Vault.init() : Promise.resolve()).then(() => setTimeout(go, 1200));
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(go, 800); });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 
-    return { isApp, ask, status: (n) => (DEFS[n] ? DEFS[n].check() : Promise.resolve('unsupported')), renderPage, openSettings, Steps, Weather, Photo, Backup, homeStrip };
+    return { isApp, ask, status: (n) => (DEFS[n] ? DEFS[n].check() : Promise.resolve('unsupported')), renderPage, openSettings, Steps, Weather, Photo, Backup, Calendar, homeStrip, iconSVG, kindOf };
 })();

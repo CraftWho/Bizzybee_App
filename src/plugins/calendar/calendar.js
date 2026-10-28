@@ -83,6 +83,9 @@ function buildEventIndex() {
         ensure(event.date).events.push(event);
     });
 
+    // Phone calendar events (Android app, read only). See loadPhoneEvents().
+    phoneEvents.forEach(event => ensure(event.date).events.push(event));
+
     // To-Dos show on their due date (Oct 2026).
     (Vault.getTodos() || []).forEach(todo => {
         if (todo.dueDate) ensure(String(todo.dueDate).slice(0, 10)).todos.push(todo);
@@ -157,7 +160,7 @@ function renderAgenda(index) {
     document.getElementById('calendar-agenda-title').textContent = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + (isToday ? ' · Today' : '');
     const day = index[selectedKey] || EMPTY_DAY;
     const rows = [
-        ...day.events.map(e => ({ tm: e.time || 'All day', c: 'event', t: e.title, s: 'Your event', id: e.id })),
+        ...day.events.map(e => ({ tm: e.time || 'All day', c: 'event', t: e.title, s: e.phone ? '📱 Phone calendar' : 'Your event', id: e.phone ? null : e.id })),
         ...day.todos.map(t => ({ tm: 'Due', c: 'todo', t: t.label, s: t.completed ? 'To-Do · done' : 'To-Do · due' })),
         ...day.quests.map(q => ({ tm: 'Done', c: 'quest', t: q.label, s: `${q.questTitle} · +${q.xp} XP` })),
         ...day.dailies.map(dl => ({ tm: 'Daily', c: 'daily', t: dl.label, s: `Daily · done · +${dl.xp} XP` }))
@@ -203,7 +206,7 @@ function renderWeekView(board, anchorDate, index) {
             ...day.todos.map(t => ({ icon: '✅', label: t.label, sub: 'Due' })),
             ...day.quests.map(q => ({ icon: '🐝', label: q.label, sub: `+${q.xp} XP` })),
             ...day.dailies.map(dl => ({ icon: '☀️', label: dl.label, sub: `+${dl.xp} XP` })),
-            ...day.events.map(e => ({ icon: '📌', label: e.title, sub: e.time || '', id: e.id, isEvent: true }))
+            ...day.events.map(e => ({ icon: e.phone ? '📱' : '📌', label: e.title, sub: e.time || '', id: e.id, isEvent: !e.phone }))
         ];
         return `
             <div class="calendar-week-col${key === todayKey ? ' calendar-week-col--today' : ''}">
@@ -263,7 +266,7 @@ function renderDayView(board, anchorDate, index) {
             <h4>📌 Your Events</h4>
             ${day.events.length === 0
                 ? `<p class="empty-state">Nothing added yet.</p>`
-                : day.events.map(e => renderCalendarItem({ icon: '📌', label: e.title, sub: e.time || '', id: e.id, isEvent: true })).join('')}
+                : day.events.map(e => renderCalendarItem({ icon: e.phone ? '📱' : '📌', label: e.title, sub: e.phone ? `${e.time || 'All day'} · Phone` : (e.time || ''), id: e.id, isEvent: !e.phone })).join('')}
             <button class="calendar-day-add-btn" id="calendar-day-add-btn">➕ Add Event for This Day</button>
         </div>
     `;
@@ -304,6 +307,22 @@ function navigate(direction) {
     if (currentView === 'month') currentDate = addMonths(currentDate, direction);
     else if (currentView === 'week') currentDate = addDays(currentDate, direction * 7);
     else currentDate = addDays(currentDate, direction);
+    renderCalendar();
+    loadPhoneEvents();
+}
+
+// Phone calendar (Android app 1.0.9+, Oct 28 2026): events from the phone's
+// own calendar show here, read only. Turned on in Settings › Phone features.
+let phoneEvents = [];
+async function loadPhoneEvents(tries = 0) {
+    if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
+    if (typeof BizzyPhone === 'undefined') { if (tries < 50) setTimeout(() => loadPhoneEvents(tries + 1), 150); return; }
+    const C = BizzyPhone.Calendar;
+    if (!C || !C.showOn()) { if (phoneEvents.length) { phoneEvents = []; renderCalendar(); } return; }
+    const from = addMonths(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1), -1);
+    const to = addMonths(from, 3);
+    const list = await C.events(from.getTime(), to.getTime()).catch(() => []);
+    phoneEvents = list.map(e => ({ id: 'phone-' + e.id, date: e.date, time: e.time, title: e.title, phone: true }));
     renderCalendar();
 }
 
@@ -428,6 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentDate = new Date();
             selectedKey = gridDateKey(currentDate);
             renderCalendar();
+            loadPhoneEvents();
         });
         document.getElementById('calendar-add-event-btn').addEventListener('click', () => {
             openEventModal({ date: currentView === 'month' && selectedKey ? selectedKey : gridDateKey(currentDate) });
@@ -440,6 +460,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         renderCalendar();
+        loadPhoneEvents();
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadPhoneEvents(); });
     }
 
     Waggle.setActions(baseWaggleActions());

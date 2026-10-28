@@ -71,6 +71,7 @@ const AppLock = {
     // opens simply finds hasPin() false and never shows the overlay at all.
     removePin() {
         localStorage.removeItem(this.PIN_HASH_KEY);
+        localStorage.removeItem('bizzybee_bio_unlock');
     },
 
     async verifyPin(pin) {
@@ -85,6 +86,26 @@ const AppLock = {
 
     markUnlocked() {
         sessionStorage.setItem(this.SESSION_UNLOCK_KEY, 'true');
+    },
+
+    // Face / fingerprint (Android app 1.0.9+, Oct 28 2026). The phone checks
+    // it; BizzyBee only gets "yes" or "no". Off by default, next to the PIN.
+    BIO_KEY: 'bizzybee_bio_unlock',
+    bioPlugin() {
+        const C = window.Capacitor;
+        return (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.NativeBiometric) || null;
+    },
+    bioOn() { return localStorage.getItem(this.BIO_KEY) === 'on' && !!this.bioPlugin(); },
+    async bioAvailable() {
+        const b = this.bioPlugin();
+        if (!b) return false;
+        try { return !!(await b.isAvailable({ useFallback: false })).isAvailable; } catch { return false; }
+    },
+    async bioCheck(reason = 'Unlock BizzyBee') {
+        const b = this.bioPlugin();
+        if (!b) return false;
+        try { await b.verifyIdentity({ reason, title: 'BizzyBee', subtitle: reason, negativeButtonText: 'Use PIN', maxAttempts: 3 }); return true; }
+        catch { return false; }
     }
 };
 
@@ -770,6 +791,40 @@ const AppShell = {
     }
 };
 
+// Open a notification's item (Oct 28 2026). Pages are opened with
+// ?focus=<id> (a daily, To-Do, habit or quest task) or ?daystart=1. The row
+// scrolls into view and glows. Rows carry data-row-id / data-habit-id.
+const BizzyFocus = {
+    run(params = new URLSearchParams(window.location.search)) {
+        const id = params.get('focus');
+        const start = params.get('daystart') === '1';
+        if (!id && !start) return;
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('focus'); url.searchParams.delete('daystart');
+            history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+        } catch {}
+        if (start) {
+            const review = typeof Vault !== 'undefined' && typeof Vault.getDayReview === 'function' ? Vault.getDayReview() : null;
+            // With something to review, Start My Day already opens on its own.
+            if (!review && typeof Toast !== 'undefined') Toast.show('☀️ Start My Day is done for today.', 'neutral');
+        }
+        if (id) this.glow(id);
+    },
+    glow(id, tries = 0) {
+        const sel = `[data-row-id="${CSS.escape(id)}"], [data-habit-id="${CSS.escape(id)}"], [data-task-id="${CSS.escape(id)}"]`;
+        const el = document.querySelector(sel);
+        if (!el) {
+            if (tries < 40) setTimeout(() => this.glow(id, tries + 1), 150);
+            else if (typeof Toast !== 'undefined') Toast.show("Couldn't find that item. It may be done or deleted.", 'neutral');
+            return;
+        }
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.remove('bb-focus'); void el.offsetWidth; el.classList.add('bb-focus');
+        setTimeout(() => el.classList.remove('bb-focus'), 4200);
+    }
+};
+
 class CodexSystem {
     constructor() {
         this.init();
@@ -790,6 +845,32 @@ class CodexSystem {
         this.loadNative();
         this.loadUpdates();
         this.loadPhone();
+        this.loadStarterSkills();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(() => BizzyFocus.run(), 300));
+        else setTimeout(() => BizzyFocus.run(), 300);
+    }
+
+    // Starter skills (Oct 28 2026): right after "Add to my colony", Home asks
+    // "What are you working on?" once. (The Dashboard asks on its own.)
+    loadStarterSkills() {
+        let flag = null;
+        try { flag = localStorage.getItem('bb_starter_skills'); } catch {}
+        if (flag !== 'new' || !window.location.pathname.includes('/home/')) return;
+        const go = () => {
+            if (document.querySelector('.ds-scrim, .lvr, .gfx.on, dialog[open]')) { setTimeout(go, 1500); return; }
+            try { localStorage.removeItem('bb_starter_skills'); } catch {}
+            if (typeof StarterSkills === 'undefined' || StarterSkills.hasSkills()) return;
+            Vault.state.starterSkills = { ...(Vault.state.starterSkills || {}), seen: true };
+            Vault.save();
+            StarterSkills.open();
+        };
+        const css = document.createElement('link');
+        css.rel = 'stylesheet'; css.href = '../../../src/core/ui/starter-skills/starter-skills.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/starter-skills/starter-skills.js';
+        script.onload = () => Vault.init().then(() => setTimeout(go, 1200));
+        document.body.appendChild(script);
     }
 
     // Permissions, steps, weather, photos, phone backups (src/core/services/phone/).
@@ -1014,9 +1095,13 @@ class CodexSystem {
                     <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="app-lock-pin-digit" autocomplete="off">
                 </div>
                 <p class="app-lock-error" hidden>🐝 Incorrect PIN.</p>
+                ${AppLock.bioOn() ? '<button type="button" class="app-lock-bio">👆 Use face or fingerprint</button>' : ''}
             </div>
         `;
         document.body.appendChild(overlay);
+        const bioBtn = overlay.querySelector('.app-lock-bio');
+        const tryBio = async () => { if (await AppLock.bioCheck()) { AppLock.markUnlocked(); overlay.remove(); } };
+        if (bioBtn) { bioBtn.addEventListener('click', tryBio); setTimeout(tryBio, 350); }
 
         const card = overlay.querySelector('.app-lock-card');
         const digits = Array.from(overlay.querySelectorAll('.app-lock-pin-digit'));
@@ -1055,7 +1140,7 @@ class CodexSystem {
             });
         });
 
-        digits[0].focus();
+        if (!bioBtn) digits[0].focus();
     }
 
     // --- Cloud Sync auto-engine loader ----------------------------------

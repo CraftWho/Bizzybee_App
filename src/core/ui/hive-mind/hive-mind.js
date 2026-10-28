@@ -27,6 +27,7 @@ const WAGGLE_MENU = [
         { icon: '🧩', label: 'Plugins & Packs', path: 'src/features/plugin-hub/plugin-hub.html' }
     ]],
     ['Account', [
+        { icon: '🔔', label: 'Notifications', path: 'src/features/notifications/notifications.html' },
         { icon: '🔄', label: 'Phone Sync', path: 'src/features/sync/sync.html' },
         { icon: '🔐', label: 'Account Info', path: 'src/features/account-info/account-info.html' },
         { icon: '⚙️', label: 'Settings', path: 'src/features/settings/settings.html' }

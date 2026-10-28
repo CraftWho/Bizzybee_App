@@ -4,7 +4,7 @@
 //   this file                           turns it on/off, uploads the upcoming
 //                                       reminder times (next 10 days)
 //   netlify/functions/push-subscribe    stores this device + those times
-//   netlify/functions/push-send         runs every minute, sends what's due
+//   netlify/functions/push-send         runs every 5 minutes, sends what's due
 // Needs a cloud account (signed in). Your save stays encrypted - only the
 // reminder times and (if you allow it) the task names go to the server.
 const BizzyPush = (() => {
@@ -37,48 +37,11 @@ const BizzyPush = (() => {
         return out;
     }
 
-    const pad = (n) => String(n).padStart(2, '0');
-    const dayStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-    // Upcoming reminders for the next DAYS days, as absolute times.
+    // Upcoming reminders for the next DAYS days (shared planner: services/notify/notify.js).
     function buildSchedule() {
-        if (typeof Vault === 'undefined' || !Vault.state) return [];
-        const now = Date.now();
-        const out = [];
-        const add = (id, day, time, label, url) => {
-            if (!/^\d{2}:\d{2}$/.test(time || '')) return;
-            const at = new Date(`${day}T${time}:00`);
-            if (isNaN(at) || at.getTime() < now - 60000) return;
-            out.push({ id: `${id}-${day}-${time}`, at: at.toISOString(), title: '🐝 Bizzybee reminder', body: showNames() ? label : 'You have a task reminder.', url });
-        };
-        const today = dayStr(new Date());
-        for (let i = 0; i < DAYS; i++) {
-            const d = new Date(); d.setDate(d.getDate() + i);
-            const day = dayStr(d);
-            (Vault.state.dailyTasks || []).forEach(t => {
-                if (!(t.reminders || []).length || !isDailyDueOn(t, day)) return;
-                if (day === today && (t.completedDates || []).includes(today)) return;
-                t.reminders.forEach(r => add(`${t.id}-${r.id}`, day, r.time, t.label, '/src/features/dailies/dailies.html'));
-            });
-        }
-        // Evening check-in (Oct 27 2026): works even with no reminder times set.
-        const ci = localStorage.getItem('bizzybee_checkin') || '20:00';
-        if (/^\d{2}:\d{2}$/.test(ci)) {
-            for (let i = 0; i < DAYS; i++) {
-                const d = new Date(); d.setDate(d.getDate() + i);
-                const day = dayStr(d);
-                const left = (Vault.state.dailyTasks || []).filter(t => isDailyDueOn(t, day) && !(t.completedDates || []).includes(day)).length;
-                if (!left) continue;
-                const at = new Date(`${day}T${ci}:00`);
-                if (isNaN(at) || at.getTime() < now - 60000) continue;
-                out.push({ id: `checkin-${day}-${ci}`, at: at.toISOString(), title: '🐝 Evening check-in', body: `${left} ${left === 1 ? 'daily' : 'dailies'} left today. Finish them to keep your streak.`, url: '/src/features/dailies/dailies.html' });
-            }
-        }
-        (Vault.state.todos || []).forEach(t => {
-            if (t.completed || !t.dueDate || !(t.reminders || []).length) return;
-            t.reminders.forEach(r => add(`${t.id}-${r.id}`, t.dueDate, r.time, t.label, '/src/features/todos/todos.html'));
-        });
-        return out.sort((a, b) => a.at < b.at ? -1 : 1).slice(0, 400);
+        if (typeof Vault === 'undefined' || !Vault.state || typeof BizzyNotify === 'undefined') return [];
+        return BizzyNotify.plan({ days: DAYS, limit: 400 }).map(a => ({ id: a.key, at: a.at.toISOString(), title: a.title, body: a.body, url: a.url }));
     }
 
     async function subscription(create) {

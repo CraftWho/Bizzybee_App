@@ -125,6 +125,34 @@ function refreshAppLockStatus() {
     document.getElementById('app-lock-status-text').textContent = hasPin ? '✅ Set on this device' : '⚠️ Not set';
     document.getElementById('app-lock-create-section').hidden = hasPin;
     document.getElementById('app-lock-manage-section').hidden = !hasPin;
+    refreshBio();
+}
+
+// Face / fingerprint (Android app 1.0.9+). Only with an App Lock PIN set.
+async function refreshBio() {
+    const row = document.getElementById('app-lock-bio-row');
+    if (!row) return;
+    const can = AppLock.hasPin() && await AppLock.bioAvailable();
+    row.hidden = !AppLock.bioPlugin() || !AppLock.hasPin();
+    const box = document.getElementById('app-lock-bio');
+    box.checked = AppLock.bioOn();
+    box.disabled = !can;
+    if (!can && !row.hidden) document.getElementById('app-lock-bio-note').textContent = 'Set up a face or fingerprint in your phone settings first.';
+}
+function initBio() {
+    const box = document.getElementById('app-lock-bio');
+    if (!box) return;
+    box.addEventListener('change', async () => {
+        if (box.checked) {
+            // Check once now, so it's known to work before it's needed.
+            if (!(await AppLock.bioCheck('Turn on face or fingerprint unlock'))) { box.checked = false; return; }
+            localStorage.setItem(AppLock.BIO_KEY, 'on');
+            Toast.show('👆 Face or fingerprint unlock is on.', 'positive');
+        } else {
+            localStorage.removeItem(AppLock.BIO_KEY);
+            Toast.show('Face or fingerprint unlock is off. The PIN still works.', 'neutral');
+        }
+    });
 }
 
 async function attemptCreateAppLockPin() {
@@ -249,6 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         .forEach(id => sanitizePinInput(document.getElementById(id), 4));
 
     refreshAppLockStatus();
+    initBio();
 
     document.getElementById('app-lock-create-btn').addEventListener('click', attemptCreateAppLockPin);
     document.getElementById('app-lock-create-confirm').addEventListener('keydown', (event) => {

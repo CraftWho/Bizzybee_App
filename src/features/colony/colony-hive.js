@@ -58,7 +58,7 @@ function colonyHiveBuild(tier, hid){
   <filter id="${hid}-blur3"><feGaussianBlur stdDeviation="3"/></filter>
   <filter id="${hid}-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
  </defs>
- <rect x="-1500" y="-1000" width="3400" height="2600" fill="url(#${hid}-sky)"/><rect x="-1500" y="-1000" width="3400" height="2600" fill="url(#${hid}-sun)"/>`;
+ <rect class="ch-sky" x="-1500" y="-1000" width="3400" height="2600" fill="url(#${hid}-sky)"/><rect class="ch-sky" x="-1500" y="-1000" width="3400" height="2600" fill="url(#${hid}-sun)"/>`;
  // Scenery beyond the 400x500 frame, so the art can fill any screen shape
  // (the SVG uses "meet" + overflow visible). Separate random stream so the
  // hive itself looks exactly the same as the approved concept.

@@ -7,7 +7,25 @@
 //    (Settings › About). When releases go public, no token is needed.
 const APP_WEB_VERSION = '1.0.4';
 const WHATS_NEW = [
-    { version: '1.0.4', date: 'Oct 2026',
+    { id: 'w2', version: '1.0.4', date: 'Nov 2026',
+      new: [
+        { icon: '🔔', title: 'Notifications page', text: 'Everything that can remind you, in one place. See what\'s coming up.', href: 'features/notifications/notifications.html' },
+        { icon: '👆', title: 'Tap a notification to open it', text: 'It opens that daily, To-Do or habit, and it glows.' },
+        { icon: '🌅', title: 'Start My Day and habit reminders', text: 'A morning prompt, and a nudge for habits you haven\'t tapped.', href: 'features/notifications/notifications.html' },
+        { icon: '🌧️', title: 'Live sky on the Hive Mind', text: 'Real day and night, sun, moon, clouds, rain, snow and storms.', href: 'features/colony/colony.html' },
+        { icon: '🌤️', title: 'Weather in the header', text: 'A small animated icon and the temperature.', href: 'features/settings/settings.html#weather' },
+        { icon: '✨', title: 'Done today', text: 'Tap XP today on Home to see everything you finished today.', href: 'features/home/home.html' },
+        { icon: '🌱', title: 'Pick your skills', text: 'Choose what you\'re working on. Normal task names count toward it.', href: 'features/dashboard/dashboard.html' },
+        { icon: '🔐', title: 'Face or fingerprint unlock', text: 'In the Android app, next to your App Lock PIN.', href: 'features/account-security/account-security.html' },
+        { icon: '📅', title: 'Your phone calendar', text: 'Phone events in Calendar, and To-Do due dates in your phone.', href: 'features/settings/settings.html#phone-features' },
+      ],
+      improved: [
+        { icon: '🔄', title: 'Cloud sync combines both copies', text: 'No more "both copies have changes". The newest change to each task wins.' },
+        { icon: '🔥', title: 'Current streak on Home', text: 'Days in a row with every daily done.' },
+        { icon: '💤', title: 'Resting bees eat', text: 'Bees in the Rest Comb fill back up.' },
+      ],
+      fixed: [] },
+    { id: 'w1', version: '1.0.4', date: 'Oct 2026',
       new: [
         { icon: '🔔', title: 'Phone reminders', text: 'In the Android app. Work offline, with Done and Snooze on the alert.', href: 'features/settings/settings.html#phone-features' },
         { icon: '🌙', title: 'Evening check-in', text: '"3 dailies left today" at a time you pick. Works on the website too.', href: 'features/settings/settings.html#phone-features' },
@@ -53,11 +71,16 @@ const BizzyUpdates = (() => {
     const seenKey = () => (typeof Vault !== 'undefined' && Vault.state && Vault.state.whatsNewSeen) || null;
     function unseen() {
         const seen = seenKey();
-        return WHATS_NEW.filter(e => !seen || cmp(e.version, seen) > 0);
+        // By each entry's id, newest first (Oct 28 2026): two releases can share
+        // a version number. An older save remembers a version instead of an
+        // id; then only the newest entry is new.
+        if (!seen) return WHATS_NEW;
+        const i = WHATS_NEW.findIndex(e => e.id === seen);
+        return WHATS_NEW.slice(0, i < 0 ? 1 : i);
     }
     function markSeen() {
         if (typeof Vault === 'undefined' || !Vault.state) return;
-        Vault.state.whatsNewSeen = APP_WEB_VERSION;
+        Vault.state.whatsNewSeen = WHATS_NEW[0].id;
         Vault.save();
     }
     function itemHTML(it) {
@@ -108,7 +131,7 @@ const BizzyUpdates = (() => {
         }
         if (!unseen().length) return;
         // Wait for Start My Day / level-up screens to finish first.
-        const busy = () => document.querySelector('.ds-scrim, .lvr, .gfx.on, dialog[open]');
+        const busy = () => document.querySelector('.ds-scrim, .ss-scrim, .lvr, .gfx.on, dialog[open]');
         let tries = 0;
         const t = setInterval(() => { if (!busy() || ++tries > 120) { clearInterval(t); if (!busy()) openWhatsNew(); } }, 1000);
     }
@@ -119,6 +142,12 @@ const BizzyUpdates = (() => {
     async function installedVersion() {
         try { return (await P('App').getInfo()).version; } catch { return null; }
     }
+    // Hidden build number. Always goes up, even if the version label doesn't.
+    async function installedBuild() {
+        try { return Number((await P('App').getInfo()).build) || 0; } catch { return 0; }
+    }
+    // Tags look like android-v1.0.9-b12. Older tags (android-v1.0.9) used the last number as the build.
+    const buildOf = (tag, version) => { const b = String(tag).match(/-b(\d+)$/); return b ? Number(b[1]) : Number(String(version).split('.').pop()) || 0; };
     async function check({ quiet } = {}) {
         if (!isApp) return { state: 'web' };
         const tk = token();
@@ -135,14 +164,15 @@ const BizzyUpdates = (() => {
         if (!m || !apk) return { state: 'none' };
         set(CHECK_KEY, String(Date.now()));
         const mine = await installedVersion();
-        latest = { version: m[1], size: apk.size, notes: rel.body || '', assetUrl: apk.url, page: rel.html_url, date: rel.published_at };
-        const available = mine && cmp(latest.version, mine) > 0;
+        latest = { version: m[1], build: buildOf(rel.tag_name, m[1]), size: apk.size, notes: rel.body || '', assetUrl: apk.url, page: rel.html_url, date: rel.published_at };
+        const myBuild = await installedBuild();
+        const available = mine && (myBuild ? latest.build > myBuild : cmp(latest.version, mine) > 0);
         if (available && !quiet) offer();
         return { state: available ? 'available' : 'current', mine, latest };
     }
     function offer() {
         if (!latest || typeof Toast === 'undefined') return;
-        if (get(LATER_KEY) === latest.version) return;
+        if (get(LATER_KEY) === latest.version + '-' + latest.build) return;
         Toast.show(`⬆️ BizzyBee ${latest.version} is ready. Takes about a minute.`, 'neutral', { ms: 15000, action: { label: 'Update now', onClick: openUpdater } });
     }
     function mb(n) { return n ? `${(n / 1048576).toFixed(1)} MB` : ''; }
@@ -165,7 +195,7 @@ const BizzyUpdates = (() => {
         let file = null;
         s.addEventListener('click', async e => {
             const b = e.target.closest('[data-k]');
-            if (e.target === s || (b && b.dataset.k === 'close')) { set(LATER_KEY, latest.version); s.remove(); return; }
+            if (e.target === s || (b && b.dataset.k === 'close')) { set(LATER_KEY, latest.version + '-' + latest.build); s.remove(); return; }
             if (!b || b.dataset.k !== 'go' || go.disabled) return;
             if (!up) { window.open(latest.page, '_blank'); return; }
             if (file) { await install(up); return; }
