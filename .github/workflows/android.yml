@@ -1,12 +1,12 @@
 # Builds the BizzyBee Android app (native/) on GitHub's servers and posts
-# the APK as a GitHub Release. Free for this repo. Runs when the android
-# branch changes, or by hand from the Actions tab ("Run workflow").
+# the APK as a GitHub Release. Free for this repo. Runs ONLY by hand:
+# Actions tab > Android APK > "Run workflow" (on the Sunday update).
+# The version people see comes from native/version.txt (you set it).
+# The hidden build number (github.run_number) always goes up, so Android
+# installs each build over the old one.
 # Needs two repo secrets: BB_KEYSTORE_B64 and BB_KEYSTORE_PASSWORD.
 name: Android APK
 on:
-  push:
-    branches: [android]
-    paths: ['native/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -26,6 +26,8 @@ jobs:
           distribution: temurin
           java-version: 21
       # GitHub's Ubuntu runners already include the Android SDK (ANDROID_HOME).
+      - name: Read version
+        run: echo "BB_VERSION_NAME=$(tr -d ' \r\n' < version.txt)" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npx cap sync android
       - name: Build signed APK
@@ -33,18 +35,17 @@ jobs:
           BB_KEYSTORE_B64: ${{ secrets.BB_KEYSTORE_B64 }}
           BB_KEYSTORE_PASSWORD: ${{ secrets.BB_KEYSTORE_PASSWORD }}
           BB_VERSION_CODE: ${{ github.run_number }}
-          BB_VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
           if [ -z "$BB_KEYSTORE_B64" ]; then echo "Missing BB_KEYSTORE_B64 secret"; exit 1; fi
           echo "$BB_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/bizzybee.jks"
           export BB_KEYSTORE_PATH="$RUNNER_TEMP/bizzybee.jks"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/BizzyBee-1.0.${{ github.run_number }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/BizzyBee-$BB_VERSION_NAME.apk"
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: android-v1.0.${{ github.run_number }}
+          tag_name: android-v${{ env.BB_VERSION_NAME }}-b${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: BizzyBee Android 1.0.${{ github.run_number }}
+          name: BizzyBee Android ${{ env.BB_VERSION_NAME }}
           body: Install on your phone, or tap Update in the app (Settings › About). Updates install over the old version.
-          files: BizzyBee-1.0.${{ github.run_number }}.apk
+          files: BizzyBee-${{ env.BB_VERSION_NAME }}.apk
