@@ -1,4 +1,4 @@
-/* Egg Incubator plugin (Oct 28 2026). Black, white, red and gold. */
+/* Egg Incubator (Oct 28 2026). Black, white, red and gold. */
 .icv { max-width: 560px; margin: 0 auto; padding: 8px 14px 120px; color: #f1ede2; }
 .ic-head { padding: 16px 14px 14px; border-radius: 22px; background: linear-gradient(#1a130a, #0d0904); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); border-top: 2px solid var(--bb-alt, #dc143c); }
 .ic-head h1 { margin: 0; color: var(--bb-accent, #ffcc00); font: 800 1.08rem var(--font-main, ui-monospace, monospace); letter-spacing: .12em; }
@@ -78,3 +78,6 @@
 .ic-sheet .btns .ic-btn { flex: 1; padding: 12px; }
 @media (prefers-reduced-motion: reduce) { .icv svg * { animation: none !important; } }
 .ic-sheet-bg[hidden], .icv[hidden] { display: none; }
+
+.ic-note a { color: var(--bb-accent, #ffcc00); }
+a.ic-btn { display: inline-block; text-decoration: none; text-align: center; }

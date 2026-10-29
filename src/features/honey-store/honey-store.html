@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="../../core/ui/modal/modal.css">
     <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
     <link rel="stylesheet" href="./honey-store.css">
+    <link rel="stylesheet" href="../incubator/incubator.css">
 </head>
 <body>
 
@@ -32,8 +33,9 @@
         <h2 class="sec">Special items</h2>
         <section class="card" id="store-identity-row"></section>
 
-        <a class="card hs-inc-link" href="../../plugins/incubator/incubator.html#store" id="store-incubator-link" hidden><span>🥚</span><span><b>Egg Incubators</b><small>Hatch eggs faster with your steps. Four tiers.</small></span><span class="chev">›</span></a>
-        <script>document.addEventListener('DOMContentLoaded', () => { if (typeof Plugins === 'undefined' || Plugins.isEnabled('incubator')) document.getElementById('store-incubator-link').hidden = false; });</script>
+        <h2 class="sec" id="incubators">Egg incubators</h2>
+        <div class="hs-inc" id="store-incubators"></div>
+        <p class="note">Paid with Honey coins. Eggs inside hatch faster as you walk or finish dailies. One works at a time, and a better one takes over. <a href="../incubator/incubator.html">Open your incubator</a></p>
 
         <h2 class="sec">Items bees hold</h2>
         <div class="tiles" id="store-held-grid"></div>
@@ -52,6 +54,7 @@
     <script src="../../core/ui/item-card/item-card.js"></script>
 
     <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="../incubator/incubator-art.js"></script>
     <script src="./honey-store.js"></script>
 </body>
 </html>

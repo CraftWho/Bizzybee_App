@@ -451,7 +451,8 @@ const AppShell = {
         document.documentElement.style.setProperty('--lv-b', lvB);
         q('.ah-bar i').style.width = `${Math.max(0, Math.min(100, bar.percentage))}%`;
         q('.ah-xp').innerHTML = `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
-        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to ${levelName(bar.level + 1)}`;
+        // Oct 29 2026 (Craft): no "XP to level" line; the title line says who you are.
+        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : '';
         q('.ah-chip').classList.toggle('ready', !!bar.maxed);
         const qs = typeof Vault.getQueenStats === 'function' ? Vault.getQueenStats() : null;
         if (qs) {
@@ -665,12 +666,7 @@ const AppShell = {
         document.body.classList.add('has-app-dock');
         this.dock = dock;
         if (/[?&]dockdebug\b/.test(location.search)) setTimeout(() => this.dockReport(), 3000);
-        // Same report from the installed app (no address bar): press and
-        // hold the dock for 2 seconds.
-        let holdTimer = null;
-        const stopHold = () => { clearTimeout(holdTimer); holdTimer = null; };
-        dock.addEventListener('pointerdown', () => { stopHold(); holdTimer = setTimeout(() => this.dockReport(), 2000); });
-        ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => dock.addEventListener(t, stopHold));
+        // (Oct 29 2026: press-and-hold report removed. It's a button in the dev panel now.)
 
         // Swipe up on the gold + to go Home (Oct 28 2026, Craft).
         const add = dock.querySelector('.dk-add');
@@ -1274,7 +1270,11 @@ class CodexSystem {
         if (path.includes('habits.html')) return 'habits';
         if (path.includes('create-todo.html')) return 'create-todo';
         if (path.includes('todos.html')) return 'todos';
-        return 'home';
+        // Oct 29 2026 fix: any other page (Notifications, Guide, Mailbox,
+        // Themes, Friends, History...) used to count as Home, so tapping the
+        // header or swiping up on the + did nothing there. Use its file name.
+        const m = /\/src\/(?:features|plugins)\/.*?([a-z0-9-]+)\.html$/i.exec(path);
+        return m ? m[1].toLowerCase() : 'home';
     }
 
     // A real "go back" button - lives as its own floating hexagon next to

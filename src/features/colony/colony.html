@@ -50,11 +50,6 @@
                 <h1 class="cm-title">🍯 INSIDE THE HIVE</h1>
                 <p class="cm-lead">Tap a comb to manage your bees. Missed tasks and bad habits make cells decay.</p>
             </div>
-            <!-- Hive Life (Oct 2026) or the Classic inside view. -->
-            <div class="hl-switch" role="group" aria-label="Hive view">
-                <button type="button" data-hive-view="life">🐝 Hive Life</button>
-                <button type="button" data-hive-view="classic">🍯 Classic</button>
-            </div>
             <section id="colony-life" class="hl-wrap" hidden>
                 <div id="hl-comb-host"></div>
                 <div class="hl-info" id="hl-info"><b>Tap a comb</b> to manage it: change jobs, add resting bees, and pick jobs for eggs. 😊 happy · 😢 hungry, tired or hurt · 😠 no job for 3+ days.</div>
@@ -74,6 +69,7 @@
                      gacha tickets live on their own page (Pollination Chamber,
                      src/features/gacha/). -->
                 <div class="colony-interior-actions">
+                    <button type="button" class="colony-enter-btn hl-toggle" id="hive-life-toggle" aria-pressed="false">🐝 Hive Life</button>
                     <button class="colony-enter-btn colony-leave-btn" id="leave-hive-btn">← Leave Hive</button>
                     <a href="../gacha/gacha.html" class="colony-enter-btn colony-gacha-link-btn">🌼 Pollination Chamber</a>
                 </div>

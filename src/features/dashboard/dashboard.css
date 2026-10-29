@@ -121,3 +121,9 @@
 .sk-up:disabled { opacity: .6; animation: none; }
 @keyframes sk-up-pulse { 50% { box-shadow: 0 0 0 2px rgba(var(--bb-alt-rgb, 220, 20, 60), .9), 0 0 28px rgba(var(--bb-accent-rgb, 255, 204, 0), .6); } }
 @media (prefers-reduced-motion: reduce) { .sk-up { animation: none; } }
+
+/* Smart skills (Oct 29 2026): a color per skill. */
+.sk[style*="--skc"] .bar i, .sk[style*="--skc"] .road .fill { background: var(--skc); box-shadow: 0 0 8px color-mix(in srgb, var(--skc) 70%, transparent); }
+
+/* Oct 29 2026: hex ring follows the shape. */
+.dbv2 .hx::after { box-shadow: none !important; background: rgba(var(--bb-alt-rgb, 220, 20, 60), .85); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }

@@ -11,7 +11,7 @@ const WAGGLE_MENU = [
         { icon: '🌼', label: 'Pollination Chamber', path: 'src/features/gacha/gacha.html', tickets: true },
         { icon: '🐝', label: 'Colony Bees', path: 'src/features/colony-bees/colony-bees.html' },
         { icon: '🎒', label: 'Inventory', path: 'src/features/inventory/inventory.html' },
-        { icon: '🥚', label: 'Egg Incubator', path: 'src/plugins/incubator/incubator.html', plugin: 'incubator' },
+        { icon: '🥚', label: 'Egg Incubator', path: 'src/features/incubator/incubator.html', owned: 'incubator' },
         { icon: '📘', label: 'KeeperDex', path: 'src/features/keeperdex/keeperdex.html' },
         { icon: '🤝', label: "Friends' hives", path: 'src/features/friends/friends.html' }
     ]],
@@ -19,6 +19,7 @@ const WAGGLE_MENU = [
         { icon: '📊', label: 'Dashboard', path: 'src/features/dashboard/dashboard.html' },
         { icon: '🗺️', label: 'Map', path: 'src/features/map/map.html' },
         { icon: '🌳', label: 'Skills', path: 'src/features/skills/skills.html' },
+        { icon: '🕘', label: 'History', path: 'src/features/history/history.html' },
         { icon: '👤', label: 'Profile', path: 'src/features/profile/profile.html' }
     ]],
     ['Tools', [
@@ -35,7 +36,7 @@ const WAGGLE_MENU = [
         { icon: '🔔', label: 'Notifications', path: 'src/features/notifications/notifications.html' },
         { icon: '🔄', label: 'Phone Sync', path: 'src/features/sync/sync.html' },
         { icon: '🔐', label: 'Account Info', path: 'src/features/account-info/account-info.html' },
-        { icon: '⚙️', label: 'Settings', path: 'src/features/settings/settings.html' }
+        { icon: '⚙️', label: 'Settings', path: 'src/features/settings/settings.html', settings: true }
     ]]
 ];
 
@@ -105,6 +106,7 @@ const Waggle = {
         }
         setTimeout(() => this.updateDot(), 500);
         window.addEventListener('mail-changed', () => this.updateDot());
+        window.addEventListener('settings-attention', () => this.updateDot());
     },
 
     // Red dot: a level-up or tickets are waiting.
@@ -115,15 +117,17 @@ const Waggle = {
         try { tickets = v && v.getTicketCount ? v.getTicketCount() : 0; } catch { /* not ready */ }
         let fainted = 0;
         try { fainted = v ? v.getColonyBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
+        let settings = 0;
+        try { settings = Number(localStorage.getItem('bizzybee_settings_attn')) || 0; } catch { /* storage off */ }
         let mail = 0;
         try { mail = typeof Social !== 'undefined' ? Social.unread() : 0; } catch { /* not ready */ }
-        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted, mail };
+        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted, mail, settings };
     },
 
     updateDot() {
         if (!this.button) return;
         const s = this.status();
-        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0 || s.fainted > 0 || s.mail > 0);
+        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0 || s.fainted > 0 || s.mail > 0 || s.settings > 0);
     },
 
     renderMenu() {
@@ -144,14 +148,15 @@ const Waggle = {
         if (s.levelUp) html += `<a class="wg-alert" href="${root}/src/features/home/home.html">✦ Level up ready! Tap to claim</a>`;
         if (pageActs.length) html += `<div class="wg-sec">This page</div>` + pageActs.map(({ a, i }) => row(a.icon, a.label, '', `data-action="${i}"`, false)).join('');
         WAGGLE_MENU.forEach(([sec, items]) => {
-            const shown = items.filter(it => !it.plugin || pluginOn(it.plugin));
+            const shown = items.filter(it => (!it.plugin || pluginOn(it.plugin)) && (!it.owned || (v && v.state && v.state.incubator && (v.state.incubator.owned || []).length)));
             if (!shown.length) return;
             html += `<div class="wg-sec">${sec}</div>` + shown.map(it => {
                 const file = it.path.split('#')[0].split('/').pop();
                 const on = !it.key && here.endsWith(file);
                 const extra = it.tickets && s.tickets > 0 ? `${s.tickets} ticket${s.tickets === 1 ? '' : 's'} ready`
                     : it.fainted && s.fainted > 0 ? `${s.fainted} bee${s.fainted === 1 ? ' has' : 's have'} fainted`
-                    : it.mail && s.mail > 0 ? `${s.mail} new letter${s.mail === 1 ? '' : 's'}` : '';
+                    : it.mail && s.mail > 0 ? `${s.mail} new letter${s.mail === 1 ? '' : 's'}`
+                    : it.settings && s.settings > 0 ? `${s.settings} thing${s.settings === 1 ? '' : 's'} need${s.settings === 1 ? 's' : ''} you` : '';
                 return row(it.icon, it.label, extra, `href="${root}/${it.path}"${it.key ? ` data-key="${it.key}"` : ''}`, on);
             }).join('');
         });
@@ -199,3 +204,12 @@ const Waggle = {
         this.isOpen = false;
     }
 };
+
+// Every page gets the menu (Oct 29 2026 fix: Notifications, Guide and Study
+// had none because they never called Waggle.setActions). Pages that set
+// their own actions still win, since they call setActions themselves.
+document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+    const p = window.location.pathname;
+    if (Waggle.button || !/\/src\/(features|plugins)\//.test(p) || /hive-visit|onboarding|request-access|suggestions/.test(p)) return;
+    Waggle.setActions(typeof baseWaggleActions === 'function' ? baseWaggleActions() : []);
+}, 1500));

@@ -49,6 +49,24 @@
         } catch (error) { return false; }
     }
 
+    // ---- Inspect (Oct 29 2026): Eruda, a DevTools panel on the phone ------------
+    // Elements, Console, Network, Storage. Only for you (this file only loads
+    // for the owner / dev), and only when turned on here. Remembered per device.
+    const ERUDA_KEY = 'bizzybee_eruda';
+    function loadEruda(show) {
+        if (window.eruda) { if (show) window.eruda.show(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/eruda@3.4.1/eruda.min.js';
+        s.onload = () => { try { window.eruda.init(); if (show) window.eruda.show(); } catch (e) { /* ignore */ } };
+        document.body.appendChild(s);
+    }
+    function toggleEruda() {
+        const on = localStorage.getItem(ERUDA_KEY) === '1';
+        if (on) { localStorage.removeItem(ERUDA_KEY); if (window.eruda) window.eruda.destroy(); }
+        else { localStorage.setItem(ERUDA_KEY, '1'); loadEruda(true); }
+    }
+    if (localStorage.getItem(ERUDA_KEY) === '1') setTimeout(() => loadEruda(false), 800);
+
     // ---- helpers -----------------------------------------------------------
     const go = (p) => { location.href = `${root}/${p}`; };
     const reload = () => location.reload();
@@ -350,7 +368,7 @@
 
     // ---- the panel -----------------------------------------------------------
     const css = `
-    .dev-fab{position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:70px;z-index:2000;width:40px;height:40px;border-radius:12px;border:1px solid #ff5a4a;background:#1a0606;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 0 12px rgba(255,60,40,.5);padding:0}
+    .dev-fab{touch-action:none;position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:70px;z-index:2000;width:40px;height:40px;border-radius:12px;border:1px solid #ff5a4a;background:#1a0606;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 0 12px rgba(255,60,40,.5);padding:0}
     body.onboarding-page .dev-fab{right:12px}
     .dev-ribbon{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 2px);transform:translateX(-50%);z-index:2000;padding:2px 10px;border-radius:0 0 8px 8px;background:#b3121f;color:#fff;font:700 10px/1.6 monospace;letter-spacing:.14em;pointer-events:none}
     .dev-panel{position:fixed;inset:0 0 0 auto;width:min(380px,100vw);z-index:2100;background:#0d0a05;border-left:1px solid #ff5a4a;color:#f1ede2;font:14px system-ui,sans-serif;overflow-y:auto;padding:14px 14px 40px;box-sizing:border-box;box-shadow:-20px 0 40px rgba(0,0,0,.7);transform:translateX(105%);transition:transform .3s ease}
@@ -414,7 +432,10 @@
             try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) place(p.x * window.innerWidth, p.y * window.innerHeight); } catch {}
             let start = null, moved = false;
             fab.style.touchAction = 'none';
-            fab.addEventListener('pointerdown', e => { const r = fab.getBoundingClientRect(); start = { px: e.clientX, py: e.clientY, x: r.left, y: r.top }; moved = false; fab.setPointerCapture(e.pointerId); });
+            fab.addEventListener('pointerdown', e => { const r = fab.getBoundingClientRect(); start = { px: e.clientX, py: e.clientY, x: r.left, y: r.top }; moved = false; fab.setPointerCapture(e.pointerId); document.body.classList.add('bb-dragging'); });
+            // Dragging it down must not pull-to-refresh the page.
+            fab.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+            ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => fab.addEventListener(ev, () => document.body.classList.remove('bb-dragging')));
             fab.addEventListener('pointermove', e => {
                 if (!start) return;
                 const dx = e.clientX - start.px, dy = e.clientY - start.py;
@@ -525,6 +546,10 @@
                 <button data-dev="n-icons">Weather icons</button>
             </div>
             <div class="dev-row" style="margin-top:6px">
+                <button data-dev="inspect">🔧 Inspect (Eruda) ${localStorage.getItem(ERUDA_KEY) === '1' ? 'on' : 'off'}</button>
+                <button data-dev="dockreport">Dock report</button>
+            </div>
+            <div class="dev-row" style="margin-top:6px">
                 ${SKIES.map(([label, sky, hour]) => `<a href="${root}/src/features/colony/colony.html?sky=${sky}&hour=${hour}">Sky · ${label}</a>`).join('')}
             </div>
 
@@ -613,7 +638,9 @@
                 'hv-heal': HIVE.heal, 'hv-review': HIVE.review,
                 'n-notify': () => { close(); NEW.notify(); }, 'n-focus': () => NEW.focus(b.dataset.k), 'n-plan': NEW.plan,
                 'n-starter': () => { close(); NEW.starter(); }, 'n-done': () => { close(); NEW.doneToday(); },
-                'n-merge': NEW.merge, 'n-icons': () => { close(); NEW.icons(); }
+                'n-merge': NEW.merge, 'n-icons': () => { close(); NEW.icons(); },
+                inspect: () => { close(); toggleEruda(); },
+                dockreport: () => { close(); if (typeof AppShell !== 'undefined') AppShell.dockReport(); }
             };
             if (localDev) Object.assign(actions, { personal: loadPersonalFile, fresh: freshSave, signout: signOut });
             if (actions[a]) actions[a]();

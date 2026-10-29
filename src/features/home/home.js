@@ -42,51 +42,40 @@ function todayData() {
     return { dailies, todos, quest, habits: pluginOn('habits') ? Vault.getHabits() : [] };
 }
 
-// XP earned today across everything (habits count + and −).
+// XP earned today across everything (habits count + and −). Same list as
+// the Done today sheet, so the two always match (Oct 29 2026).
 function xpToday() {
-    const today = todayISO();
-    let xp = 0;
-    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) xp += Number(t.xp) || 0; });
-    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) xp += Number(t.xp) || 0; });
-    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) xp += Number(t.xp) || 0; }));
-    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => (h.history || []).forEach(x => {
-        if (x.date === today) xp += (x.direction === 'positive' ? 1 : -1) * (Number(h.xp) || 0);
-    }));
-    return xp;
+    return Vault.doneOn(todayISO()).reduce((n, x) => n + x.xp, 0);
 }
 
-// Everything finished today, for the XP today list (Oct 28 2026). Built
-// from today's data, so it starts fresh at midnight on its own.
-function doneToday() {
-    const today = todayISO();
-    const out = [];
-    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) out.push({ icon: '☀️', kind: 'Daily', label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[today] && t._days[today].t) || 0 }); });
-    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) out.push({ icon: '✅', kind: 'To-Do', label: t.label, xp: Number(t.xp) || 0, t: t._mt || 0 }); });
-    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => {
-        if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) out.push({ icon: '🗺️', kind: q.title, label: t.label, xp: Number(t.xp) || 0, t: Date.parse(t.dateCompleted) || 0 });
-    }));
-    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => {
-        const taps = (h.history || []).filter(x => x.date === today);
-        const plus = taps.filter(x => x.direction === 'positive').length, minus = taps.length - plus;
-        const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
-        if (plus) out.push({ icon: '🔁', kind: `Habit${plus > 1 ? ` ×${plus}` : ''}`, label: h.label, xp: plus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
-        if (minus) out.push({ icon: '😖', kind: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, label: h.label, xp: -minus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
-    });
-    return out.sort((a, b) => b.t - a.t);
+// Each row links to its task and says when it was done (Oct 29 2026).
+function doneHref(x) {
+    if (typeof BizzyNotify === 'undefined') return null;
+    try { return BizzyNotify.urlFor(x.kind, x.id, x.extra); } catch { return null; }
+}
+function doneTime(x) {
+    return x.t ? new Date(x.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+}
+function doneRows(list) {
+    return list.map(x => {
+        const href = doneHref(x), when = doneTime(x);
+        const inner = `<span class="xt-ic" aria-hidden="true">${x.icon}</span><span class="xt-mid"><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.what)}${when ? ' · ' + when : ''}</small></span><span class="xt-xp${x.xp < 0 ? ' neg' : ''}">${x.xp > 0 ? '+' : ''}${x.xp}</span>`;
+        return href ? `<li><a class="xt-row" href="${escapeHTML(href)}">${inner}</a></li>` : `<li><span class="xt-row">${inner}</span></li>`;
+    }).join('');
 }
 
 function openDoneToday() {
     if (document.querySelector('.xt-scrim')) return;
-    const list = doneToday();
+    const list = Vault.doneOn(todayISO());
     const total = list.reduce((n, x) => n + x.xp, 0);
     const s = document.createElement('div');
     s.className = 'xt-scrim';
     s.innerHTML = `<div class="xt-sheet" role="dialog" aria-modal="true" aria-label="Done today">
         <div class="xt-head"><div><h2>DONE TODAY</h2><small>${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · starts fresh at midnight</small></div>
             <b class="xt-total">${total > 0 ? '+' : ''}${total} XP</b></div>
-        ${list.length ? `<ul class="xt-list">${list.map(x => `<li><span class="xt-ic" aria-hidden="true">${x.icon}</span><span class="xt-mid"><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.kind)}</small></span><span class="xt-xp${x.xp < 0 ? ' neg' : ''}">${x.xp > 0 ? '+' : ''}${x.xp}</span></li>`).join('')}</ul>`
+        ${list.length ? `<ul class="xt-list">${doneRows(list)}</ul>`
             : '<p class="xt-empty">Nothing finished yet today. Check off a daily to get started.</p>'}
-        <div class="xt-btns"><a class="xt-btn" href="../dashboard/dashboard.html">Dashboard</a><button type="button" class="xt-btn gold" data-k="close">Close</button></div></div>`;
+        <div class="xt-btns"><a class="xt-btn" href="../history/history.html">History</a><button type="button" class="xt-btn gold" data-k="close">Close</button></div></div>`;
     const close = () => s.remove();
     s.addEventListener('click', e => { if (e.target === s || e.target.closest('[data-k="close"]')) close(); });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
@@ -114,7 +103,11 @@ function currentStreak() {
 
 // ---- hive strip: four stats, each to its own page ----
 const STRIP_ICONS = {
-    bees: '<path d="M12 6.5a3 3 0 1 1 0 .1"/><path d="M8.5 11h7l-.8 7.5a2.7 2.7 0 0 1-5.4 0z"/><path d="M8.8 14h6.4M9.2 16.8h5.6M8.5 11C5 8 3 9.5 4.2 11.8S8.2 13 8.5 11zM15.5 11c3.5-3 5.5-1.5 4.3.8S15.8 13 15.5 11z"/>',
+    // Top-down bee (Oct 29 2026): antennae, round head, torso, striped
+    // pointed tail, and big wings.
+    bees: '<path d="M10.6 4.4 9.2 2.4M13.4 4.4l1.4-2"/><circle cx="12" cy="5.9" r="1.8"/><ellipse cx="12" cy="10.1" rx="2.3" ry="2.1"/><path d="M12 12.2c-2.7 0-3.6 2.4-3.4 4.5.3 2.5 1.9 4.1 3.4 5.6 1.5-1.5 3.1-3.1 3.4-5.6.2-2.1-.7-4.5-3.4-4.5z"/><path d="M8.8 15.4h6.4M9.3 18.3h5.4"/><path d="M9.8 9.4C6.3 6.1 2.6 6.8 2.7 9.5c.1 2.4 3.9 2.6 7.1 1z"/><path d="M14.2 9.4c3.5-3.3 7.2-2.6 7.1.1-.1 2.4-3.9 2.6-7.1 1z"/><path d="M9.8 11.3c-2.9.6-4.8 2.6-3.8 4 1 1.3 3 .1 4-2.2M14.2 11.3c2.9.6 4.8 2.6 3.8 4-1 1.3-3 .1-4-2.2"/>',
+    steps: '<path d="M8 3.5c1.7 0 2.6 2 2.6 4.6S9.7 13 8 13s-2.6-2.3-2.6-4.9S6.3 3.5 8 3.5z"/><path d="M6 15.5h4v1.3a2 2 0 0 1-4 0z"/><path d="M16 7.5c1.7 0 2.6 2 2.6 4.6S17.7 17 16 17s-2.6-2.3-2.6-4.9.9-4.6 2.6-4.6z"/><path d="M14 19.5h4v1.3a2 2 0 0 1-4 0z"/>',
+    wx: '<path d="M7.2 18.5h10a3.7 3.7 0 0 0 .3-7.4 5.2 5.2 0 0 0-10-.9A3.9 3.9 0 0 0 7.2 18.5z"/>',
     xp: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
     streak: '<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-8.3.7 1.9 1.8 3 3 3.4-.2-2.6.8-5.3 2.9-6.9.1 3.4 3.5 6 3.5 10.4C18.5 18.2 16 21 12 21z"/><path d="M12 21c-1.7 0-2.8-1.2-2.8-2.8 0-1.8 1.6-2.7 2.2-4.2.9 1.5 3.4 2.4 3.4 4.4 0 1.5-1.2 2.6-2.8 2.6z"/>',
     quest: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2"/>'
@@ -132,14 +125,23 @@ function renderHive() {
         { key: 'streak', value: streak, label: 'Current streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
         { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
     ];
+    // Steps and weather (Oct 29 2026): fixed slots so nothing pops in late.
+    // phone.js fills them once the data arrives (window.__homeStrip).
+    const hs = window.__homeStrip || {};
+    const app = typeof BizzyPhone !== 'undefined' && BizzyPhone.isApp;
+    if (app && hs.steps !== null) stats.push({ key: 'steps', value: hs.steps != null ? hs.steps.toLocaleString() : '–', label: 'Steps', color: '#9be15d', still: true });
+    if (hs.wx !== null) stats.push({ key: 'wx', value: hs.wx ? `${hs.wx.temp}°` : '–', label: hs.wx ? hs.wx.text : 'Weather', color: '#7fc8ff', still: true, icon: hs.wx && hs.wx.icon, title: hs.wx && hs.wx.place });
     const host = document.getElementById('home-hive');
+    const tag = (s) => s.button ? 'button' : s.still ? 'div' : 'a';
+    host.classList.toggle('six', stats.length > 4);
     host.innerHTML = stats.map(s => `
-        <${s.button ? 'button type="button" data-done-today' : `a href="${s.href}"`} class="home-stat" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}${s.button ? '. Show what you finished today' : ''}">
-            <svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>
+        <${s.button ? 'button type="button" data-done-today' : s.still ? `div data-stat="${s.key}"${s.title ? ` title="${escapeHTML(s.title)}"` : ''}` : `a href="${s.href}"`} class="home-stat" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}${s.button ? '. Show what you finished today' : ''}">
+            ${s.icon || `<svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>`}
             <b>${escapeHTML(s.value)}</b><small>${escapeHTML(s.label)}</small>
-        </${s.button ? 'button' : 'a'}>`).join('');
+        </${tag(s)}>`).join('');
     host.querySelector('[data-done-today]').onclick = openDoneToday;
 }
+window.addEventListener('home-strip', () => { try { renderHive(); } catch { /* not ready yet */ } });
 
 // ---- Bees that need help (Hive Life moods) ----
 // 😢 hungry / tired / hurt, 😠 no job for 3+ days, 😵 fainted. One line,
@@ -160,12 +162,63 @@ function renderReadyEggs() {
     el.innerHTML = `<span class="home-help-ic" aria-hidden="true">🥚</span><span class="home-help-t"><b>${eggs.length} egg${eggs.length === 1 ? ' is' : 's are'} ready to hatch!</b><small>Tap to crack ${eggs.length === 1 ? 'it' : 'the first one'} open.</small></span><span class="home-help-go" aria-hidden="true">›</span>`;
 }
 
+// Halloween challenge (Oct 29 2026, Craft): on Oct 31 only, finish 3 tasks
+// to claim Grimzy The Reaper, a numbered limited bee (50 exist; #001 is the
+// creator's). Miss the day and it's gone until it comes back.
+const LIMITED_NOW = 'grimzy-2026';
+function renderHalloween() {
+    const help = document.getElementById('home-help');
+    let el = document.getElementById('home-limited');
+    const on = typeof Themes !== 'undefined' && Themes.seasonal && Themes.seasonal() === 'halloween' && typeof Vault.limitedChallenge === 'function';
+    if (!on || !help) { if (el) el.remove(); return; }
+    const ch = Vault.limitedChallenge(LIMITED_NOW);
+    if (!el) {
+        el = document.createElement('section');
+        el.id = 'home-limited'; el.className = 'home-card home-limited';
+        help.parentNode.insertBefore(el, help);
+        el.addEventListener('click', (e) => { if (e.target.closest('[data-claim]')) claimLimited(e.target.closest('[data-claim]')); });
+    }
+    const name = `${ch.edition.name} ${NAMED_TITLES[ch.edition.title].label}`;
+    if (ch.owned) {
+        el.innerHTML = `<span class="hl-ic" aria-hidden="true">💀</span><span class="hl-t"><b>${escapeHTML(name)} #${String(ch.owned.limited.serial).padStart(3, '0')} is yours</b><small>Happy Halloween! One of only ${ch.edition.of}.</small></span>
+            <a class="hl-go" href="../colony-bees/colony-bees.html?bee=${encodeURIComponent(ch.owned.id)}">See</a>`;
+        return;
+    }
+    const pct = Math.round(ch.done / ch.need * 100);
+    el.innerHTML = `<span class="hl-ic" aria-hidden="true">🎃</span><span class="hl-t"><b>Halloween challenge</b>
+        <small>${escapeHTML(ch.edition.challenge.text)} to claim <b>${escapeHTML(name)}</b>. Only ${ch.edition.of} exist. Today only.</small>
+        <span class="hl-bar" role="img" aria-label="${ch.done} of ${ch.need} done"><i style="width:${pct}%"></i></span>
+        <small class="hl-left" id="hl-left">${ch.done}/${ch.need} done</small></span>
+        ${ch.ready ? '<button type="button" class="hl-go" data-claim>Claim</button>' : ''}`;
+    if (typeof Social !== 'undefined') Social.limitedLeft(LIMITED_NOW).then(r => {
+        const t = document.getElementById('hl-left');
+        if (t) t.textContent = `${ch.done}/${ch.need} done · ${r.left} of ${ch.edition.of} left`;
+        if (r.mine && !Vault.limitedChallenge(LIMITED_NOW).owned) { Vault.addLimitedBee(LIMITED_NOW, r.mine); renderHalloween(); }
+    }).catch(() => { const t = document.getElementById('hl-left'); if (t) t.textContent = `${ch.done}/${ch.need} done · sign in to Cloud sync to claim`; });
+}
+async function claimLimited(btn) {
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const r = await Social.claimLimited(LIMITED_NOW, todayISO());
+        const bee = Vault.addLimitedBee(LIMITED_NOW, r.serial);
+        renderHalloween(); renderHive();
+        try { await AppShell.loadLevelBar(); } catch { /* toast below */ }
+        const ed = LIMITED_EDITIONS[LIMITED_NOW], no = `#${String(r.serial).padStart(3, '0')}/${String(ed.of).padStart(3, '0')}`;
+        if (typeof LevelBar !== 'undefined' && bee) LevelBar.celebrate({ title: `${ed.name} The Reaper joined your hive!`, lines: [], rich: { cap: `${ed.label.toUpperCase()} · LIMITED`, level: null, ribbon: no, perks: ['💀 Soul Harvest: fallen bees leave a Honey Drop'], loot: [{ bee }], beeId: bee.id } });
+        else Toast.show(`💀 ${ed.name} The Reaper ${no} is yours!`, 'positive');
+    } catch (e) {
+        Toast.show(e.message || 'Could not claim it. Try again.', 'negative');
+        btn.disabled = false; btn.textContent = 'Claim';
+    }
+}
+
 function renderBeeHelp() {
+    renderHalloween();
     renderReadyEggs();
     const el = document.getElementById('home-help');
     if (!el || typeof beeNeeds !== 'function') return;
     // Oct 28 2026 (Craft): say exactly who needs what, and how to fix it.
-    const list = Vault.getColonyBees().filter(b => b.rarity !== 'Royal')
+    const list = Vault.getColonyBees().filter(b => typeof beeNeedsHelp === 'function' ? beeNeedsHelp(b) : b.rarity !== 'Royal')
         .map(b => ({ b, needs: beeNeeds(b) })).filter(x => x.needs.length);
     el.hidden = !list.length;
     if (!list.length) return;

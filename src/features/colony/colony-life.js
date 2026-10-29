@@ -77,7 +77,7 @@ const HiveLife = (() => {
             const eggs = list.filter(beeIsBrood);
             const shown = list.filter(b => !beeIsBrood(b) && !isOut(b));
             const out = list.filter(isOut).length;
-            const unhappy = list.filter(b => { const k = beeFeeling(b, today).key; return k === 'sad' || k === 'upset' || k === 'fainted'; }).length;
+            const unhappy = list.filter(b => { if (typeof beeNeedsHelp === 'function') return beeNeedsHelp(b); const k = beeFeeling(b, today).key; return k === 'sad' || k === 'upset' || k === 'fainted'; }).length;
             const count = c.id === 'nursery' ? `${shown.length} nurse${shown.length === 1 ? '' : 's'} · ${eggs.length} egg${eggs.length === 1 ? '' : 's'}`
                 : c.id === 'entrance' ? `${shown.length} here${out ? ` · ${out} out` : ''}`
                 : `${shown.length} bee${shown.length === 1 ? '' : 's'}`;
@@ -86,7 +86,7 @@ const HiveLife = (() => {
             btn.className = 'hl-cell' + (unhappy ? ' alert' : '');
             btn.style.left = c.x + '%'; btn.style.top = c.y + '%';
             btn.setAttribute('aria-label', `${c.name}, ${count}${unhappy ? `, ${unhappy} need${unhappy === 1 ? 's' : ''} help` : ''}. Tap to manage.`);
-            btn.innerHTML = `<span class="hl-in"><span class="hl-ic">${c.icon}</span><span class="hl-nm">${c.name}</span><span class="hl-ct">${count}</span></span>${unhappy ? `<span class="hl-dot">${unhappy}</span>` : ''}`;
+            btn.innerHTML = `<span class="hl-in"><span class="hl-ic${c.id === 'nursery' ? ' hl-egg-ic' : ''}">${roomIcon(c)}</span><span class="hl-nm">${c.name}</span><span class="hl-ct">${count}</span></span>${unhappy ? `<span class="hl-dot">${unhappy}</span>` : ''}`;
             btn.addEventListener('click', () => openRoom(c.id, { onBeeClick, onChange }));
             hive.appendChild(btn);
             // Bees wander in the lower half of their comb.
@@ -183,11 +183,16 @@ const HiveLife = (() => {
 
     // ⭐ = the bee's natural talent (+20% at it). A Named Beast's job is
     // locked by its title, so its picker is shown but can't change.
+    // The Nursery's icon is a real BizzyBee egg, not an emoji (Oct 29 2026).
+    function roomIcon(c) {
+        if (c.id === 'nursery' && typeof EggDesign !== 'undefined') return EggDesign.svg(7, { style: 'hex', id: 'nursery-ic' });
+        return c.icon;
+    }
     function jobSelect(bee, allowed, { blank = '— No job —', mark = [] } = {}) {
         const locked = typeof beeLockedJob === 'function' ? beeLockedJob(bee) : null;
         if (locked) return `<select class="hl-job" disabled aria-label="${esc(bee.name)}'s job is set by its title" title="Set by its title"><option>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option></select>`;
         return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="Job for ${esc(bee.name)}">
-            <option value="">${blank}</option><option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
+            <option value="">${blank}</option>${typeof beeNurseryOption === 'function' ? beeNurseryOption(bee) : ''}<option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
     }
     function beeRow(bee, c, today) {
         const f = beeFeeling(bee, today);
@@ -210,7 +215,7 @@ const HiveLife = (() => {
         const n = nurseCount();
 
         let html = `<div class="hl-sheet" role="dialog" aria-modal="true" aria-label="${esc(c.name)}">
-            <div class="hl-sheet-head"><span class="hl-sheet-ic">${c.icon}</span><div><h2>${c.name}</h2><small>${c.text}</small></div><button type="button" class="hl-x" aria-label="Close">×</button></div>
+            <div class="hl-sheet-head"><span class="hl-sheet-ic${c.id === 'nursery' ? ' hl-egg-ic' : ''}">${roomIcon(c)}</span><div><h2>${c.name}</h2><small>${c.text}</small></div><button type="button" class="hl-x" aria-label="Close">×</button></div>
             ${roomStats(c, list)}`;
         if (id === 'nursery') {
             html += `<h3 class="hl-sub">Eggs (${eggs.length})</h3>`;
@@ -219,10 +224,10 @@ const HiveLife = (() => {
                 // Eggs keep everything secret until they hatch (Oct 27 2026).
                 const inInc = Vault.state.incubator && (Vault.state.incubator.slots || []).includes(b.id);
                 const ready = Vault.isEggReady && Vault.isEggReady(b);
-                return `<div class="hl-row is-egg"><span class="hl-rface hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span><span class="hl-who-btn"><b>${esc(b.name)}</b><small>${inInc ? '🔆 In the incubator' : '🥚 Mystery egg'} · ${ready ? 'ready to hatch!' : `hatches ${left === 1 ? 'tomorrow' : `in ${left} days`}`}</small></span>${ready ? `<button type="button" class="hl-hatch" data-hatch="${esc(b.id)}">🐣 Hatch</button>` : ''}
+                return `<div class="hl-row is-egg"><span class="hl-rface hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span><span class="hl-who-btn"><b>Unknown egg</b><small>${inInc ? '🔆 In the incubator · ' : ''}${ready ? 'Ready to hatch!' : `Hatches ${left <= 1 ? 'tomorrow' : `in ${left} days`}`}</small></span>${ready ? `<button type="button" class="hl-hatch" data-hatch="${esc(b.id)}">🐣 Hatch</button>` : ''}
 </div>`;
             }).join('') + '<p class="hl-note">What hatches is a surprise. Name it and pick its job once it hatches.</p>'
-                + (typeof Plugins === 'undefined' || Plugins.isEnabled('incubator') ? `<a class="hl-inc-link" href="../../plugins/incubator/incubator.html">🥚 Egg Incubator: hatch eggs faster with your steps ›</a>` : '')
+                + ((Vault.state.incubator && (Vault.state.incubator.owned || []).length) ? `<a class="hl-inc-link" href="../incubator/incubator.html">🥚 Egg Incubator: hatch eggs faster with your steps ›</a>` : `<a class="hl-inc-link" href="../honey-store/honey-store.html#incubators">🥚 Get an Egg Incubator in the Honey Store ›</a>`)
                 : '<p class="hl-note">No eggs right now. New bees from the Pollination Chamber, level-ups and skills start here.</p>';
         }
         html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
@@ -259,8 +264,8 @@ const HiveLife = (() => {
             const job = sel.value || null;
             const r = Vault.assignBeeClass(sel.dataset.bee, job);
             if (typeof Toast !== 'undefined' && bee) {
-                if (!r) Toast.show("That bee can't do that job.", 'negative');
-                else Toast.show(job === 'recuperate' ? `💤 ${r.name} is recuperating.` : job ? `${beeIsBrood(r) ? '🥚' : BEE_CLASSES[job].icon} ${r.name} ${beeIsBrood(r) ? 'will be a' : 'is now a'} ${BEE_CLASSES[job].label}.` : `${r.name} has no job.`, 'positive');
+                if (!r) Toast.show(Vault.lastJobError || "That bee can't do that job.", 'negative');
+                else Toast.show(job === 'nursery' ? `🛏️ ${r.name} is in a Nursery bed. +4 health an hour.` : job === 'recuperate' ? `💤 ${r.name} is recuperating.` : job ? `${beeIsBrood(r) ? '🥚' : BEE_CLASSES[job].icon} ${r.name} ${beeIsBrood(r) ? 'will be a' : 'is now a'} ${BEE_CLASSES[job].label}.` : `${r.name} has no job.`, 'positive');
             }
             if (opts.onChange) opts.onChange();
             openRoom(id, opts);
@@ -304,7 +309,7 @@ const HiveLife = (() => {
         const faintDays = L.faintedAt ? (daysBetween(L.faintedAt, todayISO()) || 0) : 0;
         if (L.hatchOn) {
             const left = broodDaysLeft(bee, todayISO(), Vault._workers('nurse').length);
-            host.innerHTML = `<div class="hl-panel"><div class="hl-panel-head"><b>${esc(bee.name)}</b><span>🥚 Mystery egg</span></div>
+            host.innerHTML = `<div class="hl-panel"><div class="hl-panel-head"><b>Unknown egg</b></div>
                 <p class="hl-trait">Still an egg in the Nursery. Hatches ${left <= 1 ? 'tomorrow' : 'in ' + left + ' days'}. What's inside is a secret until then.</p></div>`;
             return;
         }

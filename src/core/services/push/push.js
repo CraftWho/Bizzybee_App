@@ -4,7 +4,7 @@
 //   this file                           turns it on/off, uploads the upcoming
 //                                       reminder times (next 10 days)
 //   netlify/functions/push-subscribe    stores this device + those times
-//   netlify/functions/push-send         runs every 5 minutes, sends what's due
+//   netlify/functions/push-send         runs every 15 minutes, sends what's due
 // Needs a cloud account (signed in). Your save stays encrypted - only the
 // reminder times and (if you allow it) the task names go to the server.
 const BizzyPush = (() => {
