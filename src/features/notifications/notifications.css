@@ -3,29 +3,29 @@
 .ntv .nt-head .settings-title { margin: 0; text-align: left; }
 .ntv .nt-head small { display: block; color: #c2b48f; font-size: .78rem; }
 .ntv .nt-hex { position: relative; isolation: isolate; flex: none; width: 46px; height: 50px; display: grid; place-items: center; font-size: 1.3rem;
-    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #ffe680, #ffcc00 50%, #8a6000); }
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, var(--bb-t-hi, #ffe680), var(--bb-accent, #ffcc00) 50%, var(--bb-accent-deep, #8a6000)); }
 .ntv .nt-hex::before { content: ""; position: absolute; inset: 2px; clip-path: inherit; background: #140c02; z-index: -1; }
 
 .ntv .nt-type.off .nt-body { display: none; }
 .ntv .nt-type { margin-bottom: 8px; }
 .ntv .nt-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 12px; }
 .ntv .nt-chip { padding: 6px 11px; border-radius: 999px; border: 1px solid #3a2a0a; background: #16110a; color: #c2b48f; font: 600 .76rem system-ui, sans-serif; cursor: pointer; }
-.ntv .nt-chip[aria-pressed="true"] { border-color: #ffcc00; color: #ffcc00; background: #2a1f0b; }
+.ntv .nt-chip[aria-pressed="true"] { border-color: var(--bb-accent, #ffcc00); color: var(--bb-accent, #ffcc00); background: #2a1f0b; }
 .ntv .nt-chip:disabled { opacity: .45; cursor: default; }
 .ntv input[type="time"] { padding: 7px 8px; border-radius: 9px; border: 1px solid #3a2a0a; background: #0b0803; color: #f1ede2; font: 600 .82rem system-ui, sans-serif; color-scheme: dark; }
 
 .ntv .nt-up { list-style: none; margin: 0; padding: 2px 0; }
-.ntv .nt-up li { border-top: 1px solid rgba(255, 204, 0, .08); }
+.ntv .nt-up li { border-top: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .08); }
 .ntv .nt-up li:first-child { border-top: 0; }
 .ntv .nt-up a { display: flex; gap: 10px; align-items: center; padding: 10px 0; color: inherit; text-decoration: none; }
 .ntv .nt-up .lvl { flex: none; width: 10px; height: 10px; border-radius: 50%; }
-.ntv .nt-up .when { flex: none; width: 84px; color: #ffcc00; font: 700 .72rem var(--font-main, ui-monospace, monospace); line-height: 1.3; }
+.ntv .nt-up .when { flex: none; width: 84px; color: var(--bb-accent, #ffcc00); font: 700 .72rem var(--font-main, ui-monospace, monospace); line-height: 1.3; }
 .ntv .nt-up .what { flex: 1; min-width: 0; font-size: .86rem; }
 .ntv .nt-up .what b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ntv .nt-up .what small { display: block; color: #c2b48f; font-size: .72rem; }
 .ntv .nt-up .chev { color: #7d6d4d; }
 .ntv .nt-empty { padding: 12px 0; color: #c2b48f; font-size: .82rem; }
-.ntv .nt-more { width: 100%; margin: 4px 0 6px; padding: 8px; border: 0; background: none; color: #ffcc00; font: 700 .76rem var(--font-main, ui-monospace, monospace); cursor: pointer; }
+.ntv .nt-more { width: 100%; margin: 4px 0 6px; padding: 8px; border: 0; background: none; color: var(--bb-accent, #ffcc00); font: 700 .76rem var(--font-main, ui-monospace, monospace); cursor: pointer; }
 
 .ntv .nt-badge { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: #14202e; color: #9fd0ff; font: 800 .56rem var(--font-main, ui-monospace, monospace); letter-spacing: .05em; vertical-align: middle; }
 .ntv .nt-app.web { opacity: .45; }

@@ -1,13 +1,13 @@
 /* Hints + Hive Coach (Oct 27 2026, approved demo). */
-.hn-tip { position: fixed; left: 50%; bottom: calc(var(--dock-h, 68px) + env(safe-area-inset-bottom) + 18px); z-index: 2400; width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 12px 14px 12px 46px; border-radius: 14px; background: #1d160c; border: 1px solid #e6b52c; box-shadow: 0 14px 30px rgba(0, 0, 0, .6); color: #f1ede2; font: .88rem/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; transform: translateX(-50%); animation: hnIn .3s ease; }
+.hn-tip { position: fixed; left: 50%; bottom: calc(var(--dock-h, 68px) + env(safe-area-inset-bottom) + 18px); z-index: 2400; width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 12px 14px 12px 46px; border-radius: 14px; background: #1d160c; border: 1px solid var(--bb-accent-lo, #e6b52c); box-shadow: 0 14px 30px rgba(0, 0, 0, .6); color: #f1ede2; font: .88rem/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; transform: translateX(-50%); animation: hnIn .3s ease; }
 .hn-tip .bee { position: absolute; left: 12px; top: 10px; font-size: 1.3rem; }
-.hn-tip b { color: #ffcc00; }
+.hn-tip b { color: var(--bb-accent, #ffcc00); }
 .hn-ft { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .hn-ft span { flex: 1; color: #c2b48f; font-size: .72rem; }
-.hn-btn { padding: 7px 12px; border-radius: 10px; border: 0; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; font: 700 .74rem var(--font-main, monospace); cursor: pointer; }
+.hn-btn { padding: 7px 12px; border-radius: 10px; border: 0; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; font: 700 .74rem var(--font-main, monospace); cursor: pointer; }
 .hn-off { padding: 0; border: 0; background: none; color: #c2b48f; text-decoration: underline; font: 500 .72rem system-ui, sans-serif; cursor: pointer; }
 @keyframes hnIn { from { opacity: 0; transform: translate(-50%, 8px); } }
-.hn-ask { position: fixed; top: calc(env(safe-area-inset-top) + 68px); right: 20px; z-index: 1000; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 204, 0, .4); background: #1a140b; color: #ffcc00; font: 800 .9rem system-ui, sans-serif; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, .5); }
+.hn-ask { position: fixed; top: calc(env(safe-area-inset-top) + 68px); right: 20px; z-index: 1000; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); background: #1a140b; color: var(--bb-accent, #ffcc00); font: 800 .9rem system-ui, sans-serif; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, .5); }
 body.ob-mode .hn-ask, body.ob-mode .hn-tip { display: none; }
 
 /* Hive Coach card */
@@ -20,9 +20,22 @@ body.ob-mode .hn-ask, body.ob-mode .hn-tip { display: none; }
 .hn-dots .n { background: #5a2020; color: #ffb0b0; }
 .hn-opts { display: grid; gap: 6px; margin-top: 8px; }
 .hn-opt { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; background: #120d06; border: 1px solid #241a08; color: #f1ede2; font: inherit; font-size: .84rem; text-align: left; cursor: pointer; }
-.hn-opt:hover { border-color: #e6b52c; }
+.hn-opt:hover { border-color: var(--bb-accent-lo, #e6b52c); }
 .hn-opt .ic { font-size: 1.2rem; }
 .hn-opt small { display: block; color: #c2b48f; font-size: .72rem; }
 .hn-row { display: flex; gap: 14px; margin-top: 8px; }
 .hn-done { margin-top: 8px; color: #3ddc84; font-size: .86rem; }
 @media (prefers-reduced-motion: reduce) { .hn-tip { animation: none; } }
+
+/* Eve (Oct 28 2026) */
+.hn-tip .hn-eve, .hn-eve-pop .hn-eve { color: var(--bb-accent, #ffcc00); font: 800 .7rem var(--font-main, ui-monospace, monospace); letter-spacing: .12em; }
+.hn-eve-pop { position: fixed; left: 50%; bottom: calc(var(--dock-h, 68px) + env(safe-area-inset-bottom) + 18px); z-index: 2450; display: flex; gap: 12px; align-items: flex-end; width: min(440px, calc(100vw - 24px)); transform: translateX(-50%); animation: hnIn .3s ease; }
+.hn-eve-pop > div { flex: 1; padding: 12px 14px; border-radius: 16px 16px 16px 4px; background: #1d160c; border: 1px solid var(--bb-accent, #ffcc00); box-shadow: 0 14px 30px rgba(0, 0, 0, .6); color: #f1ede2; font: .88rem/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.hn-eve-pop p { margin: 4px 0 10px; }
+.hn-eve-pop p b { color: var(--bb-accent, #ffcc00); }
+.hn-eve-hex { width: 54px; height: 60px; flex: none; display: grid; place-items: center; font-size: 1.5rem; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, var(--bb-t-hi, #ffe680), var(--bb-accent, #ffcc00) 50%, var(--bb-accent-deep, #8a6000)); animation: hnBob 2.4s ease-in-out infinite; }
+@keyframes hnBob { 50% { transform: translateY(-6px); } }
+.hn-eve-btns { display: flex; gap: 8px; }
+.hn-eve-btns button { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid #3a2a0a; background: #120d06; color: #f1ede2; font: 700 .78rem var(--font-main, ui-monospace, monospace); cursor: pointer; }
+.hn-eve-btns button.gold { border: 0; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; }
+@media (prefers-reduced-motion: reduce) { .hn-eve-hex, .hn-eve-pop { animation: none; } }

@@ -219,7 +219,7 @@ function textContainsTerm(text, term) {
 // matched Dictionary term) x (completion), each carrying its own date. This
 // is the single source of truth computeSkillMatrixXP aggregates below AND
 // what getSkillContributionsSince (see the Vault class) filters by date to
-// hand Eevee a real batch of "what actually happened" for a level-up
+// hand Eve a real batch of "what actually happened" for a level-up
 // assessment - keeping both in exact sync instead of two copies of the same
 // matching logic that could quietly drift apart.
 // Oct 2026: every kind of task (Dailies, Habits, To-Dos, Quest tasks)
@@ -551,7 +551,9 @@ function beeLockedJob(bee) {
 // instead; the Queen has neither.
 const BEE_TALENT_BOOST = 1.2;
 function beeTalentBoost(bee) {
-    return bee && bee.talent && bee.class === bee.talent && bee.rarity !== 'Named' ? BEE_TALENT_BOOST : 1;
+    const talent = bee && bee.talent && bee.class === bee.talent && bee.rarity !== 'Named' ? BEE_TALENT_BOOST : 1;
+    // Oct 28 2026: a bee that isn't well works and fights worse (beeWellFactor).
+    return talent * (typeof beeWellFactor === 'function' ? beeWellFactor(bee) : 1);
 }
 function pickBeeTalent(bee, rand = Math.random) {
     if (bee.sex === 'm') return 'drone';
@@ -798,6 +800,16 @@ const STORE_ITEM_CATALOG = [
     // Start My Day (Oct 2026): saves one daily's streak on a miss, used
     // automatically. Paid in Honey coins, not materials.
     { id: 'streak-charm', label: 'Streak Charm', icon: '🎁', kind: 'charm', rarity: 'Rare', price: { currency: 'coins', amount: 25 }, description: "Saves one daily's streak when you miss it. Used up automatically in the morning, after your Guard Bees, and only on streaks of 2 days or more." },
+    // Held items (Oct 28 2026, approved demo): Rare and up hold them (see
+    // beeItemSlots). 'use' items fire on their own when needed and are used
+    // up; 'gear' stays on. Give one from the bee's card.
+    { id: 'honey-extract', label: 'Honey Extract', icon: '🍯', kind: 'held', rarity: 'Common', hold: { type: 'use', when: 'hungry', gives: { fullness: 40 } }, price: { materialId: 'pollen', amount: 3 }, description: 'Held. When fullness drops below 40: +40 fullness. Used up.' },
+    { id: 'nectar-shot', label: 'Nectar Shot', icon: '⚡', kind: 'held', rarity: 'Rare', hold: { type: 'use', when: 'tired', gives: { stamina: 40 } }, price: { materialId: 'royal-nectar', amount: 1 }, description: 'Held. When stamina drops below 25: +40 stamina. Used up.' },
+    { id: 'propolis-bandage', label: 'Propolis Bandage', icon: '🩹', kind: 'held', rarity: 'Common', hold: { type: 'use', when: 'hurt', gives: { health: 30 } }, price: { materialId: 'pollen', amount: 4 }, description: 'Held. When hurt (health below 65): +30 health at once. Used up.' },
+    { id: 'pollen-tonic', label: 'Pollen Tonic', icon: '🧪', kind: 'held', rarity: 'Rare', hold: { type: 'use', when: 'sick', gives: { cure: true } }, price: { materialId: 'pollen', amount: 5 }, description: 'Held. When sick: cures it. Used up.' },
+    { id: 'boxing-gloves', label: 'Boxing Gloves', icon: '🥊', kind: 'held', rarity: 'Epic', hold: { type: 'gear', boost: { combat: 1.15 } }, price: { materialId: 'honey-drop', amount: 2 }, description: 'Held gear. +15% to this bee in raid fights. Stays on.' },
+    { id: 'wax-shield', label: 'Wax Shield', icon: '🛡️', kind: 'held', rarity: 'Epic', hold: { type: 'gear', boost: { defense: 1.15 } }, price: { materialId: 'honey-drop', amount: 2 }, description: 'Held gear. +15% defense. Stays on.' },
+    { id: 'wing-wax', label: 'Wing Wax', icon: '🪽', kind: 'held', rarity: 'Rare', hold: { type: 'gear', boost: { speed: 1.1 } }, price: { materialId: 'honey-drop', amount: 1 }, description: 'Held gear. +10% speed: forages more. Stays on.' },
     { id: 'identity-card', label: 'Identity Card', icon: '🪪', kind: 'identity', rarity: 'Legendary', price: { materialId: 'royal-nectar', amount: 3 }, description: "Guarantees a bee evolves straight into a full Named Beast. It keeps its name and earns a random title with a small power." }
 ];
 
@@ -1312,7 +1324,8 @@ const LIFE = {
     // Comb rooms (Oct 2026): new bees start as eggs in the Nursery for
     // broodDays (5, Craft Oct 2026; a working Nurse Bee takes a day off). A bee with no job
     // for idleUpsetDays gets upset.
-    broodDays: 5, idleUpsetDays: 3
+    // Oct 28 2026 (Craft): eggs take 7 days, so the Egg Incubator has a job.
+    broodDays: 7, idleUpsetDays: 3
 };
 // Bee names (Oct 2026): new bees get a real name instead of "Common Bee
 // #12", so they're easy to tell apart. Old bees still on that default name
@@ -1390,13 +1403,83 @@ const BIRTH_TRAITS = {
     'iron-shell': { label: 'Iron Shell', text: '+10 raid defense' },
     'long-lived': { label: 'Long-Lived', text: 'Lives 25% longer' }
 };
+// ---- Hour by hour (Oct 28 2026, approved demo) ----
+// Vitals change every hour, not once a night. Bees work 7 AM - 10 PM and
+// everyone sleeps 10 PM - 7 AM. Per working hour, by job:
+// [stamina, fullness, happiness, fatigue]. Tune here.
+const JOB_RATES = {
+    collector: [-6, -4, -1, 3], scout: [-7, -4, 0, 3.5], guardian: [-4, -3, -1.5, 2.5], barrier: [-4, -3, -1, 2],
+    undertaker: [-3, -2, -2, 2], architect: [-5, -4, -1, 3], cleaner: [-3, -2, -1, 1.5], honeymaker: [-3, -3, 0.5, 2],
+    watercarrier: [-5, -3, -0.5, 2.5], nurse: [-3, -2, 0.5, 2], attendant: [-2, -2, 1, 1.5], drone: [-1, -3, 0, 0.5]
+};
+// Per hour not working: [stamina, fullness, happiness, fatigue, health (if fullness 50+)].
+const REST_RATES = {
+    day: [4, 2.5, 1, -3, 1],          // resting or recuperating by day: helps, less than sleep
+    night: [7, 2.5, 1, -6, 2],        // everyone's sleep
+    nursery: [4, 2.5, 1, -3, 4]       // a Nursery bed: heals 4x faster (+1 per working Nurse, max +3)
+};
+const WORK_HOURS = [7, 22];           // 7 AM to 10 PM
+const isNightHour = (h) => h < WORK_HOURS[0] || h >= WORK_HOURS[1];
+// Hurt levels from health (replaces "Injured"): 0 fine, 1 Hurt, 2 Badly hurt, 3 Severely hurt (can't work).
+const HURT_LEVELS = [null, { key: 'hurt', label: 'Hurt', icon: '🩹', below: 65 }, { key: 'badly', label: 'Badly hurt', icon: '🤕', below: 50 }, { key: 'severe', label: 'Severely hurt', icon: '🚑', below: 30 }];
+function beeHurtLevel(bee) {
+    const h = bee && bee.life ? bee.life.health : 100;
+    return h < 30 ? 3 : h < 50 ? 2 : h < 65 ? 1 : 0;
+}
+// How many "not well" problems: hungry, tired, sick, hurt (badly hurt counts 2).
+function beeProblems(bee) {
+    const L = bee && bee.life;
+    if (!L || L.hatchOn || L.faintedAt) return 0;
+    const hurt = beeHurtLevel(bee);
+    return (L.fullness < 40 ? 1 : 0) + (L.stamina < 30 ? 1 : 0) + (L.sickUntil ? 1 : 0) + (hurt >= 2 ? 2 : hurt);
+}
+// Stats, perks and work: -15% with 1 problem, -30% with 2 or more.
+function beeWellFactor(bee) {
+    const n = beeProblems(bee);
+    return n >= 2 ? 0.7 : n === 1 ? 0.85 : 1;
+}
+// Fatigue builds 2x faster with 1 problem, 3x with 2 or more.
+function beeFatigueFactor(bee) {
+    const n = beeProblems(bee);
+    return n >= 2 ? 3 : n === 1 ? 2 : 1;
+}
+const NURSERY_BEDS = 2;               // + 1 per working Nurse
+// Held item slots: Common 0, Rare and Epic 1, Legendary and Named 2.
+function beeItemSlots(bee) {
+    const r = bee && bee.rarity;
+    return r === 'Legendary' || r === 'Named' ? 2 : r === 'Rare' || r === 'Epic' ? 1 : 0;
+}
+// Gear multiplier for a stat ('combat' | 'defense' | 'speed'), 1 = none.
+function beeGear(bee, key) {
+    return (bee && Array.isArray(bee.held) ? bee.held : []).reduce((m, id) => {
+        const it = id && STORE_ITEM_CATALOG.find(i => i.id === id);
+        return m * (it && it.hold && it.hold.type === 'gear' && it.hold.boost[key] ? it.hold.boost[key] : 1);
+    }, 1);
+}
+
+// Egg Incubator (Oct 28 2026, approved demo; plugin src/plugins/incubator/).
+// Bought with Honey coins. Every egg inside loses 1 day each time you reach
+// the step goal, and every INCUBATOR_DAILIES finished dailies also count
+// (so it works on the website too). At most `cap` days off a day.
+// Extras on hatch: full (no hunger), happy, and a better birth-trait chance.
+const INCUBATORS = {
+    basic: { label: 'Basic Incubator', icon: '🪺', price: 150, slots: 1, goal: 5000, cap: 2, full: false, happy: false, trait: 0 },
+    warm: { label: 'Warm Incubator', icon: '🔆', price: 400, slots: 2, goal: 4000, cap: 2, full: true, happy: false, trait: 0 },
+    honey: { label: 'Honeycomb Incubator', icon: '🍯', price: 900, slots: 3, goal: 3000, cap: 2, full: true, happy: true, trait: .05 },
+    royal: { label: 'Royal Incubator', icon: '👑', price: 2000, slots: 3, goal: 3000, cap: 3, full: true, happy: true, trait: .15 }
+};
+const INCUBATOR_ORDER = ['basic', 'warm', 'honey', 'royal'];
+const INCUBATOR_DAILIES = 4;
+
 const RAID_ENEMIES = [
     { id: 'hornets', label: 'Hornet raid', icon: '🦟', power: 1.2 },
     { id: 'wasps', label: 'Wasp raid', icon: '🐝', power: 1.0 },
     { id: 'robbers', label: 'Robber bees', icon: '🏴', power: 0.8 },
     { id: 'mites', label: 'Mite outbreak', icon: '🦠', power: 0.9 }
 ];
-const clampVital = (n) => Math.max(0, Math.min(100, Math.round(n)));
+// frac = keep one decimal (hourly changes like +0.2 add up); shown rounded.
+const clampVital = (n, frac) => Math.max(0, Math.min(100, frac ? Math.round(n * 10) / 10 : Math.round(n)));
+const isoLocalDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const lifeRand = () => Math.random();
 
 // Stable 1-in-10 for bees that existed before Hive Life, so a reload never
@@ -1456,14 +1539,14 @@ function beeIsFainted(bee) { return !!(bee.life && bee.life.faintedAt); }
 // Able to do its job: alive, awake and not exhausted.
 function beeCanWork(bee, today = todayISO()) {
     const L = bee.life;
-    return !!(L && !L.faintedAt && !L.hatchOn && L.stamina >= 10 && !beeOutOfAction(bee, today));
+    return !!(L && !L.faintedAt && !L.hatchOn && L.stamina >= 10 && L.health >= 30 && !beeOutOfAction(bee, today));
 }
 // Sick, injured or forced to rest (the reason), or null if fine.
 function beeOutOfAction(bee, today = todayISO()) {
     const L = bee && bee.life;
     if (!L) return null;
+    if (L.nursery) return 'nursery';
     if (L.sickUntil && L.sickUntil > today) return 'sick';
-    if (L.injuredUntil && L.injuredUntil > today) return 'injured';
     if (L.restUntil && L.restUntil > today) return 'resting';
     return null;
 }
@@ -1483,13 +1566,36 @@ function beeFeeling(bee, today = todayISO()) {
     const idle = !bee.class && L.idleSince ? (daysBetween(L.idleSince, today) || 0) : 0;
     if (!bee.class && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😠', why: `No job for ${idle} days` };
     const out = beeOutOfAction(bee, today);
+    if (out === 'nursery') return { key: 'calm', face: '🛏️', why: 'In the Nursery' };
     if (out === 'sick') return { key: 'sad', face: '🤒', why: 'Sick' };
-    if (out === 'injured') return { key: 'sad', face: '🤕', why: 'Injured' };
+    const hurt = beeHurtLevel(bee);
+    if (hurt) return { key: 'sad', face: HURT_LEVELS[hurt].icon, why: HURT_LEVELS[hurt].label + (hurt === 3 ? ', can\'t work' : '') };
     if (out === 'resting') return { key: 'calm', face: '😴', why: 'Exhausted, resting' };
-    const lack = [L.fullness < 40 && 'Hungry', L.stamina < 30 && 'Tired', (L.fatigue || 0) >= 80 && 'Worn out', L.health < 65 && 'Hurt', L.happiness < 30 && 'Unhappy'].filter(Boolean);
+    const lack = [L.fullness < 40 && 'Hungry', L.stamina < 30 && 'Tired', (L.fatigue || 0) >= 80 && 'Worn out', L.happiness < 30 && 'Unhappy'].filter(Boolean);
     if (lack.length) return { key: 'sad', face: '😢', why: lack.join(', ') };
+    if (L.recuperate) return { key: 'calm', face: '💤', why: 'Recuperating' };
     if (!bee.class) return { key: 'calm', face: '🙂', why: 'Waiting for a job' };
     return { key: 'happy', face: '😊', why: 'All good' };
+}
+
+// Exactly what a bee needs, with numbers and the fix (Oct 28 2026, Craft:
+// "no guess work"). [] = nothing.
+function beeNeeds(bee, today = todayISO()) {
+    const L = bee && bee.life;
+    if (!L || L.hatchOn) return [];
+    if (L.faintedAt) return [{ need: 'Fainted', value: `health ${Math.round(L.health)}/100`, fix: 'Revive it from its card (Honey Drops).' }];
+    const out = [];
+    const idle = !bee.class && L.idleSince ? (daysBetween(L.idleSince, today) || 0) : 0;
+    if (!bee.class && !L.recuperate && idle >= LIFE.idleUpsetDays) out.push({ need: 'No job', value: `${idle} days`, fix: 'Give it a job, or set it to Recuperate.' });
+    const inBed = !!L.nursery;
+    if (L.sickUntil) out.push({ need: 'Sick', value: `until ${L.sickUntil}`, fix: inBed ? 'In the Nursery: it heals 2× faster.' : 'Send it to the Nursery to heal 2× faster.' });
+    const hurt = beeHurtLevel(bee);
+    if (hurt) out.push({ need: HURT_LEVELS[hurt].label, value: `health ${Math.round(L.health)}/100`, fix: inBed ? 'In the Nursery: +4 health an hour.' : hurt === 3 ? 'Can\'t work. Send it to the Nursery (+4 an hour) or set it to Recuperate (+1 an hour).' : 'Nursery: +4 health an hour. Recuperate: +1 an hour.' });
+    if (L.fullness < 40) out.push({ need: 'Hungry', value: `fullness ${Math.round(L.fullness)}/100`, fix: 'Finish tasks (+4 each), or let it recuperate (eats +2.5 an hour).' });
+    if (L.stamina < 30) out.push({ need: 'Tired', value: `stamina ${Math.round(L.stamina)}/100`, fix: 'Recuperate: +4 an hour by day, +7 asleep at night.' });
+    if ((L.fatigue || 0) >= 80) out.push({ need: 'Worn out', value: `fatigue ${Math.round(L.fatigue)}/100`, fix: 'Recuperate: −3 an hour by day, −6 at night. At 100 it must rest 2 days.' });
+    if (L.happiness < 30) out.push({ need: 'Unhappy', value: `happiness ${Math.round(L.happiness)}/100`, fix: 'Finish all your dailies. A streak cheers the hive up.' });
+    return out;
 }
 
 // Hive streak from your Dailies: +N = N days in a row with every due daily
@@ -1661,6 +1767,7 @@ class DatabaseManager {
         this._splitNamedTitles();
         this._splitHashtagTerms();
         this._ensureQueen();
+        this.hiveHourlyTick();
         this._pendingLifeEvents = this.hiveDailyTick();
         // Backfills state.dictionary onto any save from before the
         // Dictionary feature existed - no-ops once it's there.
@@ -1779,7 +1886,7 @@ class DatabaseManager {
             this.state = await this.fetchBlueprint();
             this.validateFullState(this.state);
             this.state.schemaVersion = VAULT_SCHEMA_VERSION;
-            // Eevee's memory isn't part of the blueprint (it's generated locally,
+            // Eve's memory isn't part of the blueprint (it's generated locally,
             // not authored) - always starts fresh here since loadBlueprint is
             // used by both first-run init and a full Reset.
             this.state.eevee = { conversations: [] };
@@ -2642,7 +2749,7 @@ class DatabaseManager {
         const drops = [];
         const guides = this._workers('scout').reduce((n, b) => n + (beeTitlePower(b, 'wanderer') ? 2 : 1) * beeTalentBoost(b), 0);
         collectors.forEach(bee => {
-            const speed = (bee.stats && bee.stats.speed) || 0;
+            const speed = ((bee.stats && bee.stats.speed) || 0) * beeGear(bee, 'speed');
             const chance = (COLLECTOR_DROP_CHANCE - 0.1 + Math.min(0.25, speed / 120)) * (bee.life && bee.life.birthTrait === 'swift-wings' ? 1.1 : 1)
                 * (beeTitlePower(bee, 'collector') ? 1.1 : 1) * beeTalentBoost(bee);
             if (Math.random() < chance) {
@@ -2896,7 +3003,7 @@ class DatabaseManager {
     // 5n. Logic: Side Quest back-links. A main quest optionally lists its
     // own related side quests via `sideQuestIds` (an array of quest ids,
     // hand-authored the same way repoTask/quizChallenge/patchNotes are -
-    // via Dev Edit or a future Eevee-generated quest). The reverse
+    // via Dev Edit or a future Eve-generated quest). The reverse
     // direction (a side quest showing "part of: X") is deliberately NOT a
     // second stored field - it's derived live by scanning for whichever
     // quest (if any) lists this id in ITS sideQuestIds, same "live, not a
@@ -3005,7 +3112,7 @@ class DatabaseManager {
         return quests[index];
     }
 
-    // 5e. Logic: Eevee generates a whole new quest (goal -> structured
+    // 5e. Logic: Eve generates a whole new quest (goal -> structured
     // campaign). Just appends to the quest list - the LLM-facing schema
     // validation/shaping happens in llm-engine.js before this is called.
     addQuest(questData) {
@@ -3104,7 +3211,7 @@ class DatabaseManager {
         return true;
     }
 
-    // 5f. Logic: Eevee's memory. Every real exchange (chat, or a quest
+    // 5f. Logic: Eve's memory. Every real exchange (chat, or a quest
     // generation request) gets appended here, timestamped. This is the raw
     // material for Track B (real fine-tuning) later, and also what gets fed
     // back into her prompt as short-term context in the meantime - see
@@ -3237,6 +3344,15 @@ class DatabaseManager {
         if (!this.state || !this.state.colony) return null;
         const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
+        // Recuperate (Oct 28 2026): no job, on purpose. Eats, sleeps, heals slowly. Never gets upset.
+        if (className === 'recuperate') {
+            if (beeIsBrood(bee) || beeLockedJob(bee)) return null;
+            if (bee.class) bee.jobSince = todayISO();
+            bee.class = null;
+            if (bee.life) { bee.life.recuperate = true; delete bee.life.idleSince; }
+            this.save();
+            return bee;
+        }
         if (className && !BEE_CLASSES[className]) return null;
         // Eggs can't get a job until they hatch (Oct 27 2026).
         if (className && beeIsBrood(bee)) return null;
@@ -3253,6 +3369,7 @@ class DatabaseManager {
         bee.class = className || null;
         // Comb rooms: how long a bee has gone without a job (upset at 3 days).
         if (bee.life) {
+            delete bee.life.recuperate;
             if (bee.class) delete bee.life.idleSince;
             else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
         }
@@ -3340,6 +3457,50 @@ class DatabaseManager {
     // usable item until _addFragment() assembles it into one.
     getItems() {
         return this.state && this.state.inventory ? (this.state.inventory.items || {}) : {};
+    }
+
+    // ---- Held items (Oct 28 2026) ----
+    giveBeeItem(beeId, itemId, slot = 0) {
+        const bee = this.getColonyBees().find(b => b.id === beeId);
+        const it = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
+        if (!bee || !it) return { ok: false, error: 'Unknown item.' };
+        const slots = beeItemSlots(bee);
+        if (!slots) return { ok: false, error: 'Only Rare bees and up can hold items.' };
+        if (slot < 0 || slot >= slots) return { ok: false, error: 'No such slot.' };
+        const items = this.state.inventory.items;
+        if (!(items[itemId] > 0)) return { ok: false, error: `You don't have a ${it.label}. Make one in the Honey Store.` };
+        if (!Array.isArray(bee.held)) bee.held = [];
+        if (bee.held[slot]) items[bee.held[slot]] = (items[bee.held[slot]] || 0) + 1;   // old item back to the bag
+        bee.held[slot] = itemId;
+        items[itemId] -= 1;
+        this.save();
+        return { ok: true };
+    }
+    takeBeeItem(beeId, slot = 0) {
+        const bee = this.getColonyBees().find(b => b.id === beeId);
+        if (!bee || !Array.isArray(bee.held) || !bee.held[slot]) return false;
+        const items = this.state.inventory.items;
+        items[bee.held[slot]] = (items[bee.held[slot]] || 0) + 1;
+        bee.held[slot] = null;
+        this.save();
+        return true;
+    }
+    // Use-up items fire when needed (called every hour).
+    _useHeldItems(bee) {
+        if (!Array.isArray(bee.held) || !bee.life) return;
+        const L = bee.life;
+        const need = { hungry: L.fullness < 40, tired: L.stamina < 25, hurt: L.health < 65, sick: !!L.sickUntil };
+        bee.held.forEach((id, i) => {
+            const it = id && STORE_ITEM_CATALOG.find(x => x.id === id);
+            if (!it || !it.hold || it.hold.type !== 'use' || !need[it.hold.when]) return;
+            const g = it.hold.gives;
+            if (g.fullness) L.fullness = clampVital(L.fullness + g.fullness, true);
+            if (g.stamina) L.stamina = clampVital(L.stamina + g.stamina, true);
+            if (g.health) L.health = clampVital(L.health + g.health, true);
+            if (g.cure) { delete L.sickUntil; delete L.sickProgress; }
+            bee.held[i] = null;
+            this._lifeEvent('item', `${it.icon} ${bee.name} used a ${it.label}.`, { beeId: bee.id });
+        });
     }
 
     // Fragment progress - see FRAGMENTS_REQUIRED/_addFragment. Keyed by
@@ -3840,6 +4001,7 @@ class DatabaseManager {
 
         if (justCompleted) this._queenHeal(`daily:${task.id}:${today}`);
         this._checkStreakBonus(today);
+        if (justCompleted && typeof this.incubatorTick === 'function') this.incubatorTick(today);   // dailies warm the Egg Incubator
         this.save();
         this._syncLevelUpBees();
         if (justCompleted) this._collectMaterialsOnCompletion();
@@ -4389,7 +4551,7 @@ class DatabaseManager {
         return added;
     }
 
-    addDictionaryTerm({ name, definition, category }) {
+    addDictionaryTerm({ name, definition, category, ...more }) {
         if (!this.state) return null;
         if (!name || !String(name).trim()) return null;
         if (!this.state.dictionary) this.state.dictionary = [];
@@ -4401,6 +4563,7 @@ class DatabaseManager {
             category: category && String(category).trim() ? String(category).trim() : 'General',
             createdAt: new Date().toISOString()
         };
+        this._termExtras(term, more);
         this.state.dictionary.push(term);
         this.save();
         return term;
@@ -4432,7 +4595,22 @@ class DatabaseManager {
         return added;
     }
 
-    updateDictionaryTerm(termId, { name, definition, category }) {
+    // Rich terms (Oct 28 2026): full name, code, examples, picture, MDN and
+    // W3Schools links. Empty values are removed so old terms stay small.
+    _termExtras(term, more = {}) {
+        ['full', 'code', 'image', 'mdnUrl', 'w3Url', 'source'].forEach(k => {
+            if (more[k] === undefined) return;
+            const v = String(more[k] ?? '').trim();
+            if (v) term[k] = v.slice(0, k === 'code' ? 4000 : 600); else delete term[k];
+        });
+        if (more.examples !== undefined) {
+            const ex = (Array.isArray(more.examples) ? more.examples : String(more.examples || '').split('\n')).map(x => String(x).trim()).filter(Boolean).slice(0, 10);
+            if (ex.length) term.examples = ex; else delete term.examples;
+        }
+        return term;
+    }
+
+    updateDictionaryTerm(termId, { name, definition, category, ...more }) {
         if (!this.state || !this.state.dictionary) return null;
 
         const term = this.state.dictionary.find(t => t.id === termId);
@@ -4441,6 +4619,7 @@ class DatabaseManager {
         if (name !== undefined && String(name).trim()) term.name = String(name).trim();
         if (definition !== undefined) term.definition = String(definition).trim();
         if (category !== undefined) term.category = String(category).trim() || 'General';
+        this._termExtras(term, more);
 
         this.save();
         return term;
@@ -4474,7 +4653,7 @@ class DatabaseManager {
 
     // Every contribution toward `category` completed on or after `sinceISO`
     // (or ALL of them, if sinceISO is null/undefined - a skill's very first
-    // level-up has no "since" yet). This is what gets handed to Eevee in
+    // level-up has no "since" yet). This is what gets handed to Eve in
     // levelUpSkill below so her reward judgment is based on the real batch
     // of work behind that level-up, not just a bare XP number. A
     // contribution with no recorded date (can happen for an older Quest
@@ -4503,9 +4682,9 @@ class DatabaseManager {
     //
     // Rewards: always +1 gacha ticket (added to the existing Colony ticket
     // pool - unwrap it from the Pollination Chamber like any other ticket),
-    // plus Pollen and an optional rarer bonus material judged by Eevee
+    // plus Pollen and an optional rarer bonus material judged by Eve
     // against everything completed in this skill since its last level-up
-    // (see getSkillContributionsSince above). If Eevee's unreachable, the
+    // (see getSkillContributionsSince above). If Eve's unreachable, the
     // level-up still goes through with a quiet flat fallback - a downed
     // Ollama server should never block the celebration itself.
     async levelUpSkill(category) {
@@ -4524,14 +4703,14 @@ class DatabaseManager {
 
         const contributions = this.getSkillContributionsSince(category, stored.leveledUpAt);
 
-        let pollen = 3; // quiet fallback if Eevee can't be reached
+        let pollen = 3; // quiet fallback if Eve can't be reached
         let bonusMaterialId = null;
         try {
-            const assessment = await Eevee.assessSkillLevelUpReward(category, contributions.map(c => c.label));
+            const assessment = await Eve.assessSkillLevelUpReward(category, contributions.map(c => c.label));
             pollen = assessment.pollen;
             bonusMaterialId = assessment.bonusMaterialId;
         } catch (error) {
-            // Silent fallback, same philosophy as create-daily's "Ask Eevee"
+            // Silent fallback, same philosophy as create-daily's "Ask Eve"
             // button - a level-up should never be blocked by Ollama being down.
         }
 
@@ -4542,7 +4721,7 @@ class DatabaseManager {
         if (bonusMaterialId && MATERIAL_CATALOG.some(m => m.id === bonusMaterialId)) {
             this.state.inventory.materials[bonusMaterialId] = (this.state.inventory.materials[bonusMaterialId] || 0) + 1;
         } else {
-            bonusMaterialId = null; // ignore anything Eevee returned that isn't a real material id
+            bonusMaterialId = null; // ignore anything Eve returned that isn't a real material id
         }
 
         // Oct 2026 rewards: 1 material every level, tickets every 5th level,
@@ -5230,7 +5409,7 @@ Object.assign(DatabaseManager.prototype, {
             L.fatigue = clampVital((L.fatigue || 0) + 5 * misses);
             if (L.health <= 0) { L.faintedAt = today; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); return; }
             if (!beeOutOfAction(b, today) && lifeRand() < Math.min(0.35, 0.06 * misses)) { L.sickUntil = shiftISODate(today, LIFE.sickDays); out.sick.push(b.name); }
-            else if (b.class && !beeOutOfAction(b, today) && lifeRand() < Math.min(0.25, 0.04 * misses)) { L.injuredUntil = shiftISODate(today, LIFE.injuredDays); out.injured.push(b.name); }
+            else if (b.class && !beeOutOfAction(b, today) && lifeRand() < Math.min(0.25, 0.04 * misses)) { L.health = clampVital(L.health - 20); out.injured.push(b.name); }   // hurt (Oct 28 2026: no more "Injured")
         });
         const extra = [out.sick.length && `${out.sick.join(', ')} got sick`, out.injured.length && `${out.injured.join(', ')} got hurt`].filter(Boolean).join('; ');
         this._lifeEvent('missed', `🌧️ ${misses} missed task${misses === 1 ? '' : 's'} hit the hive: every bee lost ${out.hp} health.${extra ? ' ' + extra + '.' : ''}`);
@@ -5255,6 +5434,133 @@ Object.assign(DatabaseManager.prototype, {
         return fresh;
     },
 
+    // ---- Hour by hour (Oct 28 2026) ----
+    // Catches up every whole hour since the last run (max 14 days).
+    hiveHourlyTick(now = Date.now()) {
+        if (!this.state || !this.state.colony) return 0;
+        const c = this.state.colony;
+        const HOUR = 3600000;
+        if (!c.vitalsAt) { c.vitalsAt = now; return 0; }
+        const hours = Math.min(14 * 24, Math.floor((now - c.vitalsAt) / HOUR));
+        if (hours <= 0) return 0;
+        const bees = this._lifeBees();
+        // Old saves: "Injured" is now just lower health.
+        bees.forEach(b => { if (b.life && b.life.injuredUntil) { b.life.health = Math.min(b.life.health, 55); delete b.life.injuredUntil; } });
+        for (let k = 1; k <= hours; k++) this._lifeHour(new Date(c.vitalsAt + k * HOUR));
+        c.vitalsAt += hours * HOUR;
+        this.save();
+        return hours;
+    },
+
+    _lifeHour(at) {
+        const day = isoLocalDate(at);
+        const night = isNightHour(at.getHours());
+        const bees = this._lifeBees();
+        const nurses = this._workers('nurse').length;
+        const water = this._workers('watercarrier').length;
+        bees.forEach(b => {
+            const L = b.life;
+            if (!L || L.faintedAt || L.hatchOn) return;
+            if (L.fatigue == null) L.fatigue = 0;
+            const relentless = beeTitlePower(b, 'relentless');
+            const working = !night && !!b.class && !L.recuperate && beeCanWork(b, day);
+            const hungerX = L.birthTrait === 'deep-stomach' ? 0.75 : 1;
+            if (working) {
+                const r = JOB_RATES[b.class] || [-4, -3, -1, 2.5];
+                L.stamina = clampVital(L.stamina + r[0] * (relentless ? 0.75 : 1), true);
+                L.fullness = clampVital(L.fullness + r[1] * hungerX, true);
+                L.happiness = clampVital(L.happiness + r[2], true);
+                L.fatigue = clampVital(L.fatigue + r[3] * beeFatigueFactor(b) * (water ? 0.75 : 1) * (relentless ? 0.6 : 1), true);
+                if (L.fullness >= 50) L.health = clampVital(L.health + 0.2, true);
+                if (L.fatigue >= 100) {
+                    L.restUntil = shiftISODate(day, LIFE.restDays);
+                    this._lifeEvent('rest', `😴 ${b.name} is exhausted and must rest for ${LIFE.restDays} days.`, { beeId: b.id });
+                }
+            } else {
+                const r = L.nursery ? REST_RATES.nursery : night ? REST_RATES.night : REST_RATES.day;
+                L.stamina = clampVital(L.stamina + r[0], true);
+                L.fullness = clampVital(L.fullness + r[1], true);
+                L.happiness = clampVital(L.happiness + r[2], true);
+                L.fatigue = clampVital(L.fatigue + r[3], true);
+                const heal = r[4] + (L.nursery ? Math.min(3, nurses) : 0);
+                if (L.nursery || L.fullness >= 50) L.health = clampVital(L.health + heal, true);
+                // Nursery: sickness heals 2x faster (12 bed hours = 1 day off).
+                if (L.nursery && L.sickUntil) {
+                    L.sickProgress = (L.sickProgress || 0) + 1;
+                    if (L.sickProgress >= 12) { L.sickProgress = 0; L.sickUntil = shiftISODate(L.sickUntil, -1); if (L.sickUntil <= day) delete L.sickUntil; }
+                }
+            }
+            if (L.sickUntil) L.health = clampVital(L.health - 0.25, true);
+            if (L.fullness <= 0) L.health = clampVital(L.health - 1, true);
+            this._useHeldItems(b);
+            if (L.stamina <= 0) L.health = clampVital(L.health - 0.2, true);
+            // Healed: leave the Nursery and go back to the old job.
+            if (L.nursery && !L.sickUntil && L.health >= 90) {
+                delete L.nursery; delete L.sickProgress;
+                this._lifeEvent('heal', `💗 ${b.name} is healed and left the Nursery.`, { beeId: b.id });
+            }
+            if (L.health <= 0) { L.faintedAt = day; delete L.nursery; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
+        });
+    },
+
+    // Ready = an egg whose days are up (it waits for a tap).
+    isEggReady(bee, today = todayISO()) {
+        if (!beeIsBrood(bee)) return false;
+        const nurses = this._workers('nurse').reduce((n, b) => n + (beeTitlePower(b, 'healer') ? 2 : 1) * beeTalentBoost(b), 0);
+        return !!bee.life.readyAt || broodDaysLeft(bee, today, nurses) <= 0;
+    },
+    readyEggs() { return this._lifeBees().filter(b => this.isEggReady(b)); },
+    // The player tapped it open. Returns the new bee, or null.
+    hatchEgg(beeId) {
+        const b = this.getColonyBees().find(x => x.id === beeId);
+        if (!b || !this.isEggReady(b)) return null;
+        this._hatchBee(b, todayISO());
+        this.save();
+        return b;
+    },
+    _hatchBee(b, day) {
+        const inc = this.state.incubator;
+        delete b.life.hatchOn;
+        delete b.life.readyAt;
+        b.life.bornAt = day;
+        // Hatched in the Egg Incubator: its extras, then the slot is free.
+        const T = inc && Array.isArray(inc.slots) && inc.slots.includes(b.id) ? INCUBATORS[inc.tier] : null;
+        if (T) {
+            if (T.full) b.life.fullness = 100;
+            if (T.happy) b.life.happiness = 100;
+            if (T.trait && !b.life.birthTrait && lifeRand() < T.trait) { const k = Object.keys(BIRTH_TRAITS); b.life.birthTrait = k[Math.floor(lifeRand() * k.length)]; }
+            inc.slots = inc.slots.filter(id => id !== b.id);
+            if (inc.applied) delete inc.applied[b.id];
+        }
+        if (!b.class) b.life.idleSince = day;
+        const job = b.class && BEE_CLASSES[b.class] ? BEE_CLASSES[b.class].label : null;
+        this._lifeEvent('hatch', job ? `🐣 ${b.name} hatched and started work as a ${job}.` : `🐣 ${b.name} hatched. Give ${b.sex === 'm' ? 'him' : 'her'} a job.`, { beeId: b.id });
+    },
+
+    nurseryBeds() {
+        const used = this._lifeBees().filter(b => b.life.nursery).length;
+        const total = NURSERY_BEDS + this._workers('nurse').length;
+        return { used, total, free: Math.max(0, total - used) };
+    },
+    // Sick or hurt bees can take a Nursery bed (instead of needing a Nurse each).
+    sendToNursery(beeId) {
+        const b = this.getColonyBees().find(x => x.id === beeId);
+        if (!b || !b.life || b.life.hatchOn || b.life.faintedAt) return { ok: false, error: 'This bee can\'t go to the Nursery.' };
+        if (b.life.nursery) return { ok: true };
+        if (!b.life.sickUntil && beeHurtLevel(b) === 0) return { ok: false, error: 'Only sick or hurt bees need a bed.' };
+        if (!this.nurseryBeds().free) return { ok: false, error: 'No free bed. Each working Nurse adds one.' };
+        b.life.nursery = true;
+        this.save();
+        return { ok: true };
+    },
+    leaveNursery(beeId) {
+        const b = this.getColonyBees().find(x => x.id === beeId);
+        if (!b || !b.life || !b.life.nursery) return false;
+        delete b.life.nursery; delete b.life.sickProgress;
+        this.save();
+        return true;
+    },
+
     _lifeDay(day) {
         const c = this.state.colony;
         const streak = this.getHiveStreak();
@@ -5265,45 +5571,23 @@ Object.assign(DatabaseManager.prototype, {
         const avgFull = bees.reduce((n, b) => n + b.life.fullness, 0) / bees.length;
         const stoutBonus = avgFull >= 80 ? bees.filter(b => b.life.birthTrait === 'stout-heart').length * 2 : 0;
 
-        // Eggs hatch. A job picked in the Nursery starts right away.
+        // Eggs (Oct 28 2026): a ready egg waits for you to tap it (EggHatch).
+        // Not tapped in 2 days? It hatches by itself.
         bees.filter(beeIsBrood).forEach(b => {
             if (broodDaysLeft(b, day, nurses) > 0) return;
-            delete b.life.hatchOn;
-            b.life.bornAt = day;
-            if (!b.class) b.life.idleSince = day;
-            const job = b.class && BEE_CLASSES[b.class] ? BEE_CLASSES[b.class].label : null;
-            this._lifeEvent('hatch', job ? `🐣 ${b.name} hatched and started work as a ${job}.` : `🐣 ${b.name} hatched. Give ${b.sex === 'm' ? 'him' : 'her'} a job.`, { beeId: b.id });
+            if (!b.life.readyAt) { b.life.readyAt = day; this._lifeEvent('egg-ready', `🥚 ${b.name} is ready to hatch! Tap it to help it out.`, { beeId: b.id }); return; }
+            if ((daysBetween(b.life.readyAt, day) || 0) >= 2) this._hatchBee(b, day);
         });
 
+        // Vitals now change hour by hour (hiveHourlyTick). Once a day: sickness
+        // and forced rest end, a Nurse may cure sickness, and the streak sets the mood.
         bees.forEach(b => {
             const L = b.life;
             if (L.faintedAt || L.hatchOn) return;
-            L.fullness = clampVital(L.fullness - LIFE.hungerPerDay * (L.birthTrait === 'deep-stomach' ? 0.75 : 1));
-            if (L.fullness <= 0) L.health = clampVital(L.health - 20);
-            else if (L.fullness >= 50) L.health = clampVital(L.health + 5 + Math.min(2, nurses) * 2);
-            const out = beeOutOfAction(b, day);
-            const working = !!b.class && !out;
-            if (working) L.stamina = clampVital(L.stamina - (water ? 6 : 8) * (beeTitlePower(b, 'relentless') ? 0.75 : 1) + (L.fullness >= 60 ? 12 : 0));
-            else L.stamina = clampVital(L.stamina + 25);
-            // Fatigue: work wears bees out; rest (no job, or out of action) brings it down.
-            if (L.fatigue == null) L.fatigue = 0;
-            if (working) L.fatigue = clampVital(L.fatigue + LIFE.fatiguePerWorkDay * (water ? 0.75 : 1) * (beeTitlePower(b, 'relentless') ? 0.6 : 1));
-            else L.fatigue = clampVital(L.fatigue - LIFE.fatigueRest);
-            if (!working) L.fullness = clampVital(L.fullness + LIFE.restFeedPerDay);   // resting bees eat
-            if (working && L.fatigue >= 100) {
-                L.restUntil = shiftISODate(day, LIFE.restDays);
-                this._lifeEvent('rest', `😴 ${b.name} is exhausted and must rest for ${LIFE.restDays} days.`, { beeId: b.id });
-            }
-            if (out === 'sick') {
-                L.health = clampVital(L.health - 6);
-                if (nurses > 0 && lifeRand() < Math.min(0.8, 0.4 * nurses)) { delete L.sickUntil; this._lifeEvent('heal', `💗 A Nurse nursed ${b.name} back to health.`, { beeId: b.id }); }
-            } else if (out === 'injured') L.health = clampVital(L.health - 3);
+            if (L.sickUntil && nurses > 0 && lifeRand() < Math.min(0.8, 0.4 * nurses)) { delete L.sickUntil; this._lifeEvent('heal', `💗 A Nurse nursed ${b.name} back to health.`, { beeId: b.id }); }
             if (L.sickUntil && L.sickUntil <= day) delete L.sickUntil;
-            if (L.injuredUntil && L.injuredUntil <= day) delete L.injuredUntil;
             if (L.restUntil && L.restUntil <= day) delete L.restUntil;
-            if (L.stamina <= 0) L.health = clampVital(L.health - 5);
             L.happiness = clampVital(L.happiness + (streak > 0 ? 4 : streak < 0 ? -6 : 0) + stoutBonus);
-            if (L.health <= 0) { L.faintedAt = day; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
         });
 
         // Faint too long, or too old -> the bee dies (only while death is on).
@@ -5338,8 +5622,8 @@ Object.assign(DatabaseManager.prototype, {
         const enemy = RAID_ENEMIES[Math.floor(lifeRand() * RAID_ENEMIES.length)];
         const level = (this.getUser() || {}).level || 1;
         const def = 15
-            + this._workers('guardian').reduce((n, b) => n + Math.round(((b.stats.defense || 0) + (b.life.birthTrait === 'iron-shell' ? 10 : 0)) * (beeTitlePower(b, 'guardian') ? 1.15 : 1) * beeTalentBoost(b)), 0)
-            + this._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4 * (beeTitlePower(b, 'unyielding') ? 1.15 : 1) * beeTalentBoost(b)), 0);
+            + this._workers('guardian').reduce((n, b) => n + Math.round(((b.stats.defense || 0) * beeGear(b, 'defense') + (b.life.birthTrait === 'iron-shell' ? 10 : 0)) * (beeTitlePower(b, 'guardian') ? 1.15 : 1) * beeTalentBoost(b) * beeGear(b, 'combat')), 0)
+            + this._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4 * (beeTitlePower(b, 'unyielding') ? 1.15 : 1) * beeTalentBoost(b) * beeGear(b, 'combat') * beeGear(b, 'defense')), 0);
         const atk = Math.round((25 + level * 4 + lifeRand() * 40) * enemy.power);
         if (def >= atk) {
             this._workers('guardian').forEach(b => { b.life.stamina = clampVital(b.life.stamina - 15); });
@@ -5460,6 +5744,103 @@ Object.assign(DatabaseManager.prototype, {
         return { hp: Math.max(0, Math.round(q.hp)), maxHp: QUEEN.maxHp, coins: Math.max(0, earned - (q.spent || 0) - (q.lost || 0)), earned, fainted: q.faintedOn === todayISO() };
     },
     getCoins() { const s = this.getQueenStats(); return s ? s.coins : 0; },
+
+    // ---- Egg Incubator (Oct 28 2026) ----
+    _incubator() {
+        if (!this.state) return null;
+        const i = this.state.incubator;
+        if (!i || typeof i !== 'object') return null;
+        if (!Array.isArray(i.slots)) i.slots = [];
+        if (!Array.isArray(i.owned)) i.owned = i.tier ? [i.tier] : [];
+        if (!i.applied || typeof i.applied !== 'object') i.applied = {};
+        return i;
+    },
+    // Days off earned today: steps (Android app) + finished dailies (everywhere).
+    incubatorEarnedToday(today = todayISO()) {
+        const i = this._incubator();
+        const T = i && INCUBATORS[i.tier];
+        if (!T) return { off: 0, steps: 0, dailies: 0, cap: 0, goal: 0 };
+        const steps = (this.state.steps && Number(this.state.steps[today])) || 0;
+        const dailies = (this.state.dailyTasks || []).filter(t => (t.completedDates || []).includes(today)).length;
+        const raw = Math.floor(steps / T.goal) + Math.floor(dailies / INCUBATOR_DAILIES);
+        return { off: Math.min(T.cap, raw), steps, dailies, cap: T.cap, goal: T.goal,
+            toNext: raw >= T.cap ? 0 : T.goal - (steps % T.goal), dailiesToNext: raw >= T.cap ? 0 : INCUBATOR_DAILIES - (dailies % INCUBATOR_DAILIES) };
+    },
+    getIncubator() {
+        const i = this._incubator();
+        const bees = (this.state && this.state.colony && this.state.colony.bees) || [];
+        const eggs = bees.filter(b => beeIsBrood(b));
+        return {
+            tier: i ? i.tier : null, owned: i ? i.owned.slice() : [], info: i ? INCUBATORS[i.tier] : null,
+            slots: i ? i.slots.map(id => bees.find(b => b.id === id)).filter(Boolean) : [],
+            waiting: eggs.filter(b => !(i && i.slots.includes(b.id))),
+            today: this.incubatorEarnedToday(), coins: this.getCoins()
+        };
+    },
+    buyIncubator(tier) {
+        const T = INCUBATORS[tier];
+        if (!T || !this.state) return { ok: false, error: 'Unknown incubator.' };
+        const i = this._incubator() || (this.state.incubator = { tier: null, owned: [], slots: [], applied: {} });
+        if (i.owned.includes(tier)) return { ok: false, error: 'You already own it.' };
+        if (!this.spendCoins(T.price)) return { ok: false, error: `Needs ${T.price} Honey coins.` };
+        i.owned.push(tier);
+        // A better one replaces the one in use.
+        if (!i.tier || INCUBATOR_ORDER.indexOf(tier) > INCUBATOR_ORDER.indexOf(i.tier)) i.tier = tier;
+        i.slots = i.slots.slice(0, INCUBATORS[i.tier].slots);
+        this.incubatorTick();
+        this.save();
+        return { ok: true, tier };
+    },
+    useIncubator(tier) {
+        const i = this._incubator();
+        if (!i || !i.owned.includes(tier)) return false;
+        i.tier = tier;
+        i.slots = i.slots.slice(0, INCUBATORS[tier].slots);
+        this.save();
+        return true;
+    },
+    incubatorAdd(beeId) {
+        const i = this._incubator(), T = i && INCUBATORS[i.tier];
+        const bee = this.getColonyBees().find(b => b.id === beeId);
+        if (!T || !bee || !beeIsBrood(bee)) return { ok: false, error: 'Only eggs go in the incubator.' };
+        if (i.slots.includes(beeId)) return { ok: true };
+        if (i.slots.length >= T.slots) return { ok: false, error: 'No free slot. A better incubator has more.' };
+        i.slots.push(beeId);
+        // Steps already walked today count for a new egg too.
+        this.incubatorTick();
+        this.save();
+        return { ok: true };
+    },
+    incubatorRemove(beeId) {
+        const i = this._incubator();
+        if (!i) return false;
+        i.slots = i.slots.filter(id => id !== beeId);
+        this.save();
+        return true;
+    },
+    // Takes today's earned days off every egg inside (once per day each).
+    // Runs after steps sync, after a daily is checked, and when the page opens.
+    incubatorTick(today = todayISO()) {
+        const i = this._incubator();
+        if (!i || !INCUBATORS[i.tier]) return 0;
+        const bees = this.getColonyBees();
+        i.slots = i.slots.filter(id => { const b = bees.find(x => x.id === id); return b && beeIsBrood(b); });
+        const earned = this.incubatorEarnedToday(today).off;
+        let moved = 0;
+        i.slots.forEach(id => {
+            const b = bees.find(x => x.id === id);
+            const rec = i.applied[id] && i.applied[id].day === today ? i.applied[id] : { day: today, n: 0 };
+            const delta = earned - rec.n;
+            if (delta > 0) {
+                let at = shiftISODate(b.life.hatchOn, -delta);
+                if (at < today) at = today;
+                if (at !== b.life.hatchOn) { b.life.hatchOn = at; moved++; }
+            }
+            i.applied[id] = { day: today, n: Math.max(rec.n, earned) };
+        });
+        Object.keys(i.applied).forEach(id => { if (!i.slots.includes(id)) delete i.applied[id]; });
+        return moved;
+    },
     spendCoins(n) {
         const q = this._ensureQueen();
         if (!q || this.getCoins() < n) return false;
@@ -5521,14 +5902,29 @@ Object.assign(DatabaseManager.prototype, {
             .map(t => ({ id: t.id, label: t.label, difficulty: queenDifficulty(t), xp: t.xp, streak: computeDailyStreak(t, y), checklist: (t.checklist || []).map(i => ({ id: i.id, label: i.label })) }));
         const todos = (this.state.todos || []).filter(t => !t.completed && t.dueDate === y)
             .map(t => ({ id: t.id, label: t.label, difficulty: queenDifficulty(t), xp: t.xp }));
-        if (!dailies.length && !todos.length) {
-            q.reviewedOn = today;
-            this.save();
-            return null;
-        }
         const guards = this._readyGuards(today);
         const charms = (this.state.inventory && this.state.inventory.items && this.state.inventory.items['streak-charm']) || 0;
-        return { today, yesterday: y, dailies, todos, guards: guards.map(g => ({ id: g.bee.id, name: g.bee.name, left: g.left })), charms };
+        // Oct 28 2026 (Craft): Start My Day shows every morning. With nothing
+        // missed it's "Off to a good start" with what you did yesterday.
+        return { today, yesterday: y, dailies, todos, perfect: !dailies.length && !todos.length,
+            done: this._doneOn(y), plan: this._planFor(today), guards: guards.map(g => ({ id: g.bee.id, name: g.bee.name, left: g.left })), charms };
+    },
+    // Everything finished on a day: [{ icon, label, xp }], newest kinds first.
+    _doneOn(day) {
+        const S = this.state, out = [];
+        (S.dailyTasks || []).forEach(t => { if ((t.completedDates || []).includes(day)) out.push({ icon: '☀️', label: t.label, xp: Number(t.xp) || 0 }); });
+        (S.todos || []).forEach(t => { if (t.completed && t.completedDate === day) out.push({ icon: '✅', label: t.label, xp: Number(t.xp) || 0 }); });
+        (S.quests || []).forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === day) out.push({ icon: '🗺️', label: t.label, xp: Number(t.xp) || 0 }); }));
+        (S.habits || []).forEach(h => { const n = (h.history || []).filter(x => x.date === day && x.direction === 'positive').length; if (n) out.push({ icon: '🔁', label: h.label + (n > 1 ? ` ×${n}` : ''), xp: n * (Number(h.xp) || 0) }); });
+        return out;
+    },
+    // Today at a glance for Start My Day.
+    _planFor(day) {
+        const S = this.state;
+        const dailies = (S.dailyTasks || []).filter(t => (!t.startDate || t.startDate <= day) && isDailyDueOn(t, day));
+        const todos = (S.todos || []).filter(t => !t.completed && t.dueDate === day);
+        return { dailies: dailies.length, hard: dailies.filter(t => t.difficulty === 'Hard').length,
+            todos: todos.map(t => ({ label: t.label, time: t.dueTime || '' })), eggs: typeof this.readyEggs === 'function' ? this.readyEggs().length : 0 };
     },
 
     // Applies Start My Day. doneDailyIds/doneTodoIds = what you did

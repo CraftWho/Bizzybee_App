@@ -49,7 +49,7 @@
 .cq-switch-ui::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #f1ede2; transition: transform .2s; }
 .cq-switch input:checked + .cq-switch-ui { background: var(--dc); }
 .cq-switch input:checked + .cq-switch-ui::after { transform: translateX(20px); background: var(--dk); }
-.cq-switch input:focus-visible + .cq-switch-ui { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.cq-switch input:focus-visible + .cq-switch-ui { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 .cq-switch span:last-child { display: flex; flex-direction: column; gap: 2px; }
 .cq-switch b { font-size: .95rem; color: var(--hf-text); }
 .cq-switch small { font-size: .78rem; color: var(--hf-muted); }
@@ -58,5 +58,5 @@
 /* Quest tags (Oct 2026) */
 .cq-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
 .cq-tags:empty { display: none; }
-.cq-tag { display: inline-flex; align-items: center; gap: 4px; padding: 5px 6px 5px 12px; border-radius: 99px; background: #2a1f0b; border: 1px solid rgba(255, 204, 0, .4); color: #ffcc00; font: 700 .8rem system-ui, sans-serif; }
-.hf .cq-tag button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 204, 0, .15); color: #ffcc00; font-size: .9rem; line-height: 1; cursor: pointer; }
+.cq-tag { display: inline-flex; align-items: center; gap: 4px; padding: 5px 6px 5px 12px; border-radius: 99px; background: #2a1f0b; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); color: var(--bb-accent, #ffcc00); font: 700 .8rem system-ui, sans-serif; }
+.hf .cq-tag button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .15); color: var(--bb-accent, #ffcc00); font-size: .9rem; line-height: 1; cursor: pointer; }

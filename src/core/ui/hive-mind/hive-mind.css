@@ -3,12 +3,12 @@
    A honey hex with a 3-line icon opens a grouped side drawer.
    ========================================================================== */
 button.mobile-waggle-btn {
-    --wg-gold: #ffcc00;
+    --wg-gold: var(--bb-accent, #ffcc00);
     position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 12px; z-index: 1001;
     width: 46px; height: 50px; padding: 0; border: 0; background: none; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
 }
-.mobile-waggle-btn .wg-hex { position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #ffe680, var(--wg-gold) 45%, #a87700); transition: transform .2s; }
+.mobile-waggle-btn .wg-hex { position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, var(--bb-t-hi, #ffe680), var(--wg-gold) 45%, var(--bb-accent-deep, #a87700)); transition: transform .2s; }
 .mobile-waggle-btn .wg-hex::after { content: ""; position: absolute; inset: 3px; clip-path: inherit; background: linear-gradient(180deg, #2a1b03, #120b01); }
 .mobile-waggle-btn:hover .wg-hex, .mobile-waggle-btn:focus-visible .wg-hex, .mobile-waggle-btn.is-active .wg-hex { transform: scale(1.06); }
 .mobile-waggle-btn:focus-visible { outline: 2px solid var(--wg-gold); outline-offset: 3px; border-radius: 8px; }
@@ -20,22 +20,22 @@ button.mobile-waggle-btn {
 .mobile-waggle-btn.is-active .wg-bars i:nth-child(1) { top: 5.75px; transform: rotate(45deg); }
 .mobile-waggle-btn.is-active .wg-bars i:nth-child(2) { opacity: 0; }
 .mobile-waggle-btn.is-active .wg-bars i:nth-child(3) { top: 5.75px; transform: rotate(-45deg); }
-.mobile-waggle-btn .wg-dot { position: absolute; right: 4px; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: #dc143c; box-shadow: 0 0 0 2px #120b01; }
+.mobile-waggle-btn .wg-dot { position: absolute; right: 4px; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--bb-alt, #dc143c); box-shadow: 0 0 0 2px #120b01; }
 .mobile-waggle-btn .wg-dot[hidden] { display: none; }
 
 .waggle-scrim { position: fixed; inset: 0; z-index: 1202; background: rgba(0, 0, 0, .55); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity .2s; }
 .waggle-scrim.is-open { opacity: 1; pointer-events: auto; }
 .waggle-menu {
-    --wg-gold: #ffcc00; --wg-ink: #f1ede2; --wg-muted: #a69a80; --wg-line: rgba(255, 204, 0, .14);
+    --wg-gold: var(--bb-accent, #ffcc00); --wg-ink: #f1ede2; --wg-muted: #a69a80; --wg-line: rgba(var(--bb-accent-rgb, 255, 204, 0), .14);
     position: fixed; top: 0; right: 0; bottom: 0; z-index: 1203; width: min(330px, 88vw);
     display: flex; flex-direction: column; background: #0c0803; color: var(--wg-ink);
-    border-left: 1px solid rgba(255, 204, 0, .22); box-shadow: -18px 0 40px rgba(0, 0, 0, .6);
+    border-left: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .22); box-shadow: -18px 0 40px rgba(0, 0, 0, .6);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     transform: translateX(102%); visibility: hidden; transition: transform .25s cubic-bezier(.2, .8, .3, 1), visibility 0s .25s;
     padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
 }
 .waggle-menu.is-open { transform: none; visibility: visible; transition: transform .25s cubic-bezier(.2, .8, .3, 1); }
-.waggle-menu::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; background: linear-gradient(180deg, transparent, #dc143c, transparent); }
+.waggle-menu::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; background: linear-gradient(180deg, transparent, var(--bb-alt, #dc143c), transparent); }
 body.waggle-open { overflow: hidden; }
 .waggle-menu .wg-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 14px; border-bottom: 1px solid var(--wg-line); }
 .waggle-menu .wg-av { flex: none; width: 44px; height: 48px; display: grid; place-items: center; font-size: 22px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #3a2604, #100a02); box-shadow: inset 0 0 0 2px var(--wg-gold); }
@@ -44,19 +44,19 @@ body.waggle-open { overflow: hidden; }
 .waggle-menu .wg-who small { color: var(--wg-muted); font-size: .74rem; }
 .waggle-menu .wg-x { margin-left: auto; flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--wg-line); background: #140e05; color: var(--wg-muted); cursor: pointer; font-size: .9rem; }
 .waggle-menu .wg-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 6px 10px 14px; }
-.waggle-menu .wg-alert { display: block; margin: 10px 4px 0; padding: 10px 12px; border-radius: 12px; background: linear-gradient(90deg, rgba(255, 204, 0, .2), rgba(220, 20, 60, .15)); border: 1px solid rgba(255, 204, 0, .4); color: var(--wg-gold); font: 700 .8rem var(--font-main, monospace); text-decoration: none; }
+.waggle-menu .wg-alert { display: block; margin: 10px 4px 0; padding: 10px 12px; border-radius: 12px; background: linear-gradient(90deg, rgba(var(--bb-accent-rgb, 255, 204, 0), .2), rgba(var(--bb-alt-rgb, 220, 20, 60), .15)); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); color: var(--wg-gold); font: 700 .8rem var(--font-main, monospace); text-decoration: none; }
 .waggle-menu .wg-sec { display: flex; align-items: center; gap: 8px; margin: 14px 8px 6px; font: 700 .62rem var(--font-main, monospace); letter-spacing: .2em; text-transform: uppercase; color: var(--wg-gold); }
-.waggle-menu .wg-sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .55), transparent); }
+.waggle-menu .wg-sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(var(--bb-alt-rgb, 220, 20, 60), .55), transparent); }
 .waggle-menu .wg-row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 9px 8px; border: 0; border-radius: 12px; background: none; color: var(--wg-ink); text-align: left; text-decoration: none; cursor: pointer; font: inherit; }
-.waggle-menu .wg-row:hover, .waggle-menu .wg-row:focus-visible { background: rgba(255, 204, 0, .07); outline: none; }
-.waggle-menu .wg-row:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 204, 0, .5); }
-.waggle-menu .wg-row.on { background: rgba(255, 204, 0, .12); box-shadow: inset 3px 0 0 var(--wg-gold); }
+.waggle-menu .wg-row:hover, .waggle-menu .wg-row:focus-visible { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .07); outline: none; }
+.waggle-menu .wg-row:focus-visible { box-shadow: inset 0 0 0 2px rgba(var(--bb-accent-rgb, 255, 204, 0), .5); }
+.waggle-menu .wg-row.on { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .12); box-shadow: inset 3px 0 0 var(--wg-gold); }
 .waggle-menu .wg-ic { flex: none; width: 32px; height: 35px; display: grid; place-items: center; font-size: 16px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: #1c1406; }
-.waggle-menu .wg-row.on .wg-ic { background: linear-gradient(180deg, #ffe680, var(--wg-gold) 50%, #a87700); }
+.waggle-menu .wg-row.on .wg-ic { background: linear-gradient(180deg, var(--bb-t-hi, #ffe680), var(--wg-gold) 50%, var(--bb-accent-deep, #a87700)); }
 .waggle-menu .wg-t { flex: 1; min-width: 0; font-size: .9rem; font-weight: 600; }
 .waggle-menu .wg-t small { display: block; color: var(--wg-muted); font-size: .7rem; font-weight: 500; }
-.waggle-menu .wg-badge { font: 700 .62rem var(--font-main, monospace); padding: 2px 7px; border-radius: 999px; background: #dc143c; color: #fff; }
+.waggle-menu .wg-badge { font: 700 .62rem var(--font-main, monospace); padding: 2px 7px; border-radius: 999px; background: var(--bb-alt, #dc143c); color: #fff; }
 .waggle-menu .wg-chev { color: var(--wg-muted); }
 .waggle-menu .wg-foot { padding: 12px 14px 16px; border-top: 1px solid var(--wg-line); }
-.waggle-menu .wg-foot button { width: 100%; padding: 11px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .35); background: linear-gradient(180deg, #2a1b03, #140c02); color: var(--wg-gold); font: 700 .78rem var(--font-main, monospace); letter-spacing: .1em; cursor: pointer; }
+.waggle-menu .wg-foot button { width: 100%; padding: 11px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .35); background: linear-gradient(180deg, #2a1b03, #140c02); color: var(--wg-gold); font: 700 .78rem var(--font-main, monospace); letter-spacing: .1em; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .waggle-menu, .waggle-scrim, .mobile-waggle-btn * { transition: none !important; } }

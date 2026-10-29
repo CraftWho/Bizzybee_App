@@ -19,7 +19,7 @@
 .hr-side { flex: none; width: 62px; display: grid; place-items: center; background: #1d1810; }
 .hr-side.lit { background: linear-gradient(180deg, color-mix(in srgb, var(--dc) 34%, #120d05), color-mix(in srgb, var(--dc) 22%, #0c0803)); }
 .hr-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 12px 14px; cursor: pointer; text-align: left; }
-.hr-mid:focus-visible { outline: 2px solid #ffcc00; outline-offset: -4px; border-radius: 8px; }
+.hr-mid:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: -4px; border-radius: 8px; }
 .hr-title { font-size: 1rem; line-height: 1.3; color: #f1ede2; overflow-wrap: anywhere; }
 .hr-notes { font-size: .8rem; line-height: 1.3; color: #a69a80; overflow-wrap: anywhere; }
 .hr-count { margin-top: 3px; font: 600 .7rem var(--font-main); color: #7d725b; white-space: pre; }
@@ -46,7 +46,7 @@ button.hr-btn:hover { transform: none; box-shadow: none; }
 .hr-btn.off .hr-sym path { stroke: #4a4334; stroke-width: 2.6; }
 .hr-btn:not(.off):hover .hr-glow { opacity: .75; }
 .hr-btn:not(.off):active svg { transform: scale(.9); }
-.hr-btn:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.hr-btn:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 .hr-pop svg { animation: hrPop .45s cubic-bezier(.3, 1.6, .4, 1); }
 @keyframes hrPop { 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
 .hr-ripple { position: absolute; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--dc); opacity: .5; pointer-events: none; animation: hrRip .55s ease-out forwards; }
@@ -54,7 +54,7 @@ button.hr-btn:hover { transform: none; box-shadow: none; }
 .hr-ripple.r { right: 24px; }
 @keyframes hrRip { to { transform: scale(9); opacity: 0; } }
 .hr-float { position: absolute; top: 6px; right: 72px; font: 700 .85rem var(--font-main); pointer-events: none; animation: hrFloat 1.1s ease-out forwards; }
-.hr-float.good { color: #ffcc00; text-shadow: 0 0 8px rgba(255, 204, 0, .6); }
+.hr-float.good { color: var(--bb-accent, #ffcc00); text-shadow: 0 0 8px rgba(var(--bb-accent-rgb, 255, 204, 0), .6); }
 .hr-float.bad { color: #ff5a4a; }
 @keyframes hrFloat { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px); } }
 .hr-row.pressing { transform: scale(.985); transition: transform .42s ease; }

@@ -167,8 +167,45 @@ const BizzyNative = (() => {
     }
     async function openExactAlarmSettings() { try { await LN().changeExactNotificationSetting(); } catch {} }
 
+    // Back button (Oct 28 2026, Craft): always one step back. Some pages
+    // replace themselves in the browser history, so Android's own back
+    // could jump straight to Home. We keep our own list of pages instead.
+    // A pop-up open? Back closes it first.
+    function backButton() {
+        const NAV = 'bb_nav';
+        const here = location.pathname + location.search;
+        let stack = [];
+        try { stack = JSON.parse(sessionStorage.getItem(NAV) || '[]'); } catch {}
+        if (stack[stack.length - 1] !== here) stack.push(here);
+        stack = stack.slice(-40);
+        try { sessionStorage.setItem(NAV, JSON.stringify(stack)); } catch {}
+        const App = P('App');
+        if (!App) return;
+        App.addListener('backButton', () => {
+            // 1. Close the top pop-up (tapping its backdrop closes it).
+            const pop = [...document.querySelectorAll('.xt-scrim, .ic-sheet-bg:not([hidden]), .pj-sheet-bg:not([hidden]), .pm-scrim, .up-scrim, .wn-scrim, .ss-scrim, .hl-sheet-scrim, .colony-card-overlay:not([hidden]), #app-create-sheet, .dev-panel.open')].pop();
+            if (pop) {
+                const x = pop.querySelector('.hl-x, .dev-close, [data-k="close"], [data-close], [data-k="no"], [data-k="skip"]');
+                if (x) x.click(); else pop.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                return;
+            }
+            if (document.querySelector('.ds-scrim, .app-lock-overlay')) return;   // finish Start My Day / unlock first
+            // 2. One page back.
+            let list = [];
+            try { list = JSON.parse(sessionStorage.getItem(NAV) || '[]'); } catch {}
+            if (list[list.length - 1] === here) list.pop();
+            const prev = list[list.length - 1];
+            try { sessionStorage.setItem(NAV, JSON.stringify(list)); } catch {}
+            if (prev && prev !== here) { location.href = location.origin + prev; return; }
+            // 3. Nothing behind us: Home, or leave the app from Home.
+            if (!/\/home\/home\.html/.test(location.pathname)) { location.href = `${location.origin}/src/features/home/home.html`; return; }
+            try { App.minimizeApp(); } catch {}
+        });
+    }
+
     function start() {
         if (!isApp) return;
+        backButton();
         // Vibration switch: when off, quietly ignore every vibrate call.
         if (!prefs.vibration() && navigator.vibrate) navigator.vibrate = () => false;
         let t = null;

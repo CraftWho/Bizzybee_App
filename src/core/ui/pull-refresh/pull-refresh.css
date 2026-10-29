@@ -2,11 +2,11 @@
 html, body { overscroll-behavior-y: contain; }
 .ptr { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 8px); z-index: 2600; width: 44px; height: 48px; display: grid; place-items: center; transform: translate(-50%, -80px); pointer-events: none; transition: transform .2s ease, opacity .2s; opacity: 0; }
 .ptr.drag { transition: none; }
-.ptr .hx { position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, #ffe680, #ffcc00 45%, #a87700); }
+.ptr .hx { position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, var(--bb-t-hi, #ffe680), var(--bb-accent, #ffcc00) 45%, var(--bb-accent-deep, #a87700)); }
 .ptr .hx::after { content: ""; position: absolute; inset: 3px; clip-path: inherit; background: #140c02; }
 .ptr b { position: relative; font-size: 1.1rem; transition: transform .15s; }
 .ptr.ready b { transform: rotate(180deg); }
 .ptr.spin b { animation: ptrSpin .8s linear infinite; }
-.ptr small { position: absolute; top: 54px; white-space: nowrap; padding: 3px 9px; border-radius: 99px; background: #1d160c; border: 1px solid rgba(255, 204, 0, .4); color: #f1ede2; font: 600 .7rem system-ui, sans-serif; }
+.ptr small { position: absolute; top: 54px; white-space: nowrap; padding: 3px 9px; border-radius: 99px; background: #1d160c; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); color: #f1ede2; font: 600 .7rem system-ui, sans-serif; }
 @keyframes ptrSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ptr.spin b { animation: none; } }

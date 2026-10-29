@@ -4,14 +4,16 @@ console.log("/// WAGGLE ONLINE ///");
 // the familiar 3-line icon opens a side drawer with every page grouped.
 // Pages still call Waggle.setActions([...]); their own extras (e.g.
 // "Add Daily") show under "This page", and an action with footer:true
-// (Chat with Eevee) sits at the bottom. The page links live here.
+// (Chat with Eve) sits at the bottom. The page links live here.
 const WAGGLE_MENU = [
     ['Your hive', [
         { icon: '🏰', label: 'Hive Mind', path: 'src/features/colony/colony.html', fainted: true },
         { icon: '🌼', label: 'Pollination Chamber', path: 'src/features/gacha/gacha.html', tickets: true },
         { icon: '🐝', label: 'Colony Bees', path: 'src/features/colony-bees/colony-bees.html' },
         { icon: '🎒', label: 'Inventory', path: 'src/features/inventory/inventory.html' },
-        { icon: '📘', label: 'KeeperDex', path: 'src/features/keeperdex/keeperdex.html' }
+        { icon: '🥚', label: 'Egg Incubator', path: 'src/plugins/incubator/incubator.html', plugin: 'incubator' },
+        { icon: '📘', label: 'KeeperDex', path: 'src/features/keeperdex/keeperdex.html' },
+        { icon: '🤝', label: "Friends' hives", path: 'src/features/friends/friends.html' }
     ]],
     ['Progress', [
         { icon: '📊', label: 'Dashboard', path: 'src/features/dashboard/dashboard.html' },
@@ -27,6 +29,9 @@ const WAGGLE_MENU = [
         { icon: '🧩', label: 'Plugins & Packs', path: 'src/features/plugin-hub/plugin-hub.html' }
     ]],
     ['Account', [
+        { icon: '📬', label: 'Mailbox', path: 'src/features/mailbox/mailbox.html', mail: true },
+        { icon: '🎨', label: 'Themes', path: 'src/features/themes/themes.html' },
+        { icon: '📘', label: 'Guide (Eve)', path: 'src/features/guide/guide.html' },
         { icon: '🔔', label: 'Notifications', path: 'src/features/notifications/notifications.html' },
         { icon: '🔄', label: 'Phone Sync', path: 'src/features/sync/sync.html' },
         { icon: '🔐', label: 'Account Info', path: 'src/features/account-info/account-info.html' },
@@ -99,6 +104,7 @@ const Waggle = {
             Vault.save = (...args) => { const r = save(...args); setTimeout(() => this.updateDot(), 0); return r; };
         }
         setTimeout(() => this.updateDot(), 500);
+        window.addEventListener('mail-changed', () => this.updateDot());
     },
 
     // Red dot: a level-up or tickets are waiting.
@@ -109,13 +115,15 @@ const Waggle = {
         try { tickets = v && v.getTicketCount ? v.getTicketCount() : 0; } catch { /* not ready */ }
         let fainted = 0;
         try { fainted = v ? v.getColonyBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
-        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted };
+        let mail = 0;
+        try { mail = typeof Social !== 'undefined' ? Social.unread() : 0; } catch { /* not ready */ }
+        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted, mail };
     },
 
     updateDot() {
         if (!this.button) return;
         const s = this.status();
-        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0 || s.fainted > 0);
+        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0 || s.fainted > 0 || s.mail > 0);
     },
 
     renderMenu() {
@@ -142,7 +150,8 @@ const Waggle = {
                 const file = it.path.split('#')[0].split('/').pop();
                 const on = !it.key && here.endsWith(file);
                 const extra = it.tickets && s.tickets > 0 ? `${s.tickets} ticket${s.tickets === 1 ? '' : 's'} ready`
-                    : it.fainted && s.fainted > 0 ? `${s.fainted} bee${s.fainted === 1 ? ' has' : 's have'} fainted` : '';
+                    : it.fainted && s.fainted > 0 ? `${s.fainted} bee${s.fainted === 1 ? ' has' : 's have'} fainted`
+                    : it.mail && s.mail > 0 ? `${s.mail} new letter${s.mail === 1 ? '' : 's'}` : '';
                 return row(it.icon, it.label, extra, `href="${root}/${it.path}"${it.key ? ` data-key="${it.key}"` : ''}`, on);
             }).join('');
         });

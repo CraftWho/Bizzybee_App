@@ -38,6 +38,13 @@ function renderIdentityCard() {
 
 function renderItemGrid() {
     const items = Vault.getItems();
+    const held = document.getElementById('store-held-grid');
+    if (held) held.innerHTML = STORE_ITEM_CATALOG.filter(i => i.kind === 'held').map(item => {
+        const mat = hsMat(item.price.materialId);
+        return `<button type="button" class="tile r-${PV2.esc(item.rarity || 'Common')}${hsAffordable(item) ? '' : ' hs-cant'}" data-item="${item.id}" aria-label="${PV2.esc(item.label)}, costs ${item.price.amount} ${PV2.esc(mat.label)}">
+            ${items[item.id] ? `<span class="n">×${items[item.id]}</span>` : ''}
+            <span class="hx">${item.icon}</span><b>${PV2.esc(item.label)}</b><span class="hs-price">${mat.icon} ${item.price.amount}</span></button>`;
+    }).join('');
     document.getElementById('store-item-grid').innerHTML = STORE_ITEM_CATALOG.filter(i => i.kind === 'trait').map(item => {
         const mat = hsMat(item.price.materialId);
         return `<button type="button" class="tile r-${PV2.esc(item.rarity || 'Common')}${hsAffordable(item) ? '' : ' hs-cant'}" data-item="${item.id}" aria-label="${PV2.esc(item.label)}, costs ${item.price.amount} ${PV2.esc(mat.label)}">
@@ -72,7 +79,7 @@ function handlePurchase(itemId) {
         if (typeof Toast !== 'undefined') Toast.show('Not enough materials for that yet.', 'negative');
         return;
     }
-    if (typeof Toast !== 'undefined') Toast.show(result.item.kind === 'charm' ? `🎁 Bought a Streak Charm! It's used automatically on a missed streak.` : `${result.item.icon} Bought ${result.item.label}! Use it from a bee's card on Colony Bees.`, 'positive');
+    if (typeof Toast !== 'undefined') Toast.show(result.item.kind === 'charm' ? `🎁 Bought a Streak Charm! It's used automatically on a missed streak.` : result.item.kind === 'held' ? `${result.item.icon} Made a ${result.item.label}! Give it to a Rare-or-better bee from its card.` : `${result.item.icon} Bought ${result.item.label}! Use it from a bee's card on Colony Bees.`, 'positive');
     renderAll();
     openStoreItem(itemId);
 }

@@ -138,6 +138,8 @@ function renderExterior() {
 
     colonyHiveScene.autoForage({ entrance: hive.entrance, bee: { scale: 0.7 } });
     colonyHiveScene.start();
+    // Friends' hives in the distance (Oct 29 2026).
+    if (typeof ColonyFriends !== 'undefined') ColonyFriends.refresh();
 }
 
 // v2 header stats: level, bees, and how many need help (Hive Life moods).

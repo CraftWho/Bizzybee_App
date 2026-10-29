@@ -98,13 +98,13 @@
 
 /* Rebirth Stone is the rarest action - gold glow sets it apart. */
 .bee-card-rebirth-btn {
-    border-color: #ffd700;
-    color: #ffd700;
+    border-color: var(--bb-t-mid, #ffd700);
+    color: var(--bb-t-mid, #ffd700);
     box-shadow: 0 0 6px rgba(255, 215, 0, 0.35);
 }
 
 .bee-card-rebirth-btn:hover {
-    background: #ffd700;
+    background: var(--bb-t-mid, #ffd700);
     color: #000;
 }
 
@@ -174,12 +174,12 @@
     --sky1:#6fa6d6; --sky2:#2b5470; --f1:#24504f; --f2:#17363a; --f3:#0b1c1f; --fog:#4f86b0; --light:#bfe3ff; }
 .bc-v2.bc-r-epic      { --rc:#b06bff; --glow:rgba(176,107,255,.5); --m1:#e2caff; --m2:#9358ea; --m3:#32145e;
     --sky1:#a389d6; --sky2:#43356e; --f1:#2e4048; --f2:#1d2a33; --f3:#0e161b; --fog:#7a64b8; --light:#e2ccff; }
-.bc-v2.bc-r-legendary { --rc:#ffd700; --glow:rgba(255,215,0,.5);   --m1:#fff3b8; --m2:#dcaa22; --m3:#6e4806;
+.bc-v2.bc-r-legendary { --rc:var(--bb-t-mid, #ffd700); --glow:rgba(255,215,0,.5);   --m1:#fff3b8; --m2:var(--bb-t-lo, #dcaa22); --m3:#6e4806;
     --sky1:#f4d77a; --sky2:#8a6a25; --f1:#3f5530; --f2:#283a20; --f3:#131d10; --fog:#d4ac48; --light:#fff3c0; }
 .bc-v2.bc-r-named     { --rc:#d42a1e; --glow:rgba(170,18,12,.6);   --m1:#f2875a; --m2:#b0140e; --m3:#3e0302;
     --sky1:#a8321a; --sky2:#4a0e06; --f1:#33221a; --f2:#211510; --f3:#100806; --fog:#8a2210; --light:#ffb060; }
 /* Royal: the founder (the Queen/King from the egg gift) - gold frame, crimson glow, sunrise sky. */
-.bc-v2.bc-r-royal     { --rc:#ffd700; --glow:rgba(212,42,30,.6);   --m1:#fff3b8; --m2:#dcaa22; --m3:#6e1a08;
+.bc-v2.bc-r-royal     { --rc:var(--bb-t-mid, #ffd700); --glow:rgba(212,42,30,.6);   --m1:#fff3b8; --m2:var(--bb-t-lo, #dcaa22); --m3:#6e1a08;
     --sky1:#f0a050; --sky2:#8a2416; --f1:#3a1c12; --f2:#24110b; --f3:#110705; --fog:#c0582a; --light:#ffd27a; }
 
 /* --- element tint for the bee's gold parts --- */
@@ -420,9 +420,9 @@
     width: var(--s);
     height: var(--s);
     transform: translate(-50%, -50%) scale(0);
-    background: radial-gradient(circle, #fff 0 18%, #ffe27a 40%, #d4a017 70%);
+    background: radial-gradient(circle, #fff 0 18%, #ffe27a 40%, var(--bb-t-lo, #d4a017) 70%);
     clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
-    filter: drop-shadow(0 0 1cqw #ffd700);
+    filter: drop-shadow(0 0 1cqw var(--bb-t-mid, #ffd700));
     animation: bc-twinkle var(--d) ease-in-out infinite;
     animation-delay: var(--dl);
 }
@@ -621,18 +621,18 @@
 /* ---- Named Beast titles (Oct 2026, approved demo) ----
    Gold ribbon with the title under the name, a gold+crimson double frame,
    gold corner trim, a crown on the art, a holo shine and the title power. */
-.bc-v2.bc-titled .bee-card-face { box-shadow: 0 0 0 .4cqw #000, 0 0 0 1.1cqw #e8b84a, 0 0 9cqw var(--glow), 0 0 18cqw rgba(255, 180, 60, .22), 0 1.5cqw 5cqw rgba(0, 0, 0, .6); }
-.bc-v2.bc-titled .bc-trim { border-color: #e8b84a; border-width: .45cqw;
+.bc-v2.bc-titled .bee-card-face { box-shadow: 0 0 0 .4cqw #000, 0 0 0 1.1cqw var(--bb-t-mid, #e8b84a), 0 0 9cqw var(--glow), 0 0 18cqw rgba(255, 180, 60, .22), 0 1.5cqw 5cqw rgba(0, 0, 0, .6); }
+.bc-v2.bc-titled .bc-trim { border-color: var(--bb-t-mid, #e8b84a); border-width: .45cqw;
     -webkit-mask: linear-gradient(#000 0 0) top left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) top right / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom right / 14cqw 14cqw no-repeat;
     mask: linear-gradient(#000 0 0) top left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) top right / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom left / 14cqw 14cqw no-repeat, linear-gradient(#000 0 0) bottom right / 14cqw 14cqw no-repeat; }
 .bc-v2.bc-titled .bee-card-name { font-family: Georgia, "Times New Roman", serif; background: linear-gradient(180deg, #fff6d0, #f2c14e 55%, #b07a12); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .bc-v2 .bc-ribbon { margin: .4cqw auto 1.4cqw; width: 84%; text-align: center; font: 800 3.4cqw/1 Georgia, "Times New Roman", serif; letter-spacing: .2em; color: #2a1000;
-    padding: 1.6cqw 0 1.4cqw; background: linear-gradient(180deg, #ffe9a8, #e8b84a 50%, #b47e14); clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
+    padding: 1.6cqw 0 1.4cqw; background: linear-gradient(180deg, #ffe9a8, var(--bb-t-mid, #e8b84a) 50%, #b47e14); clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
     text-shadow: 0 .2cqw 0 rgba(255, 255, 255, .4); white-space: nowrap; overflow: hidden; }
-.bc-v2.bc-titled .bc-art { flex-basis: 40%; border-color: #000; box-shadow: 0 0 0 .55cqw #e8b84a, 0 0 0 .8cqw #6e0b06, inset 0 0 6cqw rgba(0, 0, 0, .55); }
-.bc-v2 .bc-crest { position: absolute; top: 1.5cqw; left: 50%; transform: translateX(-50%); z-index: 4; font-size: 6cqw; line-height: 1; filter: drop-shadow(0 0 2cqw #ffcc00); }
-.bc-v2 .bc-title-ab .bc-ic { background: linear-gradient(160deg, #e8b84a, #7a4a06); }
-.bc-v2 .bc-title-ab h4 { color: #ffd977; }
+.bc-v2.bc-titled .bc-art { flex-basis: 40%; border-color: #000; box-shadow: 0 0 0 .55cqw var(--bb-t-mid, #e8b84a), 0 0 0 .8cqw #6e0b06, inset 0 0 6cqw rgba(0, 0, 0, .55); }
+.bc-v2 .bc-crest { position: absolute; top: 1.5cqw; left: 50%; transform: translateX(-50%); z-index: 4; font-size: 6cqw; line-height: 1; filter: drop-shadow(0 0 2cqw var(--bb-accent, #ffcc00)); }
+.bc-v2 .bc-title-ab .bc-ic { background: linear-gradient(160deg, var(--bb-t-mid, #e8b84a), #7a4a06); }
+.bc-v2 .bc-title-ab h4 { color: var(--bb-t-hi, #ffd977); }
 .bc-v2 .bc-title-ab.bc-off { opacity: .6; }
 .bc-v2.bc-titled .bee-card-flavor { font-family: Georgia, "Times New Roman", serif; color: #e9d8b0; }
 .bc-v2.bc-titled .bee-card-front::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 6; mix-blend-mode: screen;
@@ -642,5 +642,5 @@
 
 /* Natural talent (Oct 2026): "⭐ Born Forager" on the art; bright when the
    bee is doing that job. */
-.bc-v2 .bc-talent { position: absolute; left: 2cqw; bottom: 2cqw; z-index: 4; padding: 1cqw 2cqw; border-radius: 99px; background: rgba(0, 0, 0, .62); border: .35cqw solid rgba(255, 204, 0, .35); color: #e9dfc2; font: 700 2.7cqw/1 system-ui, sans-serif; white-space: nowrap; }
-.bc-v2 .bc-talent.on { background: rgba(60, 40, 0, .78); border-color: #ffcc00; color: #ffd977; box-shadow: 0 0 2.5cqw rgba(255, 204, 0, .45); }
+.bc-v2 .bc-talent { position: absolute; left: 2cqw; bottom: 2cqw; z-index: 4; padding: 1cqw 2cqw; border-radius: 99px; background: rgba(0, 0, 0, .62); border: .35cqw solid rgba(var(--bb-accent-rgb, 255, 204, 0), .35); color: #e9dfc2; font: 700 2.7cqw/1 system-ui, sans-serif; white-space: nowrap; }
+.bc-v2 .bc-talent.on { background: rgba(60, 40, 0, .78); border-color: var(--bb-accent, #ffcc00); color: var(--bb-t-hi, #ffd977); box-shadow: 0 0 2.5cqw rgba(var(--bb-accent-rgb, 255, 204, 0), .45); }

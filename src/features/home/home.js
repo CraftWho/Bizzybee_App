@@ -144,23 +144,37 @@ function renderHive() {
 // ---- Bees that need help (Hive Life moods) ----
 // 😢 hungry / tired / hurt, 😠 no job for 3+ days, 😵 fainted. One line,
 // tap to open Colony Bees on the "Need help" filter. Hidden when all is well.
+// Eggs ready to hatch (Oct 28 2026): tap to hatch them right here.
+function renderReadyEggs() {
+    const help = document.getElementById('home-help');
+    if (!help || typeof Vault.readyEggs !== 'function') return;
+    let el = document.getElementById('home-ready');
+    const eggs = Vault.readyEggs();
+    if (!eggs.length) { if (el) el.remove(); return; }
+    if (!el) {
+        el = document.createElement('button');
+        el.type = 'button'; el.id = 'home-ready'; el.className = 'home-card home-help home-ready';
+        help.parentNode.insertBefore(el, help);
+        el.addEventListener('click', () => { const e = Vault.readyEggs()[0]; if (e) AppShell.hatch(e.id, () => { renderReadyEggs(); renderBeeHelp(); renderHive(); }); });
+    }
+    el.innerHTML = `<span class="home-help-ic" aria-hidden="true">🥚</span><span class="home-help-t"><b>${eggs.length} egg${eggs.length === 1 ? ' is' : 's are'} ready to hatch!</b><small>Tap to crack ${eggs.length === 1 ? 'it' : 'the first one'} open.</small></span><span class="home-help-go" aria-hidden="true">›</span>`;
+}
+
 function renderBeeHelp() {
+    renderReadyEggs();
     const el = document.getElementById('home-help');
-    if (!el || typeof beeFeeling !== 'function') return;
-    const bees = Vault.getColonyBees().filter(b => b.rarity !== 'Royal');
-    const count = (k) => bees.filter(b => beeFeeling(b).key === k).length;
-    const sad = count('sad'), upset = count('upset'), faint = count('fainted');
-    const total = sad + upset + faint;
-    el.hidden = !total;
-    if (!total) return;
-    const parts = [
-        sad ? `😢 ${sad} hungry, tired or hurt` : '',
-        upset ? `😠 ${upset} with no job` : '',
-        faint ? `😵 ${faint} fainted` : ''
-    ].filter(Boolean);
-    el.setAttribute('aria-label', `${total} bee${total === 1 ? ' needs' : 's need'} help: ${parts.join(', ')}`);
-    el.innerHTML = `<span class="home-help-ic" aria-hidden="true">${upset ? '😠' : faint ? '😵' : '😢'}</span>
-        <span class="home-help-t"><b>${total} bee${total === 1 ? ' needs' : 's need'} help</b><small>${parts.join(' · ')}</small></span>
+    if (!el || typeof beeNeeds !== 'function') return;
+    // Oct 28 2026 (Craft): say exactly who needs what, and how to fix it.
+    const list = Vault.getColonyBees().filter(b => b.rarity !== 'Royal')
+        .map(b => ({ b, needs: beeNeeds(b) })).filter(x => x.needs.length);
+    el.hidden = !list.length;
+    if (!list.length) return;
+    const shown = list.slice(0, 3);
+    el.setAttribute('aria-label', `${list.length} bee${list.length === 1 ? ' needs' : 's need'} help`);
+    el.innerHTML = `<span class="home-help-ic" aria-hidden="true">${list.some(x => x.needs[0].need === 'Fainted') ? '😵' : list.some(x => x.needs[0].need === 'No job') ? '😠' : '😢'}</span>
+        <span class="home-help-t"><b>${list.length} bee${list.length === 1 ? ' needs' : 's need'} help</b>
+        ${shown.map(({ b, needs }) => `<span class="home-help-bee"><i>${escapeHTML(b.name)}</i> ${needs.map(n => `<em>${escapeHTML(n.need)}</em> <small>${escapeHTML(n.value)}</small>`).join(' · ')}<small class="fix">→ ${escapeHTML(needs[0].fix)}</small></span>`).join('')}
+        ${list.length > 3 ? `<small>+${list.length - 3} more</small>` : ''}</span>
         <span class="home-help-go" aria-hidden="true">›</span>`;
 }
 
@@ -328,6 +342,7 @@ const APP_ICONS = {
     'plugin-hub': '<path d="M11 4.5h2.5a2 2 0 1 1 4 0H20v5.5a2 2 0 1 0 0 4V20h-5.5a2 2 0 1 0-4 0H5v-5.5a2 2 0 1 1 0-4V4.5z"/>',
     'hive-archive': '<rect x="4" y="5" width="20" height="5.5" rx="1.5"/><path d="M5.5 10.5V22a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V10.5M11.5 14.5h5"/>',
     settings: '<circle cx="14" cy="14" r="3.6"/><path d="M14 3.5v3M14 21.5v3M24.5 14h-3M6.5 14h-3M21.4 6.6l-2.1 2.1M8.7 19.3l-2.1 2.1M21.4 21.4l-2.1-2.1M8.7 8.7 6.6 6.6"/><circle cx="14" cy="14" r="7.5"/>',
+    incubator: '<path d="M14 4.5c-4 0-6.5 5.5-6.5 10.2 0 4.2 2.8 7.3 6.5 7.3s6.5-3.1 6.5-7.3C20.5 10 18 4.5 14 4.5z"/><path d="M5 23.5h18M8 23.5v-2M20 23.5v-2"/>',
     notifications: '<path d="M8 19.5V13a6 6 0 0 1 12 0v6.5l2 2H6z"/><path d="M11.8 23.5a2.4 2.4 0 0 0 4.4 0M14 4.5v2.5"/>',
     plugin: '<path d="M14 3.5 23 8.7v10.6L14 24.5 5 19.3V8.7z"/><path d="M14 9v10M9 14h10"/>'
 };

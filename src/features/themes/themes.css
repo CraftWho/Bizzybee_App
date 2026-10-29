@@ -1,0 +1,18 @@
+/* Themes page (Oct 28 2026, approved demo). */
+.thv .th-head { display: flex; align-items: center; gap: 12px; margin: 4px 2px 12px; }
+.thv .th-head .settings-title { margin: 0; text-align: left; }
+.thv .th-head small { display: block; color: var(--bb-muted); font-size: .8rem; }
+.thv .th-hex { width: 50px; height: 56px; flex: none; display: grid; place-items: center; font-size: 1.4rem; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, var(--bb-accent-hi), var(--bb-accent) 50%, var(--bb-accent-lo)); }
+.thv .th-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.thv .th-card { display: grid; gap: 8px; padding: 10px; border-radius: 14px; border: 1px solid var(--bb-edge); background: var(--bb-surface); color: var(--bb-ink); text-align: left; cursor: pointer; font: inherit; }
+.thv .th-card[aria-checked="true"] { border-color: var(--bb-accent); box-shadow: 0 0 0 2px var(--bb-accent); }
+.thv .th-card:focus-visible { outline: 2px solid var(--bb-accent); outline-offset: 2px; }
+.thv .th-pv { height: 54px; border-radius: 10px; display: flex; align-items: flex-end; gap: 5px; padding: 8px; box-sizing: border-box; }
+.thv .th-pv i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); }
+.thv .th-card b { font: 700 .84rem var(--font-main, monospace); letter-spacing: .04em; }
+.thv .th-card small { display: block; color: var(--bb-muted); font-size: .72rem; line-height: 1.35; margin-top: 2px; }
+.thv .th-on { display: none; margin-left: 4px; color: var(--bb-accent); font: 700 .66rem var(--font-main, monospace); letter-spacing: .1em; }
+.thv .th-card[aria-checked="true"] .th-on { display: inline; }
+.thv .th-preview { display: grid; gap: 10px; }
+.thv .th-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.thv .th-foot { margin: 14px 4px 0; color: var(--bb-muted); font-size: .78rem; }

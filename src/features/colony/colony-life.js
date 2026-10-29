@@ -13,7 +13,7 @@ const HiveLife = (() => {
         { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse'], x: 3, y: 17, text: 'New bees start as eggs here. What hatches is a surprise. Nurses speed hatching and healing.' },
         { id: 'honey', icon: '🍯', name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'], x: 66, y: 17, text: 'Food for the hive. Honey Makers make Honey Drops. Water Carriers keep workers fresh.' },
         { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner'], x: 34.5, y: 33, text: 'Comb Builders add quest loot. Cleaners soften lost raids.' },
-        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 3, y: 49, text: 'Bees with no job, tired bees and fainted bees. Resting bees eat and fill back up. Give idle bees work or they get upset.' },
+        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 3, y: 49, text: 'Recuperating bees, bees with no job, and fainted bees. Recuperating bees eat, sleep and heal slowly. Bees with no job get upset after 3 days.' },
         { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 66, y: 49, text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' }
     ];
     const ZONE_ROOM = { royal: 'royal', brood: 'nursery', honey: 'honey', comb: 'workshop', entrance: 'entrance', outside: 'entrance' };
@@ -178,23 +178,23 @@ const HiveLife = (() => {
                 + Vault._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4), 0);
             return `<p class="hl-note">🛡️ Raid defense ${def} · ${Math.round(raidChance(Vault.getHiveStreak()) * 100)}% raid risk a day. ${list.filter(isOut).length} out foraging.</p>`;
         }
-        return `<p class="hl-note">Resting bees get stamina back each day. Tap a fainted bee to revive it.</p>`;
+        return `<p class="hl-note">Recuperating: +4 stamina and −3 fatigue an hour by day, more asleep at night. Tap a fainted bee to revive it.</p>`;
     }
 
     // ⭐ = the bee's natural talent (+20% at it). A Named Beast's job is
     // locked by its title, so its picker is shown but can't change.
-    function jobSelect(bee, allowed, { blank = '— No job (rest) —', mark = [] } = {}) {
+    function jobSelect(bee, allowed, { blank = '— No job —', mark = [] } = {}) {
         const locked = typeof beeLockedJob === 'function' ? beeLockedJob(bee) : null;
         if (locked) return `<select class="hl-job" disabled aria-label="${esc(bee.name)}'s job is set by its title" title="Set by its title"><option>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option></select>`;
         return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="Job for ${esc(bee.name)}">
-            <option value="">${blank}</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
+            <option value="">${blank}</option><option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
     }
     function beeRow(bee, c, today) {
         const f = beeFeeling(bee, today);
         const L = bee.life || {};
         const where = isOut(bee) ? ' · out foraging' : '';
         return `<div class="hl-row"><span class="hl-rface" title="${esc(f.key)}">${f.face}</span>
-            <button type="button" class="hl-who-btn" data-card="${esc(bee.id)}"><b>${esc(bee.name)}${bee.sex === 'm' ? ' ♂' : ''}</b><small>${esc(f.why)}${where} · 🍯${L.fullness ?? '-'} ⚡${L.stamina ?? '-'} ❤️${L.health ?? '-'}</small></button>
+            <button type="button" class="hl-who-btn" data-card="${esc(bee.id)}"><b>${esc(bee.name)}${bee.sex === 'm' ? ' ♂' : ''}</b><small>${esc(f.why)}${where} · 🍯${Math.round(L.fullness ?? 0)} ⚡${Math.round(L.stamina ?? 0)} ❤️${Math.round(L.health ?? 0)}</small></button>
             <button type="button" class="hl-ren" data-ren="${esc(bee.id)}" aria-label="Rename ${esc(bee.name)}">✏️</button>
             ${jobSelect(bee, jobsFor(bee), { mark: c.jobs })}</div>`;
     }
@@ -217,9 +217,12 @@ const HiveLife = (() => {
             html += eggs.length ? eggs.map(b => {
                 const left = broodDaysLeft(b, today, n);
                 // Eggs keep everything secret until they hatch (Oct 27 2026).
-                return `<div class="hl-row is-egg"><span class="hl-rface hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span><span class="hl-who-btn"><b>${esc(b.name)}</b><small>🥚 Mystery egg · hatches ${left <= 1 ? 'tomorrow' : `in ${left} days`}</small></span>
-                    <button type="button" class="hl-ren" data-ren="${esc(b.id)}" aria-label="Rename ${esc(b.name)}">✏️</button></div>`;
-            }).join('') + '<p class="hl-note">What hatches is a surprise. Pick its job once it hatches.</p>'
+                const inInc = Vault.state.incubator && (Vault.state.incubator.slots || []).includes(b.id);
+                const ready = Vault.isEggReady && Vault.isEggReady(b);
+                return `<div class="hl-row is-egg"><span class="hl-rface hl-egg">${typeof EggDesign !== 'undefined' ? EggDesign.forBee(b) : '🥚'}</span><span class="hl-who-btn"><b>${esc(b.name)}</b><small>${inInc ? '🔆 In the incubator' : '🥚 Mystery egg'} · ${ready ? 'ready to hatch!' : `hatches ${left === 1 ? 'tomorrow' : `in ${left} days`}`}</small></span>${ready ? `<button type="button" class="hl-hatch" data-hatch="${esc(b.id)}">🐣 Hatch</button>` : ''}
+</div>`;
+            }).join('') + '<p class="hl-note">What hatches is a surprise. Name it and pick its job once it hatches.</p>'
+                + (typeof Plugins === 'undefined' || Plugins.isEnabled('incubator') ? `<a class="hl-inc-link" href="../../plugins/incubator/incubator.html">🥚 Egg Incubator: hatch eggs faster with your steps ›</a>` : '')
                 : '<p class="hl-note">No eggs right now. New bees from the Pollination Chamber, level-ups and skills start here.</p>';
         }
         html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
@@ -246,14 +249,18 @@ const HiveLife = (() => {
         const box = sheet.querySelector('.hl-sheet');
         box.scrollTop = scroll;
         if (!fresh) box.style.animation = 'none';
-        sheet.onclick = (e) => { if (e.target === sheet || e.target.closest('.hl-x')) closeRoom(); };
+        sheet.onclick = (e) => {
+            if (e.target === sheet || e.target.closest('.hl-x')) { closeRoom(); return; }
+            const hb = e.target.closest('[data-hatch]');
+            if (hb) { closeRoom(); AppShell.hatch(hb.dataset.hatch, () => { if (opts.onChange) opts.onChange(); }); }
+        };
         sheet.querySelectorAll('.hl-job').forEach(sel => sel.addEventListener('change', () => {
             const bee = Vault.getColonyBees().find(b => b.id === sel.dataset.bee);
             const job = sel.value || null;
             const r = Vault.assignBeeClass(sel.dataset.bee, job);
             if (typeof Toast !== 'undefined' && bee) {
                 if (!r) Toast.show("That bee can't do that job.", 'negative');
-                else Toast.show(job ? `${beeIsBrood(r) ? '🥚' : BEE_CLASSES[job].icon} ${r.name} ${beeIsBrood(r) ? 'will be a' : 'is now a'} ${BEE_CLASSES[job].label}.` : `💤 ${r.name} is resting.`, 'positive');
+                else Toast.show(job === 'recuperate' ? `💤 ${r.name} is recuperating.` : job ? `${beeIsBrood(r) ? '🥚' : BEE_CLASSES[job].icon} ${r.name} ${beeIsBrood(r) ? 'will be a' : 'is now a'} ${BEE_CLASSES[job].label}.` : `${r.name} has no job.`, 'positive');
             }
             if (opts.onChange) opts.onChange();
             openRoom(id, opts);

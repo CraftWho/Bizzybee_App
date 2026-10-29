@@ -11,7 +11,7 @@
     padding: 16px 16px 14px;
     border-radius: 18px;
     background: rgba(14, 11, 6, .9);
-    border: 1px solid rgba(255, 204, 0, .18);
+    border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .18);
     box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
     overflow: hidden;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -46,7 +46,7 @@
 .dr-row.off .dr-side { background: #1d1810; }
 .dr-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 10px 14px 10px; }
 .dr-main { display: flex; flex-direction: column; gap: 2px; cursor: pointer; text-align: left; }
-.dr-main:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; border-radius: 8px; }
+.dr-main:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; border-radius: 8px; }
 .dr-title { font-size: 1rem; line-height: 1.3; color: #f1ede2; overflow-wrap: anywhere; transition: color .3s; }
 .dr-notes { font-size: .8rem; line-height: 1.3; color: #a69a80; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .dr-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; font: 600 .72rem var(--font-main); color: #7d725b; }
@@ -74,7 +74,7 @@ button.dr-check:hover { transform: none; box-shadow: none; }
 .dr-tick { fill: none; stroke: var(--dk); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 30; stroke-dashoffset: 30; transition: stroke-dashoffset .3s .1s ease; }
 .dr-check:hover .dr-glow { opacity: .6; }
 .dr-check:active svg { transform: scale(.9); }
-.dr-check:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.dr-check:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 .dr-row.done .dr-cell { fill: var(--dc); }
 .dr-row.done .dr-glow { opacity: .35; }
 .dr-row.done .dr-tick { stroke-dashoffset: 0; }
@@ -143,8 +143,8 @@ button.dr-cl-item:hover { transform: none; box-shadow: none; background: rgba(25
 /* To-Do row extras (moved from todos.css so Home can use them too) */
 .td-due { display: inline-flex; align-items: center; gap: 4px; color: #a69a80; }
 .td-due svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
-.td-due.soon { color: #e9cf7a; }
-.td-due.today { color: #ffcc00; }
+.td-due.soon { color: var(--bb-t-hi, #e9cf7a); }
+.td-due.today { color: var(--bb-accent, #ffcc00); }
 .td-due.over { color: #ff6a78; }
 .td-row.overdue { box-shadow: 0 6px 16px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(227, 48, 74, .35); }
 .td-done-on { color: #8a7e62; }

@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('daily-ask-eevee-btn').addEventListener('click', async () => {
         const title = document.getElementById('daily-title-input').value.trim();
         if (!title) {
-            Toast.show('Give this daily a title first so Eevee has something to judge.', 'negative');
+            Toast.show('Give this daily a title first so Eve has something to judge.', 'negative');
             return;
         }
         const notes = document.getElementById('daily-notes-input').value.trim();
@@ -254,9 +254,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.textContent = '🐝 Buzzing...';
         btn.disabled = true;
         try {
-            selectedXP = await Eevee.assessDailyXP(title, notes, selectedDifficulty);
+            selectedXP = await Eve.assessDailyXP(title, notes, selectedDifficulty);
             document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
-            Toast.show(`🐝 Eevee set this at ${selectedXP} XP.`, 'positive');
+            Toast.show(`🐝 Eve set this at ${selectedXP} XP.`, 'positive');
         } catch (error) {
             Toast.show(`⚠️ ${error.message} Keeping the ${selectedDifficulty} default.`, 'negative');
         } finally {
