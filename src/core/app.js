@@ -300,7 +300,7 @@ const AppShell = {
                 <button type="button" class="ah-royal" aria-label="Your royal">
                     <svg class="ah-hex" viewBox="0 0 118 128" aria-hidden="true">
                         <defs>
-                            <linearGradient id="ahEdge" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".5" stop-color="#ffcc00"/><stop offset="1" stop-color="#8a6000"/></linearGradient>
+                            <linearGradient id="ahEdge" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--bb-t-hi, #fff2b0)"/><stop offset=".5" style="stop-color:var(--bb-accent, #ffcc00)"/><stop offset="1" style="stop-color:var(--bb-accent-deep, #8a6000)"/></linearGradient>
                             <radialGradient id="ahIn" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#3a2604"/><stop offset=".7" stop-color="#140c02"/><stop offset="1" stop-color="#070401"/></radialGradient>
                         </defs>
                         <polygon class="ah-hex-glow" points="59,2 114,33 114,95 59,126 4,95 4,33"/>
@@ -380,6 +380,20 @@ const AppShell = {
             setTimeout(() => this.flutter(), 1200);
             setInterval(() => this.flutter(), 7000);
         }
+    },
+
+    // Tap to hatch (Oct 28 2026): loads what the hatch screen needs, then opens it.
+    hatch(beeId, onDone) {
+        const base = `${window.location.origin}/src/core/ui/`;
+        const css = ['bee-card/bee-card.css', 'bee-name/bee-name.css', 'egg-hatch/egg-hatch.css'];
+        const js = [['EggDesign', 'egg-designs/egg-designs.js'], ['BeeCard', 'bee-card/bee-card.js'], ['BeeName', 'bee-name/bee-name.js'], ['EggHatch', 'egg-hatch/egg-hatch.js']];
+        css.forEach(f => { if (!document.querySelector(`link[href$="${f}"]`)) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = base + f; document.head.appendChild(l); } });
+        const next = (i) => {
+            if (i >= js.length) { EggHatch.open(beeId, { onDone }); return; }
+            if (typeof window[js[i][0]] !== 'undefined' || (js[i][0] === 'EggHatch' && typeof EggHatch !== 'undefined') || (js[i][0] === 'EggDesign' && typeof EggDesign !== 'undefined') || (js[i][0] === 'BeeCard' && typeof BeeCard !== 'undefined') || (js[i][0] === 'BeeName' && typeof BeeName !== 'undefined')) { next(i + 1); return; }
+            const sc = document.createElement('script'); sc.src = base + js[i][1]; sc.onload = () => next(i + 1); document.body.appendChild(sc);
+        };
+        next(0);
     },
 
     goHome() { window.location.href = this.url('src/features/home/home.html'); },
@@ -640,7 +654,7 @@ const AppShell = {
         dock.innerHTML = `${tab(DOCK_TABS[0])}${tab(DOCK_TABS[1])}<span class="dk-gap"></span>${tab(DOCK_TABS[2])}${tab(DOCK_TABS[3])}
             <button type="button" class="dk-add" aria-label="${target ? `New ${target.label}` : 'Create new'}">
                 <svg viewBox="0 0 72 80" aria-hidden="true">
-                    <defs><linearGradient id="dkAddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#ffcc00"/><stop offset="1" stop-color="#d08a00"/></linearGradient></defs>
+                    <defs><linearGradient id="dkAddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--bb-t-hi, #fff2b0)"/><stop offset=".45" style="stop-color:var(--bb-accent, #ffcc00)"/><stop offset="1" style="stop-color:var(--bb-t-lo, #d08a00)"/></linearGradient></defs>
                     <polygon class="dk-glow" points="36,3 69,22 69,58 36,77 3,58 3,22"/>
                     <polygon class="dk-body" points="${SHELL_HEX}"/>
                     <polygon class="dk-hi" points="36,9 63,25 63,40 36,24 9,40 9,25"/>
@@ -657,6 +671,23 @@ const AppShell = {
         const stopHold = () => { clearTimeout(holdTimer); holdTimer = null; };
         dock.addEventListener('pointerdown', () => { stopHold(); holdTimer = setTimeout(() => this.dockReport(), 2000); });
         ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => dock.addEventListener(t, stopHold));
+
+        // Swipe up on the gold + to go Home (Oct 28 2026, Craft).
+        const add = dock.querySelector('.dk-add');
+        let swipe = null, swiped = false;
+        add.style.touchAction = 'none';
+        add.addEventListener('pointerdown', (e) => { swipe = { y: e.clientY, x: e.clientX }; swiped = false; try { add.setPointerCapture(e.pointerId); } catch {} });
+        add.addEventListener('pointermove', (e) => {
+            if (!swipe || swiped) return;
+            if (swipe.y - e.clientY > 36 && Math.abs(e.clientX - swipe.x) < 60) {
+                swiped = true;
+                add.classList.add('dk-swiped');
+                if (navigator.vibrate) navigator.vibrate(15);
+                if (!this.isHome) this.goHome(); else window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        ['pointerup', 'pointercancel'].forEach(t => add.addEventListener(t, () => { swipe = null; setTimeout(() => add.classList.remove('dk-swiped'), 300); }));
+        add.addEventListener('click', (e) => { if (swiped) { e.stopImmediatePropagation(); e.preventDefault(); swiped = false; } }, true);
 
         dock.querySelector('.dk-add').addEventListener('click', () => {
             if (active === 'quests' && typeof CreateQuestModal !== 'undefined') { CreateQuestModal.open(); return; }

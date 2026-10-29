@@ -5,8 +5,33 @@
 //    downloads and installs it in the app (native BeeUpdater, app 1.0.6+).
 //    The repo is private for now, so the app needs a read-only GitHub token
 //    (Settings › About). When releases go public, no token is needed.
-const APP_WEB_VERSION = '1.0.4';
+const APP_WEB_VERSION = '1.0.5';
 const WHATS_NEW = [
+    { id: 'w3', version: '1.0.5', date: 'Nov 2026',
+      new: [
+        { icon: '🥚', title: 'Egg Incubator', text: 'A plugin. Your steps and dailies hatch eggs faster.', href: 'plugins/incubator/incubator.html' },
+        { icon: '🐣', title: 'Tap to hatch', text: 'Ready eggs wait for you. Tap to crack them open and meet your bee.', href: 'features/home/home.html' },
+        { icon: '⏱️', title: 'Bees live hour by hour', text: 'Work drains stats by job. Everyone sleeps 10 PM to 7 AM.', href: 'features/colony-bees/colony-bees.html' },
+        { icon: '🛏️', title: 'Nursery beds', text: 'Sick and hurt bees heal 4× faster in a bed.', href: 'features/colony-bees/colony-bees.html' },
+        { icon: '🎒', title: 'Held items', text: 'Rare bees and up hold items from the Honey Store.', href: 'features/honey-store/honey-store.html' },
+        { icon: '📘', title: 'Eve and the Guide', text: 'Eve is your coach. The Guide shows every feature, new ones first.', href: 'features/guide/guide.html' },
+        { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
+        { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
+        { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        { icon: '📖', title: 'Richer Dictionary', text: 'Full term, code, examples, picture, MDN and W3Schools links.', href: 'plugins/dictionary/dictionary.html' },
+      ],
+      improved: [
+        { icon: '🌅', title: 'Start My Day every morning', text: 'Even on a perfect day. See what you did and today\'s plan.' },
+        { icon: '🩹', title: 'Hurt levels', text: 'Hurt, Badly hurt and Severely hurt replace Injured.' },
+        { icon: '💤', title: 'Recuperate', text: 'A job with no work. Eat, sleep and heal.' },
+        { icon: '🆘', title: 'Bee needs help', text: 'Home says exactly what each bee needs.' },
+        { icon: '⬆️', title: 'Swipe up to go Home', text: 'Swipe up on the gold + button.' },
+      ],
+      fixed: [
+        { icon: '👣', title: 'Steps', text: 'Now counts your whole day.' },
+        { icon: '◀️', title: 'Back button', text: 'Goes back one page, not all the way Home.' },
+        { icon: '🌤️', title: 'Header', text: 'The weather was removed from the header.' },
+      ] },
     { id: 'w2', version: '1.0.4', date: 'Nov 2026',
       new: [
         { icon: '🔔', title: 'Notifications page', text: 'Everything that can remind you, in one place. See what\'s coming up.', href: 'features/notifications/notifications.html' },

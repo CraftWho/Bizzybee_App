@@ -448,6 +448,18 @@
             <div class="dev-state" id="dev-state"></div>
             ${testBlock}
 
+            <h3>THEMES · NEW IN 1.0.5</h3>
+            <div class="dev-row">
+                <button data-dev="theme" data-t="auto">✨ Auto</button>
+                <button data-dev="theme" data-t="bee">🐝 BizzyBee</button>
+                <button data-dev="theme" data-t="halloween">🎃 Halloween</button>
+                <button data-dev="theme-day" data-d="halloween" class="go">Pretend it's Oct 31</button>
+                <button data-dev="theme-day">Back to today</button>
+                <a href="${root}/src/features/themes/themes.html">Themes page</a>
+                <a href="${root}/src/features/friends/friends.html">Friends' hives</a>
+                <a href="${root}/src/features/mailbox/mailbox.html">Mailbox</a>
+            </div>
+
             <div class="dev-act">
             <h3>EGG</h3>
             <div class="dev-row">
@@ -569,7 +581,15 @@
             if (!b) return;
             const a = b.dataset.dev;
             const always = {
-                close, 'test-on': () => setTestSave(true), 'test-off': () => setTestSave(false), 'test-wipe': wipeTestSave
+                close, 'test-on': () => setTestSave(true), 'test-off': () => setTestSave(false), 'test-wipe': wipeTestSave,
+                // Themes are safe on any save: they only change the look.
+                theme: () => { if (typeof Themes !== 'undefined') { Themes.set(b.dataset.t); toast(`Theme: ${b.dataset.t}`); } },
+                'theme-day': () => {
+                    if (typeof Themes === 'undefined') return;
+                    const y = new Date().getFullYear();
+                    Themes.devDay(b.dataset.d === 'halloween' ? `${y}-10-31` : null);
+                    toast(b.dataset.d ? 'Pretending it\'s Oct 31 (Auto shows Halloween)' : 'Back to today');
+                }
             };
             if (always[a]) { always[a](); return; }
             if (!canAct()) return;   // real save: hands off

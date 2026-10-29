@@ -24,7 +24,7 @@
     transition: background .2s, border-color .2s, color .2s;
 }
 .hf button.df-day.on { background: var(--dc); border-color: var(--dc); color: var(--dk); }
-.hf button.df-day:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.hf button.df-day:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 .df-summary { margin: 14px 2px 0; font-size: .9rem; line-height: 1.45; color: var(--hf-muted); }
 .df-summary b { color: var(--hf-text); font-weight: 600; }
 

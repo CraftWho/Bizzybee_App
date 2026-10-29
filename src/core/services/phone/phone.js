@@ -211,7 +211,10 @@ const BizzyPhone = (() => {
             const start = new Date(); start.setHours(0, 0, 0, 0);
             let total = 0;
             try {
-                const r = await h.queryAggregated({ dataType: 'steps', startDate: start.toISOString(), endDate: new Date().toISOString(), bucket: 'day', aggregation: 'sum' });
+                // Whole day (Oct 28 2026 fix): Samsung Health saves one midnight-to-midnight
+                // block. Asking only "until now" counted part of it (2,226 showed as ~400).
+                const end = new Date(start); end.setDate(end.getDate() + 1);
+                const r = await h.queryAggregated({ dataType: 'steps', startDate: start.toISOString(), endDate: end.toISOString(), bucket: 'day', aggregation: 'sum' });
                 total = Math.round((r.samples || []).reduce((n, s) => n + (Number(s.value) || 0), 0));
             } catch (e) { console.warn('steps', e); return null; }
             const day = todayISO();
@@ -228,7 +231,9 @@ const BizzyPhone = (() => {
                 Vault.toggleDailyTask(t.id);
                 toast(`👟 ${total.toLocaleString()} steps! "${t.label}" is done.`, 'positive');
             });
-            if (before !== total) Vault.save();
+            const hatched = typeof Vault.incubatorTick === 'function' ? Vault.incubatorTick() : 0;   // steps warm the Egg Incubator
+            if (hatched) toast(`🥚 Your steps took a day off ${hatched} egg${hatched === 1 ? '' : 's'} in the incubator.`);
+            if (before !== total || hatched) Vault.save();
             return total;
         },
     };
@@ -337,25 +342,6 @@ const BizzyPhone = (() => {
         }[kind] || sun;
         return `<svg class="wxi wxi-${kind}" viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
     }
-    // Weather in the app header, next to the level bar. Tap opens Settings › Weather.
-    async function headerWeather() {
-        const row = document.querySelector('.app-head .ah-lvl');
-        if (!row) return;
-        const w = await Weather.now().catch(() => null);
-        let el = row.querySelector('.ah-wx');
-        if (!w) { if (el) el.remove(); return; }
-        if (!el) {
-            el = document.createElement('a');
-            el.className = 'ah-wx';
-            el.href = `${location.origin}/src/features/settings/settings.html#weather`;
-            el.addEventListener('click', e => e.stopPropagation());
-            row.appendChild(el);
-        }
-        el.title = `${w.text} · ${w.place}`;
-        el.setAttribute('aria-label', `Weather: ${w.temp} degrees, ${w.text}`);
-        el.innerHTML = `${iconSVG(w.kind || kindOf(w.code), w.isDay !== false)}<span>${w.temp}°</span>`;
-    }
-
     const Weather = {
         mode: () => get('bb_weather', 'off'),            // off | area | city
         unit: () => get('bb_weather_unit', 'F'),
@@ -483,7 +469,7 @@ const BizzyPhone = (() => {
         if (!/\/(features|plugins)\//.test(path) || /\/onboarding\//.test(path)) return;
         const go = () => {
             homeStrip();
-            headerWeather();
+            // (Header weather removed Oct 28 2026, Craft. Home and Hive Mind keep theirs.)
             if (isApp) { Backup.auto(); if (!/home\.html/.test(path)) Steps.sync(); Calendar.syncTodos(); }
         };
         if (isApp) { let ct = null; window.addEventListener('vault-saved', () => { clearTimeout(ct); ct = setTimeout(() => Calendar.syncTodos(), 4000); }); }

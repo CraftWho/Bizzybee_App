@@ -10,12 +10,12 @@
 
 /* summary line + tabs in the header card */
 .td-sum { margin: 10px 2px 0; font-size: .9rem; color: #c9bc9b; }
-.td-sum b { color: #ffcc00; font-size: 1.1rem; }
+.td-sum b { color: var(--bb-accent, #ffcc00); font-size: 1.1rem; }
 .td-sum i { margin: 0 8px; font-style: normal; color: #4a4334; }
-.td-sum .today { color: #ffcc00; }
+.td-sum .today { color: var(--bb-accent, #ffcc00); }
 .td-sum .over { color: #ff6a78; }
 
-.td-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; padding: 4px; border-radius: 14px; background: #0a0703; border: 1px solid rgba(255, 204, 0, .14); }
+.td-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; padding: 4px; border-radius: 14px; background: #0a0703; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14); }
 .td-tabs[hidden] { display: none; }
 .td-tabs button {
     display: flex;
@@ -34,9 +34,9 @@
 }
 .td-tabs button:hover { transform: none; box-shadow: none; color: #f1ede2; }
 .td-tabs button b { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: #1d1810; font: 700 .72rem var(--font-main); color: #c9bc9b; }
-.td-tabs button[aria-selected="true"] { background: linear-gradient(180deg, #ffd84a, #e0a800); color: #2a1a00; }
+.td-tabs button[aria-selected="true"] { background: linear-gradient(180deg, var(--bb-accent-hi, #ffd84a), var(--bb-t-lo, #e0a800)); color: #2a1a00; }
 .td-tabs button[aria-selected="true"] b { background: rgba(0, 0, 0, .18); color: #2a1a00; }
-.td-tabs button:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.td-tabs button:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 #td-hold[hidden] { display: none; }
 
 /* finishing or un-finishing a to-do slides it out of the tab */

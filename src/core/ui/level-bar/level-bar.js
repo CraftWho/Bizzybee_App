@@ -318,7 +318,7 @@ const LevelBar = {
 
     _sealSVG() {
         return `<svg viewBox="0 0 170 190" aria-hidden="true"><defs>
-            <linearGradient id="lvrG1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".5" stop-color="#ffcc00"/><stop offset="1" stop-color="#8a6000"/></linearGradient>
+            <linearGradient id="lvrG1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--bb-t-hi, #fff2b0)"/><stop offset=".5" style="stop-color:var(--bb-accent, #ffcc00)"/><stop offset="1" style="stop-color:var(--bb-accent-deep, #8a6000)"/></linearGradient>
             <radialGradient id="lvrG2" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#5a3c06"/><stop offset="1" stop-color="#140c02"/></radialGradient></defs>
             <polygon points="85,4 164,49 164,141 85,186 6,141 6,49" fill="url(#lvrG2)" stroke="url(#lvrG1)" stroke-width="5"/>
             <g stroke="rgba(255,204,0,.35)" stroke-width="1.5" fill="none">

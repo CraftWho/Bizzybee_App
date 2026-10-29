@@ -1,7 +1,7 @@
 /* Quest page (2026-10-09). --qc / --qk = the quest's category colour and
    the ink that reads on it (set on .qd by quest.js). */
 .qd {
-    --qc: #ffcc00;
+    --qc: var(--bb-accent, #ffcc00);
     --qk: #2a1a00;
     width: 100%;
     max-width: 700px;
@@ -44,7 +44,7 @@
 .qd-chip { padding: 4px 10px; border-radius: 999px; background: var(--qc); color: var(--qk); font: 700 .66rem var(--font-main); letter-spacing: .12em; }
 .qd-parent { display: inline-block; margin: 2px 0 0; font-size: .8rem; color: var(--qc); text-decoration: none; }
 .qd-parent:hover { text-decoration: underline; }
-.qd-title { margin: 6px 0 0; padding: 0; border: 0; background: none; font: 700 1.6rem/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #fff7dc; text-align: left; overflow-wrap: anywhere; }
+.qd-title { margin: 6px 0 0; padding: 0; border: 0; background: none; font: 700 1.6rem/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--bb-accent-pale, #fff7dc); text-align: left; overflow-wrap: anywhere; }
 .qd-obj { margin: 8px 0 0; font-size: .95rem; line-height: 1.5; color: #c9bc9b; white-space: pre-line; }
 .qd-muted { color: #8a7e62; font-size: .85rem; }
 .qd button.qd-focus {
@@ -70,7 +70,7 @@
 .qd-stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 /* Oct 27 2026: big courses (1244 tasks) ran the numbers together.
    The total now sits on its own line under the number. */
-.qd-stat b { display: flex; flex-direction: column; align-items: center; font: 700 clamp(1rem, 4.6vw, 1.3rem)/1.1 var(--font-main); color: #fff7dc; }
+.qd-stat b { display: flex; flex-direction: column; align-items: center; font: 700 clamp(1rem, 4.6vw, 1.3rem)/1.1 var(--font-main); color: var(--bb-accent-pale, #fff7dc); }
 .qd-stat b small { display: block; margin-top: 2px; font-size: .62em; color: #8a7e62; letter-spacing: 0; }
 .qd-stat span { font-size: .7rem; line-height: 1.25; color: #8a7e62; }
 
@@ -118,15 +118,15 @@
 .qd-source span { min-width: 0; display: flex; flex-direction: column; font-weight: 600; }
 .qd-source small { font-weight: 400; font-size: .75rem; color: #8a7e62; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qd-terms { display: flex; flex-wrap: wrap; gap: 6px; }
-.qd-terms a { padding: 5px 10px; border-radius: 999px; background: #1a150d; border: 1px solid #3a3222; color: #e9cf7a; font-size: .8rem; text-decoration: none; }
+.qd-terms a { padding: 5px 10px; border-radius: 999px; background: #1a150d; border: 1px solid #3a3222; color: var(--bb-t-hi, #e9cf7a); font-size: .8rem; text-decoration: none; }
 .qd-terms a:hover { border-color: var(--qc); }
-.qd-decree { margin: 0; padding: 12px 14px; border-left: 3px solid #ffcc00; border-radius: 0 12px 12px 0; background: #1a150d; font: italic 500 .95rem/1.5 Georgia, serif; color: #efe6cf; }
+.qd-decree { margin: 0; padding: 12px 14px; border-left: 3px solid var(--bb-accent, #ffcc00); border-radius: 0 12px 12px 0; background: #1a150d; font: italic 500 .95rem/1.5 Georgia, serif; color: #efe6cf; }
 
 /* ghost logs */
 .qd-ghosts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .qd-ghost { padding: 10px 12px; border-radius: 14px; background: #1a150d; border-left: 3px solid #4a4334; }
 .qd-ghost.s-red { border-left-color: #e3304a; }
-.qd-ghost.s-yellow { border-left-color: #ffcc00; }
+.qd-ghost.s-yellow { border-left-color: var(--bb-accent, #ffcc00); }
 .qd-ghost.s-green { border-left-color: #34c77b; }
 .qd-ghost-top { display: flex; align-items: center; gap: 10px; }
 .qd-ghost-name { flex: 1; min-width: 0; font-size: .95rem; overflow-wrap: anywhere; }
@@ -137,7 +137,7 @@
 .qd-ghost-states button { padding: 7px 2px; border: 1px solid #3a3222; border-radius: 9px; background: #0f0b05; box-shadow: none; color: #8a7e62; font: 600 .76rem system-ui, sans-serif; cursor: pointer; }
 .qd-ghost-states button.on.g-pending { background: #3a3222; color: #f1ede2; border-color: #4a4334; }
 .qd-ghost-states button.on.g-red { background: #e3304a; color: #fff; border-color: #e3304a; }
-.qd-ghost-states button.on.g-yellow { background: #ffcc00; color: #2a1a00; border-color: #ffcc00; }
+.qd-ghost-states button.on.g-yellow { background: var(--bb-accent, #ffcc00); color: #2a1a00; border-color: var(--bb-accent, #ffcc00); }
 .qd-ghost-states button.on.g-green { background: #34c77b; color: #06210f; border-color: #34c77b; }
 
 /* side quests + unlocks */
@@ -155,7 +155,7 @@
 .qd-box ul { margin: 0 0 6px; padding-left: 18px; }
 .qd-notes li { padding: 10px 12px; border-radius: 12px; background: #1a150d; font-size: .86rem; }
 .qd-notes small { display: block; margin-top: 3px; color: #8a7e62; }
-.qd-dev { padding: 2px 8px; border-radius: 999px; background: #241d11; color: #e9cf7a !important; font-size: .68rem !important; }
+.qd-dev { padding: 2px 8px; border-radius: 999px; background: #241d11; color: var(--bb-t-hi, #e9cf7a) !important; font-size: .68rem !important; }
 
 /* advanced */
 .qd-adv { margin: 0 0 20px; padding: 12px 14px; border-radius: 16px; background: #0d0a05; border: 1px solid rgba(255, 255, 255, .05); }
@@ -168,15 +168,15 @@
 .qg details > summary::-webkit-details-marker { display: none; }
 .qg details > summary::after { content: "›"; margin-left: 4px; color: #c2b48f; font-size: 1.2rem; transition: transform .2s; flex: none; }
 .qg details[open] > summary::after { transform: rotate(90deg); }
-.qg-mod { border-radius: 16px; background: #17110a; border: 1px solid rgba(255, 204, 0, .14); }
+.qg-mod { border-radius: 16px; background: #17110a; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14); }
 .qg-mod > summary { padding: 12px 12px; }
 .qg-mod.done { border-color: rgba(61, 220, 132, .35); }
-.qg-n { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #2a1f0b; color: #ffcc00; font: 800 .78rem var(--font-main, monospace); }
+.qg-n { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #2a1f0b; color: var(--bb-accent, #ffcc00); font: 800 .78rem var(--font-main, monospace); }
 .qg-mod.done .qg-n { background: #1f5a3a; color: #bff5d5; }
 .qg-t { flex: 1; min-width: 0; font: 700 .92rem system-ui, sans-serif; color: #f1ede2; }
 .qg-sec .qg-t { font-weight: 600; font-size: .86rem; }
 .qg-stats { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 8px; font: 600 .68rem var(--font-main, monospace); color: #c2b48f; text-align: right; }
-.qg-stats b { color: #ffcc00; }
+.qg-stats b { color: var(--bb-accent, #ffcc00); }
 .qg-stats b.full { color: #3ddc84; }
 .qg-body { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 10px; }
 .qg-sec { border-radius: 12px; background: #120d06; border: 1px solid rgba(255, 255, 255, .05); }

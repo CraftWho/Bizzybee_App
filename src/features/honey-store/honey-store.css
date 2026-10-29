@@ -1,7 +1,7 @@
 /* Honey Store v2 (Oct 2026). Shared look: core/ui/page-v2/page-v2.css. */
 .hs2 .hs-wallet { grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .hs2 .hs-wallet > div { padding: 9px 2px; }
-.hs2 .hs-coins { border-color: rgba(255, 204, 0, .45) !important; background: rgba(255, 204, 0, .08) !important; }
+.hs2 .hs-coins { border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .45) !important; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .08) !important; }
 .hs2 .hs-wallet small { font-size: .62rem; }
 .hs2 .hs-price { font: 700 .7rem var(--font-main, monospace); color: var(--gold); }
 .hs2 .tile.hs-cant .hs-price { color: var(--muted); }
@@ -9,3 +9,9 @@
 .hs2 .note a { color: var(--gold); }
 .hs2 .hs-links { margin-top: 18px; }
 .hs2 .card button.row .mid b { color: var(--gold2); }
+/* Egg Incubators link (Oct 28 2026) */
+.hs-inc-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-decoration: none; color: inherit; border-color: rgba(var(--bb-alt-rgb, 220, 20, 60), .45) !important; }
+.hs-inc-link > span:first-child { font-size: 1.6rem; }
+.hs-inc-link b { display: block; color: var(--bb-accent, #ffcc00); }
+.hs-inc-link small { color: #c2b48f; font-size: .78rem; }
+.hs-inc-link .chev { margin-left: auto; color: var(--bb-accent, #ffcc00); }

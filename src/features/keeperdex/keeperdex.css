@@ -4,7 +4,7 @@
 .kd2 .kd-progress-top b { font: 700 .95rem var(--font-main, monospace); color: var(--gold2); }
 .kd2 .kd-progress-top small { color: var(--muted); font-family: var(--font-main, monospace); }
 .kd2 .kd-bar { display: block; height: 8px; border-radius: 9px; background: rgba(255, 255, 255, .07); overflow: hidden; }
-.kd2 .kd-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffcc00, #ffd977); transition: width .4s; }
+.kd2 .kd-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--bb-accent, #ffcc00), var(--bb-t-hi, #ffd977)); transition: width .4s; }
 .kd2 .kd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
 @media (min-width: 640px) { .kd2 .kd-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; } }
 .kd2 .kd-tile { position: relative; aspect-ratio: 5 / 7; overflow: hidden; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; cursor: pointer; transition: transform .15s; }
@@ -12,7 +12,7 @@
 .kd2 .kd-tile:focus-visible { box-shadow: 0 0 0 2px var(--gold); border-radius: 8px; }
 .kd2 .kd-scale { position: absolute; top: 0; left: 0; width: 260px; transform: scale(var(--tile-scale, .35)); transform-origin: top left; pointer-events: none; }
 .kd2 .kd-fallen { list-style: none; margin: 0; padding: 4px 0; }
-.kd2 .kd-fallen li { padding: 10px 0; border-top: 1px solid rgba(255, 204, 0, .08); color: var(--muted); font-size: .8rem; }
+.kd2 .kd-fallen li { padding: 10px 0; border-top: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .08); color: var(--muted); font-size: .8rem; }
 .kd2 .kd-fallen li:first-child { border-top: 0; }
 .kd2 .kd-fallen li b { display: block; color: var(--ink); }
 .kd2 .kd-fallen li span, .kd2 .kd-fallen li small { display: block; }

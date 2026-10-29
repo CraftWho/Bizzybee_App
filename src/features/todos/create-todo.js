@@ -8,7 +8,7 @@ console.log("/// CREATE TO-DO PROTOCOLS INITIALIZED ///");
 
 // One-off tiers - a To-Do happens once, so it uses Quest tasks' higher XP
 // anchors rather than Dailies/Habits' recurring ones (see llm-engine.js's
-// assessTodoXP for the guidance given to Eevee).
+// assessTodoXP for the guidance given to Eve).
 const TODO_DIFFICULTY_TIERS = [
     { level: 'Trivial', xp: 15 },
     { level: 'Easy', xp: 30 },
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('todo-ask-eevee-btn').addEventListener('click', async () => {
         const title = document.getElementById('todo-title-input').value.trim();
         if (!title) {
-            Toast.show('Give this to-do a title first so Eevee has something to judge.', 'negative');
+            Toast.show('Give this to-do a title first so Eve has something to judge.', 'negative');
             return;
         }
         const notes = document.getElementById('todo-notes-input').value.trim();
@@ -202,9 +202,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.textContent = '🐝 Buzzing...';
         btn.disabled = true;
         try {
-            selectedXP = await Eevee.assessTodoXP(title, notes, selectedDifficulty);
+            selectedXP = await Eve.assessTodoXP(title, notes, selectedDifficulty);
             document.getElementById('hf-xp-note').textContent = `${selectedXP} XP when done`;
-            Toast.show(`🐝 Eevee set this at ${selectedXP} XP.`, 'positive');
+            Toast.show(`🐝 Eve set this at ${selectedXP} XP.`, 'positive');
         } catch (error) {
             Toast.show(`⚠️ ${error.message} Keeping the ${selectedDifficulty} default.`, 'negative');
         } finally {

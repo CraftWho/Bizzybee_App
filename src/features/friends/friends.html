@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <title>🤝 Friends' hives</title>
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="./friends.css">
+</head>
+<body>
+<main class="hf">
+    <section class="bb-box bb-box--frame">
+        <h1 class="bb-title">🤝 FRIENDS' HIVES</h1>
+        <p class="bb-text">Visit a friend's Hive Mind. You see their hive and bees. Never their quests, tasks or stats.</p>
+    </section>
+
+    <p class="hf-signin bb-box bb-box--alert" id="hf-signin" hidden></p>
+
+    <h2 class="hf-sec">Your hive code</h2>
+    <section class="bb-box hf-code">
+        <div class="code" id="hf-code">BEE-····</div>
+        <div class="row"><button type="button" class="bb-btn" id="hf-copy">Copy</button><button type="button" class="bb-btn" id="hf-share">Share</button></div>
+        <label class="hf-switch"><input type="checkbox" id="hf-sharing" checked> <span><b>Share my hive</b><small>Friends you added can visit. Turn off any time.</small></span></label>
+    </section>
+
+    <h2 class="hf-sec">Friends <button type="button" class="hf-refresh" id="hf-refresh" aria-label="Check for updates">↻</button></h2>
+    <section class="bb-box" id="hf-list"><p class="hf-empty">Loading…</p></section>
+    <p class="hf-note" id="hf-updated"></p>
+
+    <h2 class="hf-sec">Add a friend</h2>
+    <form class="bb-box hf-add" id="hf-add">
+        <input id="hf-input" placeholder="BEE-XXXX" maxlength="8" autocomplete="off" aria-label="Friend's hive code">
+        <button type="submit" class="bb-btn bb-btn--main">Add</button>
+    </form>
+    <p class="hf-note">Both of you add each other's code. Then you can visit each other's hive. Visits are look only.</p>
+</main>
+<script src="../../core/boot.js"></script>
+<script src="./friends.js"></script>
+</body>
+</html>

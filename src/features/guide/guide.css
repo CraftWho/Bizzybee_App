@@ -1,0 +1,16 @@
+/* Guide (Oct 28 2026) */
+.gdv .gd-head { display: flex; align-items: center; gap: 12px; margin: 4px 2px 12px; }
+.gdv .gd-head .settings-title { margin: 0; text-align: left; }
+.gdv .gd-head small { display: block; color: #c2b48f; font-size: .8rem; }
+.gdv .gd-head small b { color: var(--bb-accent, #ffcc00); }
+.gdv .gd-hex { width: 50px; height: 56px; flex: none; display: grid; place-items: center; font-size: 1.4rem; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, var(--bb-t-hi, #ffe680), var(--bb-accent, #ffcc00) 50%, var(--bb-accent-deep, #8a6000)); }
+.gdv #gd-q { width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 11px 12px; border-radius: 12px; border: 1px solid #3a2a0a; background: #0b0803; color: #f1ede2; font: inherit; }
+.gdv .gd-item { display: flex; gap: 12px; align-items: center; padding: 10px 0; }
+.gdv .gd-item + .gd-item { border-top: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .08); }
+.gdv .gd-ic { font-size: 1.4rem; width: 30px; text-align: center; flex: none; }
+.gdv .gd-mid { flex: 1; min-width: 0; }
+.gdv .gd-mid b { display: block; font-size: .92rem; }
+.gdv .gd-mid small { display: block; color: #c2b48f; font-size: .76rem; line-height: 1.4; }
+.gdv .gd-new { margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: var(--bb-alt, #dc143c); color: #fff; font: 800 .56rem var(--font-main, monospace); vertical-align: middle; }
+.gdv .gd-empty, .gdv .gd-foot { color: #c2b48f; font-size: .8rem; }
+.gdv .gd-foot { text-align: center; margin: 12px 0 30px; }
