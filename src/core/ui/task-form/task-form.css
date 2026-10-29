@@ -202,3 +202,8 @@ body.habit-form-page, body.task-form-page { padding-bottom: 0; }
 .tf-due-time { margin-top: 8px; }
 .tf-due-time[hidden] { display: none; }
 .tf-due-time small i { font-style: normal; opacity: .7; }
+
+/* Smart skills (Oct 29 2026): "+ Time" until you ask for it, skill colors. */
+.hf .tf-addtime { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--dc, #ffcc00) 55%, transparent); background: none; color: var(--hf-text); font: 600 .95rem var(--hf-sans); text-align: left; cursor: pointer; box-shadow: none; transform: none; }
+.hf .tf-skill { border-color: color-mix(in srgb, var(--skc, #7fc0ff) 60%, transparent); background: color-mix(in srgb, var(--skc, #7fc0ff) 14%, transparent); }
+.hf .tf-clear { opacity: .7; }

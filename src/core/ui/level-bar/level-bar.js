@@ -242,9 +242,9 @@ const LevelBar = {
         document.body.appendChild(overlay);
         overlay.querySelectorAll('[data-card]').forEach(host => {
             try {
-                const [r, el] = host.dataset.card.split('|');
+                const [r, el, art, scene] = host.dataset.card.split('|');   // art/scene: limited bees (Oct 29 2026)
                 const key = beeCardApplyTheme(host, r, r === 'Common' ? null : (el || null));
-                host.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2 });
+                host.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2, art: art || null, scene: scene || null });
             } catch (e) { host.textContent = '🐝'; }
         });
 
@@ -308,7 +308,7 @@ const LevelBar = {
             const rc = info ? info.color : '#ffcc00';
             const talent = b.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[b.talent] ? `⭐ Born ${BEE_CLASSES[b.talent].label}` : '';
             const where = b.life && b.life.hatchOn ? 'in the Nursery' : 'in your colony';
-            const art = typeof beeCardArtHTML === 'function' ? `<span class="art-tile bc-tile" data-card="${esc(b.rarity)}|${esc(b.element || '')}"></span>` : '<span class="lvr-emo">🐝</span>';
+            const art = typeof beeCardArtHTML === 'function' ? `<span class="art-tile bc-tile" data-card="${esc(b.rarity)}|${esc(b.element || '')}|${esc(b.art || '')}|${esc(b.scene || '')}"></span>` : '<span class="lvr-emo">🐝</span>';
             const name = typeof beeFullName === 'function' ? beeFullName(b) : b.name;
             return `<div class="lvr-item bee" style="--rc:${rc}"><div class="lvr-mini">${art}</div>
                 <div><span class="lvr-rar">${esc(String(b.rarity || '').toUpperCase())}</span><b>New bee: ${esc(name)}</b><small>${esc([talent, where].filter(Boolean).join(' · '))}</small></div></div>`;

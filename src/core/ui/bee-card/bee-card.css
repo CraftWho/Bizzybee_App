@@ -644,3 +644,12 @@
    bee is doing that job. */
 .bc-v2 .bc-talent { position: absolute; left: 2cqw; bottom: 2cqw; z-index: 4; padding: 1cqw 2cqw; border-radius: 99px; background: rgba(0, 0, 0, .62); border: .35cqw solid rgba(var(--bb-accent-rgb, 255, 204, 0), .35); color: #e9dfc2; font: 700 2.7cqw/1 system-ui, sans-serif; white-space: nowrap; }
 .bc-v2 .bc-talent.on { background: rgba(60, 40, 0, .78); border-color: var(--bb-accent, #ffcc00); color: var(--bb-t-hi, #ffd977); box-shadow: 0 0 2.5cqw rgba(var(--bb-accent-rgb, 255, 204, 0), .45); }
+
+/* Sex on the card (Oct 29 2026). */
+.bc-sex { font-weight: 800; letter-spacing: .02em; }
+.bc-sex-f { color: #ff8fc7; }
+.bc-sex-m { color: #7fc0ff; }
+
+/* Limited bees (Oct 29 2026): their own picture, and the serial number. */
+.bc-v2 .bc-beewrap--art img { filter: drop-shadow(0 1.5cqw 2cqw rgba(0, 0, 0, .7)); }
+.bc-v2 .bc-serial { color: #ffcf6b; letter-spacing: .06em; }

@@ -28,7 +28,7 @@ const Hints = (() => {
         'create-quest': ['Add tasks one by one, or use <b>New chapter</b> to group them.',
             'Tags at the bottom tell the app which skill this quest trains.'],
         dashboard: ['Your stats in one place: level, skills and time spent.',
-            'Skills grow from time spent on tasks that mention them. Type <b>#word</b> in a task to tag it.'],
+            'Skills grow from time spent on tasks that mention them. Just write it, like <b>Study HTML</b>, or add a tag.'],
         skills: ['Each skill has stages. Hit the hours to unlock the next one.',
             'When a skill is ready, tap the gold <b>Level up</b> button for rewards.'],
         colony: ['This is your colony. Bees work by day (7 AM – 10 PM) and sleep at night. Their stats change hour by hour.',
@@ -134,6 +134,7 @@ const Hints = (() => {
     // intro: true = Eve introduces it once (new features).
     const F = '/src/features/', PL = '/src/plugins/';
     const GUIDE = [
+        { id: 'smart-skills', icon: '🧠', title: 'Smart skills', text: 'Write tasks in plain words. After 2 check-offs, a skill like Fitness or Time Management makes itself. Time is optional; Skills shows real hours apart from estimates.', v: '1.0.5', intro: true, page: F + 'skills/skills.html' },
         { id: 'start-day', icon: '🌅', title: 'Start My Day', text: 'Every morning: what you did yesterday, what was missed, and today at a glance.', v: '1.0.5', intro: true, page: F + 'home/home.html' },
         { id: 'dailies', icon: '☀️', title: 'Dailies', text: 'Tasks that repeat. Finish them all for bonus XP and a growing streak.', v: '1.0.0', page: F + 'dailies/dailies.html', steps: [{ page: 'dailies', sel: '.dk-add', text: 'Tap the gold + to make a daily.' }] },
         { id: 'habits', icon: '🔁', title: 'Habits', text: '+ for good habits, − for bad ones. No due dates.', v: '1.0.0', page: F + 'habits/habits.html' },
@@ -144,7 +145,7 @@ const Hints = (() => {
         { id: 'nursery', icon: '🛏️', title: 'Nursery beds and Recuperate', text: 'Sick or hurt bees heal 4× faster in a bed. Recuperate = eat, sleep, heal slowly. Hurt has 3 levels.', v: '1.0.5', intro: true, page: F + 'colony-bees/colony-bees.html' },
         { id: 'hatch', icon: '🐣', title: 'Tap to hatch', text: 'A ready egg waits for you. Tap it to crack it open and meet your new bee.', v: '1.0.5', intro: true, page: F + 'home/home.html', steps: [{ page: 'home', sel: '#home-ready', text: 'When an egg is ready, tap here to hatch it.' }] },
         { id: 'held-items', icon: '🍯', title: 'Items bees hold', text: 'Rare and up hold items. Honey Extract feeds a hungry bee, gloves and shields help in raids.', v: '1.0.5', intro: true, page: F + 'honey-store/honey-store.html', steps: [{ page: 'honey-store', sel: '#store-held-grid', text: 'Make items here. Then give one from a bee\'s card.' }] },
-        { id: 'incubator', icon: '🥚', title: 'Egg Incubator', text: 'Your steps (and dailies) hatch eggs faster. A plugin: turn it on in Plugins.', v: '1.0.5', intro: true, page: PL + 'incubator/incubator.html' },
+        { id: 'incubator', icon: '🥚', title: 'Egg Incubator', text: 'Your steps (and dailies) hatch eggs faster. Buy one in the Honey Store.', v: '1.0.5', intro: true, page: F + 'incubator/incubator.html' },
         { id: 'notifications', icon: '🔔', title: 'Notifications', text: 'Pick what reminds you and when. Tap a notification to open that task.', v: '1.0.4', page: F + 'notifications/notifications.html' },
         { id: 'live-sky', icon: '🌧️', title: 'Live sky', text: 'The Hive Mind follows the time of day and your real weather.', v: '1.0.4', page: F + 'colony/colony.html' },
         { id: 'done-today', icon: '✨', title: 'Done today', text: 'Tap XP today on Home to see everything you finished today.', v: '1.0.4', page: F + 'home/home.html' },

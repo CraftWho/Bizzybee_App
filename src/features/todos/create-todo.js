@@ -18,6 +18,8 @@ const TODO_DIFFICULTY_TIERS = [
 
 let selectedDifficulty = 'Easy';
 let timePicker = null;   // TaskForm.timePicker (Oct 2026: XP = minutes x effort)
+// A tag added or removed updates "Counts toward" right away (Oct 29 2026).
+document.addEventListener('tagschange', (e) => { if (e.target && e.target.id === 'todo-tags-list' && timePicker) timePicker.refresh(); });
 let selectedXP = 30;
 let editingTodoId = null;
 let checklistEditor = null;
@@ -63,6 +65,9 @@ function renderDue() {
     const value = document.getElementById('todo-due-date').value;
     document.getElementById('todo-due-clear').hidden = !value;
     document.getElementById('todo-due-time-box').hidden = !value;
+    // A date with no time: 10 PM (Oct 29 2026, Craft). You can change it.
+    const timeEl = document.getElementById('todo-due-time');
+    if (value && !timeEl.value) timeEl.value = '22:00';
     document.querySelectorAll('#todo-due-quick [data-days]').forEach(b => b.classList.toggle('on', value === isoPlusDays(Number(b.dataset.days))));
     let hint = 'Optional. Leave it blank for a to-do with no deadline.';
     if (value) {

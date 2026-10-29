@@ -91,5 +91,21 @@ const Social = (() => {
         }, 4000);
     });
 
-    return { card, publish, myCode, friends, cachedFriends, add, remove, sharing, mail, cachedMail, unread, markRead, react, send, del, HOUR };
+    // Limited editions (Oct 29 2026): how many are left (cached 10 min, so
+    // Home doesn't call the server on every visit) and claiming one.
+    async function limitedLeft(edition, force) {
+        const k = 'bizzybee_limited_' + edition, c = read(k);
+        if (!force && c && Date.now() - c.at < 10 * 60 * 1000) return c;
+        const r = await call('limited', { action: 'status', edition });
+        const out = { at: Date.now(), left: r.left, mine: r.mine || null };
+        write(k, out);
+        return out;
+    }
+    async function claimLimited(edition, day) {
+        const r = await call('limited', { action: 'claim', edition, day });
+        write('bizzybee_limited_' + edition, { at: Date.now(), left: r.left, mine: r.serial });
+        return r;
+    }
+
+    return { card, publish, myCode, friends, cachedFriends, add, remove, sharing, mail, cachedMail, unread, markRead, react, send, del, limitedLeft, claimLimited, HOUR };
 })();

@@ -206,3 +206,34 @@ button.home-stat { border: 0; background: none; font: inherit; cursor: pointer; 
 .home-help-bee em { font-style: normal; font-weight: 700; color: #ff8aa0; }
 .home-help-bee small { display: inline; margin: 0; color: #a69a80; font-size: .72rem; }
 .home-help-bee small.fix { display: block; margin-top: 1px; color: #c2b48f; }
+
+/* Oct 29 2026: Done today rows link to their task; steps + weather in the stat strip. */
+.xt-list li { padding: 0; }
+.xt-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px 2px; color: inherit; text-decoration: none; border-radius: 10px; }
+a.xt-row:hover, a.xt-row:focus-visible { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .06); outline: none; }
+a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left: -2px; }
+.home-hive.six { grid-template-columns: repeat(3, 1fr); row-gap: 4px; }
+.home-hive.six .home-stat:nth-child(3n + 1)::before { display: none; }
+@media (min-width: 700px) {
+    .home-hive.six { grid-template-columns: repeat(6, 1fr); }
+    .home-hive.six .home-stat:nth-child(3n + 1)::before { display: block; }
+    .home-hive.six .home-stat:first-child::before { display: none; }
+}
+.home-stat .wxi { width: 20px; height: 20px; }
+
+/* Oct 29 2026: hex ring follows the shape; bolder icons. */
+.home-app-ic::after { box-shadow: none !important; background: var(--cr); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }
+.home-app-ic svg { stroke-width: 2.6; }
+
+/* Halloween challenge card (Oct 29 2026). */
+.home-limited { display: flex; align-items: center; gap: 12px; padding: 14px; border-color: #ff7a1a !important; background: linear-gradient(135deg, rgba(255, 122, 26, .16), rgba(60, 20, 80, .35)), rgba(14, 10, 4, .92) !important; }
+.home-limited .hl-ic { font-size: 1.8rem; }
+.home-limited .hl-t { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.home-limited .hl-t > b { color: #ffb15c; font: 800 .86rem var(--font-main, monospace); letter-spacing: .06em; text-transform: uppercase; }
+.home-limited small { color: #e6d6bd; font-size: .78rem; line-height: 1.4; }
+.home-limited small b { color: #ffcf6b; }
+.home-limited .hl-bar { height: 6px; border-radius: 6px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.home-limited .hl-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ff7a1a, #ffcf6b); }
+.home-limited .hl-left { color: #c2b48f; }
+.home-limited .hl-go { flex: none; padding: 10px 14px; border: 0; border-radius: 10px; background: #ff7a1a; color: #1a0800; font: 800 .8rem var(--font-main, monospace); text-decoration: none; cursor: pointer; animation: bbShake 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .home-limited .hl-go { animation: none; } }

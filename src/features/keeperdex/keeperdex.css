@@ -18,3 +18,11 @@
 .kd2 .kd-fallen li span, .kd2 .kd-fallen li small { display: block; }
 .pv2-sheet .kd-full { display: flex; justify-content: center; margin-top: 12px; }
 .pv2-sheet .kd-full > * { width: 260px; max-width: 100%; }
+
+/* Card zoom (Oct 29 2026): only the card, bigger; tap to flip. */
+.kd-zoom { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; background: rgba(0, 0, 0, .78); animation: kdIn .2s ease; }
+.kd-zoom .kd-zoom-card { width: min(78vw, 340px); outline: none; }
+.kd-zoom-card:focus-visible { box-shadow: 0 0 0 2px var(--gold, #ffcc00); border-radius: 14px; }
+.kd-zoom-hint { margin: 0; color: #a69a80; font-size: .78rem; text-align: center; }
+@keyframes kdIn { from { opacity: 0; transform: scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .kd-zoom { animation: none; } }

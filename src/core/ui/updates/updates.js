@@ -5,11 +5,34 @@
 //    downloads and installs it in the app (native BeeUpdater, app 1.0.6+).
 //    The repo is private for now, so the app needs a read-only GitHub token
 //    (Settings › About). When releases go public, no token is needed.
-const APP_WEB_VERSION = '1.0.5';
+const APP_WEB_VERSION = '1.0.6';
 const WHATS_NEW = [
-    { id: 'w3', version: '1.0.5', date: 'Nov 2026',
+    // Oct 29 2026 (Craft): w4 = this week's push. The Mailbox Updates tab lists every entry.
+    { id: 'w4', version: '1.0.6', date: 'Oct 2026',
       new: [
-        { icon: '🥚', title: 'Egg Incubator', text: 'A plugin. Your steps and dailies hatch eggs faster.', href: 'plugins/incubator/incubator.html' },
+        { icon: '🧠', title: 'Smart skills', text: 'No # needed. Check off 2 tasks like "Wake up on time" and a skill makes itself. Merge look-alikes like Time into Time Management.', href: 'features/skills/skills.html' },
+        { icon: '🏅', title: 'Honeycomb and skill paths', text: 'Skills are a honeycomb now. Each one has its own path of milestones and rewards, in place of the skill tree.', href: 'features/skills/skills.html' },
+        { icon: '⏱️', title: 'Real time vs estimates', text: 'Time is optional. Skills shows real hours, estimated hours and XP apart.', href: 'features/skills/skills.html' },
+        { icon: '💀', title: 'Grimzy The Reaper', text: 'Halloween only: finish 3 tasks on Oct 31 to claim a numbered bee. Only 50 exist.', href: 'features/home/home.html' },
+        { icon: '🕘', title: 'History', text: 'Everything you finished, day by day. Tap one to open it.', href: 'features/history/history.html' },
+        { icon: '📬', title: 'Updates in the Mailbox', text: 'Every update and what changed, any time.', href: 'features/mailbox/mailbox.html#updates' },
+      ],
+      improved: [
+        { icon: '✨', title: 'Done today', text: 'Shows the time and opens the task. History button at the bottom.' },
+        { icon: '🌤️', title: 'Stat strip', text: 'Weather and steps sit with your bees and XP on Home.' },
+        { icon: '🍯', title: 'Enter Hive', text: 'Opens in Classic. Hive Life is a button at the bottom.' },
+        { icon: '📘', title: 'KeeperDex', text: 'Missing cards are face-down. Tap a card to zoom, tap again to flip.' },
+        { icon: '⬆️', title: 'Level up on the Dashboard', text: 'Claim it right there.' },
+        { icon: '⬡', title: 'Sharper look', text: 'Comb-shaped buttons, and hex icons with a clean inner ring.' },
+      ],
+      fixed: [
+        { icon: '🧭', title: 'Back to Home', text: 'Tapping the header or swiping up on the + works on every page again.' },
+        { icon: '🥚', title: 'Eggs in the Hive Mind', text: 'Eggs no longer fly around as bees.' },
+        { icon: '⚡', title: 'XP today', text: 'Late-evening quest tasks count on the right day.' },
+      ] },
+    { id: 'w3', version: '1.0.5', date: 'Oct 2026',
+      new: [
+        { icon: '🥚', title: 'Egg Incubator', text: 'Buy one in the Honey Store. Your steps and dailies hatch eggs faster.', href: 'features/honey-store/honey-store.html#incubators' },
         { icon: '🐣', title: 'Tap to hatch', text: 'Ready eggs wait for you. Tap to crack them open and meet your bee.', href: 'features/home/home.html' },
         { icon: '⏱️', title: 'Bees live hour by hour', text: 'Work drains stats by job. Everyone sleeps 10 PM to 7 AM.', href: 'features/colony-bees/colony-bees.html' },
         { icon: '🛏️', title: 'Nursery beds', text: 'Sick and hurt bees heal 4× faster in a bed.', href: 'features/colony-bees/colony-bees.html' },
@@ -32,7 +55,7 @@ const WHATS_NEW = [
         { icon: '◀️', title: 'Back button', text: 'Goes back one page, not all the way Home.' },
         { icon: '🌤️', title: 'Header', text: 'The weather was removed from the header.' },
       ] },
-    { id: 'w2', version: '1.0.4', date: 'Nov 2026',
+    { id: 'w2', version: '1.0.4', date: 'Oct 2026',
       new: [
         { icon: '🔔', title: 'Notifications page', text: 'Everything that can remind you, in one place. See what\'s coming up.', href: 'features/notifications/notifications.html' },
         { icon: '👆', title: 'Tap a notification to open it', text: 'It opens that daily, To-Do or habit, and it glows.' },

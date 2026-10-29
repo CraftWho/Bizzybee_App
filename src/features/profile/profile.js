@@ -86,7 +86,7 @@ function render() {
         const tasks = q.tasks || [], done = tasks.filter(t => t.completed).length, pct = tasks.length ? Math.round(done / tasks.length * 100) : 0;
         return `<a class="row" href="../quests/quest.html?id=${encodeURIComponent(q.id)}" style="color:inherit;text-decoration:none"><span class="hx">${pct}%</span><div class="mid"><b>${esc(q.title)}</b><small>${done}/${tasks.length} tasks${q.objective ? ` · ${esc(q.objective)}` : ''}</small><div class="bar"><i style="width:${pct}%"></i></div></div></a>`;
     }).join('') + projects.map(p => `<div class="row"><span class="hx">✦</span><div class="mid"><b>${esc(p.name)}</b><small>${esc(p.status || '')}</small>
-            ${safeUrl(p.liveLink) ? `<a href="${esc(p.liveLink)}" target="_blank" rel="noopener">Live ↗</a>` : ''}${safeUrl(p.repoLink) ? `<a href="${esc(p.repoLink)}" target="_blank" rel="noopener">Code ↗</a>` : ''}</div></div>`).join('')
+            ${safeUrl(p.liveLink) || safeUrl(p.repoLink) ? `<span class="pf-links">${safeUrl(p.liveLink) ? `<a class="pf-btn" href="${esc(p.liveLink)}" target="_blank" rel="noopener">🌐 Live</a>` : ''}${safeUrl(p.repoLink) ? `<a class="pf-btn" href="${esc(p.repoLink)}" target="_blank" rel="noopener">&lt;/&gt; Code</a>` : ''}</span>` : ''}</div></div>`).join('')
         || '<p class="sub" style="margin:0">Nothing in progress.</p>';
 
     const record = [
