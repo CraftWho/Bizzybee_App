@@ -13,6 +13,12 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Oct 29 2026: the bar above the header was white. Paint the window
+             behind the system bars in the app's black, with light icons. -->
+        <item name="android:windowBackground">@color/bb_bg</item>
+        <item name="android:statusBarColor">@color/bb_bg</item>
+        <item name="android:navigationBarColor">@color/bb_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
 
