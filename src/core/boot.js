@@ -20,11 +20,16 @@
     if (me.dataset.load === 'styles') {
         let pick = 'auto';
         try { pick = localStorage.getItem('bizzybee_theme') || 'auto'; } catch (e) { /* storage off */ }
+        // Oct 30 2026 (Craft): Halloween only on Oct 31, for everyone. Pretending
+        // a day is a test-save / dev tool, so that override only counts there.
+        let testSave = false;
+        try { testSave = localStorage.getItem('bizzybee_dev_test') === '1' || localStorage.getItem('bizzybee_dev') === '1'; } catch (e) { /* storage off */ }
         let devDay = null;
-        try { devDay = localStorage.getItem('bizzybee_dev_day'); } catch (e) { /* storage off */ }
+        try { devDay = testSave ? localStorage.getItem('bizzybee_dev_day') : null; } catch (e) { /* storage off */ }
         const d = devDay ? new Date(devDay + 'T12:00:00') : new Date();
-        const auto = (d.getMonth() === 9 && d.getDate() === 31) ? 'halloween' : 'bee';
-        const skin = pick === 'auto' ? auto : pick;
+        const halloween = d.getMonth() === 9 && d.getDate() === 31;
+        const auto = halloween ? 'halloween' : 'bee';
+        const skin = pick === 'auto' ? auto : (pick === 'halloween' && !halloween) ? 'bee' : pick;
         if (skin && skin !== 'bee') document.documentElement.dataset.skin = skin;
     }
     // Oct 30 2026 (Craft): mobile vs desktop. A phone-sized touch screen gets
