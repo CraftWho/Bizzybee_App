@@ -8,6 +8,13 @@
 name: Android APK
 on:
   workflow_dispatch:
+    # Oct 30 2026 (Craft): tester builds can be inspected from a PC
+    # (chrome://inspect). Leave off for public releases.
+    inputs:
+      tester:
+        description: "Tester build (WebView debugging on)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -29,6 +36,11 @@ jobs:
       - name: Read version
         run: echo "BB_VERSION_NAME=$(tr -d ' \r\n' < version.txt)" >> "$GITHUB_ENV"
       - run: npm ci
+      - name: Tester build - turn on WebView debugging
+        if: ${{ inputs.tester }}
+        run: |
+          node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          echo "BB_TAG_SUFFIX=-tester" >> "$GITHUB_ENV"
       - run: npx cap sync android
       - name: Build signed APK
         env:
@@ -44,8 +56,9 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/BizzyBee-$BB_VERSION_NAME.apk"
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: android-v${{ env.BB_VERSION_NAME }}-b${{ github.run_number }}
+          tag_name: android-v${{ env.BB_VERSION_NAME }}-b${{ github.run_number }}${{ env.BB_TAG_SUFFIX }}
           target_commitish: ${{ github.sha }}
-          name: BizzyBee Android ${{ env.BB_VERSION_NAME }}
+          name: BizzyBee Android ${{ env.BB_VERSION_NAME }}${{ env.BB_TAG_SUFFIX }}
+          prerelease: ${{ inputs.tester }}
           body: Install on your phone, or tap Update in the app (Settings › About). Updates install over the old version.
           files: BizzyBee-${{ env.BB_VERSION_NAME }}.apk

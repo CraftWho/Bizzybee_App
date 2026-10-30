@@ -4,6 +4,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.Intent;
+import android.provider.AlarmClock;
+import android.provider.CalendarContract;
 import android.database.Cursor;
 import android.media.AudioAttributes;
 import android.media.Ringtone;
@@ -62,6 +65,14 @@ public class BeeAlertsPlugin extends Plugin {
         int type = typeOf(call.getString("kind", "notification"));
         JSArray out = new JSArray();
         Set<String> seen = new HashSet<>();
+        // Oct 30 2026 (Craft): BizzyBee's own buzz first (res/raw/bizzybee_buzz.wav).
+        int buzz = getContext().getResources().getIdentifier("bizzybee_buzz", "raw", getContext().getPackageName());
+        if (buzz != 0) {
+            JSObject b = new JSObject();
+            b.put("title", "🐝 BizzyBee buzz");
+            b.put("uri", "android.resource://" + getContext().getPackageName() + "/raw/bizzybee_buzz");
+            out.put(b);
+        }
         try {
             RingtoneManager rm = new RingtoneManager(getContext());
             rm.setType(type);
@@ -175,5 +186,52 @@ public class BeeAlertsPlugin extends Plugin {
             else v.vibrate(p, -1);
         }
         call.resolve();
+    }
+
+    // Oct 30 2026 (Craft): "Set alarm" - opens the phone's Clock with the
+    // time filled in, so the user confirms it there. days = Calendar.SUNDAY(1)..SATURDAY(7).
+    @PluginMethod
+    public void setAlarm(PluginCall call) {
+        try {
+            Intent i = new Intent(AlarmClock.ACTION_SET_ALARM);
+            i.putExtra(AlarmClock.EXTRA_HOUR, call.getInt("hour", 9));
+            i.putExtra(AlarmClock.EXTRA_MINUTES, call.getInt("minutes", 0));
+            i.putExtra(AlarmClock.EXTRA_MESSAGE, call.getString("message", "BizzyBee"));
+            JSArray days = call.getArray("days");
+            if (days != null && days.length() > 0) {
+                java.util.ArrayList<Integer> list = new java.util.ArrayList<>();
+                for (int d = 0; d < days.length(); d++) list.add(days.optInt(d));
+                i.putExtra(AlarmClock.EXTRA_DAYS, list);
+            }
+            i.putExtra(AlarmClock.EXTRA_SKIP_UI, false);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("No clock app found");
+        }
+    }
+
+    // Oct 30 2026 (Craft): "Add to calendar" - opens the phone's calendar
+    // with the event filled in. No calendar permission needed.
+    @PluginMethod
+    public void addToCalendar(PluginCall call) {
+        try {
+            Intent i = new Intent(Intent.ACTION_INSERT).setData(CalendarContract.Events.CONTENT_URI);
+            i.putExtra(CalendarContract.Events.TITLE, call.getString("title", "BizzyBee"));
+            i.putExtra(CalendarContract.Events.DESCRIPTION, call.getString("notes", ""));
+            // Times come in as ms numbers; read them as Long or Double, whichever JSON gave.
+            long begin = call.getData().optLong("begin", 0), end = call.getData().optLong("end", 0);
+            if (begin > 0) i.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, begin);
+            if (end > 0) i.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, end);
+            i.putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, Boolean.TRUE.equals(call.getBoolean("allDay", false)));
+            String rrule = call.getString("rrule", "");
+            if (rrule != null && !rrule.isEmpty()) i.putExtra(CalendarContract.Events.RRULE, rrule);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("No calendar app found");
+        }
     }
 }
