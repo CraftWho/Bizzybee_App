@@ -1,9 +1,10 @@
 // Terminal access - see netlify/lib/terminal-access.mjs.
 // GET: your level. POST { action }: request | log (anyone signed in / granted),
-// grant | revoke | requests | grants | logs | dismiss (owners only).
+// grant | revoke | requests | grants | logs | dismiss | activate | deactivate | codes (owners only).
+// redeem (any signed-in user): use a redeem code such as FullHeal.
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json } from '../lib/cloud-store.mjs';
-import { termStore, isOwnerEmail, activeLevel, makeGrant, addRequest, addLog, cleanEmail, validEmail } from '../lib/terminal-access.mjs';
+import { termStore, isOwnerEmail, activeLevel, makeGrant, addRequest, addLog, cleanEmail, validEmail, newCode, redeemCode } from '../lib/terminal-access.mjs';
 
 export default async (req) => {
     if (!['GET', 'POST'].includes(req.method)) return json({ ok: false, error: 'Method not allowed' }, 405);
@@ -31,7 +32,35 @@ export default async (req) => {
             await store.setJSON('log', addLog(await store.get('log', { type: 'json' }), email, body.cmd, body.ok !== false));
             return json({ ok: true });
         }
+        // Oct 30 2026 (Craft): redeem codes. Any signed-in user, no grant needed.
+        if (a === 'redeem') {
+            const name = String(body.code || '').trim().toLowerCase();
+            const record = await store.get(`code/${name}`, { type: 'json' });
+            let result;
+            try { result = redeemCode(record); } catch (error) { return json({ ok: false, error: error.message }, 400); }
+            if (result.next) await store.setJSON(`code/${name}`, result.next);
+            else await store.delete(`code/${name}`);
+            return json({ ok: true, left: result.left, max: record.max });
+        }
         if (!owner) return json({ ok: false, error: 'Owners only.' }, 403);
+        if (a === 'activate' || a === 'deactivate') {
+            const name = String(body.code || '').trim().toLowerCase();
+            if (!/^[a-z0-9]{3,24}$/.test(name)) return json({ ok: false, error: 'Code names are 3 to 24 letters or numbers.' }, 400);
+            if (a === 'activate') await store.setJSON(`code/${name}`, newCode(name));
+            else {
+                const record = await store.get(`code/${name}`, { type: 'json' });
+                if (!record) return json({ ok: false, error: 'No code by that name.' }, 404);
+                await store.setJSON(`code/${name}`, { ...record, active: false });
+            }
+            await store.setJSON('log', addLog(await store.get('log', { type: 'json' }), email, `${a} ${name}`, true));
+            return json({ ok: true, code: name });
+        }
+        if (a === 'codes') {
+            const { blobs } = await store.list({ prefix: 'code/' });
+            const out = [];
+            for (const b of blobs) out.push(await store.get(b.key, { type: 'json' }));
+            return json({ ok: true, codes: out.filter(Boolean) });
+        }
         if (a === 'grant') {
             const who = cleanEmail(body.email);
             if (!validEmail(who)) return json({ ok: false, error: 'That email doesn\'t look right.' }, 400);

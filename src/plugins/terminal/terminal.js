@@ -95,7 +95,7 @@ function termStartCooldown(name) { const m = termCooldowns(); m[name] = Date.now
 // user can run it once per 10 min. confirm: asks for YES (backup first).
 const TERM_COMMANDS = [
     { name: 'help', need: 'none', help: 'List the commands you can use.', run: () => {
-        const rows = TERM_COMMANDS.filter(c => termCan(c.need) && (!c.test || Vault.devTest)).map(c => `  ${(c.usage || c.name).padEnd(20)}${c.help}`);
+        const rows = TERM_COMMANDS.filter(c => termCan(c.need) && !c.hidden && (!c.test || Vault.devTest)).map(c => `  ${(c.usage || c.name).padEnd(20)}${c.help}`);
         const out = [[termLevel === 'none' ? 'This Terminal is locked.' : `Access: ${termLevel.toUpperCase()}${termExpires ? ' until ' + new Date(termExpires).toLocaleString() : ''}`, 'head'], ...rows.map(r => [r])];
         if (termLevel === 'none') out.push(['Something broken? Type: request <what happened>', 'warn'], ['The team will unlock repair commands for you.', 'dim']);
         if (termCan('moderator') && !Vault.devTest) out.push(['Test commands appear in Test Mode: testmode on', 'dim']);
@@ -121,6 +121,17 @@ const TERM_COMMANDS = [
         ];
     } },
     { name: 'clear', need: 'none', help: 'Clear the screen.', run: () => { document.getElementById('tm-out').innerHTML = ''; return []; } },
+
+    // Oct 30 2026 (Craft): redeem code FullHeal. Any signed-in user, no grant.
+    // Heals every bee on the real save (backup first). Hidden from help.
+    { name: 'fullheal', need: 'none', hidden: true, help: 'Redeem the FullHeal code: heal all bees.', run: async () => {
+        if (!termSignedIn) return [['Sign in to your cloud account first.', 'err']];
+        const r = await termServer({ action: 'redeem', code: 'fullheal' });
+        termBackup('FullHeal');
+        const list = Vault.getColonyBees().filter(b => b.life);
+        list.forEach(b => Object.assign(b.life, { health: 100, stamina: 100, fullness: 100, happiness: 90, faintedAt: null })); Vault.save();
+        return [[`FullHeal! ${list.length} bee${list.length === 1 ? '' : 's'} cured.`, 'ok'], [`${r.left} of ${r.max} FullHeal uses left.`, 'dim']];
+    } },
 
     // ---- user: repair your real save ----
     { name: 'repair', need: 'user', cooldown: true, help: 'Re-run every save fix (safe).', run: () => {
@@ -277,6 +288,20 @@ const TERM_COMMANDS = [
     { name: 'revoke', usage: 'revoke <email>', need: 'owner', args: true, help: 'Take Terminal access away.', run: async (a) => {
         await termServer({ action: 'revoke', email: a[0] });
         return [[`Access removed for ${a[0]}.`, 'ok']];
+    } },
+    // Oct 30 2026 (Craft): turn redeem codes on or off. A code gets 5 uses.
+    { name: 'activate', usage: 'activate <code>', need: 'owner', args: true, help: 'Turn a redeem code on (5 uses).', run: async (a) => {
+        const r = await termServer({ action: 'activate', code: a[0] });
+        return [[`${r.code} is on. 5 uses.`, 'ok']];
+    } },
+    { name: 'deactivate', usage: 'deactivate <code>', need: 'owner', args: true, help: 'Turn a redeem code off.', run: async (a) => {
+        const r = await termServer({ action: 'deactivate', code: a[0] });
+        return [[`${r.code} is off.`, 'ok']];
+    } },
+    { name: 'codes', need: 'owner', help: 'Redeem codes and uses left.', run: async () => {
+        const r = await termServer({ action: 'codes' });
+        if (!r.codes.length) return [['No codes yet. Type activate fullheal.', 'dim']];
+        return r.codes.map(c => [`  ${c.name} · ${c.active ? 'on' : 'off'} · ${c.uses}/${c.max} used`]);
     } },
     { name: 'grants', need: 'owner', help: 'Who has access right now.', run: async () => {
         const r = await termServer({ action: 'grants' });

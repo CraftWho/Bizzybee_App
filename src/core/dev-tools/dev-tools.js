@@ -457,23 +457,21 @@
             <div class="dev-row">${testOn()
                 ? '<button data-dev="test-off" class="go">Back to my real save</button><button data-dev="test-wipe" class="danger">Wipe test save</button>'
                 : '<button data-dev="test-on" class="go">Switch to test save</button>'}</div>
-            ${testOn() ? '' : '<p class="dev-note">Tools are locked on your real save. Switch to the test save to use them. It starts a fresh egg, never syncs, and your real save comes straight back when you switch off.</p>'}`;
+            ${testOn() ? '' : '<p class="dev-note">Tools that change a save (egg, XP, bees, tickets, hive life) are on the test save. It starts a fresh egg, never syncs, and your real save comes straight back when you switch off.</p>'}`;
 
         const panel = document.createElement('aside');
-        panel.className = 'dev-panel' + (canAct() ? '' : ' dev-locked');
+        panel.className = 'dev-panel';   // Oct 30 2026 (Craft): no dimmed lock; save-changing tools just aren't shown on the real save
         panel.setAttribute('aria-label', 'Dev tools');
         panel.innerHTML = `
             <button class="dev-close" type="button" data-dev="close" aria-label="Close">✕</button>
             <h2>🛠 DEV TOOLS</h2>
-            <p class="dev-sub">${localDev ? 'This computer only.' : 'Owner account only. Works on the test save.'}</p>
+            <p class="dev-sub">${localDev ? 'This computer only.' : canAct() ? 'Owner account · test save.' : 'Owner account · real save. Tools that change a save are on the test save.'}</p>
             <div class="dev-state" id="dev-state"></div>
             ${testBlock}
-
-            <h3>THEMES · NEW IN 1.0.5</h3>
+            <h3>THEMES</h3>
             <div class="dev-row">
                 <button data-dev="theme" data-t="auto">✨ Auto</button>
                 <button data-dev="theme" data-t="bee">🐝 BizzyBee</button>
-                <button data-dev="theme" data-t="halloween">🎃 Halloween</button>
                 <button data-dev="theme-day" data-d="halloween" class="go">Pretend it's Oct 31</button>
                 <button data-dev="theme-day">Back to today</button>
                 <a href="${root}/src/features/themes/themes.html">Themes page</a>
@@ -482,6 +480,7 @@
             </div>
 
             <div class="dev-act">
+            ${canAct() ? `
             <h3>EGG</h3>
             <div class="dev-row">
                 <button data-dev="egg-restart">Restart egg</button>
@@ -511,6 +510,7 @@
                 <button data-dev="rehatch">Re-show bee hatching</button>
             </div>
 
+            ` : ''}
             <h3>PREVIEW · NOTHING IS SAVED</h3>
             <div class="dev-row">
                 ${['Common', 'Rare', 'Epic', 'Legendary', 'Named'].map(r => `<button data-dev="pv-pull" data-r="${r}">Pull · ${r}</button>`).join('')}
@@ -553,6 +553,7 @@
                 ${SKIES.map(([label, sky, hour]) => `<a href="${root}/src/features/colony/colony.html?sky=${sky}&hour=${hour}">Sky · ${label}</a>`).join('')}
             </div>
 
+            ${canAct() ? `
             <h3>TICKETS</h3>
             <div class="dev-row">
                 <button data-dev="tk-1">+1 ticket</button>
@@ -586,11 +587,18 @@
                 <button data-dev="fresh" class="danger">Fresh save</button>
                 <button data-dev="signout" class="danger">Sign out</button>` : ''}
             </div>
+            ` : ''}
             <input type="file" id="dev-import-input" hidden>
             </div>
 
             ${localDev ? `<h3>DEMOS &amp; TEST PAGES</h3>
             <div class="dev-row">${LINKS.map(([label, href]) => `<a href="${root}/${href}">${label}</a>`).join('')}</div>` : ''}`;
+        // Oct 30 2026 (Craft): on the real save the owner keeps the tools that
+        // never change a save (themes, Pretend Oct 31, previews, notification
+        // tests, Inspect, Dock report, sky links). Tools that change the save
+        // (egg, XP, bees, tickets, hive life, samples, save files) are on the
+        // test save and this computer only. The file input is always there:
+        // without it the panel's buttons stopped working on the real save.
         document.body.appendChild(panel);
 
         const open = () => { document.getElementById('dev-state').textContent = stateText(); panel.classList.add('open'); };
@@ -617,7 +625,9 @@
                 }
             };
             if (always[a]) { always[a](); return; }
-            if (!canAct()) return;   // real save: hands off
+            // Oct 30 2026 (Craft): these never change a save, so they work on the real save too.
+            const SAFE = /^(pv-|n-)|^(inspect|dockreport)$/;
+            if (!canAct() && !SAFE.test(a)) return;   // real save: hands off
             const actions = {
                 'egg-restart': EGG.restart, 'egg-nearly': EGG.nearlyFull, 'egg-crack': EGG.crack,
                 'egg-larva': EGG.larva, 'egg-pupa': EGG.pupa, 'egg-ready': EGG.ready,
