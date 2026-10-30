@@ -1905,6 +1905,7 @@ class DatabaseManager {
         this._splitNamedTitles();
         this._splitHashtagTerms();
         this._ensureQueen();
+        this._ensureHiveKey();   // Oct 30 2026 (Craft): the royal is the hive's key
         this.hiveHourlyTick();
         this._pendingLifeEvents = this.hiveDailyTick();
         // Backfills state.dictionary onto any save from before the
@@ -5571,6 +5572,7 @@ class DatabaseManager {
         } else {
             bees.push({
                 id: 'bee-royal',
+                key: makeHiveKey(),   // Oct 30 2026 (Craft): this hive's own key
                 name: (String(name || '').trim().slice(0, 24)) || label,
                 rarity: 'Royal',
                 royal: kind,
@@ -6471,6 +6473,19 @@ Object.assign(DatabaseManager.prototype, {
     },
 });
 
+// Hive key on the Vault (Oct 30 2026, Craft) - see HIVE KEY near mergeSaves.
+Object.assign(DatabaseManager.prototype, {
+    _ensureHiveKey() {
+        if (!this.state) return null;
+        const royal = this.getRoyalBee();
+        if (!royal) { if (this.state.hiveKey) delete this.state.hiveKey; return null; }
+        if (!royal.key) royal.key = makeHiveKey(`${royal.obtainedAt || ''}|${royal.source || ''}|${royal.royal || ''}`);
+        if (this.state.hiveKey !== royal.key) { this.state.hiveKey = royal.key; this.save(); }
+        return royal.key;
+    },
+    getHiveKey() { return this.state ? hiveKeyOf(this.state) : null; }
+});
+
 // ============================================================================
 // DAILY BONUS (Oct 30 2026, Craft). Open BizzyBee each day to claim a reward.
 // A month of honeycomb cells: claimed = full, today = glowing, coming = empty,
@@ -6805,7 +6820,43 @@ function mergeList(kind, a, b, tomb) {
 }
 
 // Merge two whole saves (plain objects). Returns a new object.
+// ============================================================================
+// HIVE KEY (Oct 30 2026, Craft): the King or Queen is the hive's identity,
+// like a car's key chip. Every royal carries a permanent key (royal.key,
+// copied to state.hiveKey). Two copies of a save only merge when they are
+// the same hive; two different hives never mix (Settings › Account & cloud
+// asks which one to keep, and the other is kept as a backup). A save with
+// no royal yet (still an egg) has no key and can join any hive.
+// Existing royals get a key made from their own hatch record, so the same
+// hive gets the same key on every device without talking to each other.
+// ============================================================================
+function makeHiveKey(seed) {
+    const ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let out = '';
+    if (seed) {
+        let h1 = 0x811c9dc5, h2 = 0x01000193;   // two FNV-1a style hashes
+        for (let i = 0; i < seed.length; i++) { const c = seed.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 ^ c, 2246822519) >>> 0; }
+        for (let i = 0; i < 8; i++) { const h = i < 4 ? h1 : h2; out += ABC[(h >>> ((i % 4) * 7)) % ABC.length]; }
+    } else {
+        const r = (typeof crypto !== 'undefined' && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(8)) : Array.from({ length: 8 }, () => Math.floor(Math.random() * 1e9));
+        for (let i = 0; i < 8; i++) out += ABC[r[i] % ABC.length];
+    }
+    return `HV-${out.slice(0, 4)}-${out.slice(4)}`;
+}
+function hiveKeyOf(state) {
+    if (!state) return null;
+    if (state.hiveKey) return state.hiveKey;
+    const royal = ((state.colony && state.colony.bees) || []).find(b => b && b.rarity === 'Royal');
+    return (royal && royal.key) || null;
+}
+function sameHive(a, b) {
+    const ka = hiveKeyOf(a), kb = hiveKeyOf(b);
+    return !ka || !kb || ka === kb;
+}
+
 function mergeSaves(a, b) {
+    // Oct 30 2026 (Craft): never mix two different hives (HIVE KEY above).
+    if (!sameHive(a, b)) { const e = new Error('This account holds a different hive. Choose which one to keep in Settings › Account & cloud.'); e.code = 'different-hive'; throw e; }
     const ta = Date.parse(a.updatedAt || 0) || 0, tb = Date.parse(b.updatedAt || 0) || 0;
     const base = tb > ta ? b : a, other = base === a ? b : a;
     const out = mergeClone(base);
