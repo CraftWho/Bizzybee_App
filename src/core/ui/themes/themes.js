@@ -1,26 +1,24 @@
-// Themes (Oct 28 2026). Pick a theme in Settings › Themes. 'auto' is
-// BizzyBee, and Halloween on Oct 31. boot.js sets the theme before the page
+// Themes (Oct 28 2026). Pick a theme in Settings › Themes. Halloween is
+// automatic on Oct 31 for everyone (not a pick since Oct 30 2026). boot.js sets the theme before the page
 // paints; this file handles picking, the icons and the Halloween bats.
 //   Themes.list() · Themes.pick() · Themes.current() · Themes.set(id)
 const Themes = (() => {
     const KEY = 'bizzybee_theme', DAY_KEY = 'bizzybee_dev_day';
+    // Oct 30 2026 (Craft): Halloween is no longer a pick. On Oct 31 (your
+    // local day) everyone gets it, whatever they picked, and the Halloween
+    // challenge comes with it. Any other day: their pick (Auto = BizzyBee).
     const THEMES = [
         { id: 'auto', icon: '✨', label: 'Auto', note: 'BizzyBee, and Halloween on Oct 31', colors: ['#ffcc00', '#ff7a1a', '#8fe33a'], bg: ['#1a140b', '#160b1f'] },
         { id: 'bee', icon: '🐝', label: 'BizzyBee', note: 'Black, gold and red', colors: ['#ffcc00', '#dc143c', '#f1ede2'], bg: ['#1a140b', '#050402'] },
-        { id: 'halloween', icon: '🎃', label: 'Halloween', note: 'Pumpkin, slime, cobwebs and bats', colors: ['#ff7a1a', '#8fe33a', '#f3ead8'], bg: ['#22102e', '#0a0510'] },
     ];
     const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
     const put = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* storage off */ } };
-    // Oct 30 2026 (Craft): pretending a day is a test-save / dev tool, so the
-    // override only counts on the test save or this computer's dev login.
-    const devOn = () => get('bizzybee_dev_test') === '1' || get('bizzybee_dev') === '1';
-    const today = () => { const d = devOn() ? get(DAY_KEY) : null; return d ? new Date(d + 'T12:00:00') : new Date(); };
-    // Oct 30 2026 (Craft): Halloween is for Oct 31 only, for everyone. After
-    // that day it goes back to BizzyBee on its own.
+    // The dev panel can pretend it's Oct 31 (only changes the look on this device).
+    const today = () => { const d = get(DAY_KEY); return d ? new Date(d + 'T12:00:00') : new Date(); };
     const isHalloween = (d) => d.getMonth() === 9 && d.getDate() === 31;
     const seasonal = () => (isHalloween(today()) ? 'halloween' : 'bee');
     const pick = () => { const p = get(KEY); return THEMES.some(t => t.id === p) ? p : 'auto'; };
-    const current = () => { const c = pick() === 'auto' ? seasonal() : pick(); return c === 'halloween' && !isHalloween(today()) ? 'bee' : c; };
+    const current = () => (isHalloween(today()) ? 'halloween' : pick() === 'auto' ? 'bee' : pick());
 
     // App icons: each theme can have its own set in src/assets/icons/<id>/.
     const ICON_SETS = { halloween: 'halloween/' };
