@@ -25,25 +25,21 @@
     <main class="pv2 hs2">
         <header class="pv2-head">
             <h1 class="pv2-title">🍯 HONEY STORE</h1>
-            <p class="pv2-lead">Spend materials on gear that gives a bee a trait.</p>
+            <p class="pv2-lead">Spend coins and materials on things for your bees.</p>
         </header>
 
-        <div class="stats hs-wallet" id="store-wallet-panel"></div>
-
-        <h2 class="sec">Special items</h2>
-        <section class="card" id="store-identity-row"></section>
-
-        <h2 class="sec" id="incubators">Egg incubators</h2>
-        <div class="hs-inc" id="store-incubators"></div>
-        <p class="note">Paid with Honey coins. Eggs inside hatch faster as you walk or finish dailies. One works at a time, and a better one takes over. <a href="../incubator/incubator.html">Open your incubator</a></p>
-
-        <h2 class="sec">Items bees hold</h2>
-        <div class="tiles" id="store-held-grid"></div>
-        <p class="note">Rare and Epic bees hold 1 item, Legendary and Named hold 2. Use-up items fire on their own when needed. Gear stays on. Give one from a bee's card on <a href="../colony-bees/colony-bees.html">Colony Bees</a>.</p>
-
-        <h2 class="sec">Trait gear</h2>
-        <div class="tiles" id="store-item-grid"></div>
-        <p class="note">Each item gives a bee a trait, and a Common or Rare bee a shot at Epic. Use them from a bee's card on the <a href="../colony-bees/colony-bees.html">Colony Bees</a> page.</p>
+        <!-- Oct 30 2026 (Craft): Store v3 - currencies stay at the top, tabs,
+             search, item cards, buy several (capped by what you can afford). -->
+        <div class="hs-wallet3" id="store-wallet-panel"></div>
+        <label class="hs-search">🔍<input type="search" id="hs-q" placeholder="Search the store" aria-label="Search the store" autocomplete="off"></label>
+        <div class="chips hs-tabs" role="group" aria-label="Store section" id="hs-tabs"></div>
+        <p class="note" id="hs-hint"></p>
+        <div class="hs-list" id="hs-list"></div>
+        <div id="hs-inc-wrap" hidden>
+            <div class="hs-inc" id="store-incubators"></div>
+            <p class="note">Paid with Honey coins. Eggs inside hatch faster as you walk or finish dailies. One works at a time, and a better one takes over. <a href="../incubator/incubator.html">Open your incubator</a></p>
+        </div>
+        <details class="card hs-prices"><summary class="row"><span class="hx">📋</span><span class="mid"><b>Price table</b><small>Every item, what it costs and what it sells for</small></span><span class="chev">›</span></summary><div id="hs-price-table"></div></details>
 
         <section class="card hs-links">
             <a class="row" href="../inventory/inventory.html"><span class="hx">🎒</span><span class="mid"><b>Inventory</b><small>Everything you own</small></span><span class="chev">›</span></a>

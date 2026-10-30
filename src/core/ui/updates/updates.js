@@ -5,8 +5,33 @@
 //    downloads and installs it in the app (native BeeUpdater, app 1.0.6+).
 //    The repo is private for now, so the app needs a read-only GitHub token
 //    (Settings › About). When releases go public, no token is needed.
-const APP_WEB_VERSION = '1.0.6';
+const APP_WEB_VERSION = '1.0.7';   // Oct 30 2026 (Craft)
 const WHATS_NEW = [
+    // Oct 30 2026 (Craft): w5 = 1.0.7, the public beta update.
+    { id: 'w5', version: '1.0.7', date: 'Oct 2026',
+      new: [
+        { icon: '🎁', title: 'Daily bonus', text: 'Open BizzyBee each day for a reward. A 7-day cycle, month chests and Claim all. Missed days are gone.', href: 'features/daily-bonus/daily-bonus.html' },
+        { icon: '🏅', title: 'Titles', text: 'Level titles, plus special titles you earn. The one you wear adds to your Daily bonus.', href: 'features/titles/titles.html' },
+        { icon: '🍯', title: 'New Honey Store', text: 'Tabs, search, buy several at once, and a price table.', href: 'features/honey-store/honey-store.html' },
+        { icon: '🎒', title: 'Sell and gift', text: 'Sell items for half their worth. Gift held items to friends. Tickets show as cards.', href: 'features/inventory/inventory.html' },
+        { icon: '📌', title: 'Your Home tiles', text: 'Pin any page to Home from the menu. Remove, add or reset tiles.', href: 'features/home/home.html' },
+        { icon: '📅', title: 'Add to calendar', text: 'Put a To-Do or Daily in your phone\'s calendar. The Android app can set a phone alarm too.', href: 'features/todos/todos.html' },
+        { icon: '🔒', title: 'Quest history and private notes', text: 'See what you finished on a quest, and keep notes only you can unlock.', href: 'features/quests/quests.html' },
+        { icon: '🛟', title: 'Contact support', text: 'Get help in a few taps. A real person replies.', href: 'features/support/support.html' },
+        { icon: '💎', title: 'Thumb pad', text: 'Hold the gold ＋ to pull out a see-through pad you can put anywhere. Triple-tap to put it back.', href: 'features/home/home.html' },
+      ],
+      improved: [
+        { icon: '🐝', title: 'Hive Life', text: 'Red dots show combs with no workers. The best free bees come first, with how much each helps.', href: 'features/colony/colony.html' },
+        { icon: '🃏', title: 'Bee cards', text: 'Colony Bees opens as a grid. Tap a card to see it big and flip it.', href: 'features/colony-bees/colony-bees.html' },
+        { icon: '🔤', title: 'Text presets and fonts', text: 'Easy read, Big & bold and more, in Settings › Look & feel.', href: 'features/settings/settings.html' },
+        { icon: '💡', title: 'Tips', text: 'Each tip has "Don\'t show again". Settings › Show tips again brings them back.', href: 'features/guide/guide.html' },
+        { icon: '☁️', title: 'Cloud saves', text: 'Your hive saves to your account in small batches, every couple of minutes.', href: 'features/settings/settings.html' },
+        { icon: '🐝', title: 'Smoother bees', text: 'Bees in Hive Life walk and fly more naturally.', href: 'features/colony/colony.html' },
+        { icon: '📱', title: 'Made for phones', text: 'On a phone, Back leaves the hive. Computers keep the Leave Hive button.', href: 'features/colony/colony.html' },
+        { icon: '💻', title: 'Terminal', text: 'Real terminal commands (ls, cd, grep, pipes, Tab), a backup when it opens, and a Revert button.', href: 'plugins/terminal/terminal.html' },
+      ],
+      fixed: []
+    },
     // Oct 29 2026 (Craft): w4 = this week's push. The Mailbox Updates tab lists every entry.
     { id: 'w4', version: '1.0.6', date: 'Oct 2026',
       new: [

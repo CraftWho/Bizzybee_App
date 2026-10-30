@@ -2,3 +2,20 @@
    Only page-specific bits here. */
 .inv2 .card a.row { color: var(--ink); }
 .inv2 .card a.row .mid b { font-size: 1rem; color: var(--gold2); }
+
+/* Oct 30 2026 (Craft): tickets as cards, sell and gift */
+.inv-tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.inv-ticket { position: relative; display: grid; justify-items: center; gap: 2px; padding: 16px 10px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #ffe27a, #ffb300); color: #2a1a00; cursor: pointer; box-shadow: 0 6px 16px rgba(0, 0, 0, .45);
+    -webkit-mask: radial-gradient(circle 9px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 9px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+    mask: radial-gradient(circle 9px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 9px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat; }
+.inv-ticket span { font-size: 1.6rem; }
+.inv-ticket b { font: 800 .74rem var(--font-main, monospace); letter-spacing: .12em; }
+.inv-ticket small { font: 700 .6rem var(--font-main, monospace); letter-spacing: .14em; opacity: .7; }
+.inv-gifts { border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .5) !important; }
+.pv2-sheet .inv-sell, .pv2-sheet .inv-gift { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, .08); display: grid; gap: 8px; }
+.pv2-sheet .inv-gift small a { color: var(--gold, #ffcc00); }
+.pv2-sheet .hs-qty { display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; gap: 10px; }
+.pv2-sheet .hs-qty button { height: 44px; border-radius: 14px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .1); color: var(--gold, #ffcc00); font-size: 1.3rem; font-weight: 700; }
+.pv2-sheet .hs-qty button:disabled { opacity: .35; }
+.pv2-sheet .hs-qty output { text-align: center; display: grid; }
+.pv2-sheet .hs-qty output small { font-size: .72rem; color: var(--muted, #a69a80); }

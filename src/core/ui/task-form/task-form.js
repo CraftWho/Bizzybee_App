@@ -212,6 +212,93 @@ const TaskForm = {
         };
     },
 
+    // Oct 30 2026 (Craft): "Add to calendar" and "Set alarm" buttons.
+    // Calendar works everywhere: the Android app opens the phone's calendar
+    // with the event filled in; the web gives an .ics file (iPhone and
+    // Android both open it in their calendar). The event alerts 15 min early.
+    // Set alarm is app only (a website can't set phone alarms): it opens the
+    // phone's Clock with the time filled in.
+    // info() returns { title, notes, date 'YYYY-MM-DD', time 'HH:MM'|null,
+    //   repeat: null | { type: 'daily'|'weekly'|'monthly', every, days: [0-6] } }
+    phoneButtons(mount, info) {
+        const Cap = window.Capacitor;
+        const isApp = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+        const native = () => (isApp && Cap.Plugins && Cap.Plugins.BeeAlerts) || null;
+        const toast = (m, t = 'neutral') => { if (typeof Toast !== 'undefined') Toast.show(m, t); };
+        mount.innerHTML = `<div class="tf-phone">
+            <button type="button" class="tf-phone-btn" data-ph="cal"><span aria-hidden="true">📅</span> Add to calendar</button>
+            ${isApp ? '<button type="button" class="tf-phone-btn" data-ph="alarm"><span aria-hidden="true">⏰</span> Set alarm</button>' : ''}
+        </div><p class="hf-hint hf-hint-left tf-phone-hint">${isApp ? 'Uses your phone\'s own calendar and clock. They ring even if BizzyBee is closed.' : 'Adds it to your phone\'s calendar, with an alert 15 minutes early.'}</p>`;
+        const pad = n => String(n).padStart(2, '0');
+        const DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+        const rrule = (r) => !r ? '' : `FREQ=${r.type === 'monthly' ? 'MONTHLY' : r.type === 'weekly' ? 'WEEKLY' : 'DAILY'};INTERVAL=${Math.max(1, r.every || 1)}${r.type === 'weekly' && r.days && r.days.length ? ';BYDAY=' + r.days.map(d => DAYS[d]).join(',') : ''}`;
+        const icsText = (x) => {
+            const d = x.date.replace(/-/g, ''), now = new Date();
+            const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+            const esc = t => String(t || '').replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+            let start, end;
+            const fmt = t => `${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}T${pad(t.getHours())}${pad(t.getMinutes())}00`;
+            if (x.time) {
+                const [Y, M, D] = x.date.split('-').map(Number), [h, m] = x.time.split(':').map(Number);
+                const s0 = new Date(Y, M - 1, D, h, m);
+                start = `DTSTART:${fmt(s0)}`;
+                end = `DTEND:${fmt(new Date(s0.getTime() + 30 * 60000))}`;
+            } else {
+                const n = new Date(x.date + 'T12:00'); n.setDate(n.getDate() + 1);
+                start = `DTSTART;VALUE=DATE:${d}`; end = `DTEND;VALUE=DATE:${n.getFullYear()}${pad(n.getMonth() + 1)}${pad(n.getDate())}`;
+            }
+            return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BizzyBee//EN', 'BEGIN:VEVENT',
+                `UID:${Date.now()}-${Math.random().toString(36).slice(2)}@bizzybee`, `DTSTAMP:${stamp}`, start, end,
+                ...(x.repeat ? [`RRULE:${rrule(x.repeat)}`] : []),
+                `SUMMARY:${esc('🐝 ' + x.title)}`, ...(x.notes ? [`DESCRIPTION:${esc(x.notes)}`] : []),
+                ...(x.time ? ['BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc(x.title)}`, 'TRIGGER:-PT15M', 'END:VALARM'] : []),
+                'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+        };
+        const addToCalendar = async (x) => {
+            const n = native();
+            if (n) {
+                const [h, m] = (x.time || '00:00').split(':').map(Number);
+                const [Y, M, D] = x.date.split('-').map(Number);
+                const begin = new Date(Y, M - 1, D, h, m).getTime();
+                try {
+                    await n.addToCalendar({ title: '🐝 ' + x.title, notes: x.notes || '', begin, end: begin + (x.time ? 30 : 24 * 60) * 60000, allDay: !x.time, rrule: rrule(x.repeat) });
+                    return;
+                } catch (e) { toast('Update BizzyBee (Settings › About) to add this to your calendar.'); return; }
+            }
+            const url = URL.createObjectURL(new Blob([icsText(x)], { type: 'text/calendar' }));
+            const a = document.createElement('a');
+            a.href = url; a.download = (x.title.replace(/[^\w ]+/g, '').trim().slice(0, 40) || 'bizzybee') + '.ics';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            toast('📅 Calendar file ready. Open it to add the event.', 'positive');
+        };
+        const setAlarm = async (x) => {
+            const n = native();
+            if (!n) return;
+            if (!x.time) { toast(x.repeat ? 'Add a reminder time first.' : 'Set a deadline time first.'); return; }
+            if (!x.repeat) {
+                const [Y, M, D] = x.date.split('-').map(Number), [h, m] = x.time.split(':').map(Number);
+                const at = new Date(Y, M - 1, D, h, m).getTime(), now = Date.now();
+                if (at <= now) { toast('That time has passed.'); return; }
+                if (at - now > 24 * 3600000) { toast('A phone alarm can only be set for the next 24 hours. Add it to your calendar instead.'); return; }
+            }
+            const [h, m] = x.time.split(':').map(Number);
+            // Android counts Sunday as 1. Only every-week repeats can map to alarm days.
+            const days = x.repeat && x.repeat.type === 'weekly' && (x.repeat.every || 1) === 1 ? (x.repeat.days || []).map(d => d + 1)
+                : x.repeat && x.repeat.type === 'daily' && (x.repeat.every || 1) === 1 ? [1, 2, 3, 4, 5, 6, 7] : [];
+            try { await n.setAlarm({ hour: h, minutes: m, message: '🐝 ' + x.title.slice(0, 60), days }); }
+            catch (e) { toast('Update BizzyBee (Settings › About) to set alarms.'); }
+        };
+        mount.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-ph]');
+            if (!b) return;
+            const x = info();
+            if (!x) return;
+            if (!x.title) { toast('Give it a name first.'); return; }
+            if (b.dataset.ph === 'cal') addToCalendar(x); else setAlarm(x);
+        });
+    },
+
     privacyToggle(btn, tip) {
         btn.addEventListener('click', () => {
             tip.hidden = !tip.hidden;

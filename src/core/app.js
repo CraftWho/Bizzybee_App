@@ -148,9 +148,28 @@ const Appearance = {
     PARAS: ['#a69a80', '#d9cfb4', '#efe6cc', '#ffffff', '#ffe9b0', '#d8e8ff'],
     SIZES: { S: 93.75, M: 100, L: 112.5, XL: 125 },
     PSIZES: { S: 0.92, M: 1, L: 1.12, XL: 1.25 },
+    // Oct 30 2026 (Craft): one-tap presets and a font choice, on top of the
+    // separate controls. A preset just sets the controls below it.
+    FONTS: {
+        app: { label: 'App', css: null },
+        readable: { label: 'Easy read', css: '"Atkinson Hyperlegible", system-ui, sans-serif', href: 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap' },
+        plain: { label: 'Plain', css: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
+        serif: { label: 'Book', css: 'Georgia, "Times New Roman", serif' }
+    },
+    PRESETS: [
+        { id: 'default', icon: '🐝', label: 'Default', set: {} },
+        { id: 'easy', icon: '👓', label: 'Easy read', set: { size: 'L', psize: 'L', font: 'readable', contrast: true } },
+        { id: 'big', icon: '🔠', label: 'Big & bold', set: { size: 'XL', psize: 'L', bold: true, contrast: true, font: 'plain' } },
+        { id: 'compact', icon: '📏', label: 'Compact', set: { size: 'S', psize: 'S' } }
+    ],
+    presetNow() {
+        const v = this.get(), base = { title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false, font: 'app' };
+        const p = this.PRESETS.find(x => Object.entries({ ...base, ...x.set }).every(([k, val]) => (v[k] ?? base[k]) === val));
+        return p ? p.id : null;
+    },
     get() {
-        try { return Object.assign({ title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false }, JSON.parse(localStorage.getItem(this.KEY) || '{}')); }
-        catch { return { title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false }; }
+        try { return Object.assign({ title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false, font: 'app' }, JSON.parse(localStorage.getItem(this.KEY) || '{}')); }
+        catch { return { title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false, font: 'app' }; }
     },
     set(patch) {
         const next = patch ? Object.assign(this.get(), patch) : {};
@@ -171,6 +190,12 @@ const Appearance = {
         const para = v.para || (v.contrast ? '#efe6cc' : null);
         const pk = this.PSIZES[v.psize] || 1;
         if (para || pk !== 1) css.push(this._paraCSS(para, pk));
+        const font = this.FONTS[v.font];
+        if (font && font.css) {
+            if (font.href && !document.getElementById('bb-look-font')) { const l = document.createElement('link'); l.id = 'bb-look-font'; l.rel = 'stylesheet'; l.href = font.href; (document.head || document.documentElement).appendChild(l); }
+            // Body text only: titles, numbers and icons keep the app's look.
+            css.push(`body, body p, body small, body li, body input, body textarea, body select, .row .mid b, .dr-title, .hr-title, .card b { font-family: ${font.css} !important; }`);
+        }
         if (v.bold) css.push(`body * { font-weight: 600 !important; } body b, body strong, body h1, body h2, body h3, .pv2-title, .dl-title { font-weight: 800 !important; }`);
         tag.textContent = css.join('\n');
     },
@@ -237,7 +262,12 @@ const Appearance = {
         const render = () => {
             const v = this.get();
             const sw = (key, list, def) => list.map(c => `<button type="button" class="look-sw" data-k="${key}" data-v="${c}" style="background:${c}" aria-label="${c}" aria-pressed="${(v[key] || def) === c}"></button>`).join('');
+            const now = this.presetNow();
             host.innerHTML = `
+                <div class="row"><span class="hx">⚡</span><span class="mid"><b>Quick presets</b><small>One tap. Fine-tune below.</small></span></div>
+                <div class="look-presets">${this.PRESETS.map(p => `<button type="button" class="look-preset" data-preset="${p.id}" aria-pressed="${now === p.id}"><span aria-hidden="true">${p.icon}</span>${p.label}</button>`).join('')}</div>
+                <div class="row"><span class="hx">🔤</span><span class="mid"><b>Font</b><small>For reading text. Titles keep the hive look.</small></span></div>
+                <div class="look-presets look-fonts">${Object.entries(this.FONTS).map(([k, f]) => `<button type="button" class="look-preset" data-font="${k}" aria-pressed="${(v.font || 'app') === k}" style="${f.css ? `font-family:${f.css.replace(/"/g, "'")}` : ''}">${f.label}</button>`).join('')}</div>
                 <div class="row"><span class="hx">🔠</span><span class="mid"><b>Title color</b><small>Page titles and section labels</small></span></div>
                 <div class="look-line">${sw('title', this.TITLES, this.TITLES[0])}</div>
                 <div class="row"><span class="hx">✏️</span><span class="mid"><b>Text color</b><small>Task names and main text</small></span></div>
@@ -254,6 +284,10 @@ const Appearance = {
         host.addEventListener('click', (e) => {
             const s = e.target.closest('.look-sw');
             if (s) { const def = { title: this.TITLES[0], text: this.TEXTS[0], para: this.PARAS[0] }[s.dataset.k]; this.set({ [s.dataset.k]: s.dataset.v === def ? null : s.dataset.v }); render(); return; }
+            const pr = e.target.closest('[data-preset]');
+            if (pr) { const p = this.PRESETS.find(x => x.id === pr.dataset.preset); this.set(null); if (p && Object.keys(p.set).length) this.set(p.set); render(); return; }
+            const fo = e.target.closest('[data-font]');
+            if (fo) { this.set({ font: fo.dataset.font }); render(); return; }
             const pz = e.target.closest('[data-psize]');
             if (pz) { this.set({ psize: pz.dataset.psize }); render(); return; }
             const z = e.target.closest('[data-size]');
@@ -444,6 +478,9 @@ const AppShell = {
             : royal.name && royal.name !== name
                 ? `👑 ${title} <b>${esc(royal.name)}</b> rules your hive`
                 : `👑 <b>${title}</b> of the hive`;
+        // Oct 30 2026 (Craft): the title you wear (Titles page) sits after it.
+        const worn = typeof Vault.getTitles === 'function' ? (Vault.getTitles() || {}).worn : null;
+        if (worn && royal) q('.ah-line').innerHTML += ` · <span class="ah-title">${worn.kind === 'special' ? worn.icon + ' ' : ''}${esc(worn.name)}</span>`;
         q('.ah-chip').textContent = levelLabel(bar.level);
         // Bar colour changes every 10 levels (purple-pink for Tiers).
         const [lvA, lvB] = levelColor(bar.level);

@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="../../core/ui/modal/modal.css">
     <link rel="stylesheet" href="../../core/ui/bee-name/bee-name.css">
     <link rel="stylesheet" href="./colony.css">
+    <link rel="stylesheet" href="../../core/ui/worker-card/worker-card.css">   <!-- Oct 30 2026 (Craft) -->
     <link rel="stylesheet" href="../../core/ui/weather-fx/weather-fx.css">
 </head>
 <body>
@@ -70,7 +71,7 @@
                      src/features/gacha/). -->
                 <div class="colony-interior-actions">
                     <button type="button" class="colony-enter-btn hl-toggle" id="hive-life-toggle" aria-pressed="false">🐝 Hive Life</button>
-                    <button class="colony-enter-btn colony-leave-btn" id="leave-hive-btn">← Leave Hive</button>
+                    <button class="colony-enter-btn colony-leave-btn desktop-only" id="leave-hive-btn">← Leave Hive</button>   <!-- Oct 30 2026 (Craft): phones use Back -->
                     <a href="../gacha/gacha.html" class="colony-enter-btn colony-gacha-link-btn">🌼 Pollination Chamber</a>
                 </div>
             </div>
@@ -93,6 +94,7 @@
     <script src="./colony-interior.js"></script>
     <script src="../../core/ui/bee-name/bee-name.js"></script>
     <script src="../../core/ui/egg-designs/egg-designs.js"></script>
+    <script src="../../core/ui/worker-card/worker-card.js"></script>
     <script src="./colony-life.js"></script>
     <script src="./colony.js"></script>
     <script src="./colony-friends.js"></script>

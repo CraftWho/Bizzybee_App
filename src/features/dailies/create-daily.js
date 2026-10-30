@@ -181,6 +181,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     checklistEditor = TaskForm.checklist(document.getElementById('df-checklist'), document.getElementById('df-cl-add'), { checkable: 'daily' });
     reminderEditor = TaskForm.reminders(document.getElementById('df-reminders'), document.getElementById('df-rem-add'));
+    // Oct 30 2026 (Craft): in the Android app reminders are real phone notifications.
+    if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) document.getElementById('df-rem-hint').textContent = 'Sends a phone notification on due days, even with the app closed.';
+    // Oct 30 2026 (Craft): Add to calendar (repeats too) / Set alarm, at the first reminder time.
+    TaskForm.phoneButtons(document.getElementById('df-phone'), () => {
+        const start = document.getElementById('daily-start-date').value, today = TaskForm.todayISOLocal();
+        const times = reminderEditor.get().map(r => r.time).sort();
+        return { title: document.getElementById('daily-title-input').value.trim(), notes: document.getElementById('daily-notes-input').value.trim(),
+            date: start && start > today ? start : today, time: times[0] || null,
+            repeat: { type: repeatsType, every: everyValue(), days: repeatsType === 'weekly' ? [...selectedDays].sort() : [] } };
+    });
 
     editingTaskId = new URLSearchParams(window.location.search).get('id');
     const existing = editingTaskId ? Vault.getDailyTasks().find(t => t.id === editingTaskId) : null;

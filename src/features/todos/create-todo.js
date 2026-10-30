@@ -65,6 +65,7 @@ function renderDue() {
     const value = document.getElementById('todo-due-date').value;
     document.getElementById('todo-due-clear').hidden = !value;
     document.getElementById('todo-due-time-box').hidden = !value;
+    document.getElementById('todo-phone').hidden = !value;   // Oct 30 2026 (Craft): calendar/alarm need a date
     // A date with no time: 10 PM (Oct 29 2026, Craft). You can change it.
     const timeEl = document.getElementById('todo-due-time');
     if (value && !timeEl.value) timeEl.value = '22:00';
@@ -78,7 +79,7 @@ function renderDue() {
     }
     document.getElementById('todo-due-hint').textContent = hint;
     document.getElementById('todo-rem-hint').textContent = value
-        ? 'Sends a notification on the due date, while Bizzybee is open in a tab.'
+        ? (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() ? 'Sends a phone notification on the due date, even with the app closed.' : 'Sends a notification on the due date, while Bizzybee is open in a tab.')   // Oct 30 2026 (Craft): app wording
         : 'Reminders go off on the due date, so set one above for these to fire.';
 }
 
@@ -145,6 +146,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     checklistEditor = TaskForm.checklist(document.getElementById('todo-checklist'), document.getElementById('todo-cl-add'), { checkable: 'todo' });
     reminderEditor = TaskForm.reminders(document.getElementById('todo-reminders'), document.getElementById('todo-rem-add'));
+    // Oct 30 2026 (Craft): Add to calendar / Set alarm, from the due date and time.
+    TaskForm.phoneButtons(document.getElementById('todo-phone'), () => {
+        const date = document.getElementById('todo-due-date').value;
+        if (!date) return null;
+        return { title: document.getElementById('todo-title-input').value.trim(), notes: document.getElementById('todo-notes-input').value.trim(),
+            date, time: document.getElementById('todo-due-time').value || null, repeat: null };
+    });
 
     editingTodoId = new URLSearchParams(window.location.search).get('id');
     const existing = editingTodoId ? Vault.getTodos().find(t => t.id === editingTodoId) : null;

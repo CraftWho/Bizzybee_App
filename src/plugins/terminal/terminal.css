@@ -29,3 +29,6 @@
 
 .tm-chip:focus-visible, .tm-run:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 .tm-tip { align-self: center; color: #5f8f6a; font: 600 .72rem "Courier New", monospace; }
+
+/* Oct 30 2026 (Craft): Revert button */
+.tm-revert { margin-left: 8px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .5); background: none; color: var(--bb-accent, #ffcc00); font: 700 .66rem var(--font-main, monospace); letter-spacing: .08em; cursor: pointer; }

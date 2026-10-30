@@ -6459,6 +6459,225 @@ Object.assign(DatabaseManager.prototype, {
     },
 });
 
+// ============================================================================
+// DAILY BONUS (Oct 30 2026, Craft). Open BizzyBee each day to claim a reward.
+// A month of honeycomb cells: claimed = full, today = glowing, coming = empty,
+// missed = cracked. Missed days are gone for good ("a missed day is a missed
+// opportunity"), and a miss restarts the 7-day reward cycle.
+// Month chests at 10, 20 and every day of the month. "Claim all" takes today
+// and every chest that's ready in one tap.
+// state.dailyBonus = { days: ['YYYY-MM-DD'], streak, last, chests: { 'YYYY-MM': [10, 20, 'all'] } }
+// ============================================================================
+const DAILY_BONUS = {
+    cycle: [
+        { coins: 10 }, { mat: 'pollen', n: 2 }, { coins: 15 }, { mat: 'royal-nectar', n: 1 },
+        { coins: 20 }, { mat: 'pollen', n: 4 }, { coins: 25, tickets: 1 }
+    ],
+    chests: [
+        { id: 10, need: 10, label: '10 days', reward: { coins: 40, mat: 'royal-nectar', n: 1 } },
+        { id: 20, need: 20, label: '20 days', reward: { coins: 60, tickets: 1 } },
+        { id: 'all', need: 'all', label: 'Every day', reward: { mat: 'honey-drop', n: 1, tickets: 1 } }
+    ]
+};
+function dailyBonusText(r) {
+    const m = r.mat && MATERIAL_CATALOG.find(x => x.id === r.mat);
+    return [r.coins && `🍯 ${r.coins} coins`, m && `${m.icon} ${r.n} ${m.label}`, r.tickets && `🎟️ ${r.tickets} ticket${r.tickets > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
+}
+Object.assign(DatabaseManager.prototype, {
+    _bonus() {
+        if (!this.state) return null;
+        const b = this.state.dailyBonus && typeof this.state.dailyBonus === 'object' ? this.state.dailyBonus : (this.state.dailyBonus = {});
+        if (!Array.isArray(b.days)) b.days = [];
+        if (!b.chests || typeof b.chests !== 'object') b.chests = {};
+        if (!b.since) { b.since = todayISO(); }   // days before you had the Daily bonus never crack
+        return b;
+    },
+    _giveReward(r) {
+        if (r.coins) { const q = this._ensureQueen(); q.spent = (q.spent || 0) - r.coins; }   // a gift = negative spend
+        if (r.mat) this._addMaterial(r.mat, r.n || 1);
+        if (r.tickets && this.state.colony) this.state.colony.tickets = (this.state.colony.tickets || 0) + r.tickets;
+    },
+    // Today's place in the 7-day cycle: yesterday claimed -> streak + 1, else day 1.
+    getDailyBonus(today = todayISO()) {
+        const b = this._bonus();
+        if (!b) return null;
+        const claimedToday = b.days.includes(today);
+        const yesterday = shiftISODate(today, -1);
+        const streak = claimedToday ? (b.streak || 1) : (b.last === yesterday ? (b.streak || 0) + 1 : 1);
+        const step = (streak - 1) % DAILY_BONUS.cycle.length;
+        const month = today.slice(0, 7);
+        const [Y, M] = month.split('-').map(Number);
+        const daysInMonth = new Date(Y, M, 0).getDate();
+        const cells = [];
+        for (let d = 1; d <= daysInMonth; d++) {
+            const iso = `${month}-${String(d).padStart(2, '0')}`;
+            const state = b.days.includes(iso) ? 'full' : iso === today ? 'glow' : iso > today ? 'empty' : iso < b.since ? 'before' : 'cracked';
+            cells.push({ day: d, iso, state });
+        }
+        const got = cells.filter(c => c.state === 'full').length;
+        const taken = b.chests[month] || [];
+        const chests = DAILY_BONUS.chests.map(c => {
+            // "Every day" counts from the day you got the Daily bonus.
+            const need = c.need === 'all' ? cells.filter(x => x.state !== 'before').length : c.need;
+            // "Every day" can't happen once a day of this month is cracked.
+            const lost = c.need === 'all' && cells.some(x => x.state === 'cracked');
+            return { ...c, need, have: got, taken: taken.includes(c.id), ready: !taken.includes(c.id) && got >= need, lost, text: dailyBonusText(c.reward) };
+        });
+        return {
+            today, claimedToday, streak, step, cycle: DAILY_BONUS.cycle.map((r, i) => ({ i, text: dailyBonusText(r), reward: r })),
+            reward: DAILY_BONUS.cycle[step], rewardText: dailyBonusText(DAILY_BONUS.cycle[step]),
+            month, cells, got, chests, readyCount: (claimedToday ? 0 : 1) + chests.filter(c => c.ready).length
+        };
+    },
+    claimDailyBonus(today = todayISO()) {
+        const info = this.getDailyBonus(today);
+        if (!info || info.claimedToday) return null;
+        const b = this._bonus();
+        b.days.push(today);
+        b.days = b.days.filter(d => d >= shiftISODate(today, -70)).sort();
+        b.streak = info.streak; b.last = today; b.best = Math.max(b.best || 0, info.streak);
+        this._giveReward(info.reward);
+        // The special title you wear adds a little (TITLES below).
+        const perk = typeof this.titlePerk === 'function' ? this.titlePerk() : null;
+        if (perk) this._giveReward(perk);
+        this.save();
+        return { text: info.rewardText + (perk ? ` + ${dailyBonusText(perk)} (title)` : ''), streak: info.streak };
+    },
+    claimBonusChest(id, today = todayISO()) {
+        const info = this.getDailyBonus(today);
+        const c = info && info.chests.find(x => String(x.id) === String(id));
+        if (!c || !c.ready) return null;
+        const b = this._bonus();
+        (b.chests[info.month] = b.chests[info.month] || []).push(c.id);
+        Object.keys(b.chests).forEach(m => { if (m < shiftISODate(today, -70).slice(0, 7)) delete b.chests[m]; });
+        this._giveReward(c.reward);
+        this.save();
+        return { text: c.text, label: c.label };
+    },
+    // Today's reward plus every chest that's ready (after today counts).
+    claimAllBonus(today = todayISO()) {
+        const out = [];
+        const d = this.claimDailyBonus(today);
+        if (d) out.push(d.text);
+        for (const c of this.getDailyBonus(today).chests) if (c.ready) { const r = this.claimBonusChest(c.id, today); if (r) out.push(r.text); }
+        return out;
+    }
+});
+
+// ============================================================================
+// TITLES (Oct 30 2026, Craft). Who you are, under your name.
+// - Level titles come by themselves as you level up (the ladder).
+// - Special titles are earned (badges of honor and duty). Each gives a small
+//   perk while you wear it: extra on every Daily bonus.
+// - Quest titles come from quest unlocks (state.titles), for honor only.
+// You wear one at a time (state.titleWorn = id). Chosen on the Titles page.
+// ============================================================================
+const TITLE_LADDER = [
+    { lvl: 1, name: 'Larva' }, { lvl: 3, name: 'Hatchling' }, { lvl: 5, name: 'Worker' }, { lvl: 10, name: 'Forager' },
+    { lvl: 15, name: 'Builder' }, { lvl: 20, name: 'Guardian' }, { lvl: 25, name: 'Scout' }, { lvl: 30, name: 'Hivekeeper' },
+    { lvl: 40, name: 'Elder' }, { lvl: 50, name: 'Royal Keeper' }, { lvl: 51, name: 'Legend' }
+];
+const SPECIAL_TITLES = [
+    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'All dailies done 7 days in a row', perk: { coins: 5 }, need: 1,
+        have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100):/.test(b.key)) ? 1 : 0 },
+    { id: 'early-bird', icon: '🌅', name: 'Faithful', how: 'Claim the Daily bonus 7 days in a row', perk: { mat: 'pollen', n: 1 }, need: 7,
+        have: (S) => (S.dailyBonus && S.dailyBonus.best) || (S.dailyBonus && S.dailyBonus.streak) || 0 },
+    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', perk: { coins: 5 }, need: 3,
+        have: (S) => (S.quests || []).filter(q => q.dateCompleted || ((q.tasks || []).length && q.tasks.every(t => t.completed))).length },
+    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', perk: { coins: 5 }, need: 25,
+        have: (S) => ((S.colony && S.colony.bees) || []).filter(b => b.rarity !== 'Royal').length },
+    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', perk: { coins: 10 }, need: 100,
+        have: (S) => (S.dailyTasks || []).reduce((n, t) => n + (t.completedDates || []).length, 0) + (S.todos || []).filter(t => t.completed).length
+            + (S.quests || []).reduce((n, q) => n + (q.tasks || []).filter(t => t.completed).length, 0) }
+];
+const titlePerkText = (p) => p ? `+${dailyBonusText(p)} on every Daily bonus` : '';
+Object.assign(DatabaseManager.prototype, {
+    getTitles() {
+        if (!this.state) return null;
+        const S = this.state, bar = this.getCharacterLevelBar(), level = bar ? bar.level : 1;
+        const ladder = TITLE_LADDER.map(t => ({ id: `lvl-${t.lvl}`, kind: 'level', icon: '⬆️', name: t.lvl > LEVEL_CAP ? `${t.name}` : t.name, lvl: t.lvl,
+            how: t.lvl > LEVEL_CAP ? 'Reach Prestige' : `Reach level ${t.lvl}`, earned: level >= t.lvl }));
+        const special = SPECIAL_TITLES.map(t => { const have = Math.min(t.need, t.have(S)); return { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, perk: t.perk, perkText: titlePerkText(t.perk), have, need: t.need, earned: have >= t.need }; });
+        const quest = (S.titles || []).map((t, i) => ({ id: `quest-${i}-${String(t.title).toLowerCase().replace(/\W+/g, '-')}`, kind: 'quest', icon: '📜', name: t.title, how: t.ability || 'Earned on a quest', earned: true }));
+        const all = [...ladder, ...special, ...quest];
+        const levelNow = [...ladder].reverse().find(t => t.earned) || ladder[0];
+        const worn = all.find(t => t.id === S.titleWorn && t.earned) || levelNow;
+        return { ladder, special, quest, levelNow, worn, level };
+    },
+    wearTitle(id) {
+        const t = this.getTitles();
+        const pick = t && [...t.ladder, ...t.special, ...t.quest].find(x => x.id === id && x.earned);
+        if (!pick) return null;
+        this.state.titleWorn = pick.kind === 'level' ? null : id;   // a level title follows your level
+        this.save();
+        return pick;
+    },
+    // The perk of the title you wear, or null.
+    titlePerk() { const t = this.getTitles(); return t && t.worn.kind === 'special' ? t.worn.perk : null; }
+});
+
+// ============================================================================
+// STORE v3 helpers (Oct 30 2026, Craft): buy several at once (capped by what
+// you can afford), sell for half, and gifts between friends (hive.mjs).
+// Sell values: coins as-is; materials count as MAT_COIN coins each.
+// ============================================================================
+const MAT_COIN = { pollen: 4, 'royal-nectar': 15, 'honey-drop': 40, 'royal-jelly': 200 };
+const SELL_RATE = 0.5;
+function storePriceHave(vault, item) {
+    if (item.price.currency === 'coins') return vault.getCoins();
+    return vault.getMaterials()[item.price.materialId] || 0;
+}
+Object.assign(DatabaseManager.prototype, {
+    maxAffordable(itemId) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId);
+        if (!item || !this.state) return 0;
+        return Math.max(0, Math.min(99, Math.floor(storePriceHave(this, item) / item.price.amount)));
+    },
+    buyStoreItems(itemId, qty = 1) {
+        const n = Math.max(1, Math.min(Math.floor(qty) || 1, this.maxAffordable(itemId)));
+        if (!this.maxAffordable(itemId)) return null;
+        let last = null;
+        for (let i = 0; i < n; i++) { const r = this.purchaseStoreItem(itemId); if (!r) break; last = r; last.count = i + 1; }
+        return last;
+    },
+    // What one of this sells for, in Honey coins (half its worth, at least 1).
+    sellValue(id) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === id);
+        if (item) return Math.max(1, Math.floor((item.price.currency === 'coins' ? item.price.amount : item.price.amount * (MAT_COIN[item.price.materialId] || 4)) * SELL_RATE));
+        if (MAT_COIN[id]) return Math.max(1, Math.floor(MAT_COIN[id] * SELL_RATE));
+        return 0;
+    },
+    sellOwned(id, qty = 1) {
+        if (!this.state || !this.state.inventory) return null;
+        const inv = this.state.inventory, isMat = !!MAT_COIN[id] && !STORE_ITEM_CATALOG.some(i => i.id === id);
+        const bag = isMat ? (inv.materials = inv.materials || {}) : (inv.items = inv.items || {});
+        const have = bag[id] || 0, n = Math.max(1, Math.min(Math.floor(qty) || 1, have)), each = this.sellValue(id);
+        if (!have || !each) return null;
+        bag[id] = have - n;
+        const q = this._ensureQueen(); q.spent = (q.spent || 0) - each * n;   // coins in = negative spend
+        this.save();
+        return { n, coins: each * n };
+    },
+    // Gifts: held items only. Taken out before sending; put back if it fails.
+    giftTakeOut(itemId) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
+        const items = this.getItems();
+        if (!item || !(items[itemId] > 0)) return null;
+        this.state.inventory.items[itemId] = items[itemId] - 1;
+        this.save();
+        return item;
+    },
+    giftPutIn(itemId, n = 1) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
+        if (!item || !this.state) return null;
+        if (!this.state.inventory) this.state.inventory = { materials: {}, items: {} };
+        if (!this.state.inventory.items) this.state.inventory.items = {};
+        this.state.inventory.items[itemId] = (this.state.inventory.items[itemId] || 0) + Math.max(1, Math.min(5, n));
+        this.save();
+        return item;
+    }
+});
+
 // =====================================================================
 // SAVE MERGE (Oct 28 2026). Two copies of a save (this device + cloud)
 // are combined instead of showing a conflict screen.

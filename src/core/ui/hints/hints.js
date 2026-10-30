@@ -49,30 +49,44 @@ const Hints = (() => {
         projects: ['All your builds in one place. Live sites show a preview.',
             'Tap <b>＋ Add project</b> to add one. Tap ⋯ on a card to edit or pin it.'],
         map: ['The hive map. Tap a room to go there.'],
+        // Oct 30 2026 (Craft): new pages
+        support: ['Something wrong? Pick what happened and write a line. A real person replies by email.',
+            'Tick <b>Attach my save</b> if you lost progress. It\'s encrypted, and only sent if you tick it.'],
+        history: ['Everything you finished, day by day. Tap a day to see it.'],
+        titles: ['Titles show under your name. Level titles come as you level up. Special titles are earned, and some give a small boost.'],
+        'daily-bonus': ['Open BizzyBee each day to claim a reward. Missed days crack and are gone, so come back tomorrow!'],
     };
 
     let page = null, step = 0, el = null;
+    // "Got it" = not again this session (until the app is closed and reopened).
+    const SNOOZE = 'bizzybee_tips_snoozed';
+    const snoozedList = () => { try { return JSON.parse(sessionStorage.getItem(SNOOZE) || '[]'); } catch { return []; } };
+    const snoozed = (p) => snoozedList().includes(p);
+    const snoozeForNow = (p) => { try { sessionStorage.setItem(SNOOZE, JSON.stringify([...new Set([...snoozedList(), p])])); } catch { /* storage off */ } };
 
     function close() { if (el) el.remove(); el = null; }
     function show(force) {
         close();
         const tips = TIPS[page];
-        if (!tips || (!force && (!Vault.hintsOn() || Vault.hintSeen(page)))) return;
+        if (!tips || (!force && (!Vault.hintsOn() || Vault.hintSeen(page) || snoozed(page)))) return;
         el = document.createElement('div');
         el.className = 'hn-tip';
         el.setAttribute('role', 'status');
         const last = step >= tips.length - 1;
         el.innerHTML = `<span class="bee" aria-hidden="true">👑</span><b class="hn-eve">EVE</b> ${tips[step]}
             <div class="hn-ft"><span>${tips.length > 1 ? `Tip ${step + 1} of ${tips.length}` : 'Tip'}</span>
-            <button type="button" class="hn-off">Turn off hints</button>
+            <button type="button" class="hn-off">Don't show again</button>
             <button type="button" class="hn-btn">${last ? 'Got it' : 'Next'}</button></div>`;
+        // Oct 30 2026 (Craft): feature coach. "Got it" hides the tips until the
+        // app is opened again; "Don't show again" hides them for good, for this
+        // feature only. Settings › Show tips again brings every one back.
         el.querySelector('.hn-btn').onclick = () => {
             if (!last) { step++; show(true); return; }
-            Vault.markHintSeen(page); close();
+            snoozeForNow(page); close();
         };
         el.querySelector('.hn-off').onclick = () => {
-            Vault.setHintsOn(false); close(); removeCoach(); removeAsk();
-            if (typeof Toast !== 'undefined') Toast.show('💡 Hints off. Turn them back on in Settings.', 'positive');
+            Vault.markHintSeen(page); close();
+            if (typeof Toast !== 'undefined') Toast.show('👍 Got it. These tips are in the Guide if you need them.', 'positive');
         };
         document.body.appendChild(el);
     }
@@ -134,6 +148,21 @@ const Hints = (() => {
     // intro: true = Eve introduces it once (new features).
     const F = '/src/features/', PL = '/src/plugins/';
     const GUIDE = [
+        // Oct 30 2026 (Craft): 1.0.7. Keep this list current: every new feature
+        // gets an entry; a removed feature loses its entry.
+        { id: 'daily-bonus', icon: '🎁', title: 'Daily bonus', text: 'Open BizzyBee each day to claim a reward. A 7-day cycle, month chests, and Claim all. Missed days crack and are gone.', v: '1.0.7', intro: true, page: F + 'daily-bonus/daily-bonus.html' },
+        { id: 'home-tiles', icon: '📌', title: 'Your Home tiles', text: 'Hold a page in the menu to pin it to Home. Hold a Home tile to move it, remove it with ✕, add one with ＋, or Reset Home.', v: '1.0.7', intro: true, page: F + 'home/home.html', steps: [{ page: 'home', sel: '#home-app-grid', text: 'Hold any tile here to edit your Home.' }] },
+        { id: 'titles', icon: '🏅', title: 'Titles', text: 'Level titles come as you level up. Special titles are earned, and the one you wear adds a little to every Daily bonus.', v: '1.0.7', intro: true, page: F + 'titles/titles.html' },
+        { id: 'store-v3', icon: '🍯', title: 'New Honey Store', text: 'Tabs, search, and buy several at once with − and ＋ (it stops at what you can afford). The price table shows what things sell for.', v: '1.0.7', intro: true, page: F + 'honey-store/honey-store.html' },
+        { id: 'sell-gift', icon: '🎁', title: 'Sell and gift', text: 'In your Inventory, tap an item to sell it for half its worth, or gift a held item to a friend. Tickets show as cards.', v: '1.0.7', intro: true, page: F + 'inventory/inventory.html' },
+        { id: 'calendar-alarm', icon: '📅', title: 'Add to calendar, set alarm', text: 'On a To-Do or Daily, add it to your phone\'s calendar (alert 15 min early). In the Android app, set a phone alarm too.', v: '1.0.7', intro: true, page: F + 'todos/todos.html' },
+        { id: 'quest-notes', icon: '🔒', title: 'Quest history and private notes', text: 'Each quest shows what you finished, day by day. Write private notes, and lock them with a passcode only you know.', v: '1.0.7', intro: true, page: F + 'quests/quests.html' },
+        { id: 'hive-buzzing', icon: '🐝', title: 'The Hive is Buzzing', text: 'In Hive Life, a red dot marks a comb with no workers. Tap it: the best free bees are listed first, with how much stronger each makes the comb.', v: '1.0.7', intro: true, page: F + 'colony/colony.html' },
+        { id: 'bee-grid', icon: '🃏', title: 'Bee cards', text: 'Colony Bees opens as a grid of cards. Tap one to see it big, tap the bottom to flip, tap the picture for stats and jobs.', v: '1.0.7', intro: true, page: F + 'colony-bees/colony-bees.html' },
+        { id: 'text-look', icon: '🔤', title: 'Text presets', text: 'Settings › Look & feel: one-tap text presets like Easy read and Big & bold, and a font choice.', v: '1.0.7', intro: true, page: F + 'settings/settings.html' },
+        { id: 'thumb-pad', icon: '💎', title: 'Thumb pad', text: 'Press and hold the gold ＋ to pull it out as a see-through pad: Back, Home, Dailies, To-Dos, Habits and New. Drag it anywhere. Tap to fold. Triple-tap to put it back.', v: '1.0.7', intro: true, page: F + 'home/home.html', steps: [{ page: 'home', sel: '.dk-add', text: 'Press and hold this ＋ to pull out your thumb pad.' }] },
+        { id: 'terminal-shell', icon: '💻', title: 'Terminal commands', text: 'For people who know terminals: ls, cd, cat, find, grep, get, set, pipes with |, and Tab to complete. A backup is made when it opens; Revert puts it back.', v: '1.0.7', page: PL + 'terminal/terminal.html' },
+        { id: 'support', icon: '🛟', title: 'Contact support', text: 'Something wrong? Tell us in a few taps. A real person replies by email. You can attach your save if you lost progress.', v: '1.0.7', intro: true, page: F + 'support/support.html' },
         { id: 'smart-skills', icon: '🧠', title: 'Smart skills', text: 'Write tasks in plain words. After 2 check-offs, a skill like Fitness or Time Management makes itself. Time is optional; Skills shows real hours apart from estimates.', v: '1.0.5', intro: true, page: F + 'skills/skills.html' },
         { id: 'start-day', icon: '🌅', title: 'Start My Day', text: 'Every morning: what you did yesterday, what was missed, and today at a glance.', v: '1.0.5', intro: true, page: F + 'home/home.html' },
         { id: 'dailies', icon: '☀️', title: 'Dailies', text: 'Tasks that repeat. Finish them all for bonus XP and a growing streak.', v: '1.0.0', page: F + 'dailies/dailies.html', steps: [{ page: 'dailies', sel: '.dk-add', text: 'Tap the gold + to make a daily.' }] },
@@ -144,7 +173,7 @@ const Hints = (() => {
         { id: 'bee-vitals', icon: '🐝', title: 'Bee stats, hour by hour', text: 'Jobs cost stamina, food and mood. Bees sleep at night. Not-well bees work worse and tire faster.', v: '1.0.5', intro: true, page: F + 'colony-bees/colony-bees.html', steps: [{ page: 'colony-bees', sel: '.cb-tile, .row[data-bee]', text: 'Tap a bee to see what is changing right now, with ▲ and ▼ per hour.' }] },
         { id: 'nursery', icon: '🛏️', title: 'Nursery beds and Recuperate', text: 'Sick or hurt bees heal 4× faster in a bed. Recuperate = eat, sleep, heal slowly. Hurt has 3 levels.', v: '1.0.5', intro: true, page: F + 'colony-bees/colony-bees.html' },
         { id: 'hatch', icon: '🐣', title: 'Tap to hatch', text: 'A ready egg waits for you. Tap it to crack it open and meet your new bee.', v: '1.0.5', intro: true, page: F + 'home/home.html', steps: [{ page: 'home', sel: '#home-ready', text: 'When an egg is ready, tap here to hatch it.' }] },
-        { id: 'held-items', icon: '🍯', title: 'Items bees hold', text: 'Rare and up hold items. Honey Extract feeds a hungry bee, gloves and shields help in raids.', v: '1.0.5', intro: true, page: F + 'honey-store/honey-store.html', steps: [{ page: 'honey-store', sel: '#store-held-grid', text: 'Make items here. Then give one from a bee\'s card.' }] },
+        { id: 'held-items', icon: '🍯', title: 'Items bees hold', text: 'Rare and up hold items. Honey Extract feeds a hungry bee, gloves and shields help in raids.', v: '1.0.5', intro: true, page: F + 'honey-store/honey-store.html', steps: [{ page: 'honey-store', sel: '#hs-list', text: 'Make items here. Then give one from a bee\'s card.' }] },
         { id: 'incubator', icon: '🥚', title: 'Egg Incubator', text: 'Your steps (and dailies) hatch eggs faster. Buy one in the Honey Store.', v: '1.0.5', intro: true, page: F + 'incubator/incubator.html' },
         { id: 'notifications', icon: '🔔', title: 'Notifications', text: 'Pick what reminds you and when. Tap a notification to open that task.', v: '1.0.4', page: F + 'notifications/notifications.html' },
         { id: 'live-sky', icon: '🌧️', title: 'Live sky', text: 'The Hive Mind follows the time of day and your real weather.', v: '1.0.4', page: F + 'colony/colony.html' },
@@ -217,7 +246,7 @@ const Hints = (() => {
         Vault.setHintsOn(on);
         if (on) { addAsk(); coach(); } else { close(); removeCoach(); removeAsk(); }
     }
-    function resetAll() { Vault.resetHints(); step = 0; addAsk(); show(false); }
+    function resetAll() { Vault.resetHints(); try { sessionStorage.removeItem(SNOOZE); } catch { /* storage off */ } step = 0; addAsk(); show(false); }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();

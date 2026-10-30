@@ -8,6 +8,9 @@
 //   add      { code }         -> { friend }          add a friend's code
 //   remove   { code }         -> { ok }
 //   friends                   -> { friends: [...] }  (app: at most hourly)
+//   gift     { code, item }   -> { ok }              send a held item to a friend (Oct 30 2026)
+//   gifts                     -> { gifts: [...] }    gifts waiting for you
+//   accept   { id }           -> { item, n }         take one (removes it from the list)
 import { getStore } from '@netlify/blobs';
 import { randomInt } from 'node:crypto';
 import { authenticatedUser } from '../lib/auth.mjs';
@@ -106,6 +109,31 @@ export default async (req) => {
                     out.push({ code, status: 'ok', card: them.card });
                 }
                 return json({ ok: true, code: me.code, sharing: me.sharing !== false, friends: out });
+            }
+            // Oct 30 2026 (Craft): gifts of held items between friends (both
+            // must have added each other). Up to 50 waiting per player.
+            case 'gift': {
+                const code = normCode(body.code), item = String(body.item || '');
+                if (!code || !/^[a-z0-9-]{2,40}$/.test(item)) return json({ ok: false, error: 'Bad gift.' }, 400);
+                if (!me.friends.includes(code)) return json({ ok: false, error: 'Add them as a friend first.' }, 403);
+                const ref = await store.get(`c:${code}`, { type: 'json' });
+                const them = ref && await mine(store, ref.id);
+                if (!them || !(them.friends || []).includes(me.code)) return json({ ok: false, error: 'They need to add you back first.' }, 403);
+                const key = `g:${ref.id}`;
+                const box = (await store.get(key, { type: 'json' })) || [];
+                if (box.length >= 50) return json({ ok: false, error: 'Their gift box is full.' }, 409);
+                box.push({ id: `${Date.now().toString(36)}${randomInt(1e6).toString(36)}`, item, n: 1, from: (me.card && me.card.owner) || me.code, fromCode: me.code, at: new Date().toISOString() });
+                await store.setJSON(key, box);
+                return json({ ok: true });
+            }
+            case 'gifts': return json({ ok: true, gifts: (await store.get(`g:${user.id}`, { type: 'json' })) || [] });
+            case 'accept': {
+                const key = `g:${user.id}`;
+                const box = (await store.get(key, { type: 'json' })) || [];
+                const g = box.find(x => x.id === body.id);
+                if (!g) return json({ ok: false, error: 'That gift is gone.' }, 404);
+                await store.setJSON(key, box.filter(x => x.id !== body.id));
+                return json({ ok: true, item: g.item, n: g.n || 1, from: g.from });
             }
             default: return json({ ok: false, error: 'Unknown action.' }, 400);
         }

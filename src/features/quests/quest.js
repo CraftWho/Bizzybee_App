@@ -221,6 +221,73 @@ function extrasHTML(quest) {
     return parts.length ? `<section class="qd-sec">${parts.join('')}</section>` : '';
 }
 
+// Oct 30 2026 (Craft): quest history - every finished task, newest first, by day.
+function historyHTML(quest) {
+    const done = (quest.tasks || []).filter(t => t.completed && t.dateCompleted)
+        .map(t => ({ t, ms: Date.parse(t.dateCompleted) || 0 })).sort((a, b) => b.ms - a.ms);
+    if (!done.length) return '';
+    const byDay = new Map();
+    done.forEach(x => { const k = x.ms ? new Date(x.ms).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Earlier'; if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(x); });
+    const xp = done.reduce((n, x) => n + (Number(x.t.xp) || 0), 0);
+    const first = done[done.length - 1].ms, days = byDay.size;
+    return `<section class="qd-sec"><details class="qd-hist" data-key="history"${openGroups.has('history') ? ' open' : ''}>
+        <summary><h2 class="qd-h">🕘 History <span class="qd-muted">${done.length} done · +${xp} XP · ${days} day${days === 1 ? '' : 's'}</span></h2></summary>
+        ${first ? `<p class="qd-muted">First task done ${esc(new Date(first).toLocaleDateString())}.</p>` : ''}
+        ${[...byDay].map(([day, list]) => `<h3 class="qd-hist-day">${esc(day)}</h3><ul class="qd-hist-list">${list.map(x => `<li><span>${esc(x.t.label)}</span><small>${x.ms && String(x.t.dateCompleted).length > 10 ? esc(new Date(x.ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + ' · ' : ''}+${esc(x.t.xp)} XP</small></li>`).join('')}</ul>`).join('')}
+    </details></section>`;
+}
+
+// Oct 30 2026 (Craft): private notes on a quest. Plain, or locked with a
+// passcode (Secret, encrypted on this device). The passcode stays in memory
+// only while this page is open.
+let notesPass = null, notesText = null;
+function notesHTML(quest) {
+    const n = quest.privateNotes || null;
+    const locked = n && n.box;
+    const open = !locked || notesText !== null;
+    const text = locked ? (notesText || '') : (n && n.text) || '';
+    return `<section class="qd-sec qd-pnotes"><h2 class="qd-h">${locked ? '🔒' : '📝'} Private notes ${locked ? '<span class="qd-lock-tag">Locked</span>' : ''}</h2>
+        ${open ? `<textarea id="qd-pn-text" rows="5" maxlength="20000" placeholder="Thoughts, links, what you learned. Only you see these.">${esc(text)}</textarea>
+            <div class="qd-form-acts">
+                ${locked ? '<button type="button" class="qd-btn" id="qd-pn-relock">Lock now</button><button type="button" class="qd-btn" id="qd-pn-unlockall">Remove lock</button>'
+                    : `<button type="button" class="qd-btn" id="qd-pn-lock"${Secret.ok() ? '' : ' disabled'}>🔒 Lock with passcode</button>`}
+                <button type="button" class="qd-btn primary" id="qd-pn-save">Save notes</button></div>
+            <p class="qd-muted">${locked ? 'Saved locked. Nobody can read them without your passcode, not even the creator. If you forget it, the notes can\'t be recovered.' : 'Saved with your hive. Lock them to keep them encrypted.'}</p>`
+        : `<div class="qd-pn-gate"><input type="password" id="qd-pn-pass" placeholder="Passcode" autocomplete="current-password" aria-label="Passcode">
+            <button type="button" class="qd-btn primary" id="qd-pn-open">Unlock</button></div><p class="qd-muted" id="qd-pn-err"></p>`}
+    </section>`;
+}
+async function notesAction(id) {
+    const quest = getQuest();
+    if (!quest) return;
+    const val = () => (document.getElementById('qd-pn-text') || {}).value || '';
+    const ask = (msg) => { const p = window.prompt(msg); return p && p.length >= 4 ? p : (p !== null && Toast.show('Use at least 4 characters.', 'negative'), null); };
+    if (id === 'qd-pn-open') {
+        const pass = document.getElementById('qd-pn-pass').value;
+        try { notesText = await Secret.unlock(quest.privateNotes.box, pass); notesPass = pass; render(); }
+        catch (e) { document.getElementById('qd-pn-err').textContent = e.message; }
+        return;
+    }
+    if (id === 'qd-pn-save') {
+        if (quest.privateNotes && quest.privateNotes.box) { quest.privateNotes = { box: await Secret.lock(val(), notesPass), at: new Date().toISOString() }; notesText = val(); }
+        else quest.privateNotes = val().trim() ? { text: val(), at: new Date().toISOString() } : null;
+        Vault.save(); Toast.show('📝 Notes saved.', 'positive'); render(); return;
+    }
+    if (id === 'qd-pn-lock') {
+        const pass = ask('Pick a passcode for these notes (4+ characters). If you forget it, they can\'t be recovered.');
+        if (!pass) return;
+        if (window.prompt('Type the passcode again') !== pass) { Toast.show('The passcodes didn\'t match.', 'negative'); return; }
+        quest.privateNotes = { box: await Secret.lock(val(), pass), at: new Date().toISOString() };
+        notesPass = pass; notesText = val(); Vault.save(); Toast.show('🔒 Notes locked.', 'positive'); render(); return;
+    }
+    if (id === 'qd-pn-relock') { notesPass = null; notesText = null; render(); return; }
+    if (id === 'qd-pn-unlockall') {
+        if (!window.confirm('Remove the lock? The notes will be saved as plain text.')) return;
+        quest.privateNotes = val().trim() ? { text: val(), at: new Date().toISOString() } : null;
+        notesPass = null; notesText = null; Vault.save(); render();
+    }
+}
+
 function advancedHTML(quest) {
     return `<details class="qd-adv" id="qd-adv">
         <summary>Advanced · raw quest data</summary>
@@ -239,7 +306,7 @@ function render() {
     }
     const advOpen = document.getElementById('qd-adv') && document.getElementById('qd-adv').open;
     root.style.cssText = QuestUI.styleAttr(quest);
-    root.innerHTML = heroHTML(quest) + statsHTML(quest) + tasksHTML(quest) + sourceHTML(quest) + ghostHTML(quest) + linksHTML(quest) + extrasHTML(quest) + advancedHTML(quest);
+    root.innerHTML = heroHTML(quest) + statsHTML(quest) + tasksHTML(quest) + sourceHTML(quest) + ghostHTML(quest) + linksHTML(quest) + notesHTML(quest) + historyHTML(quest) + extrasHTML(quest) + advancedHTML(quest);   // Oct 30 2026 (Craft): + notes, history
     if (advOpen) document.getElementById('qd-adv').open = true;
     document.title = `📜 ${quest.title}`;
     if (addingTask) document.getElementById('qd-task-input').focus();
@@ -292,6 +359,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(render, 700);
             return;
         }
+        const pn = t.closest('#qd-pn-open, #qd-pn-save, #qd-pn-lock, #qd-pn-relock, #qd-pn-unlockall');
+        if (pn) { notesAction(pn.id); return; }
         if (t.closest('#qd-task-add')) { addingTask = true; render(); return; }
         if (t.closest('#qd-task-cancel')) { addingTask = false; render(); return; }
         if (t.closest('#qd-task-save')) { saveNewTask(); return; }
