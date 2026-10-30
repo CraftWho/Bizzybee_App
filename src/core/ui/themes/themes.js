@@ -11,10 +11,16 @@ const Themes = (() => {
     ];
     const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
     const put = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* storage off */ } };
-    const today = () => { const d = get(DAY_KEY); return d ? new Date(d + 'T12:00:00') : new Date(); };
-    const seasonal = () => { const d = today(); return d.getMonth() === 9 && d.getDate() === 31 ? 'halloween' : 'bee'; };
+    // Oct 30 2026 (Craft): pretending a day is a test-save / dev tool, so the
+    // override only counts on the test save or this computer's dev login.
+    const devOn = () => get('bizzybee_dev_test') === '1' || get('bizzybee_dev') === '1';
+    const today = () => { const d = devOn() ? get(DAY_KEY) : null; return d ? new Date(d + 'T12:00:00') : new Date(); };
+    // Oct 30 2026 (Craft): Halloween is for Oct 31 only, for everyone. After
+    // that day it goes back to BizzyBee on its own.
+    const isHalloween = (d) => d.getMonth() === 9 && d.getDate() === 31;
+    const seasonal = () => (isHalloween(today()) ? 'halloween' : 'bee');
     const pick = () => { const p = get(KEY); return THEMES.some(t => t.id === p) ? p : 'auto'; };
-    const current = () => (pick() === 'auto' ? seasonal() : pick());
+    const current = () => { const c = pick() === 'auto' ? seasonal() : pick(); return c === 'halloween' && !isHalloween(today()) ? 'bee' : c; };
 
     // App icons: each theme can have its own set in src/assets/icons/<id>/.
     const ICON_SETS = { halloween: 'halloween/' };

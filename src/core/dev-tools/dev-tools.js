@@ -468,7 +468,7 @@
             <p class="dev-sub">${localDev ? 'This computer only.' : 'Owner account only. Works on the test save.'}</p>
             <div class="dev-state" id="dev-state"></div>
             ${testBlock}
-
+            ${canAct() ? `
             <h3>THEMES · NEW IN 1.0.5</h3>
             <div class="dev-row">
                 <button data-dev="theme" data-t="auto">✨ Auto</button>
@@ -590,7 +590,9 @@
             </div>
 
             ${localDev ? `<h3>DEMOS &amp; TEST PAGES</h3>
-            <div class="dev-row">${LINKS.map(([label, href]) => `<a href="${root}/${href}">${label}</a>`).join('')}</div>` : ''}`;
+            <div class="dev-row">${LINKS.map(([label, href]) => `<a href="${root}/${href}">${label}</a>`).join('')}</div>` : ''}` : ''}`;
+        // Oct 30 2026 (Craft): on the real save the owner sees only the way into
+        // the test save. All dev tools are on the test save and this computer.
         document.body.appendChild(panel);
 
         const open = () => { document.getElementById('dev-state').textContent = stateText(); panel.classList.add('open'); };
