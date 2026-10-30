@@ -10,7 +10,7 @@ const QUEST_STYLE = {
     side: { color: '#4fb3d9', ink: '#04202b', label: 'Side' }
 };
 
-// One-off task XP anchors - same scale as Eevee's quest prompt.
+// One-off task XP anchors - same scale as Eve's quest prompt.
 const QUEST_DIFFICULTY_TIERS = [
     { level: 'Easy', xp: 25 },
     { level: 'Medium', xp: 60 },

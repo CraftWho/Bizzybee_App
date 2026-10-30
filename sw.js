@@ -5,7 +5,7 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
-const PACK_PATHS = /^\/src\/(plugins\/(calendar|dictionary|study|terminal)\/|assets\/3d\/)/;
+const PACK_PATHS = /^\/src\/(plugins\/(calendar|dictionary|study|terminal|projects)\/|assets\/3d\/)/;
 self.addEventListener('fetch', (event) => {
     const req = event.request;
     if (req.method !== 'GET') return;

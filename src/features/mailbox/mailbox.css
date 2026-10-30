@@ -1,0 +1,40 @@
+/* Mailbox (Oct 29 2026). One-way letters from the creator. Box presets. */
+.mb { width: 100%; max-width: 560px; margin: 0 auto; padding: 10px 14px 130px; box-sizing: border-box; display: grid; gap: 10px; color: var(--bb-ink); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.mb-head { display: flex; align-items: center; justify-content: space-between; margin: 8px 4px 0; }
+.mb-sec { margin: 0; padding: 0; border: 0; background: none; text-align: left; color: var(--bb-accent); font: 800 .72rem var(--font-main, monospace); letter-spacing: .14em; text-transform: uppercase; }
+.mb-refresh { padding: 2px 8px; border-radius: 8px; border: 1px solid var(--bb-edge); background: var(--bb-surface-2); color: var(--bb-ink); cursor: pointer; }
+.mb-write label { display: block; margin: 10px 0 4px; color: var(--bb-accent); font: 700 .66rem var(--font-main, monospace); letter-spacing: .14em; }
+.mb-write input, .mb-write textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--bb-edge); background: var(--bb-bg); color: var(--bb-ink); font: 1rem system-ui, sans-serif; }
+.mb-write textarea { min-height: 140px; resize: vertical; }
+.mb-write .mb-check { display: flex; gap: 8px; align-items: center; color: var(--bb-ink); font: .86rem system-ui, sans-serif; letter-spacing: 0; }
+.mb-check input { width: 18px; height: 18px; accent-color: var(--bb-accent); }
+.mb-btns { display: flex; justify-content: flex-end; margin-top: 12px; }
+#mb-list { display: grid; gap: 10px; }
+.mb-letter.unread { border-color: var(--bb-accent); }
+.mb-letter .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.mb-letter .new { color: var(--bb-alt); font: 700 .62rem var(--font-main, monospace); letter-spacing: .12em; }
+.mb-letter small { color: var(--bb-muted); font-size: .74rem; }
+.mb-letter .body { margin: 8px 0 0; color: var(--bb-ink); font-size: .92rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.mb-react { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--bb-edge); background: var(--bb-surface-2); color: var(--bb-ink); font: 600 .9rem system-ui, sans-serif; cursor: pointer; }
+.mb-react[aria-pressed="true"] { border-color: var(--bb-accent); background: rgba(var(--bb-accent-rgb), .18); }
+.mb-totals { color: var(--bb-muted); font: 700 .74rem var(--font-main, monospace); }
+.mb-del { margin-left: auto; padding: 6px 10px; border: 0; background: none; color: var(--bb-muted); cursor: pointer; font-size: .8rem; }
+.mb-empty, .mb-note { margin: 0 4px; color: var(--bb-muted); font-size: .84rem; }
+.mb-signin { margin: 0; font-size: .86rem; }
+.mb-signin a { color: var(--bb-accent); }
+
+/* Letters / Updates tabs and the changelog (Oct 29 2026). */
+.mb-tabs { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: var(--bb-surface-2); border: 1px solid var(--bb-edge); }
+.mb-tabs button { flex: 1; padding: 9px; border: 0; border-radius: 10px; background: none; color: var(--bb-muted); font: 700 .8rem var(--font-main, monospace); cursor: pointer; }
+.mb-tabs button[aria-selected="true"] { background: var(--bb-accent); color: var(--bb-accent-ink, #1a1000); }
+.mb-letters, .mb-updates { display: grid; gap: 10px; }
+.mb-letters[hidden], .mb-updates[hidden] { display: none; }
+.mb-up summary { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; cursor: pointer; list-style: none; }
+.mb-up summary::-webkit-details-marker { display: none; }
+.mb-up summary b { color: var(--bb-accent); font: 800 .95rem var(--font-main, monospace); }
+.mb-up summary small { color: var(--bb-muted); font-size: .74rem; }
+.mb-up h4 { margin: 12px 0 6px; color: var(--bb-muted); font: 700 .66rem var(--font-main, monospace); letter-spacing: .14em; text-transform: uppercase; }
+.mb-up ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mb-up li { display: flex; gap: 10px; font-size: .86rem; line-height: 1.45; color: var(--bb-ink); }
+.mb-up li b { color: var(--bb-ink); }

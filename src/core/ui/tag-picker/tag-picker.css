@@ -51,3 +51,19 @@
 
 /* Typed tags (Oct 2026) */
 .tag-add { margin: 4px 0 6px; }
+
+/* Suggestions as you type (Oct 29 2026). */
+.tag-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 8px; }
+.tag-suggest[hidden] { display: none; }
+.tag-suggest small { color: var(--bb-muted, #a69a80); font-size: .74rem; margin-right: 2px; }
+.tag-sug { padding: 5px 11px; border-radius: 20px; border: 1px dashed rgba(var(--bb-accent-rgb, 255, 204, 0), .5); background: transparent; color: var(--bb-accent, #ffcc00); font: 600 .8rem system-ui, sans-serif; cursor: pointer; }
+.tag-sug:active { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .15); }
+
+/* "Make it a skill?" card (Oct 29 2026). */
+.tag-skillcard { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--bb-accent, #ffcc00); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .08); }
+.tag-skillcard .ic { font-size: 1.4rem; }
+.tag-skillcard .tx { flex: 1 1 140px; min-width: 0; }
+.tag-skillcard b { display: block; color: var(--bb-ink, #f1ede2); font-size: .92rem; }
+.tag-skillcard small { color: var(--bb-muted, #a69a80); font-size: .76rem; margin: 0; }
+.tag-skillcard button { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--bb-edge, rgba(255,204,0,.28)); background: transparent; color: var(--bb-ink, #f1ede2); font: 700 .76rem system-ui, sans-serif; cursor: pointer; }
+.tag-skillcard .yes { border: 0; background: var(--bb-accent, #ffcc00); color: var(--bb-accent-ink, #1a1000); }

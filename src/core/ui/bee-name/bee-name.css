@@ -2,12 +2,12 @@
 .bn { margin-top: 12px; text-align: left; }
 .bn-lbl { display: block; margin: 0 0 4px; font: 700 .64rem var(--font-main, monospace); letter-spacing: .1em; text-transform: uppercase; color: #a69a80; }
 .bn-line { display: flex; gap: 6px; }
-.bn .bn-in { flex: 1; min-width: 0; margin: 0; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .3); background: #0a0702; color: #f1ede2; font: .9rem system-ui, sans-serif; }
-.bn .bn-in:focus { outline: none; border-color: #ffcc00; box-shadow: 0 0 0 3px rgba(255, 204, 0, .12); }
-.bn .bn-dice, .bn .bn-save { flex: none; margin: 0; padding: 0 12px; min-height: 38px; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .4); background: #1a1205; color: #ffcc00; font: 700 .76rem var(--font-main, monospace); cursor: pointer; box-shadow: none; text-transform: none; letter-spacing: 0; }
+.bn .bn-in { flex: 1; min-width: 0; margin: 0; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: #0a0702; color: #f1ede2; font: .9rem system-ui, sans-serif; }
+.bn .bn-in:focus { outline: none; border-color: var(--bb-accent, #ffcc00); box-shadow: 0 0 0 3px rgba(var(--bb-accent-rgb, 255, 204, 0), .12); }
+.bn .bn-dice, .bn .bn-save { flex: none; margin: 0; padding: 0 12px; min-height: 38px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); background: #1a1205; color: var(--bb-accent, #ffcc00); font: 700 .76rem var(--font-main, monospace); cursor: pointer; box-shadow: none; text-transform: none; letter-spacing: 0; }
 .bn .bn-dice { font-size: 1rem; padding: 0 10px; }
-.bn .bn-save { background: #ffcc00; color: #241600; border-color: #ffcc00; }
-.bn .bn-dice:focus-visible, .bn .bn-save:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
+.bn .bn-save { background: var(--bb-accent, #ffcc00); color: #241600; border-color: var(--bb-accent, #ffcc00); }
+.bn .bn-dice:focus-visible, .bn .bn-save:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 .bn--compact { margin: 6px 0 2px; }
 .bn--compact .bn-in { padding: 7px 9px; font-size: .84rem; }
 .bn--compact .bn-dice, .bn--compact .bn-save { min-height: 34px; }

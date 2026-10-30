@@ -21,8 +21,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDeviceBackups();
     initFolderBackup();
     initPasswordReset();
-    initPhoneReminders();
     initTimeTracking();
+    initHints();
+    initPhoneFeatures();
+    initAbout();
+    initPermissions();
+    initWeather();
     initHistoryImport();
 
     document.getElementById('export-conversations-btn').addEventListener('click', () => {
@@ -169,7 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const royal = typeof Vault.getRoyalBee === 'function' ? Vault.getRoyalBee() : null;
         const bar = Vault.getCharacterLevelBar();
         document.getElementById('st-name').textContent = Vault.state.displayName || (royal && royal.name) || (Vault.getUser() || {}).name || 'Beekeeper';
-        document.getElementById('st-level').textContent = bar ? `Level ${bar.level}` : '';
+        document.getElementById('st-level').textContent = bar ? levelName(bar.level) : '';
         if (royal) document.getElementById('st-avatar').textContent = royal.royal === 'king' ? '🤴' : '👑';
     } catch { /* keep defaults */ }
 
@@ -188,50 +192,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '../../../index.html';
     });
 });
-
-// Phone reminders (src/core/services/push/push.js).
-function initPhoneReminders() {
-    const toggle = document.getElementById('push-toggle');
-    const names = document.getElementById('push-names-toggle');
-    const test = document.getElementById('push-test-btn');
-    const status = document.getElementById('push-status');
-    if (!toggle || typeof BizzyPush === 'undefined') return;
-    const render = (message) => {
-        toggle.checked = BizzyPush.isOn();
-        names.checked = BizzyPush.showNames();
-        test.disabled = !BizzyPush.isOn();
-        if (message) status.textContent = message;
-        else if (!BizzyPush.supported()) status.textContent = 'This browser can\'t do phone notifications. Try Chrome.';
-        else status.textContent = BizzyPush.isOn() ? 'On. Reminders arrive even when the app is closed.' : 'Off.';
-    };
-    render();
-    toggle.addEventListener('change', async () => {
-        toggle.disabled = true;
-        try {
-            if (toggle.checked) {
-                const out = await BizzyPush.enable();
-                render(`On. ${out.upcoming || 0} reminder${out.upcoming === 1 ? '' : 's'} coming up in the next 10 days.`);
-                Toast.show('🔔 Phone reminders on.', 'positive');
-            } else {
-                await BizzyPush.disable();
-                render();
-            }
-        } catch (error) {
-            await BizzyPush.disable().catch(() => {});
-            render(error.message);
-            Toast.show(error.message, 'negative');
-        } finally {
-            toggle.disabled = false;
-        }
-    });
-    names.addEventListener('change', () => BizzyPush.setShowNames(names.checked));
-    test.addEventListener('click', async () => {
-        test.disabled = true;
-        try { await BizzyPush.test(); Toast.show('🔔 Test sent.', 'positive'); }
-        catch (error) { Toast.show(error.message, 'negative'); }
-        finally { test.disabled = !BizzyPush.isOn(); }
-    });
-}
 
 // History import (Vault.importHistoryPack).
 function initHistoryImport() {
@@ -263,6 +223,98 @@ function initHistoryImport() {
     });
 }
 
+// About: versions, app updates, What's New (src/core/ui/updates/updates.js).
+function initAbout(tries = 0) {
+    const host = document.getElementById('about-card');
+    if (!host) return;
+    if (typeof BizzyUpdates === 'undefined') { if (tries < 50) setTimeout(() => initAbout(tries + 1), 100); return; }
+    BizzyUpdates.renderAbout(host);
+}
+
+// Phone features (Android app). Notifications moved to their own page
+// (features/notifications/, Oct 28 2026). Here: vibration, steps, face or
+// fingerprint, and the phone calendar.
+function initPhoneFeatures(tries = 0) {
+    const host = document.getElementById('phone-features');
+    if (!host) return;
+    const app = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    // In the app, native.js and phone.js load a moment after this page; wait for them.
+    if (app && (typeof BizzyNative === 'undefined' || typeof BizzyPhone === 'undefined') && tries < 50) {
+        setTimeout(() => initPhoneFeatures(tries + 1), 100);
+        return;
+    }
+    const N = typeof BizzyNative !== 'undefined' ? BizzyNative : null;
+    if (!app || !N) {
+        host.innerHTML = `<a class="row" href="https://github.com/CraftWho/Bizzybee_App/releases/latest" target="_blank" rel="noopener"><span class="hx">📱</span><span class="mid"><b>Get the Android app</b><small>Offline reminders, steps, face or fingerprint unlock, your phone calendar and more.</small></span><span class="chev">›</span></a>`;
+        return;
+    }
+    const sw = (id, on, label) => `<label class="toggle-switch"><input type="checkbox" id="${id}" aria-label="${label}"${on ? ' checked' : ''}><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label>`;
+    const C = BizzyPhone.Calendar;
+    host.innerHTML = `
+        <div class="row"><span class="hx">📳</span><span class="mid"><b>Vibration</b><small>Feel the egg hatch, level-ups, pulls and finished tasks.</small></span>${sw('pf-buzz', N.prefs.vibration(), 'Vibration')}</div>
+        <div class="row"><span class="hx">👟</span><span class="mid"><b>Step counter</b><small id="pf-steps-note">Checking…</small></span><span id="pf-steps-act"></span></div>
+        <a class="row" href="../account-security/account-security.html"><span class="hx">👆</span><span class="mid"><b>Face or fingerprint</b><small id="pf-bio-note">Unlock with your face or fingerprint instead of the App Lock PIN.</small></span><span class="chev">›</span></a>
+        <div class="row"><span class="hx">📅</span><span class="mid"><b>Phone events in Calendar</b><small>Your phone's events show in the Calendar plugin. Read only.</small></span>${sw('pf-cal-show', C.showOn(), 'Phone events in Calendar')}</div>
+        <div class="row"><span class="hx">🗓️</span><span class="mid"><b>To-Dos in your phone calendar</b><small>Due dates show in your phone's calendar app. They update and leave when done.</small></span>${sw('pf-cal-add', C.addOn(), 'To-Dos in phone calendar')}</div>`;
+    const $ = (id) => document.getElementById(id);
+    const steps = async () => {
+        const st = await BizzyPhone.status('steps');
+        const note = $('pf-steps-note'), act = $('pf-steps-act');
+        if (st === 'granted') {
+            const n = await BizzyPhone.Steps.sync().catch(() => null);
+            note.textContent = `${n != null ? n.toLocaleString() : (BizzyPhone.Steps.today() || 0).toLocaleString()} steps today. Shows on Home. Dailies like "Walk 8000 steps" finish themselves.`;
+            act.innerHTML = '';
+        } else if (st === 'unsupported') {
+            note.textContent = 'Needs the Health Connect app (built in on Android 14+).';
+            act.innerHTML = '';
+        } else {
+            note.textContent = st === 'denied' ? 'Turned off for BizzyBee in Health Connect.' : 'Reads only your step count from Health Connect.';
+            act.innerHTML = `<button type="button" class="btn" id="pf-steps-btn">${st === 'denied' ? 'Settings' : 'Turn on'}</button>`;
+            $('pf-steps-btn').onclick = async () => {
+                if (st === 'denied') BizzyPhone.openSettings('steps');
+                else if ((await BizzyPhone.ask('steps', { force: true })) === 'granted') Toast.show('👟 Steps on. They show on Home.', 'positive');
+                steps();
+            };
+        }
+    };
+    steps();
+    if (typeof AppLock !== 'undefined') AppLock.bioAvailable().then(ok => {
+        $('pf-bio-note').textContent = !ok ? 'Set up a face or fingerprint in your phone settings first.'
+            : AppLock.bioOn() ? 'On. Unlocks the app with your face or fingerprint.'
+            : AppLock.hasPin() ? 'Off. Tap to turn it on next to your App Lock PIN.' : 'Set an App Lock PIN first, then turn this on.';
+    });
+    $('pf-buzz').addEventListener('change', e => { N.set('buzz', e.target.checked); Toast.show(e.target.checked ? '📳 Vibration on.' : 'Vibration off. Reopen the app to apply.', 'positive'); if (e.target.checked) N.buzz(60); });
+    $('pf-cal-show').addEventListener('change', async e => {
+        const ok = await C.setShow(e.target.checked);
+        if (!ok) { e.target.checked = false; return; }
+        Toast.show(e.target.checked ? '📅 Phone events now show in Calendar.' : 'Phone events hidden from Calendar.', 'positive');
+    });
+    $('pf-cal-add').addEventListener('change', async e => {
+        const box = e.target; box.disabled = true;
+        const ok = await C.setAdd(box.checked);
+        box.disabled = false;
+        if (!ok) { box.checked = false; return; }
+        Toast.show(box.checked ? '🗓️ To-Do due dates added to your phone calendar.' : 'Removed BizzyBee To-Dos from your phone calendar.', 'positive');
+    });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') steps(); });
+}
+
+// Hints + Hive Coach (src/core/ui/hints/hints.js).
+function initHints() {
+    const toggle = document.getElementById('hints-toggle');
+    if (!toggle) return;
+    toggle.checked = Vault.hintsOn();
+    toggle.addEventListener('change', () => {
+        if (typeof Hints !== 'undefined') Hints.setOn(toggle.checked); else Vault.setHintsOn(toggle.checked);
+        Toast.show(toggle.checked ? '💡 Hints on.' : 'Hints off.', 'positive');
+    });
+    document.getElementById('hints-reset').addEventListener('click', () => {
+        if (typeof Hints !== 'undefined') Hints.resetAll(); else Vault.resetHints();
+        toggle.checked = true;
+        Toast.show('💡 Every page will show its tips again.', 'positive');
+    });
+}
+
 // Time tracking: the "how long did it take?" pop-up (time-log.js).
 function initTimeTracking() {
     const toggle = document.getElementById('timelog-toggle');
@@ -272,4 +324,67 @@ function initTimeTracking() {
         localStorage.setItem('bizzybee_ask_time', toggle.checked ? 'on' : 'off');
         Toast.show(toggle.checked ? '⏱️ Will ask how long things take.' : 'Planned times will count.', 'positive');
     });
+}
+
+// Permissions + Weather (src/core/services/phone/phone.js, Oct 27 2026).
+function initPermissions(tries = 0) {
+    const host = document.getElementById('permissions-card');
+    if (!host) return;
+    if (typeof BizzyPhone === 'undefined') { if (tries < 50) setTimeout(() => initPermissions(tries + 1), 100); return; }
+    BizzyPhone.renderPage(host);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') BizzyPhone.renderPage(host); });
+}
+
+function initWeather(tries = 0) {
+    const host = document.getElementById('weather-card');
+    if (!host) return;
+    if (typeof BizzyPhone === 'undefined') { if (tries < 50) setTimeout(() => initWeather(tries + 1), 100); return; }
+    const W = BizzyPhone.Weather;
+    const q = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const city = W.city();
+    host.innerHTML = `
+        <div class="row"><span class="hx">🌦️</span><span class="mid"><b>Weather on Home</b><small id="wx-now">Off</small></span>
+            <select id="wx-mode" aria-label="Weather"><option value="off">Off</option><option value="area">My area</option><option value="city">A city</option></select></div>
+        <div class="pf-sub" id="wx-city-box" hidden>
+            <label>City <span class="pf-pick"><input id="wx-city" placeholder="e.g. Kissimmee" value="${q(city ? city.name.split(',')[0] : '')}"><button type="button" class="btn" id="wx-find">Find</button></span></label>
+            <div id="wx-results"></div>
+            <small>No permission needed when you pick a city.</small>
+        </div>
+        <div class="row"><span class="hx">🌡️</span><span class="mid"><b>Units</b><small>Fahrenheit or Celsius</small></span>
+            <select id="wx-unit" aria-label="Units"><option value="F">°F</option><option value="C">°C</option></select></div>`;
+    const $ = (id) => document.getElementById(id);
+    $('wx-mode').value = W.mode(); $('wx-unit').value = W.unit();
+    const refresh = async () => {
+        $('wx-city-box').hidden = $('wx-mode').value !== 'city';
+        if (W.mode() === 'off') { $('wx-now').textContent = 'Off'; return; }
+        $('wx-now').textContent = 'Checking…';
+        const w = await W.now().catch(() => null);
+        $('wx-now').textContent = w ? `${w.icon} ${w.temp}°${w.unit} · ${w.text} · ${w.place}` : (W.mode() === 'city' ? 'Pick a city below.' : 'Allow approximate location to see it.');
+    };
+    $('wx-mode').addEventListener('change', async e => {
+        const m = e.target.value;
+        if (m === 'area') {
+            const r = await BizzyPhone.ask('location', { force: true });
+            if (r !== 'granted') { e.target.value = W.mode(); Toast.show('Pick "A city" instead. No permission needed.', 'neutral'); return; }
+        }
+        if (m === 'city' && !W.city()) { W.setMode('off'); $('wx-city-box').hidden = false; $('wx-city').focus(); return; }
+        W.setMode(m); refresh();
+    });
+    $('wx-unit').addEventListener('change', e => { W.setUnit(e.target.value); refresh(); });
+    $('wx-find').addEventListener('click', async () => {
+        const v = $('wx-city').value.trim();
+        if (!v) return;
+        $('wx-results').innerHTML = '<small>Searching…</small>';
+        const list = await W.findCity(v).catch(() => []);
+        $('wx-results').innerHTML = list.length ? list.map((c, i) => `<button type="button" class="btn wx-pick" data-i="${i}">${q(c.name)}</button>`).join('') : '<small>No match. Try another spelling.</small>';
+        $('wx-results').onclick = (e) => {
+            const b = e.target.closest('.wx-pick');
+            if (!b) return;
+            W.setCity(list[Number(b.dataset.i)]);
+            $('wx-mode').value = 'city';
+            $('wx-results').innerHTML = '';
+            refresh();
+        };
+    });
+    refresh();
 }

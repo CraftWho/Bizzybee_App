@@ -25,7 +25,7 @@
 /* Tappable bees (onClick): invisible hit area + pointer. */
 .mech-bee.is-tappable { cursor: pointer; }
 .mech-bee-hit { fill: transparent; pointer-events: all; }
-.mech-bee.is-tappable:hover .mech-bee-art { filter: drop-shadow(0 0 3px #ffd700); }
+.mech-bee.is-tappable:hover .mech-bee-art { filter: drop-shadow(0 0 3px var(--bb-t-mid, #ffd700)); }
 
 @media (prefers-reduced-motion: reduce) {
     .mech-bee .mb-wing { animation: none; }

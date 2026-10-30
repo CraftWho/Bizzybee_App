@@ -16,4 +16,6 @@ export default async () => {
     }
     if (failed) throw new Error(`${failed} scheduled backups failed; retry on next run.`);
 };
-export const config = { schedule: '0 * * * *' };
+// Oct 29 2026 (Craft): every 4 hours, not hourly, to save credits. Every
+// backup choice (4, 8, 12, 24 h) is a multiple of 4.
+export const config = { schedule: '0 */4 * * *' };

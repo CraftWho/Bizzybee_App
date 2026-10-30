@@ -1,0 +1,13 @@
+/* WorkerCard (Oct 30 2026, Craft): a small rectangle for a bee at work. */
+.wk-card { display: flex; align-items: center; gap: 10px; padding: 10px; margin: 6px 0; border-radius: 12px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 204, 0, .14); border-left: 3px solid var(--wk-c, #9e9e9e); }
+.wk-card.r-Rare { --wk-c: #4aa3ff; } .wk-card.r-Epic { --wk-c: #b06cff; } .wk-card.r-Legendary { --wk-c: #ffb300; } .wk-card.r-Named { --wk-c: #ff5a7a; }
+.wk-face { flex: none; width: 40px; height: 44px; display: grid; place-items: center; font-size: 1.3rem; border: 0; padding: 0; background: rgba(255, 204, 0, .12); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); cursor: pointer; }
+.wk-mid { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.wk-mid b { font-size: .86rem; color: #f1ede2; }
+.wk-mid small { font-size: .7rem; color: #c2b48f; }
+.wk-r { color: var(--wk-c, #9e9e9e); font-weight: 700; }
+.wk-bars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.wk-bars i { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--c) var(--v), rgba(255, 255, 255, .08) var(--v)); }
+.wk-eff { color: #7fe08a !important; font-weight: 700; }
+.wk-act { flex: none; padding: 8px 12px; border-radius: 10px; border: 0; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; font: 700 .74rem system-ui, sans-serif; cursor: pointer; }
+.wk-act[data-wk="remove"] { background: rgba(255, 255, 255, .08); color: #f1ede2; }

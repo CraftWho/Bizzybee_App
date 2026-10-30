@@ -55,7 +55,7 @@
 
             <h2 class="hf-h">Difficulty <small id="hf-xp-note"></small></h2>
             <div class="hf-diff" id="hf-diff" role="radiogroup" aria-label="Difficulty"></div>
-            <button type="button" class="hf-eevee" id="todo-ask-eevee-btn" hidden>🐝 Ask Eevee for the XP</button>
+            <button type="button" class="hf-eevee" id="todo-ask-eevee-btn" hidden>🐝 Ask Eve for the XP</button>
 
             <h2 class="hf-h">Due Date</h2>
             <div class="tf-due">
@@ -65,6 +65,10 @@
                 </label>
                 <button type="button" class="df-x tf-due-clear" id="todo-due-clear" aria-label="Clear due date">×</button>
             </div>
+            <label class="hf-box tf-due-time" id="todo-due-time-box" hidden>
+                <small>Deadline time <i>(optional)</i></small>
+                <input type="time" id="todo-due-time">
+            </label>
             <div class="tf-quick" id="todo-due-quick">
                 <button type="button" data-days="0">Today</button>
                 <button type="button" data-days="1">Tomorrow</button>
@@ -78,6 +82,8 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New reminder
             </button>
             <p class="hf-hint hf-hint-left" id="todo-rem-hint">Sends a notification on the due date, while Bizzybee is open in a tab.</p>
+            <!-- Oct 30 2026 (Craft): Add to calendar / Set alarm (shown once there is a due date) -->
+            <div id="todo-phone" hidden></div>
 
             <h2 class="hf-h">Tags</h2>
             <div class="hf-tags" id="todo-tags-list"></div>
