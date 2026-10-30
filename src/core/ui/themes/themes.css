@@ -1,0 +1,51 @@
+/* Themes (Oct 28 2026). A theme only changes the tokens in global.css,
+   plus a few touches. <html data-skin="halloween"> turns it on (boot.js).
+   To add a theme: copy the Halloween block, change the values, and add it
+   to THEMES in themes.js. */
+
+/* ---------- 🎃 Halloween ---------- */
+:root[data-skin="halloween"] {
+    --bb-accent: #ff7a1a;  --bb-accent-rgb: 255, 122, 26;
+    --bb-accent-hi: #ffa24a;  --bb-accent-lo: #e0600a;  --bb-accent-ink: #1a0800;
+    --bb-accent-deep: #7a2e00;  --bb-accent-pale: #ffe2c4;
+    --bb-t-hi: #ffb066;  --bb-t-mid: #ff8a2a;  --bb-t-lo: #d9560a;
+    --bb-alt: #8fe33a;  --bb-alt-rgb: 143, 227, 58;  --bb-alt-soft: #c4f08f;
+    --bb-bg: #07030c;  --bb-surface: #160b1f;  --bb-surface-2: #22102e;
+    --bb-ink: #f3ead8;  --bb-muted: #b9a3c9;
+    --bb-radius: 14px 4px 14px 4px;
+    --bb-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%23f3ead8' stroke-opacity='.35' stroke-width='.8'%3E%3Cpath d='M0 0L40 40M0 0L20 40M0 0L40 20M0 0L0 40M0 0L40 0'/%3E%3Cpath d='M0 10Q6 8 8 0M0 20Q12 16 16 0M0 30Q18 24 24 0M0 38Q24 32 32 0'/%3E%3C/g%3E%3C/svg%3E");
+    --bb-corner-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg transform='translate(40 0) scale(-1 1)' fill='none' stroke='%23f3ead8' stroke-opacity='.35' stroke-width='.8'%3E%3Cpath d='M0 0L40 40M0 0L20 40M0 0L40 20M0 0L0 40M0 0L40 0'/%3E%3Cpath d='M0 10Q6 8 8 0M0 20Q12 16 16 0M0 30Q18 24 24 0M0 38Q24 32 32 0'/%3E%3C/g%3E%3C/svg%3E");
+    --shell-honey-hi: #ffd2a6;
+    --shell-amber: #e0600a;
+}
+[data-skin="halloween"] body { background-color: var(--bb-bg); }
+/* The header gets cobwebs in both top corners. */
+[data-skin="halloween"] .app-head { background: var(--bb-corner) left top / 54px 54px no-repeat, var(--bb-corner-r) right top / 54px 54px no-repeat, linear-gradient(180deg, rgba(30, 12, 40, .97), rgba(12, 5, 18, .95)); }
+[data-skin="halloween"] .app-dock { background: linear-gradient(180deg, #1a0b24, #07030c); }
+
+/* Bats (themes.js adds them; never in the way of taps). */
+.bb-bats { position: fixed; inset: 0; z-index: 950; pointer-events: none; overflow: hidden; }
+.bb-bat { position: absolute; width: 34px; height: 18px; top: var(--y, 30%); left: -60px; opacity: .85; animation: bbBatFly var(--t, 9s) linear forwards; }
+.bb-bat svg { width: 100%; height: 100%; animation: bbBatFlap .22s ease-in-out infinite alternate; transform-origin: 50% 60%; }
+@keyframes bbBatFly { 0% { transform: translate(0, 0); } 25% { transform: translate(30vw, -6vh); } 50% { transform: translate(60vw, 3vh); } 75% { transform: translate(90vw, -4vh); } 100% { transform: translate(calc(100vw + 120px), 2vh); } }
+@keyframes bbBatFlap { from { transform: scaleY(1); } to { transform: scaleY(.45); } }
+
+/* Ghosts drift up from the bottom. */
+.bb-ghost { position: absolute; left: var(--x, 50%); bottom: -90px; width: 46px; opacity: 0; animation: bbGhost var(--t, 11s) ease-in-out forwards; filter: drop-shadow(0 0 10px rgba(243, 234, 216, .35)); }
+.bb-ghost svg { width: 100%; height: auto; display: block; animation: bbGhostWob 1.8s ease-in-out infinite alternate; }
+@keyframes bbGhost { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: .55; } 50% { transform: translate(30px, -45vh); opacity: .5; } 85% { opacity: .4; } 100% { transform: translate(-20px, -95vh); opacity: 0; } }
+@keyframes bbGhostWob { from { transform: rotate(-6deg); } to { transform: rotate(6deg) translateY(-6px); } }
+
+/* Corner cobwebs and a spider (behind taps, above the page art). */
+.bb-webs { position: fixed; inset: 0; z-index: 940; pointer-events: none; }
+.bb-web { position: absolute; width: 120px; height: 120px; opacity: .55; background: var(--bb-corner) 0 0 / 100% 100% no-repeat; }
+.bb-web.tl { left: 0; top: calc(env(safe-area-inset-top) + 64px); }
+.bb-web.tr { right: 0; top: calc(env(safe-area-inset-top) + 64px); background-image: var(--bb-corner-r); }
+.bb-web.bl { left: 0; bottom: calc(var(--dock-h, 68px) + env(safe-area-inset-bottom)); transform: scaleY(-1); width: 90px; height: 90px; opacity: .4; }
+.bb-web.br { right: 0; bottom: calc(var(--dock-h, 68px) + env(safe-area-inset-bottom)); transform: scaleY(-1); background-image: var(--bb-corner-r); width: 90px; height: 90px; opacity: .4; }
+.bb-spider { position: absolute; right: 46px; top: calc(env(safe-area-inset-top) + 64px); width: 1px; height: 70px; background: rgba(243, 234, 216, .6); transform-origin: top; animation: bbSpider 5s ease-in-out infinite alternate; }
+.bb-spider b { position: absolute; left: -22px; bottom: -38px; width: 44px; height: 40px; filter: drop-shadow(0 0 6px rgba(255, 122, 26, .7)); }
+.bb-spider svg { width: 100%; height: 100%; display: block; animation: bbSpiderLegs 1.6s ease-in-out infinite alternate; }
+@keyframes bbSpiderLegs { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+@keyframes bbSpider { from { height: 40px; } to { height: 110px; } }
+@media (prefers-reduced-motion: reduce) { .bb-bats, .bb-spider { display: none; } .bb-web { opacity: .4; } }

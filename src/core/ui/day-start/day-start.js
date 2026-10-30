@@ -36,6 +36,8 @@ const DayStart = (() => {
             return `<div class="ds-item${kind === 'todo' ? ' is-todo' : ''}" data-kind="${kind}" data-id="${esc(t.id)}">
                 <label><input type="checkbox" data-main aria-label="I did ${esc(t.label)} yesterday"><span><b>${esc(t.label)}</b><small>${meta}</small></span></label>${subs}</div>`;
         };
+        // A perfect yesterday: "Off to a good start" (Oct 28 2026).
+        if (review.perfect) { openPerfect(review, hello, name); return; }
         scrim = document.createElement('div');
         scrim.className = 'ds-scrim';
         scrim.innerHTML = `<div class="ds-pop" role="dialog" aria-modal="true" aria-labelledby="ds-title">
@@ -80,10 +82,50 @@ const DayStart = (() => {
         if (first) first.focus({ preventScroll: true });
     }
 
+    // Today at a glance (shown at the end of every Start My Day).
+    function planHTML(p) {
+        if (!p) return '';
+        const t12 = (hm) => { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+        const rows = [
+            p.dailies ? `<div><span>☀️ ${p.dailies} ${p.dailies === 1 ? 'daily' : 'dailies'}</span><small>${p.hard ? `${p.hard} Hard` : ''}</small></div>` : '',
+            p.todos.length ? `<div><span>✅ ${p.todos.length} To-Do${p.todos.length === 1 ? '' : 's'} due</span><small>${esc(p.todos[0].label)}${p.todos[0].time ? ' · ' + t12(p.todos[0].time) : ''}</small></div>` : '',
+            p.eggs ? `<div><span>🥚 ${p.eggs} egg${p.eggs === 1 ? '' : 's'} ready to hatch</span><small>Tap on Home</small></div>` : ''
+        ].filter(Boolean);
+        return `<div class="ds-list"><b class="ds-list-h">TODAY</b>${rows.join('') || '<div><span>Nothing due today. Add a daily or a To-Do?</span></div>'}</div>`;
+    }
+
+    function openPerfect(review, hello, name) {
+        const done = review.done || [];
+        const xp = done.reduce((n, d) => n + d.xp, 0);
+        const shown = done.slice(0, 6);
+        scrim = document.createElement('div');
+        scrim.className = 'ds-scrim';
+        scrim.innerHTML = `<div class="ds-pop" role="dialog" aria-modal="true" aria-labelledby="ds-title">
+            <div class="ds-sun" aria-hidden="true">🌅</div>
+            <h2 id="ds-title">OFF TO A GOOD START</h2>
+            <p class="ds-sub">${hello}${name ? `, ${esc(name)}` : ''}. ${done.length ? 'You finished everything yesterday.' : 'Nothing was due yesterday.'}</p>
+            ${done.length ? `<div class="ds-list"><b class="ds-list-h ok">✓ DONE YESTERDAY · +${xp} XP</b>${shown.map(d => `<div><span>${d.icon} ${esc(d.label)}</span><small>+${d.xp}</small></div>`).join('')}${done.length > shown.length ? `<div><small>+ ${done.length - shown.length} more</small></div>` : ''}</div>` : ''}
+            ${planHTML(review.plan)}
+            <button type="button" class="ds-go" data-go>LET'S GO</button>
+        </div>`;
+        document.body.appendChild(scrim);
+        document.body.classList.add('ds-open');
+        const go = scrim.querySelector('[data-go]');
+        go.addEventListener('click', () => { Vault.finishDayReview({}); close(); });
+        go.focus({ preventScroll: true });
+    }
+
     function showSaves(pop, r) {
+        const plan = typeof Vault._planFor === 'function' ? Vault._planFor(todayISO()) : null;
         if (!r.saves.length) {
-            close();
-            if (typeof Toast !== 'undefined') Toast.show(r.credited ? `✓ ${r.credited} counted for yesterday. Have a good day!` : '☀️ New day started.', 'positive');
+            const step2 = pop.querySelector('.ds-step2');
+            step2.innerHTML = `<div class="ds-sun" aria-hidden="true">☀️</div><h2>NEW DAY</h2>
+                <p class="ds-sub">${r.credited ? `✓ ${r.credited} counted for yesterday.` : 'Yesterday is done.'} Here's today.</p>
+                ${planHTML(plan)}<button type="button" class="ds-go" data-done>LET'S GO</button>`;
+            pop.querySelector('.ds-step1').hidden = true;
+            step2.hidden = false;
+            step2.querySelector('[data-done]').addEventListener('click', close);
+            step2.querySelector('[data-done]').focus({ preventScroll: true });
             return;
         }
         const line = (s) => {
@@ -96,6 +138,7 @@ const DayStart = (() => {
         step2.innerHTML = `<div class="ds-sun" aria-hidden="true">🛡️</div><h2>STREAK SAVERS</h2>
             <p class="ds-sub">Dailies you missed yesterday, and what happened.</p>
             ${r.saves.map((s, i) => line(s).replace('class="ds-save', `style="animation-delay:${i * 0.25}s" class="ds-save`)).join('')}
+            ${planHTML(plan)}
             ${r.damage ? `<div class="ds-save lost ds-hp"><span>👑</span><div><b>Your Queen took −${r.damage} ❤️</b><small>${r.fainted ? '😵 She fainted! You lost some coins and this level\'s XP. Health is back to half.' : 'Saved streaks still count as missed for health. Finish tasks to heal.'}</small></div></div>` : ''}
             <button type="button" class="ds-go" data-done>START MY DAY</button>`;
         pop.querySelector('.ds-step1').hidden = true;

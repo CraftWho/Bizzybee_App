@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🎁 Daily bonus</title>
+    <!-- Oct 30 2026 (Craft): Daily bonus calendar. Logic: Vault.getDailyBonus (db.js). -->
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../settings/settings.css">
+    <link rel="stylesheet" href="./daily-bonus.css">
+</head>
+<body>
+    <main class="stv2 dbv">
+        <div class="dbn-head">
+            <div class="dbn-hex" aria-hidden="true">🎁</div>
+            <div><h1 class="settings-title">DAILY BONUS</h1><small id="dbn-sub">Open BizzyBee every day</small></div>
+        </div>
+        <section class="card top dbn-today" id="dbn-today"></section>
+        <h2 class="sec" id="dbn-month">This month</h2>
+        <section class="card dbn-cal-card"><div class="dbn-week" aria-hidden="true"><i>S</i><i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i></div><div class="dbn-cal" id="dbn-cal"></div>
+            <p class="dbn-key"><span class="k full"></span>Claimed <span class="k glow"></span>Today <span class="k empty"></span>Coming <span class="k cracked"></span>Missed (gone)</p></section>
+        <h2 class="sec">Month chests</h2>
+        <section class="card" id="dbn-chests"></section>
+        <h2 class="sec">7-day cycle</h2>
+        <section class="card"><ol class="dbn-cycle" id="dbn-cycle"></ol><p class="dbn-note">Miss a day and the cycle starts again at day 1.</p></section>
+    </main>
+    <script src="../../core/boot.js"></script>
+    <script src="./daily-bonus.js"></script>
+</body>
+</html>

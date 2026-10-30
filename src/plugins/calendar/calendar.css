@@ -1,23 +1,23 @@
 /* Calendar v2 (Oct 2026 redesign - approved demo). Dashboard v2 look.
    Month view = compact grid with dots + an agenda for the tapped day. */
-.calv2 { --gold: #ffcc00; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --blue: #5aa9ff; --green: #5fd38a; --panel: rgba(14, 10, 4, .92);
+.calv2 { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --blue: #5aa9ff; --green: #5fd38a; --panel: rgba(14, 10, 4, .92);
     width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; box-sizing: border-box; color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 .calv2 [hidden] { display: none !important; }
-.calv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
+.calv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
 .calv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
 .calv2 .cal-title { display: flex; align-items: center; gap: 10px; }
 .calv2 h1 { flex: 1; margin: 0; font: 700 1.2rem var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
 .calv2 .sub { margin: 0 0 10px; color: var(--muted); font-size: .82rem; line-height: 1.45; }
 .calv2 h2.sec { display: flex; align-items: center; gap: 10px; margin: 18px 4px 8px; font: 700 .7rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
-.calv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
-.calv2 .btn { display: inline-block; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .4); background: #1a1205; color: var(--gold); font: 700 .74rem var(--font-main, monospace); text-decoration: none; cursor: pointer; }
+.calv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(var(--bb-alt-rgb, 220, 20, 60), .6), transparent); }
+.calv2 .btn { display: inline-block; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); background: #1a1205; color: var(--gold); font: 700 .74rem var(--font-main, monospace); text-decoration: none; cursor: pointer; }
 .calv2 .btn.solid { background: var(--gold); color: #241600; border-color: var(--gold); }
 .calv2 .cal-head { display: flex; align-items: center; gap: 8px; }
 .calv2 .cal-head h3 { flex: 1; min-width: 0; margin: 0; text-align: center; font: 700 .95rem var(--font-main, monospace); color: var(--gold); letter-spacing: .06em; text-transform: uppercase; background: none; border: 0; padding: 0; }
-.calv2 .cal-head .nav { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .16); background: #140e05; color: var(--gold); font-size: 1.1rem; cursor: pointer; }
+.calv2 .cal-head .nav { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .16); background: #140e05; color: var(--gold); font-size: 1.1rem; cursor: pointer; }
 .calv2 .cal-head .btn { padding: 7px 10px; }
-.calv2 .seg { display: flex; margin-top: 12px; padding: 3px; border-radius: 12px; background: #140e05; border: 1px solid rgba(255, 204, 0, .16); }
+.calv2 .seg { display: flex; margin-top: 12px; padding: 3px; border-radius: 12px; background: #140e05; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .16); }
 .calv2 .seg button { flex: 1; padding: 7px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: 700 .72rem var(--font-main, monospace); cursor: pointer; }
 .calv2 .seg button.calendar-view-btn--active { background: var(--gold); color: #241600; }
 .calv2 .calendar-board { margin-top: 12px; }
@@ -38,7 +38,7 @@
 .calv2 .dot--event, .calv2 .pip--event { --c: var(--cr); }
 .calv2 .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: .72rem; color: var(--muted); }
 .calv2 .legend span::before { content: ""; display: inline-block; width: 10px; height: 11px; margin-right: 6px; vertical-align: -1px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--c); }
-.calv2 .ag { display: flex; gap: 12px; align-items: center; width: 100%; padding: 10px 0; border: 0; border-top: 1px solid rgba(255, 204, 0, .08); background: none; color: inherit; text-align: left; font: inherit; }
+.calv2 .ag { display: flex; gap: 12px; align-items: center; width: 100%; padding: 10px 0; border: 0; border-top: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .08); background: none; color: inherit; text-align: left; font: inherit; }
 .calv2 #calendar-agenda > .ag:first-child { border-top: 0; padding-top: 0; }
 .calv2 button.ag { cursor: pointer; }
 .calv2 .ag .tm { width: 52px; flex: none; font: 700 .72rem var(--font-main, monospace); color: var(--muted); }
@@ -158,7 +158,7 @@
 }
 
 .calendar-item--system {
-    border-left: 3px solid #ffd700;
+    border-left: 3px solid var(--bb-t-mid, #ffd700);
 }
 
 .calendar-item-icon {

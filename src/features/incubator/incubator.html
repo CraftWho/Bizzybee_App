@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🥚 Egg Incubator</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="./incubator.css">
+</head>
+<body>
+    <main class="icv" id="ic-main" hidden>
+        <section class="ic-head">
+            <h1>🥚 EGG INCUBATOR</h1>
+            <p>Eggs inside hatch faster as you walk. Your steps today count for every egg inside.</p>
+            <div class="ic-wallet"><span><b id="ic-coins">0</b><small>Honey coins</small></span><span><b id="ic-steps">—</b><small>Steps today</small></span><span><b id="ic-eggs">0</b><small>Eggs</small></span></div>
+        </section>
+
+        <section class="ic-machine-card">
+            <div class="ic-tier-row"><b id="ic-name">NO INCUBATOR YET</b><span class="ic-tier" id="ic-tier"></span></div>
+            <div class="ic-machine" id="ic-machine"></div>
+            <div class="ic-today" id="ic-today"></div>
+        </section>
+
+        <h2 class="ic-sec">Eggs waiting</h2>
+        <section class="ic-card" id="ic-waiting"></section>
+
+        <h2 class="ic-sec" id="store">Your incubators</h2>
+        <p class="ic-note">Buy them in the <a href="../honey-store/honey-store.html#incubators">Honey Store</a> with Honey coins. One works at a time. You keep the ones you own.</p>
+        <section class="ic-shop" id="ic-shop"></section>
+
+        <details class="ic-how"><summary>How it works</summary>
+            <ul>
+                <li>Eggs take 7 days to hatch. A working Nurse takes 1 day off.</li>
+                <li>Every egg inside loses 1 day each time you reach the step goal.</li>
+                <li>Every 4 finished dailies count as 1 day off too, so it works on the website.</li>
+                <li>There's a daily cap, so one long walk can't hatch everything.</li>
+                <li>Eggs keep their secrets. Rarity and job stay hidden until they hatch.</li>
+            </ul>
+        </details>
+    </main>
+
+
+    <div class="ic-sheet-bg" id="ic-sheet" hidden><div class="ic-sheet" id="ic-sheet-body" role="dialog" aria-modal="true"></div></div>
+
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/egg-designs/egg-designs.js"></script>
+    <script src="./incubator-art.js"></script>
+    <script src="./incubator.js"></script>
+</body>
+</html>

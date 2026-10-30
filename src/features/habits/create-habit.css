@@ -9,7 +9,7 @@
 .hf-toggle.on polygon { fill: var(--dc); }
 .hf-toggle.on path { stroke: var(--dk); }
 .hf-toggle:active svg { transform: scale(.9); }
-.hf-toggle:focus-visible { outline: 2px solid #ffcc00; outline-offset: 3px; border-radius: 12px; }
+.hf-toggle:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 3px; border-radius: 12px; }
 
 .hf-adj { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .hf-adj label { display: block; padding: 10px 14px 8px; border-radius: 12px 12px 4px 4px; background: #1d1810; border-bottom: 2px solid var(--dc); }

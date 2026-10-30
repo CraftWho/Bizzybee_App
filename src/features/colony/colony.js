@@ -50,7 +50,8 @@ function colonyRoyal() {
 }
 
 function swarmBees() {
-    return colonyWorkerBees().slice(-SWARM_DISPLAY_CAP);
+    // Eggs never fly or crawl (Oct 29 2026 fix: tapping a "bee" opened an egg).
+    return colonyWorkerBees().filter(b => !(typeof beeIsBrood === 'function' && beeIsBrood(b))).slice(-SWARM_DISPLAY_CAP);
 }
 
 // Exterior and interior are two disjoint HALVES of the same list, not the
@@ -138,6 +139,8 @@ function renderExterior() {
 
     colonyHiveScene.autoForage({ entrance: hive.entrance, bee: { scale: 0.7 } });
     colonyHiveScene.start();
+    // Friends' hives in the distance (Oct 29 2026).
+    if (typeof ColonyFriends !== 'undefined') ColonyFriends.refresh();
 }
 
 // v2 header stats: level, bees, and how many need help (Hive Life moods).
@@ -146,7 +149,7 @@ function renderColonyStats() {
     if (!host) return;
     const bees = colonyWorkerBees();
     const eggs = bees.filter(b => typeof beeIsBrood === 'function' && beeIsBrood(b)).length;
-    const help = typeof beeFeeling === 'function' ? bees.filter(b => ['sad', 'upset', 'fainted'].includes(beeFeeling(b).key)).length : 0;
+    const help = typeof beeNeedsHelp === 'function' ? bees.filter(beeNeedsHelp).length : typeof beeFeeling === 'function' ? bees.filter(b => ['sad', 'upset', 'fainted'].includes(beeFeeling(b).key)).length : 0;
     const user = Vault.getUser() || {};
     host.innerHTML = `<span><b>⭐ ${user.level || 1}</b><small>Level</small></span>
         <span><b>🐝 ${bees.length - eggs}</b><small>${eggs ? `+${eggs} egg${eggs === 1 ? '' : 's'}` : 'Bees'}</small></span>
@@ -190,6 +193,8 @@ function openColonyBeeCard(bee) {
     const overlay = document.getElementById('colony-card-overlay');
     const host = document.getElementById('colony-card-host');
     if (!overlay || !host || typeof BeeCard === 'undefined') return;
+    // Eggs keep their card secret until they hatch (Oct 27 2026).
+    if (typeof beeIsBrood === 'function' && beeIsBrood(bee)) { window.location.href = `../colony-bees/colony-bees.html?bee=${encodeURIComponent(bee.id)}`; return; }
     // BeeCard.render() keeps one flip listener per host (dataset guard), so
     // the same host is simply re-rendered for each bee.
     host.innerHTML = '';
@@ -204,8 +209,11 @@ function openColonyBeeCard(bee) {
 // ---- Hive Life vs Classic (Oct 2026) ----------------------------------
 const COLONY_VIEW_KEY = 'bizzybee_hive_view';
 let colonyLifeView = null;
+// Oct 29 2026 (Craft): Enter Hive always starts in Classic. Hive Life is a
+// toggle at the bottom, on for this visit only.
+let colonyLifeOn = false;
 function colonyHiveView() {
-    try { return localStorage.getItem(COLONY_VIEW_KEY) === 'classic' ? 'classic' : 'life'; } catch { return 'life'; }
+    return colonyLifeOn ? 'life' : 'classic';
 }
 function colonyRefreshLife() {
     if (colonyHiveView() !== 'life' || typeof HiveLife === 'undefined') return;
@@ -224,7 +232,8 @@ function colonyShowInside() {
     const life = colonyHiveView() === 'life' && typeof HiveLife !== 'undefined';
     document.body.classList.toggle('hive-life', life);
     document.getElementById('colony-life').hidden = !life;
-    document.querySelectorAll('[data-hive-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hiveView === (life ? 'life' : 'classic'))));
+    const tg = document.getElementById('hive-life-toggle');
+    if (tg) { tg.setAttribute('aria-pressed', String(life)); tg.textContent = life ? '🍯 Back to Classic' : '🐝 Hive Life'; }
     if (life) {
         if (colonyInterior) { colonyInterior.destroy(); colonyInterior = null; }
         renderHiveLife();
@@ -393,7 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         cardOverlay.addEventListener('click', (e) => {
             if (!e.target.closest('.bee-card, .colony-queen-panel, .hl-panel')) {
                 cardOverlay.hidden = true;
-                if (colonyHiveView() === 'life' && document.body.classList.contains('colony-inside')) renderHiveLife();
+                if (colonyHiveView() === 'life' && document.body.classList.contains('colony-inside')) { renderHiveLife(); HiveLife.reopenLast(); }   // Oct 30 2026 (Craft): back to the comb
             }
         });
     }
@@ -423,10 +432,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('colony-interior').style.display = '';
             document.body.classList.add('colony-inside');
             colonyShowInside();
+            // Oct 30 2026 (Craft): on phones there's no Leave Hive button; the
+            // phone's Back (or swipe back) leaves the hive instead.
+            try { history.pushState({ hive: 'inside' }, ''); } catch { /* not allowed */ }
         }, 1150);
     });
 
+    window.addEventListener('popstate', () => {
+        if (document.body.classList.contains('colony-inside')) document.getElementById('leave-hive-btn').click();
+    });
     document.getElementById('leave-hive-btn').addEventListener('click', () => {
+        if (history.state && history.state.hive === 'inside') setTimeout(() => history.back(), 0);   // drop the entry Enter added
         if (colonyInterior) { colonyInterior.destroy(); colonyInterior = null; }
         if (colonyLifeView) { colonyLifeView.destroy(); colonyLifeView = null; }
         if (typeof HiveLife !== 'undefined') HiveLife.closeRoom();
@@ -438,10 +454,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderExterior();
     });
 
-    document.querySelectorAll('[data-hive-view]').forEach(btn => btn.addEventListener('click', () => {
-        try { localStorage.setItem(COLONY_VIEW_KEY, btn.dataset.hiveView); } catch { /* storage off */ }
-        colonyShowInside();
-    }));
+    const lifeToggle = document.getElementById('hive-life-toggle');
+    if (lifeToggle) lifeToggle.addEventListener('click', () => { colonyLifeOn = !colonyLifeOn; colonyShowInside(); });
 
     // Colony Bees has its own page (Oct 2026).
     document.getElementById('colony-bees-quick-btn').addEventListener('click', () => {

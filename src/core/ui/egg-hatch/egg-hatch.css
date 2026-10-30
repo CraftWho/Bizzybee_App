@@ -1,0 +1,38 @@
+/* Tap to hatch (Oct 28 2026). Effects match onboarding.css. */
+.eh-scrim { position: fixed; inset: 0; z-index: 9900; overflow: hidden; display: grid; place-items: center; background: radial-gradient(circle at 50% 55%, #2a1206, #050302 70%); color: #f1ede2; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.eh-x { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 14px; z-index: 3; width: 40px; height: 40px; border-radius: 50%; border: 1px solid #3a2a0a; background: #120d06; color: #c2b48f; font-size: 1.4rem; cursor: pointer; }
+.eh-aura { position: absolute; left: 50%; top: 50%; width: 260vmax; aspect-ratio: 1; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255, 90, 42, .55) 0, rgba(212, 42, 30, .32) 9%, rgba(120, 20, 12, .16) 22%, rgba(60, 8, 4, .06) 36%, transparent 50%); transform: translate(-50%, -50%) scale(.04); opacity: 0; transition: transform .3s, opacity .3s; }
+.eh-flash { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, #fff8e0, rgba(255, 215, 0, .35) 30%, transparent 65%); }
+.eh-flash.go { animation: ehFlash 1.1s ease-out; }
+@keyframes ehFlash { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+.eh-beam { position: absolute; left: 50%; bottom: 40%; width: 140px; height: 150%; transform: translateX(-50%); background: linear-gradient(to top, var(--rc, var(--bb-accent, #ffcc00)), transparent); filter: blur(10px); opacity: 0; pointer-events: none; }
+.eh-beam.go { animation: ehBeam 2.6s ease-out forwards; }
+@keyframes ehBeam { 20% { opacity: .85; } 100% { opacity: 0; } }
+.eh-stage { position: relative; z-index: 1; display: grid; justify-items: center; gap: 14px; }
+.eh-stage[hidden] { display: none; }
+.eh-egg { position: relative; width: min(52vw, 220px); aspect-ratio: 120 / 150; cursor: pointer; -webkit-tap-highlight-color: transparent; animation: ehWob 2.2s ease-in-out infinite; }
+.eh-egg > svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 22px rgba(255, 140, 40, .45)); }
+@keyframes ehWob { 0%, 100% { rotate: -2deg; } 50% { rotate: 2deg; } }
+.eh-halves { position: absolute; inset: 0; pointer-events: none; }
+.eh-halves > div { position: absolute; inset: 0; }
+.eh-halves svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.eh-half-top { clip-path: polygon(0 0, 100% 0, 100% 47%, 86% 53%, 72% 45%, 58% 54%, 44% 46%, 30% 55%, 16% 46%, 0 52%); animation: ehTop 1.3s cubic-bezier(.3, .6, .4, 1) forwards; }
+.eh-half-bot { clip-path: polygon(0 52%, 16% 46%, 30% 55%, 44% 46%, 58% 54%, 72% 45%, 86% 53%, 100% 47%, 100% 100%, 0 100%); animation: ehBot 1.3s cubic-bezier(.3, .6, .4, 1) forwards; }
+@keyframes ehTop { to { transform: translate(-28%, -46%) rotate(-32deg); opacity: 0; } }
+@keyframes ehBot { to { transform: translate(22%, 34%) rotate(18deg); opacity: 0; } }
+.eh-hint { margin: 0; color: var(--bb-accent, #ffcc00); font: 800 .82rem var(--font-main, ui-monospace, monospace); letter-spacing: .14em; animation: ehPulse 1.4s ease-in-out infinite; }
+.eh-hint[hidden], .eh-taps[hidden] { display: none; }
+@keyframes ehPulse { 50% { opacity: .35; } }
+.eh-taps { display: flex; gap: 7px; }
+.eh-taps i { width: 9px; height: 9px; border-radius: 50%; background: #3a2a0a; }
+.eh-taps i.on { background: var(--bb-accent, #ffcc00); box-shadow: 0 0 8px var(--bb-accent, #ffcc00); }
+.eh-reveal { position: relative; z-index: 3; display: grid; justify-items: center; gap: 10px; padding: 16px; max-height: 100vh; overflow-y: auto; opacity: 0; transform: scale(.8); transition: opacity .45s, transform .55s cubic-bezier(.2, 1.5, .4, 1); }
+.eh-reveal.on { opacity: 1; transform: none; }
+.eh-reveal[hidden] { display: none; }
+.eh-title { margin: 0; font: 900 1.4rem var(--font-main, ui-monospace, monospace); letter-spacing: .16em; text-shadow: 0 0 18px currentColor; }
+.eh-card { width: min(78vw, 280px); filter: drop-shadow(0 0 26px var(--rc, var(--bb-accent, #ffcc00))); }
+.eh-name { width: min(86vw, 320px); }
+.eh-btns { display: flex; gap: 8px; width: min(86vw, 320px); }
+.eh-btn { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); background: #1a140b; color: #f1ede2; font: 700 .85rem var(--font-main, ui-monospace, monospace); text-align: center; text-decoration: none; cursor: pointer; }
+.eh-btn.gold { border: 0; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; }
+@media (prefers-reduced-motion: reduce) { .eh-egg, .eh-hint { animation: none; } }

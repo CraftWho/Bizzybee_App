@@ -3,6 +3,40 @@
    ========================================================================== */
 
 /* --- 01. GLOBAL VARIABLES --- */
+/* --- 00. THEME TOKENS (Oct 28 2026) ---
+   Every page's gold and red come from these. A theme (themes.css) only
+   changes these values, so the whole app changes with it. Each use keeps a
+   fallback, e.g. var(--bb-accent, #ffcc00), so pages without this file
+   still look right. */
+:root {
+    --bb-accent: #ffcc00;  --bb-accent-rgb: 255, 204, 0;
+    --bb-accent-hi: #ffd84a;  --bb-accent-lo: #e6b52c;  --bb-accent-ink: #1a1000;
+    --bb-alt: #dc143c;  --bb-alt-rgb: 220, 20, 60;  --bb-alt-soft: #ff8fa3;
+    --bb-bg: #000000;  --bb-surface: #120d06;  --bb-surface-2: #1a140b;
+    --bb-ink: #f1ede2;  --bb-muted: #b5a888;
+    --bb-edge: rgba(var(--bb-accent-rgb), .28);
+    --bb-glow: rgba(var(--bb-accent-rgb), .45);
+    --bb-radius: 16px;
+    --bb-corner: none;
+}
+
+/* --- BOX PRESETS (Oct 28 2026). Use these instead of new one-off boxes.
+   bb-box = Panel · --frame = page header · --glow = Spotlight (one per
+   screen) · --note = tips and Eve · --alert = something needs care. --- */
+.bb-box { position: relative; padding: 14px; border-radius: var(--bb-radius); background: var(--bb-surface); border: 1px solid var(--bb-edge); color: var(--bb-ink); box-sizing: border-box; }
+.bb-box::after { content: ""; position: absolute; top: 0; left: 0; width: 40px; height: 40px; background: var(--bb-corner) no-repeat; pointer-events: none; }
+.bb-box > :first-child { margin-top: 0; }
+.bb-box > :last-child { margin-bottom: 0; }
+.bb-box--frame { border-top: 2px solid var(--bb-alt); background: linear-gradient(var(--bb-surface-2), var(--bb-surface)); }
+.bb-box--glow { border-color: var(--bb-accent); box-shadow: 0 0 0 1px var(--bb-glow), 0 0 22px var(--bb-glow); }
+.bb-box--note { background: transparent; border-style: dashed; }
+.bb-box--alert { border-left: 4px solid var(--bb-alt); }
+.bb-title { margin: 0 0 6px; padding: 0; border: 0; background: none; text-align: left; font: 800 .95rem var(--font-main, monospace); letter-spacing: .12em; color: var(--bb-accent); text-transform: uppercase; text-wrap: balance; }
+.bb-text { margin: 0; color: var(--bb-muted); font: .88rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.bb-btn { display: inline-block; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--bb-edge); background: var(--bb-surface-2); color: var(--bb-ink); font: 700 .8rem var(--font-main, monospace); text-decoration: none; cursor: pointer; }
+.bb-btn--main { border: 0; background: var(--bb-accent); color: var(--bb-accent-ink); }
+.bb-chip { display: inline-block; padding: 3px 9px; border-radius: 999px; background: var(--bb-surface-2); border: 1px solid var(--bb-edge); color: var(--bb-accent); font: 700 .66rem var(--font-main, monospace); letter-spacing: .08em; }
+
 :root {
     /* Bizzybee is a single, fixed dark theme - it never adapts to the OS/
        browser color-scheme setting. Without this declaration, a mobile
@@ -15,21 +49,21 @@
        NOT enable any light variant - see the "Themes page" idea in
        HANDOFF.md's backlog for that, a separate and much larger project. */
     color-scheme: dark;
-    --obsidian: #000000;
+    --obsidian: var(--bb-bg, #000000);
     --panel-bg: rgba(17, 17, 17, 0.85);
     /* Original Gold Palette */
-    --gold-start: #FFCC00; 
-    --gold-end: #997A00; 
-    --gold-dim: rgba(255, 204, 0, 0.3);
-    --gold-glow: rgba(255, 204, 0, 0.4);
+    --gold-start: var(--bb-accent, #ffcc00); 
+    --gold-end: var(--bb-accent-deep, #997A00); 
+    --gold-dim: rgba(var(--bb-accent-rgb, 255, 204, 0), 0.3);
+    --gold-glow: rgba(var(--bb-accent-rgb, 255, 204, 0), 0.4);
     --danger-red: #ff4444;
-    --crimson: #DC143C;
+    --crimson: var(--bb-alt, #dc143c);
     /* User Specific Font Override */
     --font-main: 'Consolas', 'Courier New', monospace;
     --grid-scale: 1; 
     --grid-width: calc(34.641px * var(--grid-scale));
     --grid-height: calc(60px * var(--grid-scale));
-    --glow-color: rgba(255, 204, 0, 0.85);
+    --glow-color: rgba(var(--bb-accent-rgb, 255, 204, 0), 0.85);
 }
 
 /* --- 02. BASE LAYOUT & ENVIRONMENT --- */
@@ -53,7 +87,7 @@ body::before {
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: -1;
     /* Adjusted thresholds (10% and 40%) to make the clear center circle smaller and amplify the fisheye effect */
-    background: radial-gradient(circle at center, #FFF5CC 0%, #FFCC00 10%, #997A00 40%, var(--obsidian) 100%);
+    background: radial-gradient(circle at center, var(--bb-accent-pale, #FFF5CC) 0%, var(--bb-accent, #ffcc00) 10%, var(--bb-accent-deep, #997A00) 40%, var(--obsidian) 100%);
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='34.641' height='60' viewBox='0 0 34.641 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M17.3205 60 L17.3205 40 L0 30 L0 10 L17.3205 0 L34.641 10 L34.641 30 L17.3205 40' fill='none' stroke='%23ffffff' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg width='34.641' height='60' viewBox='0 0 34.641 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M17.3205 60 L17.3205 40 L0 30 L0 10 L17.3205 0 L34.641 10 L34.641 30 L17.3205 40' fill='none' stroke='%23ffffff' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     -webkit-mask-size: var(--grid-width) var(--grid-height);
@@ -355,7 +389,7 @@ button:hover {
     border-top: 2px solid var(--crimson);
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 18px rgba(220, 20, 60, 0.15);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 18px rgba(var(--bb-alt-rgb, 220, 20, 60), 0.15);
 }
 
 /* Rectangle "title bar" banner, consistent everywhere a .panel has a
@@ -418,7 +452,7 @@ button:hover {
     background: #0a0a0a;
     padding: 10px;
     border-left: 3px solid var(--crimson);
-    box-shadow: inset 0 0 8px rgba(220, 20, 60, 0.12);
+    box-shadow: inset 0 0 8px rgba(var(--bb-alt-rgb, 220, 20, 60), 0.12);
     display: flex;
     flex-direction: column;
 }
@@ -491,7 +525,7 @@ button:hover {
     border-top: 3px solid var(--crimson);
     border-radius: 8px;
     padding: 40px 30px;
-    box-shadow: 0 0 25px rgba(255, 204, 0, 0.4), 0 0 35px rgba(220, 20, 60, 0.3);
+    box-shadow: 0 0 25px rgba(var(--bb-accent-rgb, 255, 204, 0), 0.4), 0 0 35px rgba(var(--bb-alt-rgb, 220, 20, 60), 0.3);
     text-align: center;
     max-width: 380px;
     width: 100%;
@@ -565,9 +599,9 @@ button:hover {
    ========================================================================== */
 :root {
     --shell-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --shell-honey: #ffcc00;
-    --shell-honey-hi: #fff2b0;
-    --shell-amber: #e8a317;
+    --shell-honey: var(--bb-accent, #ffcc00);
+    --shell-honey-hi: var(--bb-t-hi, #fff2b0);
+    --shell-amber: var(--bb-t-lo, #e8a317);
     --shell-text: #f1ede2;
     --shell-muted: #a69a80;
     --dock-h: 68px;
@@ -583,7 +617,7 @@ button:hover {
     font-family: var(--shell-sans);
     color: var(--shell-text);
     background: linear-gradient(180deg, rgba(20, 14, 5, .97), rgba(10, 7, 2, .94));
-    border-bottom: 1px solid rgba(255, 204, 0, .22);
+    border-bottom: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .22);
     box-shadow: 0 10px 26px rgba(0, 0, 0, .55);
     /* No backdrop-filter here or on the dock: Samsung Internet (Note 20
        Ultra, 2026-10-09) paints a blurred fixed/sticky bar as a solid black
@@ -626,7 +660,7 @@ button:hover {
 }
 .ah-royal:focus-visible { outline: 2px solid var(--shell-honey); outline-offset: 4px; border-radius: 12px; }
 .ah-hex { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.ah-hex-glow { fill: none; stroke: #ffcc00; stroke-width: 6; opacity: .5; filter: blur(5px); animation: ahGlow 4.2s ease-in-out infinite; }
+.ah-hex-glow { fill: none; stroke: var(--bb-accent, #ffcc00); stroke-width: 6; opacity: .5; filter: blur(5px); animation: ahGlow 4.2s ease-in-out infinite; }
 @keyframes ahGlow { 0%, 100% { opacity: .35; } 50% { opacity: .85; } }
 .ah-rstack {
     position: absolute;
@@ -656,7 +690,7 @@ button:hover {
     margin: 2px 0 3px;
     font: 700 1.8rem/1.12 var(--font-main);
     color: var(--shell-honey);
-    text-shadow: 0 0 18px rgba(255, 204, 0, .25);
+    text-shadow: 0 0 18px rgba(var(--bb-accent-rgb, 255, 204, 0), .25);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -675,11 +709,11 @@ button:hover {
     padding: 6px 8px;
     border: 0;
     border-radius: 8px;
-    box-shadow: 0 0 12px rgba(255, 204, 0, .35) !important;
+    box-shadow: 0 0 12px rgba(var(--bb-accent-rgb, 255, 204, 0), .35) !important;
     cursor: default;
 }
 .ah-chip.ready { cursor: pointer; animation: ahPing 1.4s ease-out infinite; }
-@keyframes ahPing { 0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, .6); } 100% { box-shadow: 0 0 0 14px rgba(255, 204, 0, 0); } }
+@keyframes ahPing { 0% { box-shadow: 0 0 0 0 rgba(var(--bb-accent-rgb, 255, 204, 0), .6); } 100% { box-shadow: 0 0 0 14px rgba(var(--bb-accent-rgb, 255, 204, 0), 0); } }
 .ah-bar {
     position: relative;
     flex: 1;
@@ -696,8 +730,8 @@ button:hover {
     inset: 0 auto 0 0;
     width: 0;
     border-radius: inherit;
-    background: linear-gradient(180deg, #ffe680, #ffcc00 45%, #d99a00);
-    box-shadow: 0 0 12px rgba(255, 204, 0, .55);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--lv-a, var(--bb-accent, #ffcc00)), #fff 45%), var(--lv-a, var(--bb-accent, #ffcc00)) 45%, var(--lv-b, #d99a00));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--lv-a, var(--bb-accent, #ffcc00)) 55%, transparent);
     transition: width 1s cubic-bezier(.2, .8, .2, 1);
 }
 .ah-bar i::after {
@@ -734,8 +768,10 @@ button:hover {
 .app-head.compact .ah-royal { width: 46px; height: 50px; }
 .app-head.compact .ah-hex-glow { display: none; }
 .app-head.compact .ah-hello,
-.app-head.compact .ah-line,
 .app-head.compact .ah-meta { opacity: 0; max-height: 0; margin: 0; }
+/* Oct 29 2026 (Craft): every page shows your title, like Home. */
+.app-head.compact .ah-line { margin: 0 0 4px; font-size: .68rem; max-height: 18px; white-space: nowrap; text-overflow: ellipsis; }
+.ah-next:empty { display: none; }
 .app-head.compact .ah-name { font-size: 1.02rem; margin: 0 0 5px; }
 .app-head.compact .ah-levelup { display: none !important; }
 .app-head.compact .ah-bar { height: 9px; }
@@ -762,7 +798,7 @@ button:hover {
     box-sizing: border-box;
     font-family: var(--shell-sans);
     background: linear-gradient(180deg, #120d05, #060401);
-    border-top: 1px solid rgba(255, 204, 0, .25);
+    border-top: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25);
     box-shadow: 0 -8px 24px rgba(0, 0, 0, .6);
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
@@ -785,7 +821,7 @@ button:hover {
 .dk-tab svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s cubic-bezier(.3, 1.5, .4, 1); }
 .dk-tab:hover { color: #cdbb8a; }
 .dk-tab.on { color: var(--shell-honey); }
-.dk-tab.on svg { transform: translateY(-2px); filter: drop-shadow(0 0 6px rgba(255, 204, 0, .55)); }
+.dk-tab.on svg { transform: translateY(-2px); filter: drop-shadow(0 0 6px rgba(var(--bb-accent-rgb, 255, 204, 0), .55)); }
 .dk-tab.on::after { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: var(--shell-honey); box-shadow: 0 0 8px var(--shell-honey); }
 .dk-tab:active svg { transform: scale(.88); }
 .dk-add {
@@ -804,8 +840,8 @@ button:hover {
     -webkit-tap-highlight-color: transparent;
 }
 .dk-add svg { width: 100%; height: 100%; overflow: visible; transition: transform .3s cubic-bezier(.3, 1.5, .4, 1); }
-.dk-glow { fill: none; stroke: #ffcc00; stroke-width: 6; opacity: .55; filter: blur(6px); animation: ahGlow 3.6s ease-in-out infinite; }
-.dk-body { fill: url(#dkAddG); stroke: #fff2b0; stroke-width: 1.4; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .6)); }
+.dk-glow { fill: none; stroke: var(--bb-accent, #ffcc00); stroke-width: 6; opacity: .55; filter: blur(6px); animation: ahGlow 3.6s ease-in-out infinite; }
+.dk-body { fill: url(#dkAddG); stroke: var(--bb-t-hi, #fff2b0); stroke-width: 1.4; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .6)); }
 .dk-hi { fill: rgba(255, 255, 255, .22); }
 .dk-plus { stroke: #1a1000; stroke-width: 6; stroke-linecap: round; transition: transform .45s cubic-bezier(.3, 1.4, .4, 1); transform-origin: 36px 40px; }
 .dk-add:hover svg { transform: translateY(-2px); }
@@ -834,7 +870,7 @@ button:hover {
     box-sizing: border-box;
     border-radius: 20px;
     background: #120d05;
-    border: 1px solid rgba(255, 204, 0, .3);
+    border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3);
     box-shadow: 0 20px 50px rgba(0, 0, 0, .7);
     font-family: var(--shell-sans);
     animation: acsUp .35s cubic-bezier(.2, .9, .3, 1.1);
@@ -849,13 +885,13 @@ button:hover {
     gap: 8px;
     padding: 16px 4px;
     border-radius: 14px;
-    background: rgba(255, 204, 0, .06);
-    border: 1px solid rgba(255, 204, 0, .22);
+    background: rgba(var(--bb-accent-rgb, 255, 204, 0), .06);
+    border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .22);
     color: var(--shell-text);
     font: 600 .85rem var(--shell-sans);
     text-decoration: none;
 }
-.acs-opt:hover { background: rgba(255, 204, 0, .14); }
+.acs-opt:hover { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .14); }
 .acs-opt svg { width: 30px; height: 30px; fill: none; stroke: var(--shell-honey); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Make room for the dock, and move the floating buttons out of its way. */
@@ -885,27 +921,27 @@ body.ob-nodock .app-dock { display: none; }
 .dk-tab.ob-new { animation: obTabIn 1.6s cubic-bezier(.2, .9, .3, 1.2); }
 .dk-tab.ob-new svg { animation: obTabGlow 2.4s ease-in-out 3; }
 @keyframes obTabIn { 0% { opacity: 0; transform: translateY(26px) scale(.6); } 60% { opacity: 1; transform: translateY(-6px) scale(1.12); } 100% { transform: none; } }
-@keyframes obTabGlow { 50% { color: #ffcc00; filter: drop-shadow(0 0 10px rgba(255, 204, 0, .9)); } }
+@keyframes obTabGlow { 50% { color: var(--bb-accent, #ffcc00); filter: drop-shadow(0 0 10px rgba(var(--bb-accent-rgb, 255, 204, 0), .9)); } }
 .app-dock.ob-arrive { animation: obDockIn 1.2s cubic-bezier(.2, .9, .3, 1); }
 @keyframes obDockIn { from { transform: translateY(110%); } }
 
 .ob-bar { max-width: 760px; margin: 0 auto; padding: 10px 14px 12px; box-sizing: border-box; font-family: var(--shell-sans); }
 .ob-in { display: flex; align-items: center; gap: 12px; }
-.ob-egg { flex: none; width: 40px; height: 48px; display: grid; place-items: center; border-radius: 14px; background: radial-gradient(circle at 50% 40%, rgba(255, 204, 0, .25), transparent 70%); }
-.ob-egg svg { width: 26px; height: 32px; fill: #f6e3a4; stroke: #8a6000; stroke-width: 1.2; animation: obEggBob 3s ease-in-out infinite; }
-.ob-egg svg path + path { stroke: #c9a64a; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.ob-egg { flex: none; width: 40px; height: 48px; display: grid; place-items: center; border-radius: 14px; background: radial-gradient(circle at 50% 40%, rgba(var(--bb-accent-rgb, 255, 204, 0), .25), transparent 70%); }
+.ob-egg svg { width: 26px; height: 32px; fill: var(--bb-t-hi, #f6e3a4); stroke: var(--bb-accent-deep, #8a6000); stroke-width: 1.2; animation: obEggBob 3s ease-in-out infinite; }
+.ob-egg svg path + path { stroke: var(--bb-t-mid, #c9a64a); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 @keyframes obEggBob { 50% { transform: translateY(-2px) rotate(-3deg); } }
 .ob-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.ob-tag { display: flex; align-items: center; gap: 8px; font: 700 .64rem var(--font-main); letter-spacing: .12em; color: #c9a64a; }
+.ob-tag { display: flex; align-items: center; gap: 8px; font: 700 .64rem var(--font-main); letter-spacing: .12em; color: var(--bb-t-mid, #c9a64a); }
 .ob-tag i { display: inline-flex; gap: 3px; }
 .ob-tag b { width: 14px; height: 4px; border-radius: 2px; background: #3a3222; }
-.ob-tag b.on { background: #ffcc00; box-shadow: 0 0 6px rgba(255, 204, 0, .6); }
+.ob-tag b.on { background: var(--bb-accent, #ffcc00); box-shadow: 0 0 6px rgba(var(--bb-accent-rgb, 255, 204, 0), .6); }
 .ob-step { font-weight: 700; font-size: .98rem; color: var(--shell-text); }
 .ob-why { font-size: .78rem; line-height: 1.35; color: var(--shell-muted); }
-.ob-back { flex: none; padding: 9px 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .35); color: #ffcc00; font: 700 .8rem var(--shell-sans); text-decoration: none; white-space: nowrap; }
-.ob-back:hover { background: rgba(255, 204, 0, .1); }
-.ob-back.ready { background: linear-gradient(180deg, #ffd84a, #e0a800); color: #2a1a00; border-color: #ffcc00; animation: obPulse 1.8s ease-in-out infinite; }
-@keyframes obPulse { 50% { box-shadow: 0 0 16px rgba(255, 204, 0, .7); } }
+.ob-back { flex: none; padding: 9px 12px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .35); color: var(--bb-accent, #ffcc00); font: 700 .8rem var(--shell-sans); text-decoration: none; white-space: nowrap; }
+.ob-back:hover { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .1); }
+.ob-back.ready { background: linear-gradient(180deg, var(--bb-accent-hi, #ffd84a), var(--bb-t-lo, #e0a800)); color: #2a1a00; border-color: var(--bb-accent, #ffcc00); animation: obPulse 1.8s ease-in-out infinite; }
+@keyframes obPulse { 50% { box-shadow: 0 0 16px rgba(var(--bb-accent-rgb, 255, 204, 0), .7); } }
 @media (prefers-reduced-motion: reduce) { .dk-tab.ob-new, .dk-tab.ob-new svg, .ob-egg svg, .ob-back.ready, .app-dock.ob-arrive { animation: none; } }
 
 /* ==========================================================================
@@ -936,7 +972,7 @@ body.ob-nodock .app-dock { display: none; }
     right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--crimson) 18%, #ff4a5e 50%, var(--crimson) 82%, transparent);
-    box-shadow: 0 0 14px rgba(220, 20, 60, .8), 0 0 40px rgba(220, 20, 60, .35);
+    box-shadow: 0 0 14px rgba(var(--bb-alt-rgb, 220, 20, 60), .8), 0 0 40px rgba(var(--bb-alt-rgb, 220, 20, 60), .35);
     opacity: 0;
 }
 .ao-top::after { bottom: 0; }
@@ -949,7 +985,7 @@ body.ob-nodock .app-dock { display: none; }
     height: 2px;
     margin-top: -1px;
     background: linear-gradient(90deg, transparent, var(--crimson) 18%, #ff4a5e 50%, var(--crimson) 82%, transparent);
-    box-shadow: 0 0 16px rgba(220, 20, 60, .9), 0 0 50px rgba(220, 20, 60, .4);
+    box-shadow: 0 0 16px rgba(var(--bb-alt-rgb, 220, 20, 60), .9), 0 0 50px rgba(var(--bb-alt-rgb, 220, 20, 60), .4);
     transform: scaleX(0);
     transition: transform .72s cubic-bezier(.6, 0, .2, 1);
 }
@@ -974,6 +1010,63 @@ body.ob-nodock .app-dock { display: none; }
 @keyframes ahHpLow { 50% { filter: brightness(1.5); } }
 .ah-hpt { flex: none; font-size: .74rem; color: var(--shell-muted); white-space: nowrap; }
 .ah-hpt b { color: var(--shell-text); font-weight: 600; }
-.ah-coins { flex: none; padding: 3px 8px; border-radius: 999px; background: rgba(255, 204, 0, .1); border: 1px solid rgba(255, 204, 0, .3); color: var(--shell-honey); font: 700 .72rem var(--font-main); white-space: nowrap; }
+.ah-coins { flex: none; padding: 3px 8px; border-radius: 999px; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .1); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); color: var(--shell-honey); font: 700 .72rem var(--font-main); white-space: nowrap; }
 .app-head.compact .ah-hp { opacity: 0; max-height: 0; margin: 0; }
 @media (prefers-reduced-motion: reduce) { .ah-hpbar.low i { animation: none; } }
+
+/* Opened from a notification (Oct 28 2026): the item glows for a few seconds. */
+.bb-focus { position: relative; z-index: 2; animation: bbFocus 1.4s ease-in-out 3; border-radius: 14px; }
+@keyframes bbFocus { 0%, 100% { box-shadow: 0 0 0 0 rgba(var(--bb-accent-rgb, 255, 204, 0), 0); } 50% { box-shadow: 0 0 0 3px var(--bb-accent, #ffcc00), 0 0 24px 6px rgba(var(--bb-accent-rgb, 255, 204, 0), .45); } }
+@media (prefers-reduced-motion: reduce) { .bb-focus { animation: none; box-shadow: 0 0 0 3px var(--bb-accent, #ffcc00); } }
+.app-lock-bio { margin-top: 14px; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .45); background: #1a140b; color: var(--bb-accent, #ffcc00); font: 700 .85rem var(--font-main, ui-monospace, monospace); cursor: pointer; }
+
+/* Swipe up on the + goes Home (Oct 28 2026) */
+.dk-add.dk-swiped svg { transform: translateY(-10px); transition: transform .15s; }
+
+/* Hex ring (Oct 29 2026, Craft): the red inner line follows the hex all the way
+   round. Before, a square inset shadow got cut by the hex corners (broken side
+   bars and red dashes top and bottom). Use: background = ring colour, then
+   mask: var(--hex-ring) on a ::after that shares the hex clip-path. */
+:root { --hex-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='50,1 99,25.5 99,74.5 50,99 1,74.5 1,25.5' fill='none' stroke='black' stroke-width='3' vector-effect='non-scaling-stroke' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+
+/* Level-up buttons shake a little every few seconds (Oct 29 2026, Craft). */
+@keyframes bbShake {
+    0%, 78%, 100% { transform: rotate(0) translateX(0); }
+    81% { transform: rotate(-3deg) translateX(-2px); }
+    84% { transform: rotate(3deg) translateX(2px); }
+    87% { transform: rotate(-2deg) translateX(-1px); }
+    90% { transform: rotate(2deg) translateX(1px); }
+    93% { transform: rotate(0) translateX(0); }
+}
+.ah-levelup.show, .lvl-claim, .sk-up, .sk-lvl, .sk-claim { animation: bbShake 2.8s ease-in-out infinite !important; }
+@media (prefers-reduced-motion: reduce) { .ah-levelup.show, .lvl-claim, .sk-up, .sk-lvl, .sk-claim { animation: none !important; } }
+.lvl-claim { display: block; width: 100%; margin-top: 8px; padding: 8px 10px; border: 0; border-radius: 10px; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; font: 800 .74rem var(--font-main, monospace); letter-spacing: .04em; cursor: pointer; box-shadow: 0 0 0 2px rgba(var(--bb-alt-rgb, 220, 20, 60), .5), 0 0 12px rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
+.lvl-claim:disabled { opacity: .5; }
+
+/* Comb buttons (Oct 29 2026, Craft): .btn and .bb-btn get sharp points
+   left and right instead of round corners. The edge is a gold layer behind
+   a slightly smaller fill layer, both cut to the same comb shape, so the
+   line follows the points. Variants: .solid / .bb-btn--main (gold fill),
+   .danger (red edge), .ghost (no fill). */
+html .btn.btn, html .bb-btn.bb-btn {
+    --tip: 10px;
+    --edge: rgba(var(--bb-accent-rgb, 255, 204, 0), .55);
+    --fill: #1a1205;
+    position: relative; isolation: isolate;
+    border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important;
+    padding-left: calc(var(--tip) + 12px) !important; padding-right: calc(var(--tip) + 12px) !important;
+    clip-path: polygon(var(--tip) 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, var(--tip) 100%, 0 50%);
+}
+html .btn.btn::before, html .bb-btn.bb-btn::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--edge); clip-path: inherit; }
+html .btn.btn::after, html .bb-btn.bb-btn::after {
+    content: ""; position: absolute; inset: 1.5px; z-index: -1; background: var(--fill);
+    clip-path: polygon(calc(var(--tip) - 1px) 0, calc(100% - var(--tip) + 1px) 0, 100% 50%, calc(100% - var(--tip) + 1px) 100%, calc(var(--tip) - 1px) 100%, 0 50%);
+}
+html .btn.btn.solid, html .bb-btn.bb-btn--main { --edge: var(--bb-accent-hi, #ffd84a); --fill: var(--bb-accent, #ffcc00); }
+html .btn.btn.danger { --edge: rgba(var(--bb-alt-rgb, 220, 20, 60), .75); }
+html .btn.btn.ghost { --fill: rgba(10, 7, 3, .6); }
+html .btn.btn:hover, html .bb-btn.bb-btn:hover { --edge: var(--bb-accent, #ffcc00); }
+html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; --edge: #fff; }
+
+/* Oct 30 2026 (Craft): mobile vs desktop split (boot.js sets the class) */
+html.bb-mobile .desktop-only, html.bb-desktop .mobile-only { display: none !important; }

@@ -122,14 +122,13 @@ function vaultHarness(raw = sample()) {
     vm.runInContext(readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8') + '\nglobalThis.vault = Vault;', context);
     return { vault: context.vault, data, context, fail: key => { failKey = key; } };
 }
-test('old schema preserves progress and takes a recovery copy', async () => {
-    const old = JSON.parse(sample()); old.schemaVersion = 6;
-    const h = vaultHarness(JSON.stringify(old)); await h.vault.init();
-    assert.equal(h.vault.state.quests[0].tasks[0].completed, true);
-    assert.equal(h.vault.state.profilePhoto, old.profilePhoto);
-    assert.equal(h.vault.getLocalBackups().length, 1);
-});
-test('schema 7 save with "dp" points is converted to "xp" (DP to XP rename)', async () => {
+test('old saves upgrade: schema 6 keeps progress, schema 7 "dp" becomes "xp", both keep a recovery copy', async () => {
+    const six = JSON.parse(sample()); six.schemaVersion = 6;
+    const h6 = vaultHarness(JSON.stringify(six)); await h6.vault.init();
+    assert.equal(h6.vault.state.quests[0].tasks[0].completed, true);
+    assert.equal(h6.vault.state.profilePhoto, six.profilePhoto);
+    assert.equal(h6.vault.getLocalBackups().length, 1);
+
     const old = JSON.parse(sample()); old.schemaVersion = 7;
     const task = old.quests[0].tasks[0]; task.dp = task.xp; delete task.xp;
     old.habits = [{ id: 'h', label: 'Walk', dp: 20, history: [] }];
@@ -137,22 +136,15 @@ test('schema 7 save with "dp" points is converted to "xp" (DP to XP rename)', as
     old.todos = [{ id: 'o', label: 'Call', dp: 30 }];
     const h = vaultHarness(JSON.stringify(old)); await h.vault.init();
     const st = h.vault.state;
-    assert.equal(st.quests[0].tasks[0].xp, 5);
-    assert.equal(st.habits[0].xp, 20);
-    assert.equal(st.dailyTasks[0].xp, 10);
-    assert.equal(st.todos[0].xp, 30);
+    assert.deepEqual([st.quests[0].tasks[0].xp, st.habits[0].xp, st.dailyTasks[0].xp, st.todos[0].xp], [5, 20, 10, 30]);
     assert.ok(!JSON.stringify(st).includes('"dp"'));
     assert.equal(st.schemaVersion, 8);
-    // The untouched original is kept as a recovery copy.
     assert.ok(h.vault.getLocalBackups()[0].data.includes('"dp":20'));
-});
-test('importing an old "dp" save file converts it to "xp"', () => {
-    const h = vaultHarness();
-    const old = JSON.parse(sample()); old.schemaVersion = 7;
-    const task = old.quests[0].tasks[0]; task.dp = task.xp; delete task.xp;
-    assert.equal(h.vault.importFullState(JSON.stringify(old)).ok, true);
-    assert.equal(h.vault.state.quests[0].tasks[0].xp, 5);
-    assert.ok(!('dp' in h.vault.state.quests[0].tasks[0]));
+
+    // Importing an old "dp" file does the same.
+    const h2 = vaultHarness();
+    assert.equal(h2.vault.importFullState(JSON.stringify(old)).ok, true);
+    assert.equal(h2.vault.state.quests[0].tasks[0].xp, 5);
 });
 test('server accepts both new "xp" saves and old "dp" saves', async () => {
     assert.equal((await save(req('save-state', { data: sample(), revision: null }))).status, 200);
@@ -224,7 +216,7 @@ test('a rejected Identity token cannot read a cloud save', async () => {
 });
 
 // ---- time-based XP (Oct 2026) ----
-test('time XP: minutes from titles, effort and the 10,000-hour level curve', async () => {
+test('time XP: minutes from titles, effort and the gentle level curve with Tiers', async () => {
     const h = vaultHarness(); await h.vault.init();
     const g = (code) => vm.runInContext(code, h.context);
     assert.equal(g('minutesFromText("Scrimba study for 20 minutes")'), 20);
@@ -232,8 +224,10 @@ test('time XP: minutes from titles, effort and the 10,000-hour level curve', asy
     assert.equal(g('minutesFromText("HTML MASTER")'), null);
     assert.equal(g('xpForMinutes(30, "Hard")'), 45);
     assert.ok(g('xpForMinutes(3, "Trivial")') < g('xpForMinutes(15, "Easy")'));
-    assert.equal(g('computeLevelProgress(1200).level'), 5);          // 20 h -> level 5
-    assert.equal(g('computeLevelProgress(60 * 9900).level'), 100);   // ~10,000 h -> level 100
+    assert.equal(g('computeLevelProgress(1200).level'), 6);          // 20 h -> level 6 (gentle curve)
+    assert.equal(g('computeLevelProgress(41340).level'), 50);        // level 50 cap
+    assert.equal(g('computeLevelProgress(41340 + 12000).level'), 52); // then a Tier every 6,000 XP
+    assert.equal(g('levelLabel(52)'), '✦ TIER 2');
 });
 test('time XP: logged minutes change a completion, history counts, level never jumps on its own', async () => {
     const old = JSON.parse(sample());

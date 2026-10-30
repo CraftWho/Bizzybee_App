@@ -28,12 +28,12 @@ test('hive life: old bees get sex and vitals, age starts today, workers stay fem
     assert.equal(h.vault.getFallenBees().length, 0);
 });
 
-test('hive life: hunger leads to fainting, then death after 3 days; Undertakers leave pollen', async () => {
+test('hive life: a sick, starving bee faints hour by hour, then dies after 3 days; Undertakers leave pollen', async () => {
     const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: daysAgo(5), faintedAt: null, royalJelly: false, birthTrait: null, ...o });
     const h = harness({ colony: { bees: [
-        bee('weak', { sex: 'f', life: life({ health: 10, fullness: 0 }) }),
+        bee('weak', { sex: 'f', life: life({ health: 1, fullness: 0, sickUntil: daysAgo(-30) }) }),
         bee('ut', { sex: 'f', class: 'undertaker', life: life({}) })
-    ], tickets: 0, lifeTick: daysAgo(5) }, inventory: { materials: {} } });
+    ], tickets: 0, lifeTick: daysAgo(5), vitalsAt: Date.now() - 5 * 86400000 }, inventory: { materials: {} } });
     await h.vault.init();
     const names = h.vault.getColonyBees().map(b => b.id);
     assert.ok(!names.includes('weak'));
@@ -97,7 +97,7 @@ test('hive life: with death paused, a long-fainted or old bee stays in the hive'
     assert.equal(h.vault.getFallenBees().length, 0);
 });
 
-test('comb rooms: new bees start as eggs, keep a picked job, and hatch (faster with a Nurse)', async () => {
+test('comb rooms: new bees start as eggs, can\'t take a job until they hatch, and hatch (faster with a Nurse)', async () => {
     const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: daysAgo(5), faintedAt: null, royalJelly: false, birthTrait: null, ...o });
     const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const h = harness({ colony: { bees: [
@@ -106,6 +106,9 @@ test('comb rooms: new bees start as eggs, keep a picked job, and hatch (faster w
         bee('nurse', { sex: 'f', class: 'nurse', life: life({}) })
     ], tickets: 0, lifeTick: daysAgo(1) } });
     await h.vault.init();
+    // Ready eggs wait for a tap (Oct 28 2026), then hatch.
+    assert.ok(h.vault.getColonyBees().slice(0, 2).every(b => b.life.readyAt));
+    assert.ok(h.vault.hatchEgg('egg1') && h.vault.hatchEgg('egg2'));
     const [e1, e2] = h.vault.getColonyBees();
     assert.equal(e1.life.hatchOn, undefined);
     assert.equal(e1.class, 'guardian');
@@ -116,7 +119,8 @@ test('comb rooms: new bees start as eggs, keep a picked job, and hatch (faster w
     const fresh = h.vault.awardBee('gacha');
     assert.ok(h.g('beeIsBrood')(fresh));
     assert.equal(h.g('beeCanWork')(fresh), false);
-    assert.ok(h.vault.assignBeeClass(fresh.id, 'honeymaker'));
+    assert.equal(h.vault.assignBeeClass(fresh.id, 'honeymaker'), null);   // eggs keep everything secret (Oct 27 2026)
+    assert.equal(fresh.class, null);
     assert.equal(fresh.life.idleSince, undefined);
     assert.equal(h.g('beeFeeling')(fresh).key, 'egg');
 });
@@ -229,4 +233,52 @@ test('#CamelCase: splits into words, still matches its task, old terms and tags 
     assert.equal(h.vault.state.skillLevels['Time Management'].level, 3);
     const cats = h.g(`skillMatcher(Vault.state.dictionary)('Read about #TimeManagement', [])`).map(c => c.category);
     assert.ok(cats.includes('Productivity'));
+});
+
+test('hour by hour: work costs by job, rest helps less by day than at night, Nursery heals 4x and frees the bed', async () => {
+    const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, fatigue: 0, bornAt: daysAgo(5), faintedAt: null, royalJelly: false, birthTrait: null, ...o });
+    const h = harness({ colony: { bees: [
+        bee('fora', { sex: 'f', class: 'collector', talent: 'scout', life: life({}) }),
+        bee('rest', { sex: 'f', life: life({ stamina: 20, fatigue: 60, recuperate: true }) }),
+        bee('bed', { sex: 'f', life: life({ health: 40, nursery: true }) })
+    ], tickets: 0, lifeTick: today } });
+    await h.vault.init();
+    const v = h.vault, B = (id) => v.getColonyBees().find(b => b.id === id);
+    const at = (hr) => { const d = new Date(); d.setHours(hr, 0, 0, 0); return d; };
+    v._lifeHour(at(10));                                   // daytime hour
+    assert.equal(B('fora').life.stamina, 94);              // Forager: -6 stamina
+    assert.equal(B('fora').life.fatigue, 3);
+    assert.equal(B('rest').life.stamina, 24);              // day rest +4
+    assert.equal(B('rest').life.fatigue, 57);
+    assert.equal(B('bed').life.health, 44);                // Nursery +4 (no Nurse)
+    v._lifeHour(at(23));                                   // night: everyone sleeps
+    assert.equal(B('fora').life.stamina, 100);             // +7, capped
+    assert.equal(B('rest').life.fatigue, 51);              // -6 at night
+    for (let i = 0; i < 12; i++) v._lifeHour(at(12));
+    assert.equal(B('bed').life.nursery, undefined);        // healed (90+) and left the bed
+    assert.equal(h.g('beeHurtLevel')({ life: { health: 25 } }), 3);
+    assert.equal(h.g('beeCanWork')({ life: { health: 25, stamina: 90 } }), false);   // severely hurt can't work
+    assert.equal(h.g('beeWellFactor')({ life: { health: 45, stamina: 90, fullness: 80 } }), 0.7);   // badly hurt = -30%
+});
+
+test('held items: Rare and up hold them, use-up items fire when needed, gear counts', async () => {
+    const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, fatigue: 0, bornAt: daysAgo(5), faintedAt: null, royalJelly: false, birthTrait: null, ...o });
+    const h = harness({ colony: { bees: [
+        bee('com', { sex: 'f', life: life({}) }),
+        bee('rare', { sex: 'f', rarity: 'Rare', class: 'collector', life: life({ fullness: 45 }) }),
+        bee('leg', { sex: 'f', rarity: 'Legendary', life: life({}) })
+    ], tickets: 0, lifeTick: today }, inventory: { materials: {}, items: { 'honey-extract': 1, 'wax-shield': 2 } } });
+    await h.vault.init();
+    const v = h.vault, B = (id) => v.getColonyBees().find(b => b.id === id);
+    assert.equal(v.giveBeeItem('com', 'honey-extract').ok, false);       // Common: no slot
+    assert.equal(v.giveBeeItem('rare', 'honey-extract').ok, true);
+    assert.equal(v.state.inventory.items['honey-extract'], 0);
+    assert.equal(v.giveBeeItem('leg', 'wax-shield', 1).ok, true);         // Legendary: 2 slots
+    assert.equal(h.g('beeGear')(B('leg'), 'defense'), 1.15);
+    const d = new Date(); d.setHours(10, 0, 0, 0);
+    v._lifeHour(d); v._lifeHour(d);                                       // Forager: -4 an hour, drops below 40
+    assert.ok(B('rare').life.fullness >= 70);                             // the Honey Extract fired (+40)
+    assert.equal(B('rare').held[0], null);
+    assert.equal(v.takeBeeItem('leg', 1), true);
+    assert.equal(v.state.inventory.items['wax-shield'], 2);
 });

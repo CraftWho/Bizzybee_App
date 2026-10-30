@@ -49,6 +49,24 @@
         } catch (error) { return false; }
     }
 
+    // ---- Inspect (Oct 29 2026): Eruda, a DevTools panel on the phone ------------
+    // Elements, Console, Network, Storage. Only for you (this file only loads
+    // for the owner / dev), and only when turned on here. Remembered per device.
+    const ERUDA_KEY = 'bizzybee_eruda';
+    function loadEruda(show) {
+        if (window.eruda) { if (show) window.eruda.show(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/eruda@3.4.1/eruda.min.js';
+        s.onload = () => { try { window.eruda.init(); if (show) window.eruda.show(); } catch (e) { /* ignore */ } };
+        document.body.appendChild(s);
+    }
+    function toggleEruda() {
+        const on = localStorage.getItem(ERUDA_KEY) === '1';
+        if (on) { localStorage.removeItem(ERUDA_KEY); if (window.eruda) window.eruda.destroy(); }
+        else { localStorage.setItem(ERUDA_KEY, '1'); loadEruda(true); }
+    }
+    if (localStorage.getItem(ERUDA_KEY) === '1') setTimeout(() => loadEruda(false), 800);
+
     // ---- helpers -----------------------------------------------------------
     const go = (p) => { location.href = `${root}/${p}`; };
     const reload = () => location.reload();
@@ -264,6 +282,80 @@
     }
 
     // Workshop pages only exist on this computer (gitignored).
+    // ---- New in 1.0.4 (Oct 28 2026) ----
+    const NEW = {
+        // A real notification in 5 seconds. Tapping it should open a daily and make it glow.
+        async notify() {
+            const d = (Vault.state.dailyTasks || [])[0];
+            if (!d) { toast('Add a daily first (Sample data).'); return; }
+            const url = `/src/features/dailies/dailies.html?focus=${encodeURIComponent(d.id)}`;
+            const C = window.Capacitor;
+            if (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins.LocalNotifications) {
+                await C.Plugins.LocalNotifications.schedule({ notifications: [{ id: 424243, title: '🐝 Dev test', body: `Tap me: opens "${d.label}"`,
+                    schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true }, smallIcon: 'ic_stat_bee', iconColor: '#FFCC00',
+                    extra: { kind: 'daily', taskId: d.id, url } }] });
+                toast('🔔 Notification in 5 seconds. Lock the phone, then tap it.');
+                return;
+            }
+            if (!('Notification' in window) || !navigator.serviceWorker) { toast('This browser can\'t show notifications.'); return; }
+            if ((await Notification.requestPermission()) !== 'granted') { toast('Allow notifications for this site first.'); return; }
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            setTimeout(() => reg.showNotification('🐝 Dev test', { body: `Tap me: opens "${d.label}"`, data: { url }, icon: '/src/assets/icons/icon-192x192.png' }), 5000);
+            toast('🔔 Notification in 5 seconds. Tap it.');
+        },
+        focus(kind) {
+            const list = kind === 'todo' ? Vault.state.todos : kind === 'habit' ? Vault.state.habits : Vault.state.dailyTasks;
+            const item = (list || []).find(x => !x.completed) || (list || [])[0];
+            if (!item) { toast('Nothing to open. Add sample data first.'); return; }
+            location.href = root + (typeof BizzyNotify !== 'undefined' ? BizzyNotify.urlFor(kind, item.id) : `/src/features/dailies/dailies.html?focus=${item.id}`);
+        },
+        plan() {
+            if (typeof BizzyNotify === 'undefined') return;
+            const p = BizzyNotify.plan({ days: 3 });
+            toast(p.length ? `${p.length} coming up. Next: ${p[0].label || p[0].title} at ${p[0].at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Nothing coming up.');
+        },
+        starter() {
+            Vault.state.starterSkills = null;
+            Vault.save();
+            const go = () => StarterSkills.open();
+            if (typeof StarterSkills !== 'undefined') { go(); return; }
+            const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = `${root}/src/core/ui/starter-skills/starter-skills.css`; document.head.appendChild(css);
+            const js = document.createElement('script'); js.src = `${root}/src/core/ui/starter-skills/starter-skills.js`; js.onload = go; document.body.appendChild(js);
+        },
+        doneToday() {
+            if (typeof openDoneToday === 'function') openDoneToday();
+            else location.href = `${root}/src/features/home/home.html?devdone=1`;
+        },
+        // Merge two copies of the save. Nothing is saved: it only reports what would happen.
+        merge() {
+            if (typeof mergeSaves !== 'function') { toast('Merge code not loaded.'); return; }
+            const a = JSON.parse(JSON.stringify(Vault.state)), b = JSON.parse(JSON.stringify(Vault.state));
+            const now = Date.now();
+            b.todos = [...(b.todos || []), { id: 'dev-merge-phone', label: 'Made on the phone', xp: 10, _mt: now }];
+            a.todos = [...(a.todos || []), { id: 'dev-merge-pc', label: 'Made on the PC', xp: 10, _mt: now }];
+            const d = (b.dailyTasks || [])[0], today = todayISO();
+            if (d) { d.completedDates = [...new Set([...(d.completedDates || []), today])]; d._days = { ...(d._days || {}), [today]: { done: true, t: now } }; d._mt = now; }
+            b.updatedAt = new Date(now).toISOString();
+            const m = mergeSaves(a, b);
+            const both = ['dev-merge-phone', 'dev-merge-pc'].every(id => m.todos.some(t => t.id === id));
+            const daily = d ? (m.dailyTasks.find(x => x.id === d.id).completedDates || []).includes(today) : true;
+            toast(both && daily ? '✓ Merge test passed: both new To-Dos kept, and the phone\'s check-off kept.' : '✗ Merge test failed. Check the console.');
+            if (!(both && daily)) console.warn('merge test', m);
+        },
+        icons() {
+            if (typeof BizzyPhone === 'undefined') { toast('Weather icons load on app pages.'); return; }
+            const kinds = ['clear', 'mostly', 'partly', 'cloudy', 'fog', 'drizzle', 'rain', 'heavy', 'snow', 'storm'];
+            const s = document.createElement('div');
+            s.style.cssText = 'position:fixed;inset:0;z-index:99990;display:grid;place-items:center;background:rgba(0,0,0,.7)';
+            s.innerHTML = `<div style="background:#120d05;border:1px solid #ffcc00;border-radius:16px;padding:16px;display:grid;grid-template-columns:repeat(5,64px);gap:12px;color:#c2b48f;font:600 .7rem system-ui;text-align:center">
+                ${kinds.map(k => `<div><div style="font-size:40px">${BizzyPhone.iconSVG(k, true)}</div>${k}</div>`).join('')}
+                ${['clear', 'partly'].map(k => `<div><div style="font-size:40px">${BizzyPhone.iconSVG(k, false)}</div>${k} night</div>`).join('')}</div>`;
+            s.onclick = () => s.remove();
+            document.body.appendChild(s);
+        },
+    };
+    const SKIES = [['Noon', 'clear', 12], ['Sunset', 'partly', 18], ['Night', 'clear', 23], ['Rain', 'rain', 21], ['Heavy rain', 'heavy', 14], ['Storm', 'storm', 16], ['Snow', 'snow', 10], ['Fog', 'fog', 7], ['Cloudy', 'cloudy', 13]];
+
     const LINKS = [
         ['Hive inside · Queen', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=queen'],
         ['Hive inside · King', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=king'],
@@ -276,7 +368,7 @@
 
     // ---- the panel -----------------------------------------------------------
     const css = `
-    .dev-fab{position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:70px;z-index:2000;width:40px;height:40px;border-radius:12px;border:1px solid #ff5a4a;background:#1a0606;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 0 12px rgba(255,60,40,.5);padding:0}
+    .dev-fab{touch-action:none;position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:70px;z-index:2000;width:40px;height:40px;border-radius:12px;border:1px solid #ff5a4a;background:#1a0606;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 0 12px rgba(255,60,40,.5);padding:0}
     body.onboarding-page .dev-fab{right:12px}
     .dev-ribbon{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 2px);transform:translateX(-50%);z-index:2000;padding:2px 10px;border-radius:0 0 8px 8px;background:#b3121f;color:#fff;font:700 10px/1.6 monospace;letter-spacing:.14em;pointer-events:none}
     .dev-panel{position:fixed;inset:0 0 0 auto;width:min(380px,100vw);z-index:2100;background:#0d0a05;border-left:1px solid #ff5a4a;color:#f1ede2;font:14px system-ui,sans-serif;overflow-y:auto;padding:14px 14px 40px;box-sizing:border-box;box-shadow:-20px 0 40px rgba(0,0,0,.7);transform:translateX(105%);transition:transform .3s ease}
@@ -326,6 +418,39 @@
         fab.setAttribute('aria-label', 'Dev tools');
         fab.textContent = '🛠';
         document.body.appendChild(fab);
+        // Oct 27 2026: drag the 🛠 anywhere so it never covers a button.
+        // The spot is remembered on this device. A short tap still opens it.
+        (() => {
+            const KEY = 'bizzybee_dev_fab_pos';
+            const place = (x, y) => {
+                const w = fab.offsetWidth || 40, h = fab.offsetHeight || 40;
+                x = Math.max(4, Math.min(window.innerWidth - w - 4, x));
+                y = Math.max(4, Math.min(window.innerHeight - h - 4, y));
+                Object.assign(fab.style, { left: x + 'px', top: y + 'px', right: 'auto', bottom: 'auto' });
+                return { x, y };
+            };
+            try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) place(p.x * window.innerWidth, p.y * window.innerHeight); } catch {}
+            let start = null, moved = false;
+            fab.style.touchAction = 'none';
+            fab.addEventListener('pointerdown', e => { const r = fab.getBoundingClientRect(); start = { px: e.clientX, py: e.clientY, x: r.left, y: r.top }; moved = false; fab.setPointerCapture(e.pointerId); document.body.classList.add('bb-dragging'); });
+            // Dragging it down must not pull-to-refresh the page.
+            fab.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+            ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => fab.addEventListener(ev, () => document.body.classList.remove('bb-dragging')));
+            fab.addEventListener('pointermove', e => {
+                if (!start) return;
+                const dx = e.clientX - start.px, dy = e.clientY - start.py;
+                if (!moved && Math.hypot(dx, dy) < 8) return;
+                moved = true;
+                place(start.x + dx, start.y + dy);
+            });
+            fab.addEventListener('pointerup', () => {
+                if (start && moved) { const r = fab.getBoundingClientRect(); try { localStorage.setItem(KEY, JSON.stringify({ x: r.left / window.innerWidth, y: r.top / window.innerHeight })); } catch {} }
+                start = null;
+            });
+            // A drag isn't a tap: swallow the click that follows it.
+            fab.addEventListener('click', e => { if (moved) { e.stopImmediatePropagation(); e.preventDefault(); moved = false; } }, true);
+            window.addEventListener('resize', () => { const r = fab.getBoundingClientRect(); if (fab.style.left) place(r.left, r.top); });
+        })();
 
         const testBlock = localDev ? '' : `
             <h3>TEST SAVE</h3>
@@ -343,6 +468,18 @@
             <p class="dev-sub">${localDev ? 'This computer only.' : 'Owner account only. Works on the test save.'}</p>
             <div class="dev-state" id="dev-state"></div>
             ${testBlock}
+
+            <h3>THEMES · NEW IN 1.0.5</h3>
+            <div class="dev-row">
+                <button data-dev="theme" data-t="auto">✨ Auto</button>
+                <button data-dev="theme" data-t="bee">🐝 BizzyBee</button>
+                <button data-dev="theme" data-t="halloween">🎃 Halloween</button>
+                <button data-dev="theme-day" data-d="halloween" class="go">Pretend it's Oct 31</button>
+                <button data-dev="theme-day">Back to today</button>
+                <a href="${root}/src/features/themes/themes.html">Themes page</a>
+                <a href="${root}/src/features/friends/friends.html">Friends' hives</a>
+                <a href="${root}/src/features/mailbox/mailbox.html">Mailbox</a>
+            </div>
 
             <div class="dev-act">
             <h3>EGG</h3>
@@ -391,6 +528,29 @@
                 <button data-dev="pv-day">Start My Day (sample)</button>
                 <button data-dev="pv-toast">Toast ✓</button>
                 <button data-dev="pv-toast-bad">Toast ✗</button>
+            </div>
+
+            <h3>NEW IN 1.0.4</h3>
+            <div class="dev-row">
+                <button data-dev="n-notify" class="go">Test notification tap</button>
+                <button data-dev="n-focus" data-k="daily">Open a daily (glow)</button>
+                <button data-dev="n-focus" data-k="todo">Open a To-Do (glow)</button>
+                <button data-dev="n-focus" data-k="habit">Open a habit (glow)</button>
+                <button data-dev="n-plan">What's coming up</button>
+                <a href="${root}/src/features/notifications/notifications.html">Notifications page</a>
+            </div>
+            <div class="dev-row" style="margin-top:6px">
+                <button data-dev="n-starter">Starter skills</button>
+                <button data-dev="n-done">Done today list</button>
+                <button data-dev="n-merge">Sync merge test</button>
+                <button data-dev="n-icons">Weather icons</button>
+            </div>
+            <div class="dev-row" style="margin-top:6px">
+                <button data-dev="inspect">🔧 Inspect (Eruda) ${localStorage.getItem(ERUDA_KEY) === '1' ? 'on' : 'off'}</button>
+                <button data-dev="dockreport">Dock report</button>
+            </div>
+            <div class="dev-row" style="margin-top:6px">
+                ${SKIES.map(([label, sky, hour]) => `<a href="${root}/src/features/colony/colony.html?sky=${sky}&hour=${hour}">Sky · ${label}</a>`).join('')}
             </div>
 
             <h3>TICKETS</h3>
@@ -446,7 +606,15 @@
             if (!b) return;
             const a = b.dataset.dev;
             const always = {
-                close, 'test-on': () => setTestSave(true), 'test-off': () => setTestSave(false), 'test-wipe': wipeTestSave
+                close, 'test-on': () => setTestSave(true), 'test-off': () => setTestSave(false), 'test-wipe': wipeTestSave,
+                // Themes are safe on any save: they only change the look.
+                theme: () => { if (typeof Themes !== 'undefined') { Themes.set(b.dataset.t); toast(`Theme: ${b.dataset.t}`); } },
+                'theme-day': () => {
+                    if (typeof Themes === 'undefined') return;
+                    const y = new Date().getFullYear();
+                    Themes.devDay(b.dataset.d === 'halloween' ? `${y}-10-31` : null);
+                    toast(b.dataset.d ? 'Pretending it\'s Oct 31 (Auto shows Halloween)' : 'Back to today');
+                }
             };
             if (always[a]) { always[a](); return; }
             if (!canAct()) return;   // real save: hands off
@@ -467,7 +635,12 @@
                 'tk-1': () => { HIVE.tickets(1); open(); }, 'tk-10': () => { HIVE.tickets(10); open(); },
                 'hv-day': HIVE.day, 'hv-raid': HIVE.raid, 'hv-egg': () => { HIVE.egg(); open(); }, 'hv-hatch': HIVE.hatch,
                 'hv-hungry': () => HIVE.set('fullness', 15), 'hv-tired': () => HIVE.set('stamina', 5), 'hv-sad': () => HIVE.set('happiness', 10),
-                'hv-heal': HIVE.heal, 'hv-review': HIVE.review
+                'hv-heal': HIVE.heal, 'hv-review': HIVE.review,
+                'n-notify': () => { close(); NEW.notify(); }, 'n-focus': () => NEW.focus(b.dataset.k), 'n-plan': NEW.plan,
+                'n-starter': () => { close(); NEW.starter(); }, 'n-done': () => { close(); NEW.doneToday(); },
+                'n-merge': NEW.merge, 'n-icons': () => { close(); NEW.icons(); },
+                inspect: () => { close(); toggleEruda(); },
+                dockreport: () => { close(); if (typeof AppShell !== 'undefined') AppShell.dockReport(); }
             };
             if (localDev) Object.assign(actions, { personal: loadPersonalFile, fresh: freshSave, signout: signOut });
             if (actions[a]) actions[a]();

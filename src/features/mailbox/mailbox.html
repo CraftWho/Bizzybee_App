@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <title>📬 Mailbox</title>
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="./mailbox.css">
+</head>
+<body>
+<main class="mb">
+    <section class="bb-box bb-box--frame">
+        <h1 class="bb-title">📬 MAILBOX</h1>
+        <p class="bb-text">Letters from the creator of BizzyBee. Tap 👍 or 👎 to let him know what you think.</p>
+    </section>
+    <!-- Oct 29 2026 (Craft): Letters and Updates (the changelog) tabs. -->
+    <div class="mb-tabs" role="tablist">
+        <button type="button" role="tab" id="mb-tab-letters" data-tab="letters" aria-selected="true">✉️ Letters</button>
+        <button type="button" role="tab" id="mb-tab-updates" data-tab="updates" aria-selected="false">🆕 Updates</button>
+    </div>
+    <section id="mb-updates" class="mb-updates" hidden></section>
+    <div id="mb-letters" class="mb-letters">
+    <p class="bb-box bb-box--alert mb-signin" id="mb-signin" hidden></p>
+
+    <section class="bb-box bb-box--glow mb-write" id="mb-write" hidden>
+        <h2 class="bb-title">✍️ Write to everyone</h2>
+        <p class="bb-text">Only you see this. Every player gets it in their Mailbox.</p>
+        <label for="mb-title">TITLE</label><input id="mb-title" maxlength="80" placeholder="Hi from the creator">
+        <label for="mb-body">MESSAGE</label><textarea id="mb-body" maxlength="4000" placeholder="Introduce yourself…"></textarea>
+        <label class="mb-check"><input type="checkbox" id="mb-hive" checked> Add a Connect button with my hive code</label>
+        <div class="mb-btns"><button type="button" class="bb-btn bb-btn--main" id="mb-send">Send to everyone</button></div>
+    </section>
+
+    <div class="mb-head"><h2 class="mb-sec">Letters</h2><button type="button" class="mb-refresh" id="mb-refresh" aria-label="Check for new mail">↻</button></div>
+    <div id="mb-list"><p class="mb-empty">Loading…</p></div>
+    <p class="mb-note" id="mb-updated"></p>
+    </div>
+</main>
+<script src="../../core/boot.js"></script>
+<script src="./mailbox.js"></script>
+</body>
+</html>

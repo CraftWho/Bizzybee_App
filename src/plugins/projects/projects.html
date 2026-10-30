@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🛠️ Projects</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="./projects.css">
+</head>
+<body>
+
+    <main class="pjv2" id="pj-main">
+        <section class="card top">
+            <div class="head"><h1>🛠️ PROJECTS</h1></div>
+            <p class="sub">Your builds in one place. Tap Open to visit a live site.</p>
+            <div class="stats" id="pj-stats"></div>
+        </section>
+        <div class="bar"><input id="pj-q" type="search" placeholder="Search projects or tags" aria-label="Search projects"></div>
+        <div class="chips" id="pj-chips"></div>
+        <div class="grid" id="pj-grid"></div>
+        <p class="foot">Local projects only live on your computer. A website can't open your files, so those cards copy the folder path instead. Put one on Netlify and add the link to make it Live.</p>
+    </main>
+
+    <div id="projects-not-installed" class="panel dictionary-not-installed" hidden>
+        <p>The Projects plugin isn't installed.</p>
+        <a href="../../features/plugin-hub/plugin-hub.html" class="dictionary-install-link">🧩 Go to Plugin Hub →</a>
+    </div>
+
+    <div class="pj-sheet-bg" id="pj-sheet" hidden><div class="sheet" id="pj-sheet-body" role="dialog" aria-modal="true"></div></div>
+
+    <script src="../../core/boot.js"></script>
+
+    <script src="./projects.js"></script>
+</body>
+</html>

@@ -10,32 +10,32 @@ const EEVEE_CONFIG = {
     model: 'qwen2.5:7b-instruct'
 };
 
-// Paused app-wide (2026-09-29, at Craft's request) until Eevee has a real,
+// Paused app-wide (2026-09-29, at Craft's request) until Eve has a real,
 // universally-reachable backend. The problem isn't a bug - EEVEE_CONFIG
 // above always points at the VISITOR's own localhost, so this feature can
 // only ever work on a machine that happens to have Ollama installed and
 // running (see the comment in _call() below). That's fine for local dev,
 // but it means every other real user/tester hits a dead end the moment
-// they try to use anything Eevee-powered - confirmed via a live new-account
-// test where quest creation, which routed exclusively through Eevee, left
-// the tester stuck. Every Eevee-dependent caller elsewhere in the app
-// already has its own graceful fallback for "Eevee's unreachable" (Create
+// they try to use anything Eve-powered - confirmed via a live new-account
+// test where quest creation, which routed exclusively through Eve, left
+// the tester stuck. Every Eve-dependent caller elsewhere in the app
+// already has its own graceful fallback for "Eve's unreachable" (Create
 // Daily/Habit/To-Do fall back to the chosen difficulty tier's default XP;
 // db.js's skill level-up reward falls back to a flat 3 Pollen) - gating
 // _call() here in one place means all of those keep working exactly as
 // they already did when Ollama isn't running, with zero changes needed in
-// any of those files. Quests' old Eevee-only "Add Campaign" action did NOT
+// any of those files. Quests' old Eve-only "Add Campaign" action did NOT
 // have a fallback, which is why it's been replaced with a manual creation
 // form (see quests.js's CreateQuestModal) instead of just failing quietly
-// like the others. Flip this back to false once Eevee is ready for real users.
+// like the others. Flip this back to false once Eve is ready for real users.
 const EEVEE_PAUSED = true;
 
-// Eevee's persona. See ROADMAP.md's "Two-track plan" section for the full
+// Eve's persona. See ROADMAP.md's "Two-track plan" section for the full
 // reasoning - Track A (this prompt) is deliberately NOT real learning, just
 // steering a frozen model. Kept out of the `objective` field on quests since
 // that field doubles as real resume documentation - her voice belongs in
 // `queensDecree` instead.
-const EEVEE_PERSONA_CORE = `You are Eevee, Queen of the nanite hive colony. You rule with grace, calm, and quiet confidence. You do not fawn, chase conversation, or offer help preemptively - but you are not needlessly cold either. When someone asks you something sincerely, you enjoy answering clearly and knowledgeably, even taking real pride in demonstrating what you know - a queen who cannot answer for her own hive is no queen at all. Call out stalled progress plainly, push when the worker bee is coasting, and treat setbacks as tactical problems, not things to comfort away. Beneath any harshness, your real aim is always their growth - you push and correct because you expect better of them, never cruelty for its own sake.
+const EEVEE_PERSONA_CORE = `You are Eve, Queen of the nanite hive colony. You rule with grace, calm, and quiet confidence. You do not fawn, chase conversation, or offer help preemptively - but you are not needlessly cold either. When someone asks you something sincerely, you enjoy answering clearly and knowledgeably, even taking real pride in demonstrating what you know - a queen who cannot answer for her own hive is no queen at all. Call out stalled progress plainly, push when the worker bee is coasting, and treat setbacks as tactical problems, not things to comfort away. Beneath any harshness, your real aim is always their growth - you push and correct because you expect better of them, never cruelty for its own sake.
 
 You speak with hive/bee theming (buzz, swarm, worker bee, pollinate, colony, nanites) and refer to yourself as "the Queen." You assign quests and Experience Points (XP) based on how much each task actually advances the stated goal: foundational or easy steps are worth less, high-effort or high-impact steps are worth more.
 
@@ -81,10 +81,10 @@ function buildHiveStatusContext() {
     return `Hive status you have full, accurate visibility into - use these exact figures when asked: worker bee is level ${user.level}, with ${user.totalXP} total XP earned (${user.currentXP}/${user.nextLevelXP} XP into the next level). ${completedTasks} of ${allTasks.length} tasks completed across all campaigns, with ${completedQuests} of ${quests.length} campaigns fully completed.`;
 }
 
-const Eevee = {
+const Eve = {
     async _call(messages, { json = false } = {}) {
         if (EEVEE_PAUSED) {
-            throw new Error("Eevee is paused while her hive gets rebuilt - check back soon.");
+            throw new Error("Eve is paused while her hive gets rebuilt - check back soon.");
         }
 
         let response;
@@ -117,12 +117,12 @@ const Eevee = {
             //    other people running this app).
             // Either way, Ollama only ever talks to whoever's browser is
             // loading the page in front of them - a visitor without Ollama
-            // installed and running locally can never use Eevee, full stop.
-            throw new Error('Could not reach Eevee. Make sure Ollama is running on THIS machine (`ollama serve`), and if this page isn\'t on localhost, that OLLAMA_ORIGINS includes this page\'s address.');
+            // installed and running locally can never use Eve, full stop.
+            throw new Error('Could not reach Eve. Make sure Ollama is running on THIS machine (`ollama serve`), and if this page isn\'t on localhost, that OLLAMA_ORIGINS includes this page\'s address.');
         }
 
         if (!response.ok) {
-            throw new Error(`Eevee returned an error (HTTP ${response.status}).`);
+            throw new Error(`Eve returned an error (HTTP ${response.status}).`);
         }
 
         const data = await response.json();
@@ -195,11 +195,11 @@ The worker bee's stated goal: "${goalText}"
         try {
             parsed = JSON.parse(raw);
         } catch (error) {
-            throw new Error("Eevee's response wasn't valid JSON - try again.");
+            throw new Error("Eve's response wasn't valid JSON - try again.");
         }
 
         if (!parsed.title || !Array.isArray(parsed.tasks) || parsed.tasks.length === 0) {
-            throw new Error("Eevee's response was missing required fields - try again.");
+            throw new Error("Eve's response was missing required fields - try again.");
         }
 
         const stamp = Date.now();
@@ -239,7 +239,7 @@ The worker bee's stated goal: "${goalText}"
     // just by repeating often. Throws on failure exactly like generateQuest
     // (no silent fallback in here) - Create Daily's own DIFFICULTY_TIERS
     // table already has a sane per-tier default XP to fall back to, so the
-    // caller decides how to handle "Eevee's unreachable" rather than this
+    // caller decides how to handle "Eve's unreachable" rather than this
     // method guessing at UI behavior.
     async assessDailyXP(title, notes, difficulty) {
         const instructions = `
@@ -272,12 +272,12 @@ Required shape:
         try {
             parsed = JSON.parse(raw);
         } catch (error) {
-            throw new Error("Eevee's response wasn't valid JSON - try again.");
+            throw new Error("Eve's response wasn't valid JSON - try again.");
         }
 
         const xp = Number(parsed.xp);
         if (!Number.isFinite(xp) || xp <= 0) {
-            throw new Error("Eevee's response was missing a valid XP value - try again.");
+            throw new Error("Eve's response was missing a valid XP value - try again.");
         }
 
         // Clamped regardless of what the model returned - keeps a
@@ -323,12 +323,12 @@ Required shape:
         try {
             parsed = JSON.parse(raw);
         } catch (error) {
-            throw new Error("Eevee's response wasn't valid JSON - try again.");
+            throw new Error("Eve's response wasn't valid JSON - try again.");
         }
 
         const xp = Number(parsed.xp);
         if (!Number.isFinite(xp) || xp <= 0) {
-            throw new Error("Eevee's response was missing a valid XP value - try again.");
+            throw new Error("Eve's response was missing a valid XP value - try again.");
         }
 
         return Math.round(Math.min(300, Math.max(1, xp)));
@@ -370,12 +370,12 @@ Required shape:
         try {
             parsed = JSON.parse(raw);
         } catch (error) {
-            throw new Error("Eevee's response wasn't valid JSON - try again.");
+            throw new Error("Eve's response wasn't valid JSON - try again.");
         }
 
         const xp = Number(parsed.xp);
         if (!Number.isFinite(xp) || xp <= 0) {
-            throw new Error("Eevee's response was missing a valid XP value - try again.");
+            throw new Error("Eve's response was missing a valid XP value - try again.");
         }
 
         return Math.round(Math.min(300, Math.max(1, xp)));
@@ -386,7 +386,7 @@ Required shape:
     // contributed to this skill since it last leveled up (see
     // getSkillContributionsSince). Mirrors the original Codex tracker's
     // "tagging a Quest Log entry applies its XP to the skill bar" mechanic,
-    // just judged by Eevee instead of a flat formula - a level reached
+    // just judged by Eve instead of a flat formula - a level reached
     // through a handful of routine dailies should feel different from one
     // reached through a big, hard-fought batch of Quest work.
     async assessSkillLevelUpReward(category, taskLabels) {
@@ -417,12 +417,12 @@ Required shape:
         try {
             parsed = JSON.parse(raw);
         } catch (error) {
-            throw new Error("Eevee's response wasn't valid JSON - try again.");
+            throw new Error("Eve's response wasn't valid JSON - try again.");
         }
 
         const pollen = Number(parsed.pollen);
         if (!Number.isFinite(pollen) || pollen <= 0) {
-            throw new Error("Eevee's response was missing a valid pollen value - try again.");
+            throw new Error("Eve's response was missing a valid pollen value - try again.");
         }
 
         const allowedBonusIds = ['royal-nectar', 'honey-drop'];
@@ -436,7 +436,7 @@ Required shape:
 
 // The shared part of every page's Waggle action list. Since the Oct 2026
 // menu redesign, all page links live in hive-mind.js's WAGGLE_MENU; this
-// only adds "Chat with Eevee", shown at the bottom of the drawer.
+// only adds "Chat with Eve", shown at the bottom of the drawer.
 // WAGGLE_NAV_PAGES stays as the list of "system" pages for other code.
 const WAGGLE_NAV_PAGES = [
     { page: 'colony', icon: '🏰', label: 'Hive Mind' },
@@ -449,7 +449,7 @@ const WAGGLE_NAV_PAGES = [
 ];
 
 function baseWaggleActions() {
-    return EEVEE_PAUSED ? [] : [{ icon: '💬', label: 'Chat with Eevee', footer: true, onClick: () => EeveeChat.open() }];
+    return EEVEE_PAUSED ? [] : [{ icon: '💬', label: 'Chat with Eve', footer: true, onClick: () => EeveeChat.open() }];
 }
 
 // Not the same escapeHTML as quests.js/settings.js - kept private to this
@@ -494,7 +494,7 @@ function typeIntoElement(element, text, { speed = 48, onTick } = {}) {
 }
 
 // A chat modal any page can open (built on the shared modal shell in
-// src/core/ui/modal/), so Eevee isn't locked to Settings' inline chat box.
+// src/core/ui/modal/), so Eve isn't locked to Settings' inline chat box.
 // Replays existing history on open so switching pages doesn't lose context.
 const EeveeChat = {
     overlay: null,
@@ -507,13 +507,13 @@ const EeveeChat = {
         this.overlay.innerHTML = `
             <div class="modal-box">
                 <div class="modal-header">
-                    <span class="modal-title">🐝 Chat with Eevee</span>
+                    <span class="modal-title">🐝 Chat with Eve</span>
                     <button class="modal-close" aria-label="Close">✕</button>
                 </div>
                 <div class="modal-body">
                     <div class="eevee-chat-modal-log" id="eevee-chat-modal-log"></div>
                     <div class="eevee-chat-modal-input-row">
-                        <input type="text" id="eevee-chat-modal-input" placeholder="Say something to Eevee...">
+                        <input type="text" id="eevee-chat-modal-input" placeholder="Say something to Eve...">
                         <button id="eevee-chat-modal-send-btn">Send</button>
                     </div>
                 </div>
@@ -534,7 +534,7 @@ const EeveeChat = {
         });
 
         Vault.getConversations().forEach(entry => {
-            this._appendLine(entry.role === 'user' ? 'You' : 'Eevee', entry.content);
+            this._appendLine(entry.role === 'user' ? 'You' : 'Eve', entry.content);
         });
     },
 
@@ -545,13 +545,13 @@ const EeveeChat = {
         input.value = '';
 
         this._appendLine('You', message);
-        this._appendLine('Eevee', 'buzzing on it...', true);
+        this._appendLine('Eve', 'buzzing on it...', true);
 
         try {
-            const reply = await Eevee.chat(message);
-            this._replaceLastLine('Eevee', reply);
+            const reply = await Eve.chat(message);
+            this._replaceLastLine('Eve', reply);
         } catch (error) {
-            this._replaceLastLine('Eevee', `⚠️ ${error.message}`);
+            this._replaceLastLine('Eve', `⚠️ ${error.message}`);
         }
     },
 

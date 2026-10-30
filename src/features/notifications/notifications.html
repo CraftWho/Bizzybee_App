@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🔔 Notifications</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../settings/settings.css">
+    <link rel="stylesheet" href="./notifications.css">
+    <!-- Web push needs the cloud account (Netlify Identity). -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+</head>
+<body>
+    <main class="stv2 ntv">
+        <div class="nt-head">
+            <div class="nt-hex" aria-hidden="true">🔔</div>
+            <div><h1 class="settings-title">NOTIFICATIONS</h1><small id="nt-device">Checking this device…</small></div>
+        </div>
+
+        <section class="card top">
+            <div class="row"><span class="hx">📱</span><span class="mid"><b>Notifications on this device</b><small id="nt-master-note" role="status" aria-live="polite">Checking…</small></span><label class="toggle-switch"><input type="checkbox" id="nt-master" aria-label="Notifications on this device"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+            <div class="row" id="nt-exact" hidden><span class="hx">⏰</span><span class="mid"><b>Exact timing is off</b><small>Android may delay reminders a few minutes. Turn on "Alarms &amp; reminders" for BizzyBee.</small></span><button type="button" class="btn" id="nt-exact-btn">Fix</button></div>
+        </section>
+
+        <h2 class="sec">Coming up</h2>
+        <section class="card"><ul class="nt-up" id="nt-up"><li class="nt-empty">Loading…</li></ul></section>
+
+        <h2 class="sec">What reminds you</h2>
+        <div id="nt-types"></div>
+
+        <h2 class="sec">Smart Notifications</h2>
+        <section class="card nt-type" id="nt-smart-card">
+            <div class="row"><span class="hx">🧠</span><span class="mid"><b>Smart Notifications <span class="pf-beta">BETA</span></b><small>Hard tasks and close deadlines keep after you. Easy ones stay gentle.</small></span><label class="toggle-switch"><input type="checkbox" id="nt-smart" aria-label="Smart Notifications"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+            <div class="nt-body">
+                <div class="row"><span class="mid"><b>Quiet hours</b><small>No nudges. A To-Do deadline alarm still rings.</small></span><select id="nt-quiet" aria-label="Quiet hours"><option value="22-7">10 PM – 7 AM</option><option value="23-8">11 PM – 8 AM</option><option value="off">Off</option></select></div>
+                <div class="row"><span class="mid"><b>How much it nags</b><small>To-Dos with no time count 9 PM as the deadline.</small></span><select id="nt-level" aria-label="How much it nags"><option value="gentle">Gentle</option><option value="normal">Normal</option><option value="relentless">Relentless</option></select></div>
+            </div>
+        </section>
+
+        <h2 class="sec">Sound &amp; vibration</h2>
+        <section class="card" id="nt-sound-card">
+            <div class="row nt-app"><span class="hx">🔊</span><span class="mid"><b>Reminder sound <span class="nt-badge">APP</span></b><small>Any tone on your phone</small></span><span class="pf-pick"><select id="nt-sound" aria-label="Reminder sound"><option value="default">Phone default</option><option value="none">Silent</option></select><button type="button" class="pf-play" data-play="sound" aria-label="Play reminder sound">▶</button></span></div>
+            <div class="row nt-app"><span class="hx">⏰</span><span class="mid"><b>Alarm sound <span class="nt-badge">APP</span></b><small>For deadline alarms</small></span><span class="pf-pick"><select id="nt-alarm" aria-label="Alarm sound"><option value="default">Phone alarm</option><option value="none">Silent</option></select><button type="button" class="pf-play" data-play="alarm" aria-label="Play alarm sound">▶</button></span></div>
+            <div class="row nt-app"><span class="hx">〰️</span><span class="mid"><b>Vibration rhythm <span class="nt-badge">APP</span></b><small>Tap ▶ to feel it</small></span><span class="pf-pick"><select id="nt-rhythm" aria-label="Vibration rhythm"></select><button type="button" class="pf-play" data-play="rhythm" aria-label="Feel the rhythm">▶</button></span></div>
+            <div class="row"><span class="hx">🙈</span><span class="mid"><b>Show task names</b><small>Off = "You have a task waiting"</small></span><label class="toggle-switch"><input type="checkbox" id="nt-names" aria-label="Show task names"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+        </section>
+
+        <div class="nt-btns"><button type="button" class="btn" id="nt-test">Send a test</button><button type="button" class="btn" id="nt-sys">Phone settings</button></div>
+        <p class="nt-foot" id="nt-foot"></p>
+    </main>
+
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/services/push/push.js"></script>
+    <script src="./notifications.js"></script>
+</body>
+</html>

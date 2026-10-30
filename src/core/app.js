@@ -71,6 +71,7 @@ const AppLock = {
     // opens simply finds hasPin() false and never shows the overlay at all.
     removePin() {
         localStorage.removeItem(this.PIN_HASH_KEY);
+        localStorage.removeItem('bizzybee_bio_unlock');
     },
 
     async verifyPin(pin) {
@@ -85,6 +86,26 @@ const AppLock = {
 
     markUnlocked() {
         sessionStorage.setItem(this.SESSION_UNLOCK_KEY, 'true');
+    },
+
+    // Face / fingerprint (Android app 1.0.9+, Oct 28 2026). The phone checks
+    // it; BizzyBee only gets "yes" or "no". Off by default, next to the PIN.
+    BIO_KEY: 'bizzybee_bio_unlock',
+    bioPlugin() {
+        const C = window.Capacitor;
+        return (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.NativeBiometric) || null;
+    },
+    bioOn() { return localStorage.getItem(this.BIO_KEY) === 'on' && !!this.bioPlugin(); },
+    async bioAvailable() {
+        const b = this.bioPlugin();
+        if (!b) return false;
+        try { return !!(await b.isAvailable({ useFallback: false })).isAvailable; } catch { return false; }
+    },
+    async bioCheck(reason = 'Unlock BizzyBee') {
+        const b = this.bioPlugin();
+        if (!b) return false;
+        try { await b.verifyIdentity({ reason, title: 'BizzyBee', subtitle: reason, negativeButtonText: 'Use PIN', maxAttempts: 3 }); return true; }
+        catch { return false; }
     }
 };
 
@@ -127,9 +148,28 @@ const Appearance = {
     PARAS: ['#a69a80', '#d9cfb4', '#efe6cc', '#ffffff', '#ffe9b0', '#d8e8ff'],
     SIZES: { S: 93.75, M: 100, L: 112.5, XL: 125 },
     PSIZES: { S: 0.92, M: 1, L: 1.12, XL: 1.25 },
+    // Oct 30 2026 (Craft): one-tap presets and a font choice, on top of the
+    // separate controls. A preset just sets the controls below it.
+    FONTS: {
+        app: { label: 'App', css: null },
+        readable: { label: 'Easy read', css: '"Atkinson Hyperlegible", system-ui, sans-serif', href: 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap' },
+        plain: { label: 'Plain', css: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
+        serif: { label: 'Book', css: 'Georgia, "Times New Roman", serif' }
+    },
+    PRESETS: [
+        { id: 'default', icon: '🐝', label: 'Default', set: {} },
+        { id: 'easy', icon: '👓', label: 'Easy read', set: { size: 'L', psize: 'L', font: 'readable', contrast: true } },
+        { id: 'big', icon: '🔠', label: 'Big & bold', set: { size: 'XL', psize: 'L', bold: true, contrast: true, font: 'plain' } },
+        { id: 'compact', icon: '📏', label: 'Compact', set: { size: 'S', psize: 'S' } }
+    ],
+    presetNow() {
+        const v = this.get(), base = { title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false, font: 'app' };
+        const p = this.PRESETS.find(x => Object.entries({ ...base, ...x.set }).every(([k, val]) => (v[k] ?? base[k]) === val));
+        return p ? p.id : null;
+    },
     get() {
-        try { return Object.assign({ title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false }, JSON.parse(localStorage.getItem(this.KEY) || '{}')); }
-        catch { return { title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false }; }
+        try { return Object.assign({ title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false, font: 'app' }, JSON.parse(localStorage.getItem(this.KEY) || '{}')); }
+        catch { return { title: null, text: null, para: null, psize: 'M', size: 'M', bold: false, contrast: false, font: 'app' }; }
     },
     set(patch) {
         const next = patch ? Object.assign(this.get(), patch) : {};
@@ -150,6 +190,12 @@ const Appearance = {
         const para = v.para || (v.contrast ? '#efe6cc' : null);
         const pk = this.PSIZES[v.psize] || 1;
         if (para || pk !== 1) css.push(this._paraCSS(para, pk));
+        const font = this.FONTS[v.font];
+        if (font && font.css) {
+            if (font.href && !document.getElementById('bb-look-font')) { const l = document.createElement('link'); l.id = 'bb-look-font'; l.rel = 'stylesheet'; l.href = font.href; (document.head || document.documentElement).appendChild(l); }
+            // Body text only: titles, numbers and icons keep the app's look.
+            css.push(`body, body p, body small, body li, body input, body textarea, body select, .row .mid b, .dr-title, .hr-title, .card b { font-family: ${font.css} !important; }`);
+        }
         if (v.bold) css.push(`body * { font-weight: 600 !important; } body b, body strong, body h1, body h2, body h3, .pv2-title, .dl-title { font-weight: 800 !important; }`);
         tag.textContent = css.join('\n');
     },
@@ -216,7 +262,12 @@ const Appearance = {
         const render = () => {
             const v = this.get();
             const sw = (key, list, def) => list.map(c => `<button type="button" class="look-sw" data-k="${key}" data-v="${c}" style="background:${c}" aria-label="${c}" aria-pressed="${(v[key] || def) === c}"></button>`).join('');
+            const now = this.presetNow();
             host.innerHTML = `
+                <div class="row"><span class="hx">⚡</span><span class="mid"><b>Quick presets</b><small>One tap. Fine-tune below.</small></span></div>
+                <div class="look-presets">${this.PRESETS.map(p => `<button type="button" class="look-preset" data-preset="${p.id}" aria-pressed="${now === p.id}"><span aria-hidden="true">${p.icon}</span>${p.label}</button>`).join('')}</div>
+                <div class="row"><span class="hx">🔤</span><span class="mid"><b>Font</b><small>For reading text. Titles keep the hive look.</small></span></div>
+                <div class="look-presets look-fonts">${Object.entries(this.FONTS).map(([k, f]) => `<button type="button" class="look-preset" data-font="${k}" aria-pressed="${(v.font || 'app') === k}" style="${f.css ? `font-family:${f.css.replace(/"/g, "'")}` : ''}">${f.label}</button>`).join('')}</div>
                 <div class="row"><span class="hx">🔠</span><span class="mid"><b>Title color</b><small>Page titles and section labels</small></span></div>
                 <div class="look-line">${sw('title', this.TITLES, this.TITLES[0])}</div>
                 <div class="row"><span class="hx">✏️</span><span class="mid"><b>Text color</b><small>Task names and main text</small></span></div>
@@ -233,6 +284,10 @@ const Appearance = {
         host.addEventListener('click', (e) => {
             const s = e.target.closest('.look-sw');
             if (s) { const def = { title: this.TITLES[0], text: this.TEXTS[0], para: this.PARAS[0] }[s.dataset.k]; this.set({ [s.dataset.k]: s.dataset.v === def ? null : s.dataset.v }); render(); return; }
+            const pr = e.target.closest('[data-preset]');
+            if (pr) { const p = this.PRESETS.find(x => x.id === pr.dataset.preset); this.set(null); if (p && Object.keys(p.set).length) this.set(p.set); render(); return; }
+            const fo = e.target.closest('[data-font]');
+            if (fo) { this.set({ font: fo.dataset.font }); render(); return; }
             const pz = e.target.closest('[data-psize]');
             if (pz) { this.set({ psize: pz.dataset.psize }); render(); return; }
             const z = e.target.closest('[data-size]');
@@ -279,7 +334,7 @@ const AppShell = {
                 <button type="button" class="ah-royal" aria-label="Your royal">
                     <svg class="ah-hex" viewBox="0 0 118 128" aria-hidden="true">
                         <defs>
-                            <linearGradient id="ahEdge" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".5" stop-color="#ffcc00"/><stop offset="1" stop-color="#8a6000"/></linearGradient>
+                            <linearGradient id="ahEdge" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--bb-t-hi, #fff2b0)"/><stop offset=".5" style="stop-color:var(--bb-accent, #ffcc00)"/><stop offset="1" style="stop-color:var(--bb-accent-deep, #8a6000)"/></linearGradient>
                             <radialGradient id="ahIn" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#3a2604"/><stop offset=".7" stop-color="#140c02"/><stop offset="1" stop-color="#070401"/></radialGradient>
                         </defs>
                         <polygon class="ah-hex-glow" points="59,2 114,33 114,95 59,126 4,95 4,33"/>
@@ -329,15 +384,50 @@ const AppShell = {
         });
 
         if (this.isHome) {
+            // Oct 27 2026 fix: shrinking the header used to pull the page up,
+            // which on short pages scrolled it back under the threshold and
+            // the header flickered big/small. Now the space the header gives
+            // up stays as a margin, so the page never moves.
+            const heights = () => {
+                const full = head.classList.contains('compact') ? null : head.offsetHeight;
+                const clone = head.cloneNode(true);
+                clone.classList.add('compact');
+                clone.style.cssText = `position:absolute;visibility:hidden;left:0;top:-9999px;width:${head.offsetWidth}px;transition:none`;
+                document.body.appendChild(clone);
+                const small = clone.offsetHeight;
+                clone.remove();
+                return { full, small };
+            };
+            let h = null;
+            const apply = () => { head.style.marginBottom = this.compact && h && h.full ? `${Math.max(0, h.full - h.small)}px` : ''; };
             window.addEventListener('scroll', () => {
                 const want = this.compact ? window.scrollY > 24 : window.scrollY > 120;
-                if (want !== this.compact) { this.compact = want; head.classList.toggle('compact', want); }
+                if (want === this.compact) return;
+                if (want && (!h || !h.full)) h = heights();
+                this.compact = want;
+                head.classList.toggle('compact', want);
+                apply();
             }, { passive: true });
+            window.addEventListener('resize', () => { if (!this.compact) h = null; });
         }
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             setTimeout(() => this.flutter(), 1200);
             setInterval(() => this.flutter(), 7000);
         }
+    },
+
+    // Tap to hatch (Oct 28 2026): loads what the hatch screen needs, then opens it.
+    hatch(beeId, onDone) {
+        const base = `${window.location.origin}/src/core/ui/`;
+        const css = ['bee-card/bee-card.css', 'bee-name/bee-name.css', 'egg-hatch/egg-hatch.css'];
+        const js = [['EggDesign', 'egg-designs/egg-designs.js'], ['BeeCard', 'bee-card/bee-card.js'], ['BeeName', 'bee-name/bee-name.js'], ['EggHatch', 'egg-hatch/egg-hatch.js']];
+        css.forEach(f => { if (!document.querySelector(`link[href$="${f}"]`)) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = base + f; document.head.appendChild(l); } });
+        const next = (i) => {
+            if (i >= js.length) { EggHatch.open(beeId, { onDone }); return; }
+            if (typeof window[js[i][0]] !== 'undefined' || (js[i][0] === 'EggHatch' && typeof EggHatch !== 'undefined') || (js[i][0] === 'EggDesign' && typeof EggDesign !== 'undefined') || (js[i][0] === 'BeeCard' && typeof BeeCard !== 'undefined') || (js[i][0] === 'BeeName' && typeof BeeName !== 'undefined')) { next(i + 1); return; }
+            const sc = document.createElement('script'); sc.src = base + js[i][1]; sc.onload = () => next(i + 1); document.body.appendChild(sc);
+        };
+        next(0);
     },
 
     goHome() { window.location.href = this.url('src/features/home/home.html'); },
@@ -388,10 +478,18 @@ const AppShell = {
             : royal.name && royal.name !== name
                 ? `👑 ${title} <b>${esc(royal.name)}</b> rules your hive`
                 : `👑 <b>${title}</b> of the hive`;
-        q('.ah-chip').textContent = `LV ${bar.level}`;
+        // Oct 30 2026 (Craft): the title you wear (Titles page) sits after it.
+        const worn = typeof Vault.getTitles === 'function' ? (Vault.getTitles() || {}).worn : null;
+        if (worn && royal) q('.ah-line').innerHTML += ` · <span class="ah-title">${worn.kind === 'special' ? worn.icon + ' ' : ''}${esc(worn.name)}</span>`;
+        q('.ah-chip').textContent = levelLabel(bar.level);
+        // Bar colour changes every 10 levels (purple-pink for Tiers).
+        const [lvA, lvB] = levelColor(bar.level);
+        document.documentElement.style.setProperty('--lv-a', lvA);
+        document.documentElement.style.setProperty('--lv-b', lvB);
         q('.ah-bar i').style.width = `${Math.max(0, Math.min(100, bar.percentage))}%`;
         q('.ah-xp').innerHTML = `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
-        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to Level ${bar.level + 1}`;
+        // Oct 29 2026 (Craft): no "XP to level" line; the title line says who you are.
+        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : '';
         q('.ah-chip').classList.toggle('ready', !!bar.maxed);
         const qs = typeof Vault.getQueenStats === 'function' ? Vault.getQueenStats() : null;
         if (qs) {
@@ -443,6 +541,8 @@ const AppShell = {
             if (!review) return;
             const show = () => setTimeout(() => { if (typeof DayStart !== 'undefined') DayStart.open(Vault.getDayReview()); }, 900);
             if (typeof DayStart !== 'undefined') { show(); return; }
+            if (this._dayStartLoading) return;   // already on its way (it used to load twice)
+            this._dayStartLoading = true;
             const css = document.createElement('link');
             css.rel = 'stylesheet'; css.href = this.url('src/core/ui/day-start/day-start.css');
             document.head.appendChild(css);
@@ -547,16 +647,19 @@ const AppShell = {
             const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
             loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' });
         });
+        const isTier = reward.newLevel > LEVEL_CAP;
         const perks = ['❤️ Health refilled'];
-        if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level');
+        if (isTier) perks.push('👑 Guaranteed Epic bee');
+        else if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level · new bar colour');
         const bar = typeof Vault.getCharacterLevelBar === 'function' ? Vault.getCharacterLevelBar() : null;
         const bee = reward.awardedBees.find(b => Vault.getColonyBees().some(x => x.id === b.id));
         const rich = {
-            cap: 'CHARACTER LEVEL', level: reward.newLevel, ribbon: reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
-            next: bar ? { level: reward.newLevel + 1, now: bar.xpIntoLevel, cap: bar.cap } : null,
+            cap: isTier ? 'PRESTIGE TIER' : 'CHARACTER LEVEL', level: isTier ? reward.newLevel - LEVEL_CAP : reward.newLevel,
+            ribbon: isTier ? (reward.newLevel === LEVEL_CAP + 1 ? 'PRESTIGE' : 'TIER UP') : reward.newLevel === LEVEL_CAP ? 'MAX LEVEL' : reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
+            next: bar ? { level: levelName(reward.newLevel + 1), now: bar.xpIntoLevel, cap: bar.cap } : null,
             beeId: bee ? bee.id : null
         };
-        return { title: `Character reached Level ${reward.newLevel}!`, lines, rich };
+        return { title: `Character reached ${levelName(reward.newLevel)}!`, lines, rich };
     },
 
     burst() {
@@ -589,7 +692,7 @@ const AppShell = {
         dock.innerHTML = `${tab(DOCK_TABS[0])}${tab(DOCK_TABS[1])}<span class="dk-gap"></span>${tab(DOCK_TABS[2])}${tab(DOCK_TABS[3])}
             <button type="button" class="dk-add" aria-label="${target ? `New ${target.label}` : 'Create new'}">
                 <svg viewBox="0 0 72 80" aria-hidden="true">
-                    <defs><linearGradient id="dkAddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#ffcc00"/><stop offset="1" stop-color="#d08a00"/></linearGradient></defs>
+                    <defs><linearGradient id="dkAddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--bb-t-hi, #fff2b0)"/><stop offset=".45" style="stop-color:var(--bb-accent, #ffcc00)"/><stop offset="1" style="stop-color:var(--bb-t-lo, #d08a00)"/></linearGradient></defs>
                     <polygon class="dk-glow" points="36,3 69,22 69,58 36,77 3,58 3,22"/>
                     <polygon class="dk-body" points="${SHELL_HEX}"/>
                     <polygon class="dk-hi" points="36,9 63,25 63,40 36,24 9,40 9,25"/>
@@ -600,12 +703,24 @@ const AppShell = {
         document.body.classList.add('has-app-dock');
         this.dock = dock;
         if (/[?&]dockdebug\b/.test(location.search)) setTimeout(() => this.dockReport(), 3000);
-        // Same report from the installed app (no address bar): press and
-        // hold the dock for 2 seconds.
-        let holdTimer = null;
-        const stopHold = () => { clearTimeout(holdTimer); holdTimer = null; };
-        dock.addEventListener('pointerdown', () => { stopHold(); holdTimer = setTimeout(() => this.dockReport(), 2000); });
-        ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => dock.addEventListener(t, stopHold));
+        // (Oct 29 2026: press-and-hold report removed. It's a button in the dev panel now.)
+
+        // Swipe up on the gold + to go Home (Oct 28 2026, Craft).
+        const add = dock.querySelector('.dk-add');
+        let swipe = null, swiped = false;
+        add.style.touchAction = 'none';
+        add.addEventListener('pointerdown', (e) => { swipe = { y: e.clientY, x: e.clientX }; swiped = false; try { add.setPointerCapture(e.pointerId); } catch {} });
+        add.addEventListener('pointermove', (e) => {
+            if (!swipe || swiped) return;
+            if (swipe.y - e.clientY > 36 && Math.abs(e.clientX - swipe.x) < 60) {
+                swiped = true;
+                add.classList.add('dk-swiped');
+                if (navigator.vibrate) navigator.vibrate(15);
+                if (!this.isHome) this.goHome(); else window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        ['pointerup', 'pointercancel'].forEach(t => add.addEventListener(t, () => { swipe = null; setTimeout(() => add.classList.remove('dk-swiped'), 300); }));
+        add.addEventListener('click', (e) => { if (swiped) { e.stopImmediatePropagation(); e.preventDefault(); swiped = false; } }, true);
 
         dock.querySelector('.dk-add').addEventListener('click', () => {
             if (active === 'quests' && typeof CreateQuestModal !== 'undefined') { CreateQuestModal.open(); return; }
@@ -740,6 +855,40 @@ const AppShell = {
     }
 };
 
+// Open a notification's item (Oct 28 2026). Pages are opened with
+// ?focus=<id> (a daily, To-Do, habit or quest task) or ?daystart=1. The row
+// scrolls into view and glows. Rows carry data-row-id / data-habit-id.
+const BizzyFocus = {
+    run(params = new URLSearchParams(window.location.search)) {
+        const id = params.get('focus');
+        const start = params.get('daystart') === '1';
+        if (!id && !start) return;
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('focus'); url.searchParams.delete('daystart');
+            history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+        } catch {}
+        if (start) {
+            const review = typeof Vault !== 'undefined' && typeof Vault.getDayReview === 'function' ? Vault.getDayReview() : null;
+            // With something to review, Start My Day already opens on its own.
+            if (!review && typeof Toast !== 'undefined') Toast.show('☀️ Start My Day is done for today.', 'neutral');
+        }
+        if (id) this.glow(id);
+    },
+    glow(id, tries = 0) {
+        const sel = `[data-row-id="${CSS.escape(id)}"], [data-habit-id="${CSS.escape(id)}"], [data-task-id="${CSS.escape(id)}"]`;
+        const el = document.querySelector(sel);
+        if (!el) {
+            if (tries < 40) setTimeout(() => this.glow(id, tries + 1), 150);
+            else if (typeof Toast !== 'undefined') Toast.show("Couldn't find that item. It may be done or deleted.", 'neutral');
+            return;
+        }
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.remove('bb-focus'); void el.offsetWidth; el.classList.add('bb-focus');
+        setTimeout(() => el.classList.remove('bb-focus'), 4200);
+    }
+};
+
 class CodexSystem {
     constructor() {
         this.init();
@@ -755,6 +904,108 @@ class CodexSystem {
         this.loadHabiticaSync();
         this.loadPhoneReminders();
         this.loadTimeLog();
+        this.loadHints();
+        this.loadPullRefresh();
+        this.loadNative();
+        this.loadUpdates();
+        this.loadPhone();
+        this.loadStarterSkills();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(() => BizzyFocus.run(), 300));
+        else setTimeout(() => BizzyFocus.run(), 300);
+    }
+
+    // Starter skills (Oct 28 2026): right after "Add to my colony", Home asks
+    // "What are you working on?" once. (The Dashboard asks on its own.)
+    loadStarterSkills() {
+        let flag = null;
+        try { flag = localStorage.getItem('bb_starter_skills'); } catch {}
+        if (flag !== 'new' || !window.location.pathname.includes('/home/')) return;
+        const go = () => {
+            if (document.querySelector('.ds-scrim, .lvr, .gfx.on, dialog[open]')) { setTimeout(go, 1500); return; }
+            try { localStorage.removeItem('bb_starter_skills'); } catch {}
+            if (typeof StarterSkills === 'undefined' || StarterSkills.hasSkills()) return;
+            Vault.state.starterSkills = { ...(Vault.state.starterSkills || {}), seen: true };
+            Vault.save();
+            StarterSkills.open();
+        };
+        const css = document.createElement('link');
+        css.rel = 'stylesheet'; css.href = '../../../src/core/ui/starter-skills/starter-skills.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/starter-skills/starter-skills.js';
+        script.onload = () => Vault.init().then(() => setTimeout(go, 1200));
+        document.body.appendChild(script);
+    }
+
+    // Permissions, steps, weather, photos, phone backups (src/core/services/phone/).
+    loadPhone() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/')) return;
+        if (document.querySelector('script[src*="phone/phone.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/services/phone/phone.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/services/phone/phone.js';
+        document.body.appendChild(script);
+    }
+
+    // What's New + app updates (src/core/ui/updates/). Every app page.
+    loadUpdates() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/')) return;
+        if (document.querySelector('script[src*="updates/updates.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/ui/updates/updates.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/updates/updates.js';
+        document.body.appendChild(script);
+    }
+
+    // Phone features in the Android app (src/core/services/native/native.js).
+    loadNative() {
+        if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
+        if (document.querySelector('script[src*="native/native.js"]')) return;
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        const script = document.createElement('script');
+        script.src = nested ? '../../../src/core/services/native/native.js' : 'src/core/services/native/native.js';
+        document.body.appendChild(script);
+    }
+
+    // Pull down at the top to sync and reload (src/core/ui/pull-refresh/).
+    loadPullRefresh() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/') || !('ontouchstart' in window)) return;
+        if (document.querySelector('script[src*="pull-refresh.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/ui/pull-refresh/pull-refresh.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/pull-refresh/pull-refresh.js';
+        document.body.appendChild(script);
+    }
+
+    // Page tips + Hive Coach (src/core/ui/hints/). Settings > Hints.
+    loadHints() {
+        const path = window.location.pathname;
+        const nested = path.includes('features') || path.includes('plugins');
+        if (!nested || path.includes('/onboarding/') || path.includes('/request-access/')) return;
+        if (document.querySelector('script[src*="hints/hints.js"]')) return;
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '../../../src/core/ui/hints/hints.css';
+        document.head.appendChild(css);
+        const script = document.createElement('script');
+        script.src = '../../../src/core/ui/hints/hints.js';
+        document.body.appendChild(script);
     }
 
     // "How long did it take?" pop-up after a check-off (time-log.js).
@@ -908,9 +1159,13 @@ class CodexSystem {
                     <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="app-lock-pin-digit" autocomplete="off">
                 </div>
                 <p class="app-lock-error" hidden>🐝 Incorrect PIN.</p>
+                ${AppLock.bioOn() ? '<button type="button" class="app-lock-bio">👆 Use face or fingerprint</button>' : ''}
             </div>
         `;
         document.body.appendChild(overlay);
+        const bioBtn = overlay.querySelector('.app-lock-bio');
+        const tryBio = async () => { if (await AppLock.bioCheck()) { AppLock.markUnlocked(); overlay.remove(); } };
+        if (bioBtn) { bioBtn.addEventListener('click', tryBio); setTimeout(tryBio, 350); }
 
         const card = overlay.querySelector('.app-lock-card');
         const digits = Array.from(overlay.querySelectorAll('.app-lock-pin-digit'));
@@ -949,7 +1204,7 @@ class CodexSystem {
             });
         });
 
-        digits[0].focus();
+        if (!bioBtn) digits[0].focus();
     }
 
     // --- Cloud Sync auto-engine loader ----------------------------------
@@ -1047,11 +1302,16 @@ class CodexSystem {
         if (path.includes('dailies.html')) return 'dailies';
         if (path.includes('create-daily.html')) return 'create-daily';
         if (path.includes('calendar.html')) return 'calendar';
+        if (path.includes('projects.html')) return 'projects';
         if (path.includes('create-habit.html')) return 'create-habit';
         if (path.includes('habits.html')) return 'habits';
         if (path.includes('create-todo.html')) return 'create-todo';
         if (path.includes('todos.html')) return 'todos';
-        return 'home';
+        // Oct 29 2026 fix: any other page (Notifications, Guide, Mailbox,
+        // Themes, Friends, History...) used to count as Home, so tapping the
+        // header or swiping up on the + did nothing there. Use its file name.
+        const m = /\/src\/(?:features|plugins)\/.*?([a-z0-9-]+)\.html$/i.exec(path);
+        return m ? m[1].toLowerCase() : 'home';
     }
 
     // A real "go back" button - lives as its own floating hexagon next to

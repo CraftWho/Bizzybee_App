@@ -232,7 +232,7 @@ const LevelBar = {
                     <div class="lvr-perks">${(rich.perks || []).map(p => `<span>${esc(p)}</span>`).join('')}</div>
                     <div class="lvr-bees">${(rich.loot || []).filter(l => l.bee).map(l => LevelBar._lootHTML(l)).join('')}</div>
                     <div class="lvr-loot">${(rich.loot || []).filter(l => !l.bee).map(l => LevelBar._lootHTML(l)).join('')}</div>
-                    ${rich.next ? `<p class="lvr-next">Level ${esc(String(rich.next.level))}: ${esc(String(rich.next.now))} / ${esc(String(rich.next.cap))} XP</p><div class="lvr-bar"><i></i></div>` : ''}
+                    ${rich.next ? `<p class="lvr-next">${typeof rich.next.level === 'number' ? 'Level ' : ''}${esc(String(rich.next.level))}: ${esc(String(rich.next.now))} / ${esc(String(rich.next.cap))} XP</p><div class="lvr-bar"><i></i></div>` : ''}
                     <div class="lvr-btns">
                         ${rich.beeId ? '<button type="button" class="lvr-btn" data-lvr="bee">🐝 See my bee</button>' : ''}
                         <button type="button" class="lvr-btn gold" data-lvr="close">Collect</button>
@@ -242,9 +242,9 @@ const LevelBar = {
         document.body.appendChild(overlay);
         overlay.querySelectorAll('[data-card]').forEach(host => {
             try {
-                const [r, el] = host.dataset.card.split('|');
+                const [r, el, art, scene] = host.dataset.card.split('|');   // art/scene: limited bees (Oct 29 2026)
                 const key = beeCardApplyTheme(host, r, r === 'Common' ? null : (el || null));
-                host.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2 });
+                host.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2, art: art || null, scene: scene || null });
             } catch (e) { host.textContent = '🐝'; }
         });
 
@@ -308,7 +308,7 @@ const LevelBar = {
             const rc = info ? info.color : '#ffcc00';
             const talent = b.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[b.talent] ? `⭐ Born ${BEE_CLASSES[b.talent].label}` : '';
             const where = b.life && b.life.hatchOn ? 'in the Nursery' : 'in your colony';
-            const art = typeof beeCardArtHTML === 'function' ? `<span class="art-tile bc-tile" data-card="${esc(b.rarity)}|${esc(b.element || '')}"></span>` : '<span class="lvr-emo">🐝</span>';
+            const art = typeof beeCardArtHTML === 'function' ? `<span class="art-tile bc-tile" data-card="${esc(b.rarity)}|${esc(b.element || '')}|${esc(b.art || '')}|${esc(b.scene || '')}"></span>` : '<span class="lvr-emo">🐝</span>';
             const name = typeof beeFullName === 'function' ? beeFullName(b) : b.name;
             return `<div class="lvr-item bee" style="--rc:${rc}"><div class="lvr-mini">${art}</div>
                 <div><span class="lvr-rar">${esc(String(b.rarity || '').toUpperCase())}</span><b>New bee: ${esc(name)}</b><small>${esc([talent, where].filter(Boolean).join(' · '))}</small></div></div>`;
@@ -318,7 +318,7 @@ const LevelBar = {
 
     _sealSVG() {
         return `<svg viewBox="0 0 170 190" aria-hidden="true"><defs>
-            <linearGradient id="lvrG1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".5" stop-color="#ffcc00"/><stop offset="1" stop-color="#8a6000"/></linearGradient>
+            <linearGradient id="lvrG1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--bb-t-hi, #fff2b0)"/><stop offset=".5" style="stop-color:var(--bb-accent, #ffcc00)"/><stop offset="1" style="stop-color:var(--bb-accent-deep, #8a6000)"/></linearGradient>
             <radialGradient id="lvrG2" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#5a3c06"/><stop offset="1" stop-color="#140c02"/></radialGradient></defs>
             <polygon points="85,4 164,49 164,141 85,186 6,141 6,49" fill="url(#lvrG2)" stroke="url(#lvrG1)" stroke-width="5"/>
             <g stroke="rgba(255,204,0,.35)" stroke-width="1.5" fill="none">

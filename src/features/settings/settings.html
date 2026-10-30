@@ -44,6 +44,20 @@
             </div>
         </section>
 
+        <label class="st-search">🔍<input id="st-q" type="search" placeholder="Search settings" aria-label="Search settings" autocomplete="off"></label>
+        <section class="card st-list" id="st-groups">
+            <button type="button" class="row" data-g="account"><span class="hx">👤</span><span class="mid"><b>Account &amp; cloud</b><small>Account info, security, password, cloud sync</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="notify"><span class="hx">🔔</span><span class="mid"><b>Notifications &amp; phone</b><small>Reminders, phone features, permissions</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="look"><span class="hx">🎨</span><span class="mid"><b>Look &amp; feel</b><small>Themes, text and look, weather</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="eve"><span class="hx">👑</span><span class="mid"><b>Eve &amp; help</b><small>Tips, Guide, support, feedback</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="track"><span class="hx">⏱️</span><span class="mid"><b>Tracking</b><small>Time and XP for tasks</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Your data</b><small>Save files, import and export</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="about"><span class="hx">ℹ️</span><span class="mid"><b>About</b><small>Version, what's new, app updates</small></span><span class="chev">›</span></button>
+        </section>
+        <section class="card st-list" id="st-hits" hidden></section>
+
+        <div class="st-group" id="g-account" data-title="👤 Account &amp; cloud" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>👤 Account &amp; cloud</h2></div>
         <h2 class="sec">Account</h2>
         <section class="card">
             <a class="row" href="../account-info/account-info.html"><span class="hx">🧬</span><span class="mid"><b>Account Info</b><small>Photo, name, personal details, Habitica</small></span><span class="chev">›</span></a>
@@ -80,24 +94,70 @@
             </section>
         </div>
 
+        </div>
+
+        <div class="st-group" id="g-notify" data-title="🔔 Notifications &amp; phone" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>🔔 Notifications &amp; phone</h2></div>
         <h2 class="sec">Phone</h2>
         <section class="card">
-            <div class="row"><span class="hx">🔔</span><span class="mid"><b>Phone reminders</b><small id="push-status" role="status" aria-live="polite">Checking…</small></span><label class="toggle-switch"><input type="checkbox" id="push-toggle" aria-label="Phone reminders on this device"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
-            <div class="inner">
-                <div class="row"><span class="mid"><b>Show task names</b><small>Off = "You have a task reminder"</small></span><label class="toggle-switch"><input type="checkbox" id="push-names-toggle" aria-label="Show task names in notifications" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
-                <div class="row"><span class="mid"><b>Send a test</b><small>Arrives in a few seconds</small></span><button id="push-test-btn" class="btn" type="button" disabled>Test</button></div>
-            </div>
+            <a class="row" href="../notifications/notifications.html"><span class="hx">🔔</span><span class="mid"><b>Notifications</b><small>Reminders, deadlines, Start My Day, habits, sounds</small></span><span class="chev">›</span></a>
             <a class="row" href="../sync/sync.html"><span class="hx">🔄</span><span class="mid"><b>Phone Sync</b><small>Calendar feed link for Android</small></span><span class="chev">›</span></a>
+        </section>
+
+        <h2 class="sec">Phone features</h2>
+        <section class="card" id="phone-features"></section>
+
+        <h2 class="sec" id="permissions">Permissions</h2>
+        <section class="card" id="permissions-card"><p class="pm-note">Loading…</p></section>
+
+        </div>
+
+        <div class="st-group" id="g-look" data-title="🎨 Look &amp; feel" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>🎨 Look &amp; feel</h2></div>
+        <h2 class="sec">Themes</h2>
+        <section class="card">
+            <a class="row" href="../themes/themes.html"><span class="hx">🎨</span><span class="mid"><b>Themes</b><small id="theme-now">Change how the whole app looks</small></span><span class="chev">›</span></a>
         </section>
 
         <h2 class="sec">Text &amp; look</h2>
         <section class="card" id="look-card"></section>
 
+        <h2 class="sec" id="weather">Weather</h2>
+        <section class="card" id="weather-card"></section>
+
+        </div>
+
+        <div class="st-group" id="g-eve" data-title="👑 Eve &amp; help" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>👑 Eve &amp; help</h2></div>
+        <h2 class="sec">Eve, your coach</h2>
+        <section class="card">
+            <div class="row"><span class="hx">👑</span><span class="mid"><b>Eve's tips and coaching</b><small>Page tips, new-feature intros, and ideas when a task keeps getting missed. Stays on until you turn it off.</small></span><label class="toggle-switch"><input type="checkbox" id="hints-toggle" aria-label="Show hints" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+            <div class="row"><span class="hx">↺</span><span class="mid"><b>Show tips again</b><small>Every feature shows its tips once more, even ones you hid</small></span><button type="button" class="btn" id="hints-reset">Reset</button></div>
+                    <a class="row" href="../guide/guide.html"><span class="hx">📘</span><span class="mid"><b>Guide</b><small>Every feature, explained by Eve</small></span><span class="chev">›</span></a>
+        </section>
+
+        <h2 class="sec">Help</h2>
+        <section class="card">
+            <!-- Oct 30 2026 (Craft): Contact support first; the Terminal is a last resort. -->
+            <a class="row" href="../support/support.html"><span class="hx">🛟</span><span class="mid"><b>Contact support</b><small>Something wrong? A real person will help</small></span><span class="chev">›</span></a>
+            <div class="row"><span class="hx">💬</span><span class="mid"><b>Export conversations</b><small>Everything you and Eve said (.jsonl)</small></span><button id="export-conversations-btn" class="btn" type="button">Export</button></div>
+            <div class="row"><span class="hx">📜</span><span class="mid"><b>Export quest data</b><small>Quest and career history (.json)</small></span><button id="export-quests-btn" class="btn" type="button">Export</button></div>
+            <a class="row" href="../suggestions/suggestions.html"><span class="hx">✉️</span><span class="mid"><b>Send feedback</b><small>Ideas and suggestions</small></span><span class="chev">›</span></a>
+        </section>
+
+        </div>
+
+        <div class="st-group" id="g-track" data-title="⏱️ Tracking" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>⏱️ Tracking</h2></div>
         <h2 class="sec">Tracking</h2>
         <section class="card">
             <div class="row"><span class="hx">⏱️</span><span class="mid"><b>Ask how long it took</b><small>Pop-up after you finish a task. XP is about 1 per minute.</small></span><label class="toggle-switch"><input type="checkbox" id="timelog-toggle" aria-label="Ask how long it took" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
         </section>
 
+        </div>
+
+        <div class="st-group" id="g-data" data-title="💾 Your data" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>💾 Your data</h2></div>
         <h2 class="sec">Your data</h2>
         <section class="card">
             <div class="row"><span class="hx">📁</span><span class="mid"><b>Save files folder</b><small id="folder-backup-status">Checking this browser…</small></span><button id="folder-backup-choose-btn" class="btn" type="button" hidden>Choose</button><button id="folder-backup-disconnect-btn" class="btn" type="button" hidden>Disconnect</button></div>
@@ -121,12 +181,14 @@
             </details>
         </section>
 
-        <h2 class="sec">Eevee &amp; help</h2>
-        <section class="card">
-            <div class="row"><span class="hx">💬</span><span class="mid"><b>Export conversations</b><small>Everything you and Eevee said (.jsonl)</small></span><button id="export-conversations-btn" class="btn" type="button">Export</button></div>
-            <div class="row"><span class="hx">📜</span><span class="mid"><b>Export quest data</b><small>Quest and career history (.json)</small></span><button id="export-quests-btn" class="btn" type="button">Export</button></div>
-            <a class="row" href="../suggestions/suggestions.html"><span class="hx">✉️</span><span class="mid"><b>Send feedback</b><small>Ideas and bug reports</small></span><span class="chev">›</span></a>
-        </section>
+        </div>
+
+        <div class="st-group" id="g-about" data-title="ℹ️ About" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>ℹ️ About</h2></div>
+        <h2 class="sec" id="about">About</h2>
+        <section class="card" id="about-card"></section>
+
+        </div>
 
         <div id="dev-section" hidden>
             <h2 class="sec">Developer</h2>
@@ -145,5 +207,6 @@
 <script src="./local-cloud-download.js"></script>
 <script src="../../core/services/push/push.js"></script>
 <script src="./settings.js"></script>
+<script src="./settings-tabs.js"></script>
 </body>
 </html>

@@ -100,6 +100,10 @@ const TaskRow = {
         else if (n === 1) { cls = ' soon'; text = 'Due tomorrow'; }
         else if (n < 7) { text = `Due ${new Date(Date.now() + n * 86400000).toLocaleDateString(undefined, { weekday: 'short' })}`; }
         else { text = `Due ${this.shortDate(todo.dueDate)}`; }
+        if (todo.dueTime && n >= 0) {
+            const [h, m] = todo.dueTime.split(':').map(Number);
+            text += ` · ${new Date(2000, 0, 1, h, m).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+        }
         return `<span class="td-due${cls}"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${this.esc(text)}</span>`;
     },
 

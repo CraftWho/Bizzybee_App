@@ -235,7 +235,7 @@
     border-radius: 6px;
     padding: 12px 14px;
     margin: 12px 0 16px;
-    background: rgba(255, 204, 0, 0.05);
+    background: rgba(var(--bb-accent-rgb, 255, 204, 0), 0.05);
 }
 .sync-compare-row {
     display: flex;
@@ -256,16 +256,16 @@
    SETTINGS v2 (Oct 2026 redesign - approved demo). Grouped like a phone
    settings app; Dashboard v2 look. All the old ids are kept.
    ========================================================================== */
-.stv2 { --gold: #ffcc00; --cr: #dc143c; --ink: #f1ede2; --muted: #a69a80; --green: #5fd38a; --panel: rgba(14, 10, 4, .94);
+.stv2 { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --green: #5fd38a; --panel: rgba(14, 10, 4, .94);
     width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; box-sizing: border-box; color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 .stv2 [hidden] { display: none !important; }
 .stv2 .settings-title { margin: 4px 4px 12px; font: 700 1.2rem var(--font-main, monospace); letter-spacing: .14em; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; cursor: default; user-select: none; }
-.stv2 .card { position: relative; padding: 4px 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255, 204, 0, .14); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
+.stv2 .card { position: relative; padding: 4px 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
 .stv2 .card.top { padding: 16px; }
 .stv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
 .stv2 h2.sec { display: flex; align-items: center; gap: 10px; margin: 18px 4px 8px; font: 700 .7rem var(--font-main, monospace); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: none; border: 0; padding: 0; text-align: left; }
-.stv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(220, 20, 60, .6), transparent); }
+.stv2 h2.sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(var(--bb-alt-rgb, 220, 20, 60), .6), transparent); }
 
 .stv2 .hero { display: flex; gap: 14px; align-items: center; }
 .stv2 .avatar { flex: none; width: 60px; height: 66px; display: grid; place-items: center; font-size: 26px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(135deg, #3a2604, #100a02); box-shadow: inset 0 0 0 2px var(--gold); }
@@ -282,10 +282,10 @@
 .stv2 .sync .times b { color: var(--ink); font-weight: 600; }
 
 .stv2 .hx { flex: none; width: 36px; height: 40px; display: grid; place-items: center; font-size: 16px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: #1c1406; }
-.stv2 .row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 12px 0; margin: 0; border: 0; border-top: 1px solid rgba(255, 204, 0, .08); border-radius: 0; background: none; box-shadow: none; color: var(--ink); text-align: left; text-decoration: none; font: inherit; }
+.stv2 .row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 12px 0; margin: 0; border: 0; border-top: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .08); border-radius: 0; background: none; box-shadow: none; color: var(--ink); text-align: left; text-decoration: none; font: inherit; }
 .stv2 .card > .row:first-child, .stv2 .card > details:first-child > summary.row, .stv2 .inner > .row:first-child { border-top: 0; }
 .stv2 a.row, .stv2 summary.row, .stv2 button.row { cursor: pointer; }
-.stv2 a.row:hover, .stv2 summary.row:hover { background: rgba(255, 204, 0, .04); }
+.stv2 a.row:hover, .stv2 summary.row:hover { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .04); }
 .stv2 .row .mid { flex: 1; min-width: 0; }
 .stv2 .row .mid b { font-size: .9rem; font-weight: 600; }
 .stv2 .row .mid small { display: block; margin-top: 2px; color: var(--muted); font-size: .74rem; line-height: 1.35; }
@@ -303,15 +303,15 @@
 .stv2 .status { margin: 4px 0; color: var(--green); font-size: .74rem; }
 .stv2 .status:empty { display: none; }
 .stv2 .list { font-size: .78rem; color: var(--muted); }
-.stv2 .list .settings-action-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(255, 204, 0, .08); }
+.stv2 .list .settings-action-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .08); }
 .stv2 .list .settings-action-row span { flex: 1 1 160px; }
-.stv2 input[type="email"], .stv2 input[type="text"], .stv2 input[type="password"], .stv2 select { flex: 1; min-width: 0; width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .25); background: #0a0702; color: var(--ink); font: .85rem system-ui, sans-serif; }
+.stv2 input[type="email"], .stv2 input[type="text"], .stv2 input[type="password"], .stv2 select { flex: 1; min-width: 0; width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: #0a0702; color: var(--ink); font: .85rem system-ui, sans-serif; }
 .stv2 .line input, .stv2 .line select { width: auto; }
-.stv2 input:focus, .stv2 select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255, 204, 0, .12); }
+.stv2 input:focus, .stv2 select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(var(--bb-accent-rgb, 255, 204, 0), .12); }
 .stv2 .file-input { margin: 4px 0 8px; font-size: .74rem; color: var(--muted); max-width: 100%; }
-.stv2 .btn, .stv2 .list button { flex: none; display: inline-block; padding: 8px 14px; margin: 0; border-radius: 10px; border: 1px solid rgba(255, 204, 0, .4); background: #1a1205; color: var(--gold); font: 700 .74rem var(--font-main, monospace); text-decoration: none; white-space: nowrap; cursor: pointer; box-shadow: none; text-transform: none; letter-spacing: 0; }
+.stv2 .btn, .stv2 .list button { flex: none; display: inline-block; padding: 8px 14px; margin: 0; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); background: #1a1205; color: var(--gold); font: 700 .74rem var(--font-main, monospace); text-decoration: none; white-space: nowrap; cursor: pointer; box-shadow: none; text-transform: none; letter-spacing: 0; }
 .stv2 .btn.solid { background: var(--gold); color: #241600; border-color: var(--gold); }
-.stv2 .btn.danger { border-color: rgba(220, 20, 60, .6); color: #ff8aa0; }
+.stv2 .btn.danger { border-color: rgba(var(--bb-alt-rgb, 220, 20, 60), .6); color: #ff8aa0; }
 .stv2 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .stv2 .btn:focus-visible, .stv2 .row:focus-visible, .stv2 .toggle-switch input:focus-visible + .toggle-switch-track { outline: 2px solid var(--gold); outline-offset: 2px; }
 .stv2 .logout { justify-content: center; color: #ff8aa0; font-weight: 700; }
@@ -320,12 +320,81 @@
 .stv2 .look-line { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 12px 48px; }
 .stv2 .look-sw { width: 30px; height: 30px; margin: 0; padding: 0; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .15); cursor: pointer; box-shadow: none; }
 .stv2 .look-sw[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px #000 inset, 0 0 10px rgba(255, 255, 255, .4); }
-.stv2 .look-sw:focus-visible { outline: 2px solid #ffcc00; outline-offset: 2px; }
-.stv2 .look-seg { flex: none; display: flex; border: 1px solid rgba(255, 204, 0, .3); border-radius: 10px; overflow: hidden; }
+.stv2 .look-sw:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
+.stv2 .look-seg { flex: none; display: flex; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); border-radius: 10px; overflow: hidden; }
 .stv2 .look-seg button { margin: 0; padding: 6px 10px; border: 0; border-radius: 0; background: none; box-shadow: none; color: #a69a80; font: 700 .74rem var(--font-main, monospace); cursor: pointer; }
-.stv2 .look-seg button[aria-pressed="true"] { background: #ffcc00; color: #241600; }
+.stv2 .look-seg button[aria-pressed="true"] { background: var(--bb-accent, #ffcc00); color: #241600; }
 
 /* Backup lists (Oct 2026): date on one line, its buttons right under it -
    no tall empty gap on phones. */
 .stv2 .list .settings-action-row { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; justify-content: flex-start; gap: 6px 8px; padding: 10px 0; }
 .stv2 .list .settings-action-row span { flex: 1 0 100%; color: var(--ink, #f1ede2); font-size: .82rem; }
+
+/* Phone features (Oct 27 2026) */
+.stv2 .pf-beta { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: #5a2a8a; color: #f0d8ff; font: 800 .58rem var(--font-main, monospace); letter-spacing: .06em; vertical-align: 2px; }
+.stv2 .pf-soon { flex: none; padding: 3px 7px; border-radius: 6px; background: #1d1810; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); color: var(--muted); font: 700 .58rem var(--font-main, monospace); letter-spacing: .06em; }
+.stv2 .pf-sub { margin: 0 0 10px 56px; padding: 10px 12px; border-radius: 12px; background: #120d06; border: 1px dashed rgba(var(--bb-accent-rgb, 255, 204, 0), .25); color: var(--muted); font-size: .8rem; }
+.stv2 .pf-sub[hidden], .stv2 .row[hidden] { display: none; }
+.stv2 .pf-sub label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 8px; color: var(--ink); }
+.stv2 .pf-sub select { background: #0a0703; color: var(--ink); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); border-radius: 8px; padding: 5px 6px; font: inherit; }
+.stv2 .pf-sub small { display: block; font-size: .72rem; line-height: 1.4; }
+.stv2 .pf-pick { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.stv2 .pf-pick select { max-width: 150px; }
+.stv2 .pf-play { flex: none; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); background: #1a140b; color: var(--gold, var(--bb-accent, #ffcc00)); font-size: .7rem; cursor: pointer; }
+.stv2 .pf-play:disabled, .stv2 .pf-sub select:disabled { opacity: .45; }
+/* Weather card (Oct 27 2026) */
+.stv2 #weather-card .row select { flex: none; width: auto; }
+.stv2 #wx-city { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: #0a0703; color: var(--ink); font: inherit; }
+.stv2 #wx-results { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+
+/* Settings groups (Oct 29 2026, approved demo): one page, a list of groups,
+   and each group slides in over it. settings-tabs.js opens and closes them. */
+.stv2 .st-search { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .2); background: var(--panel); }
+.stv2 .st-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: 1rem system-ui, sans-serif; outline: none; }
+.stv2 .st-list button.row:hover { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .04); }
+.stv2 .st-list .row:first-child { border-top: 0; }
+.stv2 .st-hit-group { color: var(--gold); }
+.stv2 .st-group { animation: stIn .26s cubic-bezier(.3, .8, .3, 1); }
+.stv2 .st-group[hidden] { display: none; }
+.stv2 .st-top { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.stv2 .st-back { width: 40px; height: 40px; flex: none; padding: 0; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: var(--panel); color: var(--gold); font-size: 1.2rem; cursor: pointer; box-shadow: none; }
+.stv2 .st-top h2 { margin: 0; padding: 0; border: 0; background: none; text-align: left; font: 800 1rem var(--font-main, monospace); letter-spacing: .1em; color: var(--gold); text-transform: uppercase; }
+.stv2 .st-flash { animation: stFlash 1.6s ease-out; }
+@keyframes stIn { from { transform: translateX(14%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes stFlash { 0%, 40% { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .18); } 100% { background: none; } }
+body.st-in-group .stv2 > .settings-title, body.st-in-group .stv2 > .hero-card, body.st-in-group .stv2 > .st-search,
+body.st-in-group .stv2 > .st-list, body.st-in-group #dev-section, body.st-in-group .stv2 > .card:last-child { display: none; }
+@media (prefers-reduced-motion: reduce) { .stv2 .st-group { animation: none; } }
+
+/* Settings groups (Oct 29 2026, approved demo): one page, a list of groups,
+   and each group slides in over it. settings-tabs.js opens and closes them. */
+.stv2 .st-search { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .2); background: var(--panel); }
+.stv2 .st-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: 1rem system-ui, sans-serif; outline: none; }
+.stv2 .st-list button.row:hover { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .04); }
+.stv2 .st-list .row:first-child { border-top: 0; }
+.stv2 .st-hit-group { color: var(--gold) !important; }
+.stv2 .st-group { animation: stIn .26s cubic-bezier(.3, .8, .3, 1); }
+.stv2 .st-group[hidden] { display: none; }
+.stv2 .st-top { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.stv2 .st-back { width: 40px; height: 40px; flex: none; padding: 0; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: var(--panel); color: var(--gold); font-size: 1.2rem; cursor: pointer; box-shadow: none; }
+.stv2 .st-top h2 { margin: 0; padding: 0; border: 0; background: none; text-align: left; font: 800 1rem var(--font-main, monospace); letter-spacing: .1em; color: var(--gold); text-transform: uppercase; }
+.stv2 .st-flash { animation: stFlash 1.6s ease-out; }
+@keyframes stIn { from { transform: translateX(14%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes stFlash { 0%, 40% { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .18); } 100% { background: none; } }
+body.st-in-group .stv2 > .settings-title, body.st-in-group .stv2 > .hero-card, body.st-in-group .stv2 > .st-search,
+body.st-in-group .stv2 > .st-list, body.st-in-group #dev-section, body.st-in-group .stv2 > .card:last-child { display: none; }
+/* Red dot: something here needs you. */
+.stv2 .st-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 0 8px rgba(255, 59, 59, .8); }
+.stv2 .st-why { display: block; margin-top: 3px; color: #ff8a8a; font-size: .72rem; }
+.stv2 .st-attn { box-shadow: inset 3px 0 0 #ff3b3b; padding-left: 10px !important; }
+@media (prefers-reduced-motion: reduce) { .stv2 .st-group { animation: none; } }
+/* Oct 29 2026: the gold ring follows the hex (see --hex-ring in global.css). */
+.stv2 .avatar { position: relative; box-shadow: none; }
+.stv2 .avatar::after { content: ""; position: absolute; inset: 0; background: var(--gold); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; pointer-events: none; }
+
+/* Oct 30 2026 (Craft): text presets + font picker */
+.stv2 .look-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 0 12px; }
+.stv2 .look-preset { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0; padding: 10px 4px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .22); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .05); box-shadow: none; color: var(--ink); font-size: .74rem; font-weight: 600; cursor: pointer; }
+.stv2 .look-preset span { font-size: 1.2rem; }
+.stv2 .look-preset[aria-pressed="true"] { border-color: var(--bb-accent, #ffcc00); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .18); }
+.stv2 .look-fonts .look-preset { font-size: .82rem; padding: 12px 4px; }

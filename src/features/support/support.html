@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🛟 Contact support</title>
+    <!-- Oct 30 2026 (Craft): Contact support. The friendly way to get help;
+         the Terminal stays a last resort for people who know it. The form is a
+         Netlify Form ("support"); a save copy goes through support.mjs. -->
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../settings/settings.css">
+    <link rel="stylesheet" href="./support.css">
+</head>
+<body>
+    <main class="stv2 spv">
+        <div class="sp-head">
+            <div class="sp-hex" aria-hidden="true">🛟</div>
+            <div><h1 class="settings-title">CONTACT SUPPORT</h1><small>A real person reads every message.</small></div>
+        </div>
+
+        <form class="card top sp-form" id="sp-form" name="support" method="POST" data-netlify="true" netlify-honeypot="bot-field" enctype="multipart/form-data">
+            <input type="hidden" name="form-name" value="support">
+            <p hidden><label>Leave this empty: <input name="bot-field"></label></p>
+            <input type="hidden" name="app_version" id="sp-version">
+            <input type="hidden" name="device" id="sp-device">
+            <input type="hidden" name="save_copy" id="sp-save-id">
+
+            <fieldset class="sp-topics">
+                <legend>What happened?</legend>
+                <label><input type="radio" name="topic" value="Lost progress" required><span>😟 Lost progress</span></label>
+                <label><input type="radio" name="topic" value="Something broke"><span>🐞 Something broke</span></label>
+                <label><input type="radio" name="topic" value="Sign-in trouble"><span>🔑 Sign-in trouble</span></label>
+                <label><input type="radio" name="topic" value="Question"><span>❓ A question</span></label>
+                <label><input type="radio" name="topic" value="Other"><span>💬 Something else</span></label>
+            </fieldset>
+
+            <label class="sp-fld"><span>Tell us more</span>
+                <textarea name="message" id="sp-msg" rows="5" maxlength="2000" required placeholder="What were you doing, and what did you expect?"></textarea></label>
+
+            <label class="sp-fld"><span>Your email, for the reply</span>
+                <input type="email" name="email" id="sp-email" autocomplete="email" required maxlength="120"></label>
+
+            <label class="sp-fld"><span>Screenshot <i>(optional)</i></span>
+                <input type="file" name="screenshot" id="sp-shot" accept="image/*"></label>
+
+            <label class="sp-check"><input type="checkbox" id="sp-attach"><span><b>Attach my save</b><small id="sp-attach-note">Sends an encrypted copy so we can see exactly what you see. Kept 30 days. Off unless you tick it.</small></span></label>
+
+            <p class="sp-auto">We also send your app version and phone type: <b id="sp-auto"></b></p>
+            <p class="sp-err" id="sp-err" role="alert" hidden></p>
+            <button type="submit" class="btn sp-send" id="sp-send">Send to support</button>
+        </form>
+
+        <section class="card top sp-done" id="sp-done" hidden>
+            <h2>🐝 Message sent</h2>
+            <p>Thanks! You'll get a reply by email, usually within a day or two. Check your spam folder too.</p>
+            <a class="btn" href="../home/home.html">Back to Home</a>
+        </section>
+
+        <h2 class="sec">Before you write</h2>
+        <section class="card">
+            <a class="row" href="../guide/guide.html"><span class="hx">📘</span><span class="mid"><b>Guide</b><small>How each part of BizzyBee works</small></span><span class="chev">›</span></a>
+            <a class="row" href="../settings/settings.html#cloud"><span class="hx">☁️</span><span class="mid"><b>Restore a backup</b><small>Lost progress? Your cloud backups are in Settings</small></span><span class="chev">›</span></a>
+            <a class="row" href="../suggestions/suggestions.html"><span class="hx">✉️</span><span class="mid"><b>Ideas and feedback</b><small>Not a problem, just a thought? Send it here</small></span><span class="chev">›</span></a>
+        </section>
+    </main>
+
+    <script src="../../core/boot.js"></script>
+    <script src="./support.js"></script>
+</body>
+</html>

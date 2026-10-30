@@ -855,6 +855,7 @@ function finish() {
     clearInterval(T.pupaT); clearInterval(T.stretchT);
     if (PRACTICE) { location.href = '../settings/settings.html'; return; }
     S.finish(F.royal, F.name);
+    try { localStorage.setItem('bb_starter_skills', 'new'); } catch {}   // Home asks "What are you working on?"
     location.href = '../home/home.html';
 }
 
