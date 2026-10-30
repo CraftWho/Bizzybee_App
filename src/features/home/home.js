@@ -83,19 +83,17 @@ function openDoneToday() {
     s.querySelector('[data-k="close"]').focus();
 }
 
-// Days in a row with every daily done (today counts once it's all done).
+// Days in a row with every goal kept on time: dailies and To-Dos due that
+// day (Oct 30 2026, Craft: not just dailies). Today counts once it's all done.
 function currentStreak() {
-    const list = (Vault.state && Vault.state.dailyTasks) || [];
-    if (!list.length) return 0;
+    const S = Vault.state || {};
     const today = todayISO();
-    const dueOn = (day) => list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-    const allDone = (day) => dueOn(day).every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day));
     let n = 0;
-    if (dueOn(today).length && allDone(today)) n++;
+    if (goalsKeptOn(S.dailyTasks, S.todos, today, { saved: true }) === true) n++;
     for (let i = 1; i <= 730; i++) {
-        const day = shiftISODate(today, -i);
-        if (!dueOn(day).length) continue;
-        if (!allDone(day)) break;
+        const kept = goalsKeptOn(S.dailyTasks, S.todos, shiftISODate(today, -i), { saved: true });
+        if (kept === null) continue;
+        if (!kept) break;
         n++;
     }
     return n;
