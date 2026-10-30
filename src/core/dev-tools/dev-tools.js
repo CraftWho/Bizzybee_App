@@ -37,7 +37,12 @@
     const nested = path.includes('/features/') || path.includes('/plugins/');
     if (!nested) return;
     const root = '../../..';
-    const localDev = isLocal && localStorage.getItem(DEV_KEY) === '1';
+    let localDev = isLocal && localStorage.getItem(DEV_KEY) === '1';
+    // Oct 30 2026 (Craft): signed in as the owner on this computer = the local
+    // test server (npm run dev). Its saves are a sandbox on this PC, never the
+    // live cloud, so the tools work right on the open save, like the Hacker
+    // login. On the live site the real save stays hands-off.
+    const localSignedIn = isLocal && localStorage.getItem('bizzybee_session') === 'identity';
     const testOn = () => localStorage.getItem(TEST_KEY) === '1';
     // On this computer (Hacker login) the tools work on the open save, as
     // before. Everywhere else they need the test save.
@@ -395,7 +400,7 @@
     function stateText() {
         const user = Vault.getUser(), bar = Vault.getCharacterLevelBar(), o = Vault.getOnboarding(), royal = Vault.getRoyalBee();
         return [
-            `Mode: ${localDev ? 'this computer (Hacker login)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
+            `Mode: ${localDev ? (localSignedIn ? 'this computer, signed in (local test server: saves stay on this PC)' : 'this computer (Hacker login)') : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
             `Save key: ${Vault.storageKey}`,
             `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
@@ -654,7 +659,8 @@
 
     // A test save stays reachable even if the owner check can't run (so
     // you can always switch back). Otherwise: this computer, or the owner.
-    const allowed = localDev || testOn() ? Promise.resolve(true) : isOwner();
+    const allowed = localDev || testOn() ? Promise.resolve(true)
+        : isOwner().then(ok => { if (ok && localSignedIn) localDev = true; return ok; });
     // Settings asks this to show its Developer section (Oct 2026).
     window.BizzyDev = { allowed: () => allowed };
     const start = () => allowed.then(ok => ok ? ready().then(build) : null).catch(() => {});
