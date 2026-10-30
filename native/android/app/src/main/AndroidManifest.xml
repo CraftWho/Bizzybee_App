@@ -40,6 +40,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Oct 30 2026 (Craft): "Set alarm" opens the Clock app with the time filled in. -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- In-app updates: hand a downloaded BizzyBee APK to the installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Steps: only READ_STEPS. The health plugin asks for many more; we remove them. -->
