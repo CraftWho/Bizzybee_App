@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     Waggle.setActions(baseWaggleActions());
 
-    checklistEditor = TaskForm.checklist(document.getElementById('todo-checklist'), document.getElementById('todo-cl-add'));
+    checklistEditor = TaskForm.checklist(document.getElementById('todo-checklist'), document.getElementById('todo-cl-add'), { checkable: 'todo' });
     reminderEditor = TaskForm.reminders(document.getElementById('todo-reminders'), document.getElementById('todo-rem-add'));
 
     editingTodoId = new URLSearchParams(window.location.search).get('id');
