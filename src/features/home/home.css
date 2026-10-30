@@ -237,3 +237,25 @@ a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left
 .home-limited .hl-left { color: #c2b48f; }
 .home-limited .hl-go { flex: none; padding: 10px 14px; border: 0; border-radius: 10px; background: #ff7a1a; color: #1a0800; font: 800 .8rem var(--font-main, monospace); text-decoration: none; cursor: pointer; animation: bbShake 2.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .home-limited .hl-go { animation: none; } }
+
+/* Oct 30 2026 (Craft): choose Home tiles - ✕ to remove, ＋ to add, Reset Home. */
+.home-app { position: relative; }
+.home-apps-btns { display: flex; gap: 8px; align-items: center; }
+.home-apps-reset { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(243, 230, 189, .3); background: rgba(0, 0, 0, .5); color: #f3e6bd; font: 600 .76rem system-ui, sans-serif; }
+.home-apps-reset[hidden] { display: none; }
+.home-app-x { display: none; position: absolute; top: 0; right: 8px; width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid #120d05; background: var(--cr); color: #fff; font: 700 .7rem/1 system-ui, sans-serif; z-index: 2; }
+.home-app-grid.editing .home-app-x { display: grid; place-items: center; }
+.home-app-add { display: none; background: none; border: 0; cursor: pointer; }
+.home-app-grid.editing .home-app-add { display: flex; animation: none; }
+.home-app-add .home-app-ic { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .12); }
+.home-app-add .home-app-ic svg { stroke: var(--gc); stroke-width: 2.6; }
+.home-app-emoji { font-size: 1.6rem; line-height: 1; position: relative; z-index: 1; }
+.home-add-grid .acs-opt { font-size: .74rem; padding: 12px 4px; text-align: center; }
+.home-add-emoji { font-size: 1.6rem; line-height: 1; }
+.home-add-none, .home-add-tip { margin: 6px 0 0; color: var(--h-muted, #a69a80); font-size: .78rem; text-align: center; }
+.home-add-tip { margin-top: 12px; }
+/* Oct 30 2026 (Craft): Daily bonus card */
+.home-bonus { border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .55); }
+.home-bonus::before { background: linear-gradient(90deg, transparent, var(--bb-accent, #ffcc00) 20%, var(--bb-accent, #ffcc00) 80%, transparent) !important; }
+.hb-link { flex: 1; display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; min-width: 0; }
+.hb-claim { flex: none; padding: 9px 16px !important; border-radius: 999px !important; background: var(--bb-accent, #ffcc00) !important; color: #1a1000 !important; font: 700 .82rem system-ui, sans-serif; animation: bbShake 2.4s ease-in-out infinite; }

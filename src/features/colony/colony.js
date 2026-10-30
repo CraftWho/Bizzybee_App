@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         cardOverlay.addEventListener('click', (e) => {
             if (!e.target.closest('.bee-card, .colony-queen-panel, .hl-panel')) {
                 cardOverlay.hidden = true;
-                if (colonyHiveView() === 'life' && document.body.classList.contains('colony-inside')) renderHiveLife();
+                if (colonyHiveView() === 'life' && document.body.classList.contains('colony-inside')) { renderHiveLife(); HiveLife.reopenLast(); }   // Oct 30 2026 (Craft): back to the comb
             }
         });
     }
@@ -432,10 +432,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('colony-interior').style.display = '';
             document.body.classList.add('colony-inside');
             colonyShowInside();
+            // Oct 30 2026 (Craft): on phones there's no Leave Hive button; the
+            // phone's Back (or swipe back) leaves the hive instead.
+            try { history.pushState({ hive: 'inside' }, ''); } catch { /* not allowed */ }
         }, 1150);
     });
 
+    window.addEventListener('popstate', () => {
+        if (document.body.classList.contains('colony-inside')) document.getElementById('leave-hive-btn').click();
+    });
     document.getElementById('leave-hive-btn').addEventListener('click', () => {
+        if (history.state && history.state.hive === 'inside') setTimeout(() => history.back(), 0);   // drop the entry Enter added
         if (colonyInterior) { colonyInterior.destroy(); colonyInterior = null; }
         if (colonyLifeView) { colonyLifeView.destroy(); colonyLifeView = null; }
         if (typeof HiveLife !== 'undefined') HiveLife.closeRoom();

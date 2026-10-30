@@ -12,7 +12,7 @@ const CB_TABS = [
 ];
 const CB_RARITY_RANK = ['Royal', 'Named', 'Legendary', 'Epic', 'Rare', 'Common'];
 const CB_MOOD_RANK = ['fainted', 'upset', 'sad', 'calm', 'happy', 'royal', 'egg'];
-const cbState = { tab: 'all', sort: 'new', view: 'list', q: '' };
+const cbState = { tab: 'all', sort: 'new', view: 'cards', q: '' };   // Oct 30 2026 (Craft): grid by default (your choice is remembered)
 try { Object.assign(cbState, JSON.parse(localStorage.getItem(CB_KEY) || '{}'), { tab: 'all', q: '' }); } catch { /* storage off */ }
 const cbSave = () => { try { localStorage.setItem(CB_KEY, JSON.stringify({ sort: cbState.sort, view: cbState.view })); } catch { /* storage off */ } };
 
@@ -222,9 +222,37 @@ function cbOpenBee(id) {
     });
 }
 
+// Oct 30 2026 (Craft): tapping a bee in the grid pops its card up.
+// Tap the lower half to flip it. Tap the picture for its stats and job.
+// No job picker or swipe on this card (jobs live in the stats sheet).
+function cbPopCard(id) {
+    const overlay = document.getElementById('cb-expanded');
+    const host = overlay.querySelector('.cb-expanded-host');
+    const b = Vault.getColonyBees().find(x => x.id === id);
+    if (!b) return;
+    if (cbIsEgg(b)) { cbOpenBee(id); return; }
+    host.innerHTML = '';
+    const box = document.createElement('div');
+    host.appendChild(box);
+    BeeCard.render(box, b, { editable: false });
+    host.insertAdjacentHTML('beforeend', '<p class="cb-pop-hint">Tap the picture for stats · tap the bottom to flip</p>');
+    overlay.classList.add('is-pop');   // hides the old "tap or swipe" hint
+    box.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = box.querySelector('.bee-card') || box;
+        const flipped = box.classList.contains('is-flipped');
+        if (!flipped && e.target.closest('.bc-art')) { cbCloseCard(); setTimeout(() => cbOpenBee(id), 120); return; }
+        const r = card.getBoundingClientRect();
+        if (flipped || e.clientY > r.top + r.height / 2) box.classList.toggle('is-flipped');
+    }, true);
+    overlay.hidden = false;
+    requestAnimationFrame(() => overlay.classList.add('is-open'));
+}
+
 // The real, editable bee card (bee-card.js).
 function cbOpenCard(id) {
     const overlay = document.getElementById('cb-expanded');
+    overlay.classList.remove('is-pop');
     const host = overlay.querySelector('.cb-expanded-host');
     const b = Vault.getColonyBees().find(x => x.id === id);
     if (!b) { cbCloseCard(); return; }
@@ -271,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('cb-list').addEventListener('click', (e) => {
         const r = e.target.closest('[data-bee]');
-        if (r) cbOpenBee(r.dataset.bee);
+        if (r) { if (cbState.view === 'cards') cbPopCard(r.dataset.bee); else cbOpenBee(r.dataset.bee); }
     });
     const overlay = document.getElementById('cb-expanded');
     overlay.querySelector('.cb-expanded-close').addEventListener('click', cbCloseCard);

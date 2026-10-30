@@ -20,11 +20,12 @@ function avatarSrc() {
 function renderHero() {
     const user = Vault.getUser(), bar = Vault.getCharacterLevelBar(), royal = Vault.getRoyalBee();
     const kind = royal && royal.royal === 'king' ? 'King' : 'Queen';
+    const worn = typeof Vault.getTitles === 'function' ? Vault.getTitles().worn : null;   // Oct 30 2026 (Craft)
     const name = Vault.state.displayName || (royal && royal.name) || user.name;
     const photo = avatarSrc();
     document.getElementById('pf-hero').innerHTML = `<div class="prof">
         <div class="avatar"><img id="pf-avatar" src="${photo ? esc(photo) : '../../assets/images/me.jpg'}" alt=""></div>
-        <div class="who"><span class="hi">Profile</span><b>${esc(name)}</b><span class="title">👑 ${kind} of the hive${user.title ? ` · ${esc(user.title)}` : ''}</span>
+        <div class="who"><span class="hi">Profile</span><b>${esc(name)}</b><span class="title">👑 ${kind} of the hive${worn ? ` · ${esc(worn.name)}` : user.title ? ` · ${esc(user.title)}` : ''}</span>
             <div class="lv"><span class="chip">${levelLabel(bar.level)}</span><div class="bar"><i style="width:${bar.percentage}%"></i></div></div>
             <small style="color:var(--muted);font-size:.72rem">${bar.xpIntoLevel.toLocaleString()}/${bar.cap.toLocaleString()} XP · ${user.totalXP.toLocaleString()} XP total (≈ ${Math.round(user.totalXP / 60)} h)</small>
             ${bar.maxed ? '<button type="button" class="lvup" id="pf-lvup">⬆ Level up</button>' : ''}</div></div>`;
@@ -75,10 +76,12 @@ function render() {
     document.getElementById('pf-skills').innerHTML = mastered.length
         ? mastered.map(s => `<span class="schip" title="Mastered ${esc(fmtDate(s.masteredAt))}">${s.icon} ${esc(s.name)}</span>`).join('')
         : '<p class="sub" style="margin:0">None yet - skills master themselves as your hours grow.</p>';
-    const titles = S.titles || [];
-    document.getElementById('pf-titles').innerHTML = titles.length
-        ? titles.map(t => `<span class="schip title" title="${esc(t.ability || '')}">${esc(t.title)}</span>`).join('')
-        : '<p class="sub" style="margin:0">No titles yet.</p>';
+    // Oct 30 2026 (Craft): every title you've earned; tap through to choose one.
+    const T = Vault.getTitles();
+    const earned = [...T.special, ...T.quest].filter(t => t.earned);
+    document.getElementById('pf-titles').innerHTML = `<span class="schip title worn" title="Wearing">${T.worn.kind === 'special' ? T.worn.icon + ' ' : ''}${esc(T.worn.name)} ✓</span>`
+        + earned.filter(t => t.id !== T.worn.id).map(t => `<span class="schip title" title="${esc(t.perkText || t.how)}">${t.icon} ${esc(t.name)}</span>`).join('')
+        + `<a class="schip" href="../titles/titles.html">All titles →</a>`;
 
     const active = (S.quests || []).filter(q => q.status !== 'completed');
     const projects = ((S.profile || {}).projects || []).filter(p => p.name !== 'Your First Project');

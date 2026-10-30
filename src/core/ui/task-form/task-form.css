@@ -214,3 +214,9 @@ body.habit-form-page, body.task-form-page { padding-bottom: 0; }
 .df-cl-row.done .df-check { background: var(--bb-accent, #ffcc00); }
 .df-cl-row.done .df-check svg { opacity: 1; }
 .df-cl-row.done .df-cl-text { text-decoration: line-through; opacity: .6; }
+
+/* Oct 30 2026 (Craft): Add to calendar / Set alarm buttons. */
+.tf-phone { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.tf-phone-btn { flex: 1 1 140px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--dc, #ffcc00) 45%, transparent); background: color-mix(in srgb, var(--dc, #ffcc00) 8%, transparent); color: inherit; font: 600 .86rem inherit; cursor: pointer; }
+.tf-phone-btn:active { transform: scale(.97); }
+.tf-phone-hint { margin-top: 6px; }

@@ -72,6 +72,7 @@ const HiveLife = (() => {
             walkers.push(w); place(w);
         };
 
+        const needy = [];
         COMBS.forEach(c => {
             const list = byRoom[c.id];
             const eggs = list.filter(beeIsBrood);
@@ -86,7 +87,11 @@ const HiveLife = (() => {
             btn.className = 'hl-cell' + (unhappy ? ' alert' : '');
             btn.style.left = c.x + '%'; btn.style.top = c.y + '%';
             btn.setAttribute('aria-label', `${c.name}, ${count}${unhappy ? `, ${unhappy} need${unhappy === 1 ? 's' : ''} help` : ''}. Tap to manage.`);
-            btn.innerHTML = `<span class="hl-in"><span class="hl-ic${c.id === 'nursery' ? ' hl-egg-ic' : ''}">${roomIcon(c)}</span><span class="hl-nm">${c.name}</span><span class="hl-ct">${count}</span></span>${unhappy ? `<span class="hl-dot">${unhappy}</span>` : ''}`;
+            // Oct 30 2026 (Craft): a red dot on a comb with jobs but nobody working.
+            const empty = c.jobs.length && !shown.length && !list.filter(isOut).length;
+            if (empty) needy.push(c.name);
+            btn.innerHTML = `<span class="hl-in"><span class="hl-ic${c.id === 'nursery' ? ' hl-egg-ic' : ''}">${roomIcon(c)}</span><span class="hl-nm">${c.name}</span><span class="hl-ct">${count}</span></span>${unhappy ? `<span class="hl-dot">${unhappy}</span>` : ''}${empty ? '<span class="hl-need" title="Needs workers"></span>' : ''}`;
+            if (empty) btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' Needs workers.');
             btn.addEventListener('click', () => openRoom(c.id, { onBeeClick, onChange }));
             hive.appendChild(btn);
             // Bees wander in the lower half of their comb.
@@ -102,6 +107,13 @@ const HiveLife = (() => {
             }
         });
 
+        if (needy.length) {
+            const bz = document.createElement('div');
+            bz.className = 'hl-buzz';
+            bz.innerHTML = `🐝 <b>The Hive is Buzzing!</b> ${needy.length === 1 ? `The ${esc(needy[0])} needs` : `${needy.length} combs need`} workers. Tap a red dot.`;
+            host.prepend(bz);
+        }
+        lastMount = { onBeeClick, onChange };
         timers.push(setInterval(() => { walkers.forEach(w => { if (!w.still && Math.random() < 0.7) place(w); }); }, 1700));
 
         // Faces pop out of the bees you can see.
@@ -145,7 +157,12 @@ const HiveLife = (() => {
     }
 
     // ---- a comb's pop-up ---------------------------------------------------
-    let sheet = null;
+    let sheet = null, backTo = null, lastMount = null;
+    // After a bee's card closes, reopen the comb it was opened from.
+    function reopenLast() {
+        const id = backTo; backTo = null;
+        if (id && lastMount) openRoom(id, lastMount);
+    }
     function closeRoom() {
         if (!sheet) return;
         sheet.remove(); sheet = null;
@@ -230,14 +247,22 @@ const HiveLife = (() => {
                 + ((Vault.state.incubator && (Vault.state.incubator.owned || []).length) ? `<a class="hl-inc-link" href="../incubator/incubator.html">🥚 Egg Incubator: hatch eggs faster with your steps ›</a>` : `<a class="hl-inc-link" href="../honey-store/honey-store.html#incubators">🥚 Get an Egg Incubator in the Honey Store ›</a>`)
                 : '<p class="hl-note">No eggs right now. New bees from the Pollination Chamber, level-ups and skills start here.</p>';
         }
+        // Oct 30 2026 (Craft): how strong this comb is, best workers first,
+        // and the best free bees with the % each would add (WorkerCard).
+        const WC = typeof WorkerCard !== 'undefined' ? WorkerCard : null;
+        const power = WC && c.jobs.length ? WC.combPower(list, c.jobs) : null;
+        if (power !== null) html += `<div class="hl-meter"><span>Comb strength</span><span>${power}%</span></div><span class="hl-bar"><i style="width:${power}%;background:${power >= 70 ? '#5fd38a' : power >= 35 ? '#ffcc00' : '#ff5a5a'}"></i></span>`;
+        const sorted = WC ? list.slice().sort((a, b) => WC.score(b, b.class) - WC.score(a, a.class)) : list;
         html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
-        html += list.length ? list.map(b => beeRow(b, c, today)).join('') : `<p class="hl-note">${id === 'rest' ? 'Nobody is resting. Every bee has work.' : 'No bees here yet.'}</p>`;
+        html += sorted.length ? sorted.map(b => beeRow(b, c, today)).join('') : `<p class="hl-note">${id === 'rest' ? 'Nobody is resting. Every bee has work.' : 'No bees here yet.'}</p>`;
         if (idle.length) {
-            html += `<h3 class="hl-sub">Add a resting bee</h3>` + idle.map(b => {
-                const f = beeFeeling(b, today);
-                return `<div class="hl-row"><span class="hl-rface">${f.face}</span><button type="button" class="hl-who-btn" data-card="${esc(b.id)}"><b>${esc(b.name)}${b.sex === 'm' ? ' ♂' : ''}</b><small>${esc(f.why)}</small></button>
-                    ${jobSelect(b, jobsFor(b, c.jobs), { blank: 'Assign…' })}</div>`;
-            }).join('');
+            const picks = idle.map(b => ({ b, best: WC ? WC.bestJob(b, c.jobs) : { j: jobsFor(b, c.jobs)[0], s: 0 } })).filter(x => x.best && x.best.j)
+                .sort((a, b) => b.best.s - a.best.s);
+            html += `<h3 class="hl-sub">Best free bees for this comb</h3>` + picks.map(({ b, best }) => {
+                if (!WC) return '';
+                const after = WC.combPower([...list, { ...b, class: best.j }], c.jobs);
+                return WC.html(b, { job: best.j, effect: `Comb ${power}% → ${after}% (+${after - power}%)`, action: 'add', label: `Add as ${BEE_CLASSES[best.j].label}` });
+            }).join('') + '<p class="hl-note">Bees already working in another comb aren\'t listed. Change their job there first.</p>';
         }
         if (c.jobs.length) html += '<p class="hl-note">★ = jobs done in this comb. ⭐ = the bee\'s natural talent (+20% at it). 🔒 = a Named Beast, its title sets its job.</p>';
         html += '</div>';
@@ -284,9 +309,16 @@ const HiveLife = (() => {
             BeeName.mount(box, bee, { compact: true, onSaved: () => { if (opts.onChange) opts.onChange(); openRoom(id, opts); } });
             box.querySelector('.bn-in').focus();
         }));
+        sheet.querySelectorAll('[data-wk="add"]').forEach(btn => btn.addEventListener('click', () => {
+            const r = Vault.assignBeeClass(btn.dataset.bee, btn.dataset.job);
+            if (typeof Toast !== 'undefined') Toast.show(r ? `${BEE_CLASSES[btn.dataset.job].icon} ${r.name} is now a ${BEE_CLASSES[btn.dataset.job].label}.` : (Vault.lastJobError || "That bee can't do that job."), r ? 'positive' : 'negative');
+            if (opts.onChange) opts.onChange();
+            openRoom(id, opts);
+        }));
         sheet.querySelectorAll('[data-card]').forEach(btn => btn.addEventListener('click', () => {
             const bee = Vault.getColonyBees().find(b => b.id === btn.dataset.card);
             if (!bee || !opts.onBeeClick) return;
+            backTo = id;   // Oct 30 2026 (Craft): closing the bee brings you back to this comb
             closeRoom();
             opts.onBeeClick(bee);
         }));
@@ -368,5 +400,5 @@ const HiveLife = (() => {
         });
     }
 
-    return { mountComb, renderPanel, renderNews, zoneOf, roomOf, openRoom, closeRoom, popFace, wantsFace };
+    return { mountComb, renderPanel, renderNews, zoneOf, roomOf, openRoom, closeRoom, reopenLast, popFace, wantsFace };
 })();

@@ -16,7 +16,12 @@ const Reminders = {
     // reminder time - lazy, only when a reminder is actually being set,
     // never on a bare page load, so nobody gets prompted before they've
     // asked for anything.
+    // Oct 30 2026 (Craft): the Android app schedules its own phone notifications
+    // (native.js), so none of the web reminder paths run there.
+    _native: !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()),
+
     requestPermissionIfNeeded() {
+        if (this._native) return;
         if (!('Notification' in window)) {
             Toast.show('This browser doesn\'t support reminder notifications.', 'negative');
             return;
@@ -71,7 +76,7 @@ const Reminders = {
     // This module only ever deals in that generic shape, so it stays
     // reusable for whatever else Vault folds into that feed later.
     check() {
-        if (typeof Vault === 'undefined' || !Vault.state) return;
+        if (this._native || typeof Vault === 'undefined' || !Vault.state) return;
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
         const today = todayISO();
@@ -115,6 +120,19 @@ const Reminders = {
         const plain = () => { try { new Notification(title, opts); } catch { /* not allowed here */ } };
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(r => r.showNotification(title, opts)).catch(plain);
         else plain();
+        this._buzz();
+    },
+
+    // Oct 30 2026 (Craft): the BizzyBee buzz plays when a reminder fires while
+    // the app is open on the website. (The Android app plays it through its
+    // own notification sound setting.) Off: localStorage bizzybee_web_buzz = 'off'.
+    _buzz() {
+        try {
+            if (document.hidden || localStorage.getItem('bizzybee_web_buzz') === 'off') return;
+            if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return;
+            const a = new Audio('/src/assets/sounds/bizzybee_buzz.wav');
+            a.volume = 0.7; a.play().catch(() => { /* needs a tap first */ });
+        } catch { /* no audio */ }
     },
 
     start() {
