@@ -30,7 +30,9 @@ const WHATS_NEW = [
         { icon: '📱', title: 'Made for phones', text: 'On a phone, Back leaves the hive. Computers keep the Leave Hive button.', href: 'features/colony/colony.html' },
         { icon: '💻', title: 'Terminal', text: 'Real terminal commands (ls, cd, grep, pipes, Tab), a backup when it opens, and a Revert button.', href: 'plugins/terminal/terminal.html' },
       ],
-      fixed: []
+      fixed: [
+        { icon: '🔥', title: 'Streaks count every goal', text: 'Your streak now counts everything due that day, dailies and To-Dos, done on time. A To-Do done late breaks it.', href: 'features/home/home.html' },
+      ]
     },
     // Oct 29 2026 (Craft): w4 = this week's push. The Mailbox Updates tab lists every entry.
     { id: 'w4', version: '1.0.6', date: 'Oct 2026',
