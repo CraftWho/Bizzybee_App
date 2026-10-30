@@ -1724,19 +1724,31 @@ function beeNeeds(bee, today = todayISO()) {
     return out;
 }
 
-// Hive streak from your Dailies: +N = N days in a row with every due daily
-// done, -N = N days in a row missing one. Today doesn't count yet. Each
-// working Guard Bee forgives one missed day per week (max 2).
-function computeHiveStreak(dailies, today = todayISO(), guards = 0) {
-    const list = dailies || [];
-    if (!list.length) return 0;
+// Oct 30 2026 (Craft): a streak is about doing what you wrote down, on
+// time - not only dailies. Your goals for a day are every daily due that day
+// and every To-Do due that day. A To-Do counts as kept only if it was done
+// on or before its due date. Days with nothing due don't count either way.
+// Returns null (nothing due) or true/false (all kept or not).
+function goalsKeptOn(dailies, todos, day, { saved = false } = {}) {
+    const due = (dailies || []).filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
+    const dueTodos = (todos || []).filter(t => t && t.dueDate === day);
+    if (!due.length && !dueTodos.length) return null;
+    return due.every(d => (d.completedDates || []).includes(day) || (saved && (d.savedDates || []).includes(day)))
+        && dueTodos.every(t => t.completed && t.completedDate && t.completedDate <= t.dueDate);
+}
+
+// Hive streak from your goals: +N = N days in a row with everything due
+// done on time, -N = N days in a row missing something. Today doesn't count
+// yet. Each working Guard Bee forgives one missed day per week (max 2).
+function computeHiveStreak(dailies, today = todayISO(), guards = 0, todos = []) {
+    if (!(dailies || []).length && !(todos || []).some(t => t && t.dueDate)) return 0;
     let forgive = Math.min(2, guards);
     let streak = 0, sign = 0;
     for (let i = 1; i <= 14; i++) {
         const day = shiftISODate(today, -i);
-        const due = list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-        if (!due.length) continue;
-        let ok = due.every(d => (d.completedDates || []).includes(day));
+        const kept = goalsKeptOn(dailies, todos, day);
+        if (kept === null) continue;
+        let ok = kept;
         if (!ok && i <= 7 && forgive > 0) { forgive--; ok = true; }
         const s = ok ? 1 : -1;
         if (sign === 0) sign = s;
@@ -4184,12 +4196,12 @@ class DatabaseManager {
         if (mine.length) return;
         // Days in a row (today included) with every due daily done or saved.
         const list = this.state.dailyTasks || [];
+        // Oct 30 2026 (Craft): streak milestones count every goal kept on time (goalsKeptOn).
         let streak = 1;
         for (let i = 1; i <= 120; i++) {
-            const day = shiftISODate(today, -i);
-            const dueDay = list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-            if (!dueDay.length) continue;
-            if (!dueDay.every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day))) break;
+            const kept = goalsKeptOn(list, this.state.todos, shiftISODate(today, -i), { saved: true });
+            if (kept === null) continue;
+            if (!kept) break;
             streak++;
         }
         const add = [{ key: `all-dailies:${today}`, date: today, xp: STREAK_BONUS.allDailies, why: 'All dailies done' }];
@@ -5768,7 +5780,7 @@ Object.assign(DatabaseManager.prototype, {
     },
 
     getHiveStreak() {
-        return computeHiveStreak(this.state ? this.state.dailyTasks : [], todayISO(), this._workers('guardian').length);
+        return computeHiveStreak(this.state ? this.state.dailyTasks : [], todayISO(), this._workers('guardian').length, this.state ? this.state.todos : []);
     },
 
     // Runs each day missed since the last visit (max LIFE.maxCatchUp).
