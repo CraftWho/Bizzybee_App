@@ -851,7 +851,7 @@ function showCard() {
           <div class="scard-art">${royalStack(F.royal)}</div>
           <div class="scard-dex"><span>No.000</span><span>FOUNDER</span><span>${A.label.toUpperCase()}</span></div>
           <p class="scard-flavor">The heart of a new hive, hatched from a gift. Every bee to come answers to ${A.her}.</p></div>
-        <div class="row2" style="justify-content:center"><button class="btn" data-s="done">${PRACTICE ? 'Finish practice' : 'Add to my colony'}</button></div>`, true);
+        <div class="row2" style="justify-content:center"><button class="btn" data-s="done">${PRACTICE ? 'Finish practice' : 'Add to my hive'}</button></div>`, true);
 }
 function finish() {
     clearInterval(T.pupaT); clearInterval(T.stretchT);

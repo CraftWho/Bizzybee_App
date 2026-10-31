@@ -3,7 +3,7 @@ console.log("/// HIVE INTERIOR ONLINE ///");
 // ColonyInterior - the inside of the colony hive (approved on the
 // hive-interior concept page, Oct 2026). One full-screen SVG honeycomb:
 //
-//   lit cells      glowing honey. How many = the colony's honey (colony.js:
+//   lit cells      glowing honey. How many = the colony's honey (hive-mind.js:
 //                  cards earned + level XP). Light spreads from the centre.
 //   brood cells    one per bee - a wax-capped cell with an element-coloured
 //                  ring. Tap one to open that bee's card. A bee with no job

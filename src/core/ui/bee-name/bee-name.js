@@ -1,5 +1,5 @@
 // Bee name editor (Oct 2026): a text box, a 🎲 random-name button and Save.
-// Used on the Pollination Chamber reveal, the Colony Bees sheet and the
+// Used on the Pollination Chamber reveal, the Hive Bees sheet and the
 // Hive Life comb pop-ups. BeeName.mount(el, bee, { onSaved, compact }).
 const BeeName = {
     mount(el, bee, { onSaved = null, compact = false, label = 'Name' } = {}) {

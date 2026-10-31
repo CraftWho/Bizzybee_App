@@ -126,7 +126,7 @@ const BEE_ARCHETYPES = [
         // always matches, so it's the guaranteed last resort.
         title: 'Waxling',
         match: () => true,
-        description: 'A steady worker of the colony, still finding its place in the hive.'
+        description: 'A steady worker, still finding its place in the hive.'
     }
 ];
 

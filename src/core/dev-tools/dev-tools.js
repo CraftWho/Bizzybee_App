@@ -437,6 +437,8 @@
             <div class="dev-state" id="dev-state"></div>
             ${testBlock}
 
+            <!-- Oct 31 2026 (Craft): Themes is locked on the real save too. -->
+            <div class="dev-act">
             <h3>THEMES · NEW IN 1.0.5</h3>
             <div class="dev-row">
                 <button data-dev="theme" data-t="auto">✨ Auto</button>
@@ -449,7 +451,6 @@
                 <a href="${root}/src/features/mailbox/mailbox.html">Mailbox</a>
             </div>
 
-            <div class="dev-act">
             <h3>EGG</h3>
             <div class="dev-row">
                 <button data-dev="egg-restart">Restart egg</button>
@@ -514,7 +515,7 @@
                 <button data-dev="n-icons">Weather icons</button>
             </div>
             <div class="dev-row" style="margin-top:6px">
-                ${SKIES.map(([label, sky, hour]) => `<a href="${root}/src/features/colony/colony.html?sky=${sky}&hour=${hour}">Sky · ${label}</a>`).join('')}
+                ${SKIES.map(([label, sky, hour]) => `<a href="${root}/src/features/hive-mind/hive-mind.html?sky=${sky}&hour=${hour}">Sky · ${label}</a>`).join('')}
             </div>
 
             <h3>TICKETS</h3>

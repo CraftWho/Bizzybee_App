@@ -6,7 +6,7 @@
 // haven't hatched yet. Faces pop out of bees: 😊 happy, 😢 lacking food,
 // rest or health, 😠 no job for 3+ days (beeFeeling in db.js).
 // Up to 3 bees are drawn per comb, then a +N badge. The old inside view
-// stays available as "Classic" (colony.js).
+// stays available as "Classic" (hive-mind.js).
 const HiveLife = (() => {
     const COMBS = [
         { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34.5, y: 1, text: 'Your Queen lives here. Attendants groom her. Drones wait to mate with her.' },

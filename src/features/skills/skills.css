@@ -70,3 +70,6 @@ h2.sk-sec::after { content: ""; flex: 1; height: 1px; background: linear-gradien
 .sk-loot div { padding: 8px 12px; border-radius: 12px; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .08); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); font-size: .78rem; }
 .sk-loot b { display: block; font-size: 1.3rem; }
 @media (prefers-reduced-motion: reduce) { .sk-lvl, .sk-burst, .sk-sheet { animation: none; } }
+
+/* Oct 31 2026 (Craft, from 1.0.6): hex ring follows the shape. */
+.sk-hx::after { box-shadow: none !important; background: rgba(var(--bb-alt-rgb, 220, 20, 60), .85); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }

@@ -442,7 +442,7 @@ const WAGGLE_NAV_PAGES = [
     { page: 'colony', icon: '🏰', label: 'Hive Mind' },
     { page: 'gacha', icon: '🌼', label: 'Pollination Chamber' },
     { page: 'inventory', icon: '🎒', label: 'Inventory' },
-    { page: 'colony-bees', icon: '🐝', label: 'Colony Bees' },
+    { page: 'colony-bees', icon: '🐝', label: 'Hive Bees' },
     { page: 'keeperdex', icon: '📘', label: 'KeeperDex' },
     { page: 'account-info', icon: '🔐', label: 'Account Info' },
     { page: 'settings', icon: '⚙️', label: 'Settings' }

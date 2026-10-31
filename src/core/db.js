@@ -490,10 +490,10 @@ function computeDailyStreak(task, today) {
     return count;
 }
 
-// Colony bee rarities - lives here (not colony.js) because bees are now
+// Colony bee rarities - lives here (not hive-mind.js) because bees are now
 // awarded on level-up too (see toggleTask/toggleDailyTask below), which
 // happens from Home/Quests/Dailies, not just the Colony page itself.
-// colony.js's rendering re-uses this exact same table so a bee's color is
+// hive-mind.js's rendering re-uses this exact same table so a bee's color is
 // identical everywhere it's shown, no matter how it was earned.
 // weight: 0 on Named is deliberate - rollBeeRarity() below can never
 // select it (see the loop: `if (roll < entry.weight) return entry` is
@@ -602,8 +602,8 @@ function rollNamedBeeName() {
 // is still the only one with a real mechanical payoff (a material drop
 // whenever you complete a real task/daily - see
 // _collectMaterialsOnCompletion below); the rest are flavor + their own
-// distinct swarm animation for now (colony.js reads bee.class to pick
-// which - see colony.css's colony-patrol/colony-forage/colony-fortify/
+// distinct swarm animation for now (hive-mind.js reads bee.class to pick
+// which - see hive-mind.css's colony-patrol/colony-forage/colony-fortify/
 // colony-build/colony-tend keyframes), same intentional "groundwork
 // before mechanics" spirit as the numeric stats note used to be here.
 // Oct 2026 (Hive Life): real honeybee jobs. Keys stay the same for saves
@@ -1926,7 +1926,7 @@ class DatabaseManager {
             // random results that can't be recomputed from a formula (unlike
             // XP/level), so they have to actually be stored, but they're not
             // blueprint content either. The colony always starts with the
-            // Queen (a fixed, separate visual - see colony.js, never stored
+            // Queen (a fixed, separate visual - see hive-mind.js, never stored
             // here) plus exactly one Common Worker Bee, so the collection
             // isn't empty on a fresh start. Only runs on first init or a
             // full Reset - an existing player's already-earned bees are
@@ -2556,7 +2556,7 @@ class DatabaseManager {
         if (!silent && typeof Toast !== 'undefined') {
             if (awardedBees.length > 0) {
                 const label = awardedBees.length === 1 ? awardedBees[0].name : `${awardedBees.length} bees`;
-                Toast.show(`🐝 ${label} joined your colony!`, 'positive');
+                Toast.show(`🐝 ${label} joined your hive!`, 'positive');
             }
             if (ticketDeficit > 0) {
                 Toast.show(`🎟️ ${ticketDeficit === 1 ? 'A gacha ticket' : `${ticketDeficit} gacha tickets`} earned from leveling up!`, 'positive');
@@ -3290,7 +3290,7 @@ class DatabaseManager {
         return this.state && this.state.eevee ? (this.state.eevee.conversations || []) : [];
     }
 
-    // 5g. Logic: the colony's gacha-pulled bees (src/features/colony/). Each
+    // 5g. Logic: the colony's gacha-pulled bees (src/features/hive-mind/). Each
     // pull's rarity/name is random, so - unlike XP/level - there's no formula
     // to recompute it from; it has to be stored as its own fact.
     getColonyBees() {
@@ -3348,7 +3348,7 @@ class DatabaseManager {
     }
 
     // Rolls a brand new bee via the shared rarity table and stores it -
-    // shared by the Pollination Chamber gacha (colony.js, after its spin
+    // shared by the Pollination Chamber gacha (hive-mind.js, after its spin
     // animation finishes) and the automatic level-up reward in
     // toggleTask/toggleDailyTask below. `source` is purely informational
     // ('gacha' / 'levelup' / 'starter') in case that's ever worth surfacing
@@ -3469,7 +3469,7 @@ class DatabaseManager {
     // Consumes 1 ticket and guarantees a Named Beast - the ONLY path that
     // can produce this rarity (see BEE_RARITIES' weight:0 comment on
     // 'Named' - normal rollBeeRarity() can never select it). Returns null
-    // if there's no ticket to spend, so the caller (colony.js's unwrap UI)
+    // if there's no ticket to spend, so the caller (hive-mind.js's unwrap UI)
     // can guard the tear/reveal interaction on a real ticket existing.
     unwrapTicket() {
         if (!this.state || !this.state.colony) return null;
@@ -5333,7 +5333,7 @@ class DatabaseManager {
     }
 
     // The hive's honey and decay, shared by the Hive page and Home's hive
-    // strip (moved here from colony.js so both read the same numbers).
+    // strip (moved here from hive-mind.js so both read the same numbers).
     //   honey  = base + 4 per bee card + 3 per level (XP counts partly)
     //   decay  = missed dailies, overdue To-Dos and bad-habit clicks in the
     //            last 14 days; it can hollow at most half the honey.

@@ -92,6 +92,22 @@
   to = "/src/plugins/dictionary/:splat"
   status = 301
 
+# Oct 31 2026 (Craft): Colony was renamed Hive Mind (pages and folders).
+# Code links were all updated; these catch old bookmarks, home-screen links
+# and phone alarms scheduled before the rename. The ?query is kept.
+[[redirects]]
+  from = "/src/features/colony/colony.html"
+  to = "/src/features/hive-mind/hive-mind.html"
+  status = 301
+[[redirects]]
+  from = "/src/features/colony/hive-visit.html"
+  to = "/src/features/hive-mind/hive-visit.html"
+  status = 301
+[[redirects]]
+  from = "/src/features/colony-bees/colony-bees.html"
+  to = "/src/features/hive-bees/hive-bees.html"
+  status = 301
+
 # Oct 2026 cleanup: the login helper pages moved out of the project root.
 [[redirects]]
   from = "/reset-password.html"

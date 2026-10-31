@@ -274,7 +274,7 @@ const LevelBar = {
             if (!b) return;
             if (b.dataset.lvr === 'close') close();
             if (b.dataset.lvr === 'bee') {
-                const path = `src/features/colony-bees/colony-bees.html?bee=${encodeURIComponent(rich.beeId)}`;
+                const path = `src/features/hive-bees/hive-bees.html?bee=${encodeURIComponent(rich.beeId)}`;
                 location.href = typeof AppShell !== 'undefined' && AppShell.url ? AppShell.url(path) : `../../../${path}`;
             }
         });
@@ -307,7 +307,7 @@ const LevelBar = {
             const info = (typeof BEE_RARITIES !== 'undefined' ? BEE_RARITIES : []).find(r => r.rarity === b.rarity);
             const rc = info ? info.color : '#ffcc00';
             const talent = b.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[b.talent] ? `⭐ Born ${BEE_CLASSES[b.talent].label}` : '';
-            const where = b.life && b.life.hatchOn ? 'in the Nursery' : 'in your colony';
+            const where = b.life && b.life.hatchOn ? 'in the Nursery' : 'in your hive';
             const art = typeof beeCardArtHTML === 'function' ? `<span class="art-tile bc-tile" data-card="${esc(b.rarity)}|${esc(b.element || '')}"></span>` : '<span class="lvr-emo">🐝</span>';
             const name = typeof beeFullName === 'function' ? beeFullName(b) : b.name;
             return `<div class="lvr-item bee" style="--rc:${rc}"><div class="lvr-mini">${art}</div>

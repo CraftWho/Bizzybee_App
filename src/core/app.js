@@ -592,7 +592,7 @@ const AppShell = {
         const lines = [];
         if (reward.awardedBees.length > 0) {
             const label = reward.awardedBees.length === 1 ? esc(reward.awardedBees[0].name) : `${reward.awardedBees.length} bees`;
-            lines.push(`🐝 ${label} joined your colony!`);
+            lines.push(`🐝 ${label} joined your hive!`);
         }
         if (reward.ticketsGranted > 0) lines.push(`🎟️ +${reward.ticketsGranted} Gacha Ticket${reward.ticketsGranted === 1 ? '' : 's'}`);
         if (reward.awardedMaterials.length > 0) {
@@ -890,7 +890,7 @@ class CodexSystem {
         else setTimeout(() => BizzyFocus.run(), 300);
     }
 
-    // Starter skills (Oct 28 2026): right after "Add to my colony", Home asks
+    // Starter skills (Oct 28 2026): right after "Add to my hive", Home asks
     // "What are you working on?" once. (The Dashboard asks on its own.)
     loadStarterSkills() {
         let flag = null;
@@ -1274,11 +1274,11 @@ class CodexSystem {
         if (path.includes('account-info.html')) return 'account-info';
         if (path.includes('account-security.html')) return 'account-security';
         if (path.includes('inventory.html')) return 'inventory';
-        if (path.includes('colony-bees.html')) return 'colony-bees';
+        if (path.includes('hive-bees.html')) return 'colony-bees';   // Oct 31 2026: page renamed; key kept (hints, menus, saved Home layout)
         if (path.includes('keeperdex.html')) return 'keeperdex';
         if (path.includes('models.html')) return 'models';
         if (path.includes('settings.html')) return 'settings';
-        if (path.includes('colony.html')) return 'colony';
+        if (path.includes('hive-mind.html')) return 'colony';   // Oct 31 2026: page renamed; key kept
         if (path.includes('gacha.html')) return 'gacha';
         if (path.includes('honey-store.html')) return 'honey-store';
         if (path.includes('plugin-hub.html')) return 'plugin-hub';
@@ -1295,7 +1295,11 @@ class CodexSystem {
         if (path.includes('habits.html')) return 'habits';
         if (path.includes('create-todo.html')) return 'create-todo';
         if (path.includes('todos.html')) return 'todos';
-        return 'home';
+        // Oct 31 2026 (Craft, from 1.0.6): any other page (Notifications, Guide,
+        // Mailbox, Themes, Friends...) used to count as Home, so tapping the
+        // header or swiping up on the + did nothing there. Use its file name.
+        const m = /\/src\/(?:features|plugins)\/.*?([a-z0-9-]+)\.html$/i.exec(path);
+        return m ? m[1].toLowerCase() : 'home';
     }
 
     // A real "go back" button - lives as its own floating hexagon next to
