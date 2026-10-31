@@ -160,7 +160,7 @@ const BizzyNotify = (() => {
 
         // Start My Day: a morning prompt (skipped today if already done).
         if (P.start.on && TIME.test(P.start.time)) dayList.forEach(day => {
-            const q = S.colony && S.colony.queen;
+            const q = S.hive && S.hive.queen;
             if (day === today && q && q.reviewedOn === today) return;
             push({ key: `start:${day}`, kind: 'start', taskId: null, at: at(day, P.start.time), level: 2, sticky: false,
                 title: '🐝 Start My Day', label: 'Start My Day', note: 'See yesterday, plan today',

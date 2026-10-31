@@ -35,7 +35,7 @@
     transform: scale(0.175);
 }
 
-/* Small inline icon variant - colony bee collection chips and similar. */
+/* Small inline icon variant - hive bee collection chips and similar. */
 .nano-bee-scene--chip {
     width: 26px;
     height: 26px;
@@ -50,7 +50,7 @@
    (0.07 scale, ~3px body) was built for a compact inline chip next to
    text and turned out to be nearly invisible when used standalone for the
    swarm. This is sized to match the Queen's own bee-body scale (0.5) so
-   every bee in the colony reads as visually the same "kind" of bee, just
+   every bee in the hive reads as visually the same "kind" of bee, just
    at a smaller/static presentation here. */
 .nano-bee-scene--swarm {
     width: 60px;

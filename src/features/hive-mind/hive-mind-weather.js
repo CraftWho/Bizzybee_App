@@ -10,7 +10,7 @@
     const hour = params.get('hour');
 
     function widget(w) {
-        const head = document.querySelector('#colony-exterior .cm-head');
+        const head = document.querySelector('#hive-mind-exterior .cm-head');
         if (!head) return;
         let el = document.getElementById('cm-wx');
         if (!el) { el = document.createElement('a'); el.id = 'cm-wx'; el.className = 'cm-wx'; head.appendChild(el); }
@@ -27,7 +27,7 @@
     const isNight = () => { const h = new Date().getHours(); return h < 6 || h >= 19; };
 
     function start() {
-        const scene = document.getElementById('colony-nest-scene');
+        const scene = document.getElementById('hive-mind-nest-scene');
         if (!scene || typeof WeatherFX === 'undefined') return;
         if (hour != null) { const real = Date.now; const d = new Date(); d.setHours(Number(hour), 0, 0, 0); const off = d.getTime() - real(); Date.now = () => real() + off; }
         const fx = WeatherFX.mount(scene, scene);

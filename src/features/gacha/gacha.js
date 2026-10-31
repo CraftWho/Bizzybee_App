@@ -15,7 +15,7 @@ function beeColor(rarity) {
 function renderCollectionCounters() {
     const el = document.getElementById('gacha-collection-counter');
     if (!el) return;
-    const bees = Vault.getColonyBees();
+    const bees = Vault.getHiveBees();
     const special = bees.filter(b => b.rarity === 'Named').length;
     const normal = bees.length - special;
     el.innerHTML = `<span>🐝 Normal <strong>${normal}</strong></span><span>✨ Special <strong>${special}</strong></span>`;
@@ -192,7 +192,7 @@ function beeOptionsHTML(bees) {
 }
 
 function renderRefineSelects() {
-    const bees = Vault.getColonyBees().slice().reverse();
+    const bees = Vault.getHiveBees().slice().reverse();
     const destroySelect = document.getElementById('gacha-destroy-select');
     const comboA = document.getElementById('gacha-combine-select-a');
     const comboB = document.getElementById('gacha-combine-select-b');
@@ -233,7 +233,7 @@ async function handleDestroy() {
         return;
     }
 
-    const bee = Vault.getColonyBees().find(b => b.id === beeId);
+    const bee = Vault.getHiveBees().find(b => b.id === beeId);
     if (!bee) return;
     if (!confirm(`Destroy ${bee.name}? This can't be undone.`)) return;
 
@@ -265,8 +265,8 @@ function handleCombine() {
         return;
     }
 
-    const beeA = Vault.getColonyBees().find(b => b.id === idA);
-    const beeB = Vault.getColonyBees().find(b => b.id === idB);
+    const beeA = Vault.getHiveBees().find(b => b.id === idA);
+    const beeB = Vault.getHiveBees().find(b => b.id === idB);
     if (!beeA || !beeB) return;
     if (!confirm(`Combine ${beeA.name} and ${beeB.name}? Both will be consumed.`)) return;
 

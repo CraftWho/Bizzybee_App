@@ -648,7 +648,7 @@ const AppShell = {
         if (isTier) perks.push('👑 Guaranteed Epic bee');
         else if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level · new bar colour');
         const bar = typeof Vault.getCharacterLevelBar === 'function' ? Vault.getCharacterLevelBar() : null;
-        const bee = reward.awardedBees.find(b => Vault.getColonyBees().some(x => x.id === b.id));
+        const bee = reward.awardedBees.find(b => Vault.getHiveBees().some(x => x.id === b.id));
         const rich = {
             cap: isTier ? 'PRESTIGE LEVEL' : 'CHARACTER LEVEL', level: reward.newLevel,
             ribbon: isTier ? (reward.newLevel === LEVEL_CAP + 1 ? 'PRESTIGE' : 'TIER UP') : reward.newLevel === LEVEL_CAP ? 'MAX LEVEL' : reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
@@ -1323,11 +1323,11 @@ class CodexSystem {
         if (path.includes('account-info.html')) return 'account-info';
         if (path.includes('account-security.html')) return 'account-security';
         if (path.includes('inventory.html')) return 'inventory';
-        if (path.includes('hive-bees.html')) return 'colony-bees';   // Oct 31 2026: page renamed; key kept (hints, menus, saved Home layout)
+        if (path.includes('hive-bees.html')) return 'hive-bees';   // Oct 31 2026: page renamed; key kept (hints, menus, saved Home layout)
         if (path.includes('keeperdex.html')) return 'keeperdex';
         if (path.includes('models.html')) return 'models';
         if (path.includes('settings.html')) return 'settings';
-        if (path.includes('hive-mind.html')) return 'colony';   // Oct 31 2026: page renamed; key kept
+        if (path.includes('hive-mind.html')) return 'hive-mind';   // Oct 31 2026: page renamed; key kept
         if (path.includes('gacha.html')) return 'gacha';
         if (path.includes('honey-store.html')) return 'honey-store';
         if (path.includes('plugin-hub.html')) return 'plugin-hub';

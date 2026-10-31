@@ -2,13 +2,13 @@ console.log("/// KEEPERDEX PROTOCOLS INITIALIZED ///");
 
 // KeeperDex v2 (Oct 2026, same look as Settings/Inventory - page-v2.css).
 // Every KEEPERDEX_ENTRIES row (db.js) as a KeeperDexCard (keeperdex-card.js),
-// shown small in a grid (the real card, scaled down - same trick as Colony
+// shown small in a grid (the real card, scaled down - same trick as Hive Mind
 // Bees). Tap one to see it full size. Filters: All, Found, Missing, and
 // one chip per rarity. The memorial lists bees that died (Hive Life).
 let kdTab = 'all';
 
 function kdEntries() {
-    const bees = Vault.getColonyBees();
+    const bees = Vault.getHiveBees();
     return KEEPERDEX_ENTRIES.map(entry => ({ entry, obtained: isKeeperDexEntryObtained(entry, bees) }));
 }
 

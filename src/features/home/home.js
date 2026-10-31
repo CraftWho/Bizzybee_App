@@ -3,7 +3,7 @@ console.log("/// HOME PROTOCOLS INITIALIZED ///");
 // Home (rebuilt 2026-10-08, refreshed 2026-10-09 - Craft):
 //   - your royal + name + level bar live in the app's top bar (app.js
 //     AppShell), full size on this page - the Level Up button is there too
-//   - hive strip: four stats, each opening its own page (bees -> Colony,
+//   - hive strip: four stats, each opening its own page (bees -> Hive Mind,
 //     XP today -> today's list, current streak -> Dailies, focus quest -> Quests)
 //   - Today: a dropdown with Dailies / Habits / To-Dos / Quest tabs, using
 //     the exact same cards as those tabs (TaskRow, HabitRow, QuestUI).
@@ -166,7 +166,7 @@ function renderBeeHelp() {
     const el = document.getElementById('home-help');
     if (!el || typeof beeNeeds !== 'function') return;
     // Oct 28 2026 (Craft): say exactly who needs what, and how to fix it.
-    const list = Vault.getColonyBees().filter(b => b.rarity !== 'Royal')
+    const list = Vault.getHiveBees().filter(b => b.rarity !== 'Royal')
         .map(b => ({ b, needs: beeNeeds(b) })).filter(x => x.needs.length);
     el.hidden = !list.length;
     if (!list.length) return;
@@ -331,7 +331,7 @@ function setupToday() {
 
 // ---- app grid: everything that isn't in the bottom dock ----
 const APP_ICONS = {
-    colony: '<path d="M14 3.5 20.5 7.2v7.6L14 18.5l-6.5-3.7V7.2z"/><path d="M7.5 14.8 1.8 18v6.6l5.7 3.2 5.7-3.2V18M20.5 14.8l5.7 3.2v6.6l-5.7 3.2-5.7-3.2V18"/>',
+    'hive-mind': '<path d="M14 3.5 20.5 7.2v7.6L14 18.5l-6.5-3.7V7.2z"/><path d="M7.5 14.8 1.8 18v6.6l5.7 3.2 5.7-3.2V18M20.5 14.8l5.7 3.2v6.6l-5.7 3.2-5.7-3.2V18"/>',
     models: '<path d="M9 3c0 6 10 8 10 14S9 19 9 25M19 3c0 6-10 8-10 14s10 2 10 8"/><path d="M10.5 7h7M10.5 21h7M12 11.5h4M12 16.5h4"/>',
     'honey-store': '<path d="M9 6h10M10 6v2.5C6.5 10 5.5 13 5.5 16.5c0 5 3.6 8 8.5 8s8.5-3 8.5-8c0-3.5-1-6.5-4.5-8V6"/><path d="M8 15c2 1.5 4 1.5 6 0s4-1.5 6 0"/><path d="M11 3.5h6"/>',
     skills: '<path d="M14 25V13"/><path d="M14 16c-5 0-8-3-8-8 5 0 8 3 8 8zM14 13c0-5 3-8 8-8 0 5-3 8-8 8z"/><path d="M9 25h10"/>',
@@ -351,7 +351,7 @@ const APP_ICONS = {
 // screen. Hold any app to rearrange (apps wiggle), drag, then tap Done.
 // The order is kept in the save (state.homeAppOrder), so it follows you.
 const HOME_APPS = [
-    { key: 'colony', label: 'Hive Mind', dir: 'hive-mind' },   /* Oct 31 2026 (Craft): page renamed; key kept for saved Home order */ { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
+    { key: 'hive-mind', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
     { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
     { key: 'hive-archive', label: 'Hive Archive' }, { key: 'notifications', label: 'Notifications' }, { key: 'settings', label: 'Settings' }

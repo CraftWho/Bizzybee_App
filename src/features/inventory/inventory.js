@@ -52,7 +52,7 @@ function renderInventoryTop() {
         <div><b>🌼 ${m.pollen || 0}</b><small>Pollen</small></div>
         <div><b>🍯 ${m['honey-drop'] || 0}</b><small>Honey Drops</small></div>
         <div><b>🎟️ ${tickets}</b><small>Tickets</small></div>`;
-    const bees = Vault.getColonyBees();
+    const bees = Vault.getHiveBees();
     const eggs = bees.filter(b => typeof beeIsBrood === 'function' && beeIsBrood(b)).length;
     const idle = bees.filter(b => b.rarity !== 'Royal' && !b.class && !(typeof beeIsBrood === 'function' && beeIsBrood(b))).length;
     document.getElementById('inv-bee-summary').textContent = [
@@ -83,8 +83,8 @@ function openInventoryItem(entry) {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    // Old links (Waggle, Hive Mind) pointed at #colony-bees here.
-    if (window.location.hash === '#colony-bees') {
+    // Old links (Waggle, Hive Mind) pointed at #hive-bees here.
+    if (window.location.hash === '#hive-bees') {
         window.location.replace('../hive-bees/hive-bees.html');
         return;
     }

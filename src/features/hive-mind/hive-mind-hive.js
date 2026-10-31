@@ -1,21 +1,21 @@
-console.log("/// COLONY HIVE MODULE ONLINE ///");
+console.log("/// HIVE MIND HIVE MODULE ONLINE ///");
 
-// The colony's outside view: a mech beehive drawn as one SVG (stacked
+// The hive's outside view: a mech beehive drawn as one SVG (stacked
 // rounded rings like a classic beehive, black honeycomb shell, brass bands,
 // curved silver straps, blue / amber / crimson hex cells, a dark hollow
 // entrance with a crimson inner rim, landing deck, crimson tip, crown).
 // Approved by the user on the hive-exterior concept page (Oct 2026).
 //
-// ColonyHive.build(tier) returns the SVG markup plus the points the bee
+// HiveMindHive.build(tier) returns the SVG markup plus the points the bee
 // engine needs (entrance, deck spots, orbit area). The hive grows with the
-// player's level - see COLONY_HIVE_TIERS and nestTier() in hive-mind.js.
+// player's level - see HIVE_MIND_HIVE_TIERS and nestTier() in hive-mind.js.
 // The bees are drawn and moved by MechBee / MechBeeScene
 // (src/core/ui/mech-bee/), inside the two empty layers this SVG provides:
 // .ch-fly-back (behind the hive) and .ch-fly-front (in front of it).
 // Animation classes (.ch-sway, .ch-cell, .ch-firefly, .ch-glow) live in
 // hive-mind.css.
 
-const COLONY_HIVE_TIERS={
+const HIVE_MIND_HIVE_TIERS={
  1:{rings:2},                                   // levels 1-4: small starter hive
  2:{rings:3},                                   // levels 5-9: third ring
  3:{rings:4,cells:true},                        // levels 10-19: glowing hex cells
@@ -23,13 +23,13 @@ const COLONY_HIVE_TIERS={
  5:{rings:5,cells:true,deck:true,crown:true}    // level 35+: five rings + glowing crown
 };
 
-function colonyHiveHexPts(cx,cy,r,sy=1){const f=v=>(+v).toFixed(1);return Array.from({length:6},(_,i)=>{const a=Math.PI/3*i+Math.PI/6;return f(cx+r*Math.cos(a))+','+f(cy+r*Math.sin(a)*sy)}).join(' ')}
+function hiveMindHiveHexPts(cx,cy,r,sy=1){const f=v=>(+v).toFixed(1);return Array.from({length:6},(_,i)=>{const a=Math.PI/3*i+Math.PI/6;return f(cx+r*Math.cos(a))+','+f(cy+r*Math.sin(a)*sy)}).join(' ')}
 
-function colonyHiveBuild(tier, hid){
+function hiveMindHiveBuild(tier, hid){
  let seed=7;
  const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
  const f=v=>(+v).toFixed(1);
- const T=COLONY_HIVE_TIERS[tier]||COLONY_HIVE_TIERS[1];
+ const T=HIVE_MIND_HIVE_TIERS[tier]||HIVE_MIND_HIVE_TIERS[1];
  const W=400,H=500, cx=200;
  const n=T.rings, maxA=66+tier*10, rh=58+tier*2;
  // ring profile: narrow cap, widest a bit below middle, tapering bottom
@@ -42,7 +42,7 @@ function colonyHiveBuild(tier, hid){
  }
  const bottom=rings[n-1].cy+rings[n-1].ry;
  const deckI = T.deck ? Math.min(n-1, Math.floor(n/2)) : -1;
- let s=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="overflow:visible" xmlns="http://www.w3.org/2000/svg" class="colony-hive-svg" role="img" aria-label="Your hive">
+ let s=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="overflow:visible" xmlns="http://www.w3.org/2000/svg" class="hive-mind-hive-svg" role="img" aria-label="Your hive">
  <defs>
   <linearGradient id="${hid}-sky" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${H}"><stop offset="0" stop-color="#2a1d4a"/><stop offset=".55" stop-color="#6b3f6e"/><stop offset=".8" stop-color="#c47a5c"/><stop offset="1" stop-color="#3a2340"/></linearGradient>
   <radialGradient id="${hid}-sun" gradientUnits="userSpaceOnUse" cx="88" cy="290" r="225"><stop offset="0" stop-color="#ffd59a" stop-opacity=".9"/><stop offset=".35" stop-color="#ff9e6b" stop-opacity=".35"/><stop offset="1" stop-color="#ff9e6b" stop-opacity="0"/></radialGradient>
@@ -121,7 +121,7 @@ function colonyHiveBuild(tier, hid){
   const k=T.cells?3+Math.round(r.a/30):1+(i%2);
   for(let j=0;j<k;j++){const u=(rnd()*1.5-.75),v=(rnd()*1.1-.55);const x=cx+u*r.a,y=r.cy+v*r.ry;const rr=6+rnd()*4;
    const roll=rnd();const kind=!T.cells?'crimson':(roll<.3?'crimson':roll<.5?'amber':'blue');
-   s+=`<polygon class="ch-cell" points="${colonyHiveHexPts(x,y,rr)}" fill="${CELL[kind][0]}" stroke="${CELL[kind][1]}" stroke-width="1.8" filter="url(#${hid}-glow)" style="--d:${f(2+rnd()*3)}s;--dl:${f(-rnd()*4)}s"/>`}
+   s+=`<polygon class="ch-cell" points="${hiveMindHiveHexPts(x,y,rr)}" fill="${CELL[kind][0]}" stroke="${CELL[kind][1]}" stroke-width="1.8" filter="url(#${hid}-glow)" style="--d:${f(2+rnd()*3)}s;--dl:${f(-rnd()*4)}s"/>`}
   // straps
   [-0.62,-0.5,0.5,0.62].forEach(k=>{
    // a "meridian" line on the ring: x shrinks toward the centre near the top and bottom edges
@@ -147,7 +147,7 @@ function colonyHiveBuild(tier, hid){
  // deck front half with hex holes + landing bees
  if(deckRing){
   const frontClip=`<clipPath id="${hid}-df"><path d="M${f(cx-deckA-2)} ${f(deckY)} A${f(deckA+2)} ${f(deckRy+2)} 0 0 0 ${f(cx+deckA+2)} ${f(deckY)} L${f(cx+deckA+2)} ${f(deckY+20)} L${f(cx-deckA-2)} ${f(deckY+20)}Z"/></clipPath>`;
-  let holes='';for(let row=0;row<3;row++){const rr=deckA*(0.95-row*0.18);const cnt=14-row*3;for(let k=0;k<cnt;k++){const ang=Math.PI*(k+.5)/cnt;const x=cx-rr*Math.cos(ang);const y=deckY+deckRy*(rr/deckA)*Math.sin(ang)*0.95;holes+=`<polygon points="${colonyHiveHexPts(x,y,4.2,.42)}" fill="#22262b" stroke="#f0f3f6" stroke-opacity=".5" stroke-width=".6"/>`}}
+  let holes='';for(let row=0;row<3;row++){const rr=deckA*(0.95-row*0.18);const cnt=14-row*3;for(let k=0;k<cnt;k++){const ang=Math.PI*(k+.5)/cnt;const x=cx-rr*Math.cos(ang);const y=deckY+deckRy*(rr/deckA)*Math.sin(ang)*0.95;holes+=`<polygon points="${hiveMindHiveHexPts(x,y,4.2,.42)}" fill="#22262b" stroke="#f0f3f6" stroke-opacity=".5" stroke-width=".6"/>`}}
   s+=frontClip+`<g clip-path="url(#${hid}-df)"><path d="M${f(cx-deckA)} ${f(deckY)} A${f(deckA)} ${f(deckRy)} 0 0 0 ${f(cx+deckA)} ${f(deckY)} L${f(cx+deckA)} ${f(deckY+6)} A${f(deckA)} ${f(deckRy)} 0 0 1 ${f(cx-deckA)} ${f(deckY+6)}Z" fill="#41464c"/>
    <path d="M${f(cx-deckA)} ${f(deckY)} A${f(deckA)} ${f(deckRy)} 0 0 0 ${f(cx+deckA)} ${f(deckY)} Q${f(cx)} ${f(deckY-deckRy*0.15)} ${f(cx-deckA)} ${f(deckY)}Z" fill="url(#${hid}-deck)"/>${holes}</g>
    <path d="M${f(cx-deckA)} ${f(deckY)} A${f(deckA)} ${f(deckRy)} 0 0 0 ${f(cx+deckA)} ${f(deckY)}" fill="none" stroke="url(#${hid}-steel)" stroke-width="2.5"/>
@@ -165,10 +165,10 @@ function colonyHiveBuild(tier, hid){
 }
 
 
-let colonyHiveUid = 0;
-const ColonyHive = {
-    TIERS: COLONY_HIVE_TIERS,
+let hiveMindHiveUid = 0;
+const HiveMindHive = {
+    TIERS: HIVE_MIND_HIVE_TIERS,
     build(tier) {
-        return colonyHiveBuild(Math.max(1, Math.min(5, tier || 1)), `hive${colonyHiveUid++}`);
+        return hiveMindHiveBuild(Math.max(1, Math.min(5, tier || 1)), `hive${hiveMindHiveUid++}`);
     }
 };

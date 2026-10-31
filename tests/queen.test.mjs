@@ -8,7 +8,7 @@ import vm from 'node:vm';
 const iso = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const today = iso(0), y = iso(-1);
 function harness(state) {
-    const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], colony: { bees: [], tickets: 0 }, onboarding: { stage: 'done' }, ...state };
+    const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], hive: { bees: [], tickets: 0 }, onboarding: { stage: 'done' }, ...state };
     const data = new Map([['bizzybee_user_data', JSON.stringify(save)]]);
     const localStorage = { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, String(v)), removeItem: k => data.delete(k) };
     const context = vm.createContext({ localStorage, console: { log() {}, error() {} }, Event,
@@ -49,7 +49,7 @@ test('start my day: credits yesterday, Guard Bee and Streak Charm save streaks, 
     const hist = [iso(-2), iso(-3), iso(-4)];
     const { v } = harness({
         dailyTasks: [daily('did', { completedDates: hist.slice() }), daily('g', { completedDates: hist.slice() }), daily('c', { completedDates: [iso(-2), iso(-3)] }), daily('lost', { completedDates: [iso(-2)] })],
-        colony: { bees: [{ id: 'gb', name: 'Bramble', rarity: 'Common', class: 'guardian', jobSince: iso(-10), sex: 'f', stats: { hp: 10, defense: 5 }, life: { health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: iso(-20), faintedAt: null } }], tickets: 0, lifeTick: today },
+        hive: { bees: [{ id: 'gb', name: 'Bramble', rarity: 'Common', class: 'guardian', jobSince: iso(-10), sex: 'f', stats: { hp: 10, defense: 5 }, life: { health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: iso(-20), faintedAt: null } }], tickets: 0, lifeTick: today },
         inventory: { materials: {}, items: { 'streak-charm': 1 }, fragments: {} }
     });
     await v.init();
@@ -74,7 +74,7 @@ test('start my day: credits yesterday, Guard Bee and Streak Charm save streaks, 
 test('start my day: a new guard (under 3 days) cannot shield', async () => {
     const { v } = harness({
         dailyTasks: [daily('g', { completedDates: [iso(-2), iso(-3)] })],
-        colony: { bees: [{ id: 'gb', name: 'New', rarity: 'Common', class: 'guardian', jobSince: iso(-1), sex: 'f', stats: { hp: 10, defense: 5 }, life: { health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: iso(-20), faintedAt: null } }], tickets: 0, lifeTick: today }
+        hive: { bees: [{ id: 'gb', name: 'New', rarity: 'Common', class: 'guardian', jobSince: iso(-1), sex: 'f', stats: { hp: 10, defense: 5 }, life: { health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: iso(-20), faintedAt: null } }], tickets: 0, lifeTick: today }
     });
     await v.init();
     assert.equal(v.getDayReview().guards.length, 0);

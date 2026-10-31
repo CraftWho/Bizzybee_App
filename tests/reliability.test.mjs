@@ -256,11 +256,11 @@ test('time XP: logged minutes change a completion, history counts, level never j
 test('gacha: the 6th pull without a Rare is a guaranteed Rare or better; Named Beast costs 10 tickets', async () => {
     const h = vaultHarness(); await h.vault.init();
     vm.runInContext('Math.random = () => 0.01', h.context);   // always Common
-    h.vault.state.colony = { bees: [], tickets: 12, pity: 0 };
+    h.vault.state.hive = { bees: [], tickets: 12, pity: 0 };
     const pulls = Array.from({ length: 6 }, () => h.vault.pullWithTicket());
     assert.deepEqual(pulls.map(p => p.bee.rarity !== 'Common'), [false, false, false, false, false, true]);
     assert.equal(h.vault.unwrapTicket(), null);   // 6 left, not enough
-    h.vault.state.colony.tickets = 10;
+    h.vault.state.hive.tickets = 10;
     assert.equal(h.vault.unwrapTicket().rarity, 'Named');
     assert.equal(h.vault.getTicketCount(), 0);
 });

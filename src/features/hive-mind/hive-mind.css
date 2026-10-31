@@ -1,5 +1,5 @@
 /* --- LAYOUT --- */
-.colony-container {
+.hive-mind-container {
     width: 100%;
     max-width: 900px;
     margin: 20px auto 60px;
@@ -12,15 +12,15 @@
    The hive is one SVG built by hive-mind-hive.js (rings/cells/deck/crown grow
    with level - see nestTier() in hive-mind.js). Bees are drawn and moved by
    MechBeeScene (src/core/ui/mech-bee/). The old CSS hexagon nest is archived
-   in archive/colony-v1/. */
-.colony-nest-scene {
+   in archive/hive-mind-v1/. */
+.hive-mind-nest-scene {
     display: none;
 }
 
 /* Outside view: the hive art is the whole page background (behind the
-   header, title panel and buttons). body.colony-outside is set by
+   header, title panel and buttons). body.hive-mind-outside is set by
    hive-mind.js while the outside view is showing. */
-body.colony-outside .colony-nest-scene {
+body.hive-mind-outside .hive-mind-nest-scene {
     display: block;
     position: fixed;
     inset: 0;
@@ -31,30 +31,30 @@ body.colony-outside .colony-nest-scene {
 
 /* Header and title panel paint above the fixed art (the container itself
    must NOT get a z-index - that would trap the art inside it). */
-body.colony-outside .app-head {
+body.hive-mind-outside .app-head {
     position: relative;
     z-index: 2;
 }
 
-body.colony-outside #colony-exterior .page-header-panel {
+body.hive-mind-outside #hive-mind-exterior .page-header-panel {
     position: relative;
     z-index: 1;
 }
 
 /* Title panel sits over the sky - a little see-through. */
-body.colony-outside #colony-exterior .page-header-panel {
+body.hive-mind-outside #hive-mind-exterior .page-header-panel {
     background: rgba(12, 12, 14, 0.72);
     backdrop-filter: blur(4px);
 }
 
-#colony-hive-stage {
+#hive-mind-hive-stage {
     position: absolute;
     inset: 0;
 }
 
 /* The SVG box: from just under the title panel (--hive-top, hive-mind.js)
    to above the in-art buttons. Sky + branch overflow past it. */
-#colony-hive-stage .colony-hive-svg {
+#hive-mind-hive-stage .hive-mind-hive-svg {
     position: absolute;
     left: 0;
     top: var(--hive-top, 240px);
@@ -68,20 +68,20 @@ body.colony-outside #colony-exterior .page-header-panel {
 
 /* "Enter Hive": the scene jumps above everything (header + floating
    buttons), flies into the entrance, then fades to dark. */
-body.colony-is-entering .colony-nest-scene {
+body.hive-mind-is-entering .hive-mind-nest-scene {
     z-index: 9000;
 }
 
-body.colony-is-entering .colony-exterior-actions--in-art {
+body.hive-mind-is-entering .hive-mind-exterior-actions--in-art {
     opacity: 0;
     pointer-events: none;
 }
 
-.colony-nest-scene.is-entering .colony-hive-svg {
+.hive-mind-nest-scene.is-entering .hive-mind-hive-svg {
     transform: scale(7);
 }
 
-#colony-hive-stage::after {
+#hive-mind-hive-stage::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -91,13 +91,13 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     transition: opacity .5s .7s;
 }
 
-.colony-nest-scene.is-entering #colony-hive-stage::after {
+.hive-mind-nest-scene.is-entering #hive-mind-hive-stage::after {
     opacity: 1;
 }
 
-/* Enter Hive / Colony Bees sit inside the art, above the floating
+/* Enter Hive / Hive Bees sit inside the art, above the floating
    bottom buttons (Waggle etc. at bottom: 30px). */
-.colony-exterior-actions--in-art {
+.hive-mind-exterior-actions--in-art {
     position: fixed;
     left: 50%;
     bottom: 112px;
@@ -108,30 +108,30 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     transition: opacity .3s;
 }
 
-.colony-exterior-actions--in-art .colony-enter-btn {
+.hive-mind-exterior-actions--in-art .hive-mind-enter-btn {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 
 @media (max-width: 520px) {
-    .colony-exterior-actions--in-art {
+    .hive-mind-exterior-actions--in-art {
         flex-wrap: nowrap;
         gap: 10px;
     }
 
-    .colony-exterior-actions--in-art .colony-enter-btn {
+    .hive-mind-exterior-actions--in-art .hive-mind-enter-btn {
         font-size: .9rem;
         padding: 11px 16px;
         white-space: nowrap;
     }
 }
 
-.colony-exterior-actions--in-art .colony-bees-quick-btn {
+.hive-mind-exterior-actions--in-art .hive-bees-quick-btn {
     background: rgba(12, 12, 14, 0.6);
     backdrop-filter: blur(4px);
 }
 
 /* Tap-a-bee card overlay. */
-.colony-card-overlay {
+.hive-mind-card-overlay {
     position: fixed;
     inset: 0;
     z-index: 9500;
@@ -144,26 +144,26 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     backdrop-filter: blur(3px);
 }
 
-.colony-card-overlay[hidden] {
+.hive-mind-card-overlay[hidden] {
     display: none;
 }
 
-.colony-card-host.bee-card {
+.hive-mind-card-host.bee-card {
     width: min(300px, 80vw);
 }
 
-.colony-card-overlay.is-queen .colony-card-hint {
+.hive-mind-card-overlay.is-queen .hive-mind-card-hint {
     display: none;
 }
 
-.colony-card-hint {
+.hive-mind-card-hint {
     color: #9a978e;
     font-size: .85rem;
     margin: 0;
 }
 
 /* Hive animations (classes come from hive-mind-hive.js). */
-.colony-hive-svg .ch-sway {
+.hive-mind-hive-svg .ch-sway {
     animation: ch-sway 7s ease-in-out infinite;
     transform-origin: 200px 40px;
 }
@@ -173,7 +173,7 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     50% { transform: rotate(1.4deg); }
 }
 
-.colony-hive-svg .ch-cell {
+.hive-mind-hive-svg .ch-cell {
     animation: ch-cell var(--d, 3s) ease-in-out infinite;
     animation-delay: var(--dl, 0s);
 }
@@ -183,7 +183,7 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     50% { opacity: 1; }
 }
 
-.colony-hive-svg .ch-firefly {
+.hive-mind-hive-svg .ch-firefly {
     animation: ch-firefly var(--d) ease-in-out infinite;
     animation-delay: var(--dl);
 }
@@ -193,7 +193,7 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     50% { opacity: .9; transform: translate(var(--fx), var(--fy)); }
 }
 
-.colony-hive-svg .ch-glow {
+.hive-mind-hive-svg .ch-glow {
     animation: ch-glow 2.6s ease-in-out infinite;
 }
 
@@ -203,14 +203,14 @@ body.colony-is-entering .colony-exterior-actions--in-art {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .colony-hive-svg .ch-sway,
-    .colony-hive-svg .ch-cell,
-    .colony-hive-svg .ch-firefly,
-    .colony-hive-svg .ch-glow { animation: none; }
-    #colony-hive-stage .colony-hive-svg { transition: none; }
+    .hive-mind-hive-svg .ch-sway,
+    .hive-mind-hive-svg .ch-cell,
+    .hive-mind-hive-svg .ch-firefly,
+    .hive-mind-hive-svg .ch-glow { animation: none; }
+    #hive-mind-hive-stage .hive-mind-hive-svg { transition: none; }
 }
 
-.colony-exterior-actions {
+.hive-mind-exterior-actions {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -218,7 +218,7 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     gap: 14px;
 }
 
-.colony-enter-btn {
+.hive-mind-enter-btn {
     font-size: 1.05rem;
     padding: 14px 30px;
 }
@@ -227,29 +227,29 @@ body.colony-is-entering .colony-exterior-actions--in-art {
    page - see llm-engine.js's baseWaggleActions() for the same shortcut
    in the Waggle FAB menu). Secondary to "Enter Hive" - outlined gold on
    transparent rather than the solid gradient fill, same hierarchy trick
-   .colony-leave-btn already uses elsewhere on this page. */
-.colony-bees-quick-btn {
+   .hive-mind-leave-btn already uses elsewhere on this page. */
+.hive-bees-quick-btn {
     background: transparent;
     border: 2px solid var(--gold-start);
     color: var(--gold-start);
 }
 
-.colony-bees-quick-btn:hover {
+.hive-bees-quick-btn:hover {
     background: var(--gold-start);
     color: var(--obsidian);
 }
 
 /* --- INSIDE THE HIVE ---
    One full-page honeycomb SVG (hive-mind-interior.js) behind the header,
-   title panel, HUD and buttons. body.colony-inside is set by hive-mind.js
+   title panel, HUD and buttons. body.hive-mind-inside is set by hive-mind.js
    while the inside view is showing. Theme accents: honey gold, crimson
    (royal cell, decay embers, decay chip), hive blue (bee chip, sparks)
    and element colours (brood cell rings). */
-.colony-interior-scene {
+.hive-mind-interior-scene {
     display: none;
 }
 
-body.colony-inside .colony-interior-scene {
+body.hive-mind-inside .hive-mind-interior-scene {
     display: block;
     position: fixed;
     inset: 0;
@@ -258,12 +258,12 @@ body.colony-inside .colony-interior-scene {
     background: #0d0804;
 }
 
-body.colony-inside .app-head {
+body.hive-mind-inside .app-head {
     position: relative;
     z-index: 2;
 }
 
-body.colony-inside #colony-interior .page-header-panel {
+body.hive-mind-inside #hive-mind-interior .page-header-panel {
     position: relative;
     z-index: 1;
     background: rgba(12, 10, 8, 0.72);
@@ -271,12 +271,12 @@ body.colony-inside #colony-interior .page-header-panel {
     border-color: rgba(212, 42, 30, 0.35);
 }
 
-.colony-interior-stage {
+.hive-mind-interior-stage {
     position: absolute;
     inset: 0;
 }
 
-.colony-interior-stage .ci-svg {
+.hive-mind-interior-stage .ci-svg {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -285,7 +285,7 @@ body.colony-inside #colony-interior .page-header-panel {
 }
 
 /* Arrival: fade up from the black of the zoom, light spreads outward. */
-.colony-interior-stage::after {
+.hive-mind-interior-stage::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -295,7 +295,7 @@ body.colony-inside #colony-interior .page-header-panel {
     transition: opacity .7s ease;
 }
 
-.colony-interior-stage.ci-arriving::after {
+.hive-mind-interior-stage.ci-arriving::after {
     opacity: 1;
     transition: none;
 }
@@ -519,7 +519,7 @@ body.colony-inside #colony-interior .page-header-panel {
 }
 
 /* HUD + buttons sit in the art, above the floating bottom buttons. */
-.colony-interior-bottom {
+.hive-mind-interior-bottom {
     position: fixed;
     left: 50%;
     bottom: 104px;
@@ -533,7 +533,7 @@ body.colony-inside #colony-interior .page-header-panel {
     max-width: calc(100vw - 32px);
 }
 
-.colony-hud {
+.hive-mind-hud {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -546,7 +546,7 @@ body.colony-inside #colony-interior .page-header-panel {
     box-shadow: 0 0 0 1px #000, 0 6px 18px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 240, 176, .15);
 }
 
-.colony-hud-chip {
+.hive-mind-hud-chip {
     font-size: .8rem;
     color: #ece8de;
     padding: 4px 10px;
@@ -555,30 +555,30 @@ body.colony-inside #colony-interior .page-header-panel {
     white-space: nowrap;
 }
 
-.colony-hud-chip b { font-weight: 800; }
-.colony-hud-chip--honey { border-color: rgba(255, 196, 74, .55); background: rgba(226, 133, 15, .14); }
-.colony-hud-chip--honey b { color: var(--bb-t-mid, #ffc44a); }
-.colony-hud-chip--bees { border-color: rgba(47, 155, 255, .55); background: rgba(47, 155, 255, .12); }
-.colony-hud-chip--bees b { color: #7fc0ff; }
-.colony-hud-chip--level { border-color: rgba(255, 215, 0, .45); background: rgba(255, 215, 0, .08); }
-.colony-hud-chip--level b { color: var(--bb-t-mid, #ffd700); }
-.colony-hud-chip--decay { border-color: rgba(212, 42, 30, .7); background: rgba(212, 42, 30, .16); }
-.colony-hud-chip--decay b { color: #ff6a5a; }
-.colony-hud-chip--decay.is-zero { opacity: .55; }
+.hive-mind-hud-chip b { font-weight: 800; }
+.hive-mind-hud-chip--honey { border-color: rgba(255, 196, 74, .55); background: rgba(226, 133, 15, .14); }
+.hive-mind-hud-chip--honey b { color: var(--bb-t-mid, #ffc44a); }
+.hive-mind-hud-chip--bees { border-color: rgba(47, 155, 255, .55); background: rgba(47, 155, 255, .12); }
+.hive-mind-hud-chip--bees b { color: #7fc0ff; }
+.hive-mind-hud-chip--level { border-color: rgba(255, 215, 0, .45); background: rgba(255, 215, 0, .08); }
+.hive-mind-hud-chip--level b { color: var(--bb-t-mid, #ffd700); }
+.hive-mind-hud-chip--decay { border-color: rgba(212, 42, 30, .7); background: rgba(212, 42, 30, .16); }
+.hive-mind-hud-chip--decay b { color: #ff6a5a; }
+.hive-mind-hud-chip--decay.is-zero { opacity: .55; }
 
-.colony-interior-actions {
+.hive-mind-interior-actions {
     display: flex;
     gap: 12px;
     flex-wrap: nowrap;
 }
 
-.colony-interior-actions .colony-enter-btn {
+.hive-mind-interior-actions .hive-mind-enter-btn {
     box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
     white-space: nowrap;
 }
 
 /* Pollination Chamber link styled as a gold button. */
-.colony-gacha-link-btn {
+.hive-mind-gacha-link-btn {
     display: inline-block;
     text-align: center;
     text-decoration: none;
@@ -589,56 +589,56 @@ body.colony-inside #colony-interior .page-header-panel {
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.colony-gacha-link-btn:hover {
+.hive-mind-gacha-link-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px var(--gold-glow);
 }
 
-.colony-leave-btn {
+.hive-mind-leave-btn {
     background: rgba(12, 10, 8, 0.65);
     backdrop-filter: blur(4px);
     border: 2px solid rgba(212, 42, 30, .75);
     color: #f1ede2;
 }
 
-.colony-leave-btn:hover {
+.hive-mind-leave-btn:hover {
     border-color: var(--gold-start);
     color: var(--gold-start);
 }
 
 @media (max-width: 520px) {
-    .colony-interior-bottom {
+    .hive-mind-interior-bottom {
         bottom: 108px;
         gap: 8px;
     }
 
-    .colony-interior-actions {
+    .hive-mind-interior-actions {
         gap: 8px;
     }
 
-    .colony-interior-actions .colony-enter-btn {
+    .hive-mind-interior-actions .hive-mind-enter-btn {
         font-size: .8rem;
         padding: 10px 12px;
     }
 
-    .colony-hud {
+    .hive-mind-hud {
         gap: 4px;
         padding: 4px 5px;
         flex-wrap: nowrap;
     }
 
-    .colony-hud-chip {
+    .hive-mind-hud-chip {
         font-size: .68rem;
         padding: 3px 6px;
     }
 
-    .colony-hud-extra {
+    .hive-mind-hud-extra {
         display: none;
     }
 }
 
 /* Queen summary (tap the Queen or the crimson royal cell). */
-.colony-queen-panel {
+.hive-mind-queen-panel {
     width: min(320px, 84vw);
     box-sizing: border-box;
     text-align: center;
@@ -650,21 +650,21 @@ body.colony-inside #colony-interior .page-header-panel {
     color: #ece8de;
 }
 
-.colony-queen-panel-crown { font-size: 2.4rem; line-height: 1; }
-.colony-queen-panel h2 { margin: 6px 0 0; color: var(--bb-t-mid, #ffd700); }
-.colony-queen-panel-sub { margin: 4px 0 0; color: #a9a596; }
+.hive-mind-queen-panel-crown { font-size: 2.4rem; line-height: 1; }
+.hive-mind-queen-panel h2 { margin: 6px 0 0; color: var(--bb-t-mid, #ffd700); }
+.hive-mind-queen-panel-sub { margin: 4px 0 0; color: #a9a596; }
 
-.colony-queen-panel-stats {
+.hive-mind-queen-panel-stats {
     display: flex;
     justify-content: space-around;
     margin: 14px 0;
 }
 
-.colony-queen-panel-stats b { display: block; font-size: 1.4rem; color: #f1ede2; }
-.colony-queen-panel-stats small { color: #a9a596; }
-.colony-queen-panel-stats .is-crimson b { color: #ff6a5a; }
+.hive-mind-queen-panel-stats b { display: block; font-size: 1.4rem; color: #f1ede2; }
+.hive-mind-queen-panel-stats small { color: #a9a596; }
+.hive-mind-queen-panel-stats .is-crimson b { color: #ff6a5a; }
 
-.colony-queen-panel-rules {
+.hive-mind-queen-panel-rules {
     list-style: none;
     margin: 0;
     padding: 10px 0 0;
@@ -674,16 +674,16 @@ body.colony-inside #colony-interior .page-header-panel {
     color: #c9c5ba;
 }
 
-.colony-queen-panel-rules li { margin-bottom: 6px; }
-.colony-queen-panel-rules .is-gold { color: var(--bb-t-mid, #ffc44a); font-weight: 800; }
-.colony-queen-panel-rules .is-crimson { color: #ff6a5a; font-weight: 800; }
-.colony-queen-panel-note { margin: 8px 0 0; font-size: .78rem; color: #8f8b80; }
+.hive-mind-queen-panel-rules li { margin-bottom: 6px; }
+.hive-mind-queen-panel-rules .is-gold { color: var(--bb-t-mid, #ffc44a); font-weight: 800; }
+.hive-mind-queen-panel-rules .is-crimson { color: #ff6a5a; font-weight: 800; }
+.hive-mind-queen-panel-note { margin: 8px 0 0; font-size: .78rem; color: #8f8b80; }
 
 @media (prefers-reduced-motion: reduce) {
     .ci-glow, .ci-fog, .ci-mote, .ci-brood-ring, .ci-royal-glow, .ci-ember,
     .ci-queen-bob, .ci-hatching, .ci-hatch-ring { animation: none; }
     .ci-queen .ci-q-wing { animation-duration: 2.6s; }
-    .ci-cell .ci-lit, .colony-interior-stage::after { transition: none; }
+    .ci-cell .ci-lit, .hive-mind-interior-stage::after { transition: none; }
 }
 
 /* The player's King: one wings layer over the crowned body. */
@@ -698,9 +698,9 @@ body.colony-inside #colony-interior .page-header-panel {
 .hl-switch { display: inline-flex; gap: 4px; margin: 12px auto 4px; padding: 3px; border-radius: 12px; background: rgba(20, 14, 5, .9); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .2); position: relative; z-index: 2; }
 .hl-switch button { margin: 0; padding: 7px 14px; border: 0; border-radius: 9px; background: none; box-shadow: none; color: #a69a80; font: 700 .74rem var(--font-main, monospace); cursor: pointer; }
 .hl-switch button[aria-pressed="true"] { background: var(--bb-accent, #ffcc00); color: #241600; }
-body.colony-inside.hive-life .colony-interior-scene { display: none; }
-body.colony-inside.hive-life .colony-interior-bottom { position: static; transform: none; margin: 16px auto 0; }
-body.hive-life .colony-hud { display: none; }
+body.hive-mind-inside.hive-life .hive-mind-interior-scene { display: none; }
+body.hive-mind-inside.hive-life .hive-mind-interior-bottom { position: static; transform: none; margin: 16px auto 0; }
+body.hive-life .hive-mind-hud { display: none; }
 .hl-wrap { position: relative; z-index: 1; max-width: 560px; margin: 8px auto 0; text-align: left; }
 .hl-hive { position: relative; height: min(520px, 120vw); border-radius: 16px; overflow: hidden; background: #0b0702; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); }
 .hl-comb { position: absolute; inset: 0 0 14% 0; background:
@@ -753,8 +753,8 @@ body.hive-life .colony-hud { display: none; }
 .hl-btn:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 
 /* the life panel under a bee's card */
-.colony-life-panel { width: min(320px, 86vw); }
-.colony-life-panel:empty { display: none; }
+.hive-mind-life-panel { width: min(320px, 86vw); }
+.hive-mind-life-panel:empty { display: none; }
 .hl-panel { padding: 12px 14px; border-radius: 14px; background: rgba(14, 10, 4, .96); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); color: #f1ede2; text-align: left; font-size: .76rem; }
 .hl-panel.is-faint { border-color: rgba(var(--bb-alt-rgb, 220, 20, 60), .6); }
 .hl-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
@@ -774,9 +774,9 @@ body.hive-life .colony-hud { display: none; }
 .hl-hint { margin: 8px 0 0; color: #a69a80; font-size: .7rem; }
 @media (max-width: 420px) { .hl-stats { grid-template-columns: repeat(2, 1fr); } }
 /* Card + life panel can be taller than a phone: let the overlay scroll. */
-.colony-card-overlay { overflow-y: auto; justify-content: flex-start; padding: 24px 0 40px; }
-.colony-card-overlay > * { flex: none; }
-@media (min-height: 900px) { .colony-card-overlay { justify-content: center; } }
+.hive-mind-card-overlay { overflow-y: auto; justify-content: flex-start; padding: 24px 0 40px; }
+.hive-mind-card-overlay > * { flex: none; }
+@media (min-height: 900px) { .hive-mind-card-overlay { justify-content: center; } }
 
 /* ---- Hive Life comb rooms (Oct 2026, approved demo) ---- */
 .hl-hive { height: auto; aspect-ratio: 1 / 1.2; background: radial-gradient(circle at 50% 38%, #2a1c06, #0b0803 72%); }
@@ -828,9 +828,9 @@ body.hive-life .colony-hud { display: none; }
 .hl-ren-box { padding: 0 0 8px 34px; border-bottom: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .08); }
 
 /* ---- v2 look (Oct 2026): same as Settings / Inventory ---- */
-.colony-container .cm-head { margin: 8px 14px 0; padding: 12px 14px; border-radius: 18px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14);
+.hive-mind-container .cm-head { margin: 8px 14px 0; padding: 12px 14px; border-radius: 18px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14);
     background: linear-gradient(180deg, rgba(10, 8, 4, .86), rgba(10, 8, 4, .62)); backdrop-filter: blur(4px); text-align: left; box-shadow: 0 10px 26px rgba(0, 0, 0, .45); }
-body.colony-outside #colony-exterior .cm-head, body.colony-inside #colony-interior .cm-head { background: linear-gradient(180deg, rgba(10, 8, 4, .86), rgba(10, 8, 4, .62)); border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .14); }
+body.hive-mind-outside #hive-mind-exterior .cm-head, body.hive-mind-inside #hive-mind-interior .cm-head { background: linear-gradient(180deg, rgba(10, 8, 4, .86), rgba(10, 8, 4, .62)); border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .14); }
 .cm-head .cm-title { margin: 0; font: 700 1.15rem var(--font-main, monospace); letter-spacing: .14em; color: var(--bb-accent, #ffcc00); background: none; border: 0; padding: 0; }
 .cm-head .cm-lead { margin: 4px 0 0; color: #a69a80; font: .8rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
 .cm-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
@@ -842,11 +842,11 @@ body.colony-outside #colony-exterior .cm-head, body.colony-inside #colony-interi
 .cm-stats a.is-warn b { color: #ff8aa0; }
 .cm-stats a:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 /* Buttons: gold solid + outlined, like the rest of v2. */
-.colony-container .colony-enter-btn { margin: 0; padding: 11px 18px; border-radius: 12px; border: 1px solid var(--bb-accent, #ffcc00); background: var(--bb-accent, #ffcc00); color: #241600;
+.hive-mind-container .hive-mind-enter-btn { margin: 0; padding: 11px 18px; border-radius: 12px; border: 1px solid var(--bb-accent, #ffcc00); background: var(--bb-accent, #ffcc00); color: #241600;
     font: 700 .82rem var(--font-main, monospace); letter-spacing: 0; text-transform: none; box-shadow: 0 6px 18px rgba(0, 0, 0, .5); text-decoration: none; }
-.colony-container .colony-bees-quick-btn, .colony-container .colony-leave-btn, .colony-container .colony-gacha-link-btn { background: rgba(10, 8, 4, .78); color: var(--bb-accent, #ffcc00); border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .5); backdrop-filter: blur(4px); }
-.colony-container .colony-enter-btn:hover { filter: brightness(1.08); transform: none; }
-.colony-container .colony-enter-btn:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
+.hive-mind-container .hive-bees-quick-btn, .hive-mind-container .hive-mind-leave-btn, .hive-mind-container .hive-mind-gacha-link-btn { background: rgba(10, 8, 4, .78); color: var(--bb-accent, #ffcc00); border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .5); backdrop-filter: blur(4px); }
+.hive-mind-container .hive-mind-enter-btn:hover { filter: brightness(1.08); transform: none; }
+.hive-mind-container .hive-mind-enter-btn:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
 .hl-wrap { padding: 0 14px; box-sizing: border-box; }
 .hl-info { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .hl-news { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; border-radius: 18px; }
@@ -862,7 +862,7 @@ body.colony-outside #colony-exterior .cm-head, body.colony-inside #colony-interi
 
 /* Friends' hives in the distance (Oct 29 2026, hive-mind-friends.js). */
 .cf-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-body.colony-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
+body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .cf-hive { position: absolute; width: min(21vw, 104px); display: grid; justify-items: center; gap: 2px; pointer-events: auto; text-decoration: none; opacity: .85; filter: saturate(.85) blur(.3px) drop-shadow(0 6px 10px rgba(0, 0, 0, .5)); animation: cfSway var(--sw, 6s) ease-in-out infinite; transform-origin: 50% 0; }
 .cf-hive:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 4px; opacity: 1; }
 .cf-hive svg { width: 100%; height: auto; display: block; }

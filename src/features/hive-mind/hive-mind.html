@@ -22,9 +22,9 @@
 </head>
 <body>
 
-    <main class="colony-container">
+    <main class="hive-mind-container">
 
-        <div class="colony-view" id="colony-exterior">
+        <div class="hive-mind-view" id="hive-mind-exterior">
             <!-- v2 header (Oct 2026): same look as Settings. -->
             <div class="page-header-panel cm-head">
                 <h1 class="cm-title">🏰 HIVE MIND</h1>
@@ -35,17 +35,17 @@
             <!-- Full-page hive art behind everything on this view (fixed,
                  hive-mind.css). The hive (hive-mind-hive.js) is one SVG; your bees
                  fly inside it via MechBeeScene (src/core/ui/mech-bee/). -->
-            <div class="colony-nest-scene" id="colony-nest-scene">
-                <div class="colony-hive-stage" id="colony-hive-stage"></div>
+            <div class="hive-mind-nest-scene" id="hive-mind-nest-scene">
+                <div class="hive-mind-hive-stage" id="hive-mind-hive-stage"></div>
             </div>
 
-            <div class="colony-exterior-actions colony-exterior-actions--in-art">
-                <button class="colony-enter-btn" id="enter-hive-btn">Enter Hive →</button>
-                <button class="colony-enter-btn colony-bees-quick-btn" id="colony-bees-quick-btn">🐝 Hive Bees</button>
+            <div class="hive-mind-exterior-actions hive-mind-exterior-actions--in-art">
+                <button class="hive-mind-enter-btn" id="enter-hive-btn">Enter Hive →</button>
+                <button class="hive-mind-enter-btn hive-bees-quick-btn" id="hive-bees-quick-btn">🐝 Hive Bees</button>
             </div>
         </div>
 
-        <div class="colony-view" id="colony-interior" style="display: none;">
+        <div class="hive-mind-view" id="hive-mind-interior" style="display: none;">
             <div class="page-header-panel cm-head">
                 <h1 class="cm-title">🍯 INSIDE THE HIVE</h1>
                 <p class="cm-lead">Tap a comb to manage your bees. Missed tasks and bad habits make cells decay.</p>
@@ -55,7 +55,7 @@
                 <button type="button" data-hive-view="life">🐝 Hive Life</button>
                 <button type="button" data-hive-view="classic">🍯 Classic</button>
             </div>
-            <section id="colony-life" class="hl-wrap" hidden>
+            <section id="hive-mind-life" class="hl-wrap" hidden>
                 <div id="hl-comb-host"></div>
                 <div class="hl-info" id="hl-info"><b>Tap a comb</b> to manage it: change jobs, add resting bees, and pick jobs for eggs. 😊 happy · 😢 hungry, tired or hurt · 😠 no job for 3+ days.</div>
                 <h3 class="hl-sec">Hive news</h3>
@@ -64,18 +64,18 @@
 
             <!-- Full-page honeycomb behind everything on this view (fixed,
                  hive-mind.css). Drawn by hive-mind-interior.js. -->
-            <div class="colony-interior-scene" id="colony-interior-scene">
-                <div class="colony-interior-stage" id="colony-interior-stage"></div>
+            <div class="hive-mind-interior-scene" id="hive-mind-interior-scene">
+                <div class="hive-mind-interior-stage" id="hive-mind-interior-stage"></div>
             </div>
 
-            <div class="colony-interior-bottom">
-                <div class="colony-hud" id="colony-hud"></div>
+            <div class="hive-mind-interior-bottom">
+                <div class="hive-mind-hud" id="hive-mind-hud"></div>
                 <!-- Pulling new bees, renaming, assigning work, and unwrapping
                      gacha tickets live on their own page (Pollination Chamber,
                      src/features/gacha/). -->
-                <div class="colony-interior-actions">
-                    <button class="colony-enter-btn colony-leave-btn" id="leave-hive-btn">← Leave Hive</button>
-                    <a href="../gacha/gacha.html" class="colony-enter-btn colony-gacha-link-btn">🌼 Pollination Chamber</a>
+                <div class="hive-mind-interior-actions">
+                    <button class="hive-mind-enter-btn hive-mind-leave-btn" id="leave-hive-btn">← Leave Hive</button>
+                    <a href="../gacha/gacha.html" class="hive-mind-enter-btn hive-mind-gacha-link-btn">🌼 Pollination Chamber</a>
                 </div>
             </div>
         </div>
@@ -83,10 +83,10 @@
     </main>
 
     <!-- Tap a bee (inside or outside the hive) to see its card. -->
-    <div class="colony-card-overlay" id="colony-card-overlay" hidden>
-        <div class="colony-card-host" id="colony-card-host"></div>
-        <div class="colony-life-panel" id="colony-life-panel"></div>
-        <p class="colony-card-hint">Tap the card to flip it. Tap outside to close.</p>
+    <div class="hive-mind-card-overlay" id="hive-mind-card-overlay" hidden>
+        <div class="hive-mind-card-host" id="hive-mind-card-host"></div>
+        <div class="hive-mind-life-panel" id="hive-mind-life-panel"></div>
+        <p class="hive-mind-card-hint">Tap the card to flip it. Tap outside to close.</p>
     </div>
 
     <script src="../../core/boot.js"></script>

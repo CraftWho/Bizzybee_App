@@ -166,7 +166,7 @@ const HiveLife = (() => {
             return `<p class="hl-note">Eggs take ${LIFE.broodDays} days to hatch${n ? `. A Nurse is working, so it's ${LIFE.broodDays - 1} day` : '. A working Nurse Bee makes it 1 day faster'}.</p>`;
         }
         if (c.id === 'royal') {
-            const drone = !!(Vault.state.colony && Vault.state.colony.droneBoost);
+            const drone = !!(Vault.state.hive && Vault.state.hive.droneBoost);
             return `<p class="hl-note">♂️ Drone boost: ${drone ? '<b>ready</b> for your next pull' : 'not yet'}. Each working Attendant gives +1 ✨ Royal Nectar when you level up.</p>`;
         }
         if (c.id === 'workshop') {
@@ -203,7 +203,7 @@ const HiveLife = (() => {
         const c = COMBS.find(x => x.id === id);
         if (!c) return;
         const today = todayISO();
-        const all = Vault.getColonyBees().filter(b => b.rarity !== 'Royal');
+        const all = Vault.getHiveBees().filter(b => b.rarity !== 'Royal');
         const list = all.filter(b => roomOf(b) === id && !beeIsBrood(b));
         const eggs = id === 'nursery' ? all.filter(beeIsBrood) : [];
         const idle = c.jobs.length ? all.filter(b => roomOf(b) === 'rest' && !b.class && !beeIsBrood(b) && !(b.life && b.life.faintedAt) && jobsFor(b, c.jobs).length) : [];
@@ -255,7 +255,7 @@ const HiveLife = (() => {
             if (hb) { closeRoom(); AppShell.hatch(hb.dataset.hatch, () => { if (opts.onChange) opts.onChange(); }); }
         };
         sheet.querySelectorAll('.hl-job').forEach(sel => sel.addEventListener('change', () => {
-            const bee = Vault.getColonyBees().find(b => b.id === sel.dataset.bee);
+            const bee = Vault.getHiveBees().find(b => b.id === sel.dataset.bee);
             const job = sel.value || null;
             const r = Vault.assignBeeClass(sel.dataset.bee, job);
             if (typeof Toast !== 'undefined' && bee) {
@@ -271,7 +271,7 @@ const HiveLife = (() => {
             const open = row.nextElementSibling && row.nextElementSibling.classList.contains('hl-ren-box');
             sheet.querySelectorAll('.hl-ren-box').forEach(x => x.remove());
             if (open || typeof BeeName === 'undefined') return;
-            const bee = Vault.getColonyBees().find(b => b.id === btn.dataset.ren);
+            const bee = Vault.getHiveBees().find(b => b.id === btn.dataset.ren);
             if (!bee) return;
             const box = document.createElement('div');
             box.className = 'hl-ren-box';
@@ -280,7 +280,7 @@ const HiveLife = (() => {
             box.querySelector('.bn-in').focus();
         }));
         sheet.querySelectorAll('[data-card]').forEach(btn => btn.addEventListener('click', () => {
-            const bee = Vault.getColonyBees().find(b => b.id === btn.dataset.card);
+            const bee = Vault.getHiveBees().find(b => b.id === btn.dataset.card);
             if (!bee || !opts.onBeeClick) return;
             closeRoom();
             opts.onBeeClick(bee);
@@ -330,7 +330,7 @@ const HiveLife = (() => {
             const act = btn.dataset.act;
             const r = act === 'revive' ? Vault.reviveBee(bee.id) : act === 'jelly' ? Vault.giveRoyalJelly(bee.id) : Vault.craftRoyalJelly();
             if (typeof Toast !== 'undefined') Toast.show(r.ok ? (act === 'revive' ? `💛 ${bee.name} is back on ${bee.sex === 'm' ? 'his' : 'her'} feet.` : act === 'jelly' ? `👑 ${bee.name} will live far longer now.` : '👑 Royal Jelly made.') : r.error, r.ok ? 'positive' : 'negative');
-            const fresh = Vault.getColonyBees().find(b => b.id === bee.id);
+            const fresh = Vault.getHiveBees().find(b => b.id === bee.id);
             renderPanel(host, fresh, onChange);
             if (onChange) onChange();
         }));
@@ -341,15 +341,15 @@ const HiveLife = (() => {
         if (!host) return;
         const streak = Vault.getHiveStreak();
         const risk = Math.round(raidChance(streak) * 100);
-        const fainted = Vault.getColonyBees().filter(b => b.life && b.life.faintedAt);
+        const fainted = Vault.getHiveBees().filter(b => b.life && b.life.faintedAt);
         const events = Vault.getLifeEvents().slice(0, 8);
-        const raidedToday = Vault.state.colony.lastCounterRaid === todayISO();
+        const raidedToday = Vault.state.hive.lastCounterRaid === todayISO();
         host.innerHTML = `<div class="hl-news">
             <div class="hl-stats">
                 <span><b>${streak > 0 ? '+' + streak : streak}</b><small>Daily streak</small></span>
                 <span class="${risk > 30 ? 'warn' : ''}"><b>${risk}%</b><small>Raid risk / day</small></span>
                 <span class="${fainted.length ? 'warn' : ''}"><b>${fainted.length}</b><small>Fainted</small></span>
-                ${LIFE.deathEnabled ? `<span><b>${Vault.getFallenBees().length}</b><small>Fallen</small></span>` : `<span><b>${Vault.getColonyBees().filter(b => b.life && !b.life.faintedAt).length}</b><small>Healthy</small></span>`}
+                ${LIFE.deathEnabled ? `<span><b>${Vault.getFallenBees().length}</b><small>Fallen</small></span>` : `<span><b>${Vault.getHiveBees().filter(b => b.life && !b.life.faintedAt).length}</b><small>Healthy</small></span>`}
             </div>
             <button type="button" class="hl-btn${raidedToday ? '' : ' solid'}" data-act="counter"${raidedToday ? ' disabled' : ''}>⚔️ ${raidedToday ? 'Counter-raid done today' : 'Send a counter-raid'}</button>
             <ul class="hl-events">${events.length ? events.map(e => `<li><span>${new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>${esc(e.text)}</li>`).join('') : '<li>Nothing has happened yet. Raids and fainted bees show up here.</li>'}</ul>
