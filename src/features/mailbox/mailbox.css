@@ -23,18 +23,3 @@
 .mb-empty, .mb-note { margin: 0 4px; color: var(--bb-muted); font-size: .84rem; }
 .mb-signin { margin: 0; font-size: .86rem; }
 .mb-signin a { color: var(--bb-accent); }
-
-/* Letters / Updates tabs and the changelog (Oct 29 2026). */
-.mb-tabs { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: var(--bb-surface-2); border: 1px solid var(--bb-edge); }
-.mb-tabs button { flex: 1; padding: 9px; border: 0; border-radius: 10px; background: none; color: var(--bb-muted); font: 700 .8rem var(--font-main, monospace); cursor: pointer; }
-.mb-tabs button[aria-selected="true"] { background: var(--bb-accent); color: var(--bb-accent-ink, #1a1000); }
-.mb-letters, .mb-updates { display: grid; gap: 10px; }
-.mb-letters[hidden], .mb-updates[hidden] { display: none; }
-.mb-up summary { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; cursor: pointer; list-style: none; }
-.mb-up summary::-webkit-details-marker { display: none; }
-.mb-up summary b { color: var(--bb-accent); font: 800 .95rem var(--font-main, monospace); }
-.mb-up summary small { color: var(--bb-muted); font-size: .74rem; }
-.mb-up h4 { margin: 12px 0 6px; color: var(--bb-muted); font: 700 .66rem var(--font-main, monospace); letter-spacing: .14em; text-transform: uppercase; }
-.mb-up ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.mb-up li { display: flex; gap: 10px; font-size: .86rem; line-height: 1.45; color: var(--bb-ink); }
-.mb-up li b { color: var(--bb-ink); }

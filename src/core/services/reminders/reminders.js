@@ -16,12 +16,7 @@ const Reminders = {
     // reminder time - lazy, only when a reminder is actually being set,
     // never on a bare page load, so nobody gets prompted before they've
     // asked for anything.
-    // Oct 30 2026 (Craft): the Android app schedules its own phone notifications
-    // (native.js), so none of the web reminder paths run there.
-    _native: !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()),
-
     requestPermissionIfNeeded() {
-        if (this._native) return;
         if (!('Notification' in window)) {
             Toast.show('This browser doesn\'t support reminder notifications.', 'negative');
             return;
@@ -76,24 +71,12 @@ const Reminders = {
     // This module only ever deals in that generic shape, so it stays
     // reusable for whatever else Vault folds into that feed later.
     check() {
-        if (this._native || typeof Vault === 'undefined' || !Vault.state) return;
+        if (typeof Vault === 'undefined' || !Vault.state) return;
+        // Phone reminders (push.js) deliver these instead - no doubles.
+        if (localStorage.getItem('bizzybee_push_on') === '1') return;
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
         const today = todayISO();
-        // Oct 29 2026 (Craft): while BizzyBee is open, fire every planned
-        // reminder at its exact minute, even with web reminders on (that used
-        // to switch this off). It uses the same plan and the same tag (the
-        // plan key) as the server's copy, so the phone keeps one, not two.
-        if (typeof BizzyNotify !== 'undefined' && BizzyNotify.plan) {
-            const now = Date.now();
-            BizzyNotify.plan({ days: 1, now: now - 60000, limit: 400 }).forEach(a => {
-                const t = +new Date(a.at);
-                if (t > now || t < now - 60000 || this._hasFired(today, a.key)) return;
-                this._show(a.title, a.body, a.key, a.url);
-                this._markFired(today, a.key);
-            });
-            return;
-        }
         const nowHM = this._currentHM();
 
         Vault.getDueReminderItems().forEach(item => {
@@ -111,28 +94,6 @@ const Reminders = {
                 this._markFired(today, key);
             });
         });
-    },
-
-    // Through the service worker when there is one (Android Chrome only allows
-    // that, and a tap then opens the task); plain Notification otherwise.
-    _show(title, body, tag, url) {
-        const opts = { body, tag, data: { url }, icon: '/src/assets/icons/icon-192x192.png', badge: '/src/assets/icons/badge-96x96.png' };
-        const plain = () => { try { new Notification(title, opts); } catch { /* not allowed here */ } };
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(r => r.showNotification(title, opts)).catch(plain);
-        else plain();
-        this._buzz();
-    },
-
-    // Oct 30 2026 (Craft): the BizzyBee buzz plays when a reminder fires while
-    // the app is open on the website. (The Android app plays it through its
-    // own notification sound setting.) Off: localStorage bizzybee_web_buzz = 'off'.
-    _buzz() {
-        try {
-            if (document.hidden || localStorage.getItem('bizzybee_web_buzz') === 'off') return;
-            if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return;
-            const a = new Audio('/src/assets/sounds/bizzybee_buzz.wav');
-            a.volume = 0.7; a.play().catch(() => { /* needs a tap first */ });
-        } catch { /* no audio */ }
     },
 
     start() {

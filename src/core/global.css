@@ -768,10 +768,8 @@ button:hover {
 .app-head.compact .ah-royal { width: 46px; height: 50px; }
 .app-head.compact .ah-hex-glow { display: none; }
 .app-head.compact .ah-hello,
+.app-head.compact .ah-line,
 .app-head.compact .ah-meta { opacity: 0; max-height: 0; margin: 0; }
-/* Oct 29 2026 (Craft): every page shows your title, like Home. */
-.app-head.compact .ah-line { margin: 0 0 4px; font-size: .68rem; max-height: 18px; white-space: nowrap; text-overflow: ellipsis; }
-.ah-next:empty { display: none; }
 .app-head.compact .ah-name { font-size: 1.02rem; margin: 0 0 5px; }
 .app-head.compact .ah-levelup { display: none !important; }
 .app-head.compact .ah-bar { height: 9px; }
@@ -1022,51 +1020,3 @@ body.ob-nodock .app-dock { display: none; }
 
 /* Swipe up on the + goes Home (Oct 28 2026) */
 .dk-add.dk-swiped svg { transform: translateY(-10px); transition: transform .15s; }
-
-/* Hex ring (Oct 29 2026, Craft): the red inner line follows the hex all the way
-   round. Before, a square inset shadow got cut by the hex corners (broken side
-   bars and red dashes top and bottom). Use: background = ring colour, then
-   mask: var(--hex-ring) on a ::after that shares the hex clip-path. */
-:root { --hex-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='50,1 99,25.5 99,74.5 50,99 1,74.5 1,25.5' fill='none' stroke='black' stroke-width='3' vector-effect='non-scaling-stroke' stroke-linejoin='round'/%3E%3C/svg%3E"); }
-
-/* Level-up buttons shake a little every few seconds (Oct 29 2026, Craft). */
-@keyframes bbShake {
-    0%, 78%, 100% { transform: rotate(0) translateX(0); }
-    81% { transform: rotate(-3deg) translateX(-2px); }
-    84% { transform: rotate(3deg) translateX(2px); }
-    87% { transform: rotate(-2deg) translateX(-1px); }
-    90% { transform: rotate(2deg) translateX(1px); }
-    93% { transform: rotate(0) translateX(0); }
-}
-.ah-levelup.show, .lvl-claim, .sk-up, .sk-lvl, .sk-claim { animation: bbShake 2.8s ease-in-out infinite !important; }
-@media (prefers-reduced-motion: reduce) { .ah-levelup.show, .lvl-claim, .sk-up, .sk-lvl, .sk-claim { animation: none !important; } }
-.lvl-claim { display: block; width: 100%; margin-top: 8px; padding: 8px 10px; border: 0; border-radius: 10px; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; font: 800 .74rem var(--font-main, monospace); letter-spacing: .04em; cursor: pointer; box-shadow: 0 0 0 2px rgba(var(--bb-alt-rgb, 220, 20, 60), .5), 0 0 12px rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
-.lvl-claim:disabled { opacity: .5; }
-
-/* Comb buttons (Oct 29 2026, Craft): .btn and .bb-btn get sharp points
-   left and right instead of round corners. The edge is a gold layer behind
-   a slightly smaller fill layer, both cut to the same comb shape, so the
-   line follows the points. Variants: .solid / .bb-btn--main (gold fill),
-   .danger (red edge), .ghost (no fill). */
-html .btn.btn, html .bb-btn.bb-btn {
-    --tip: 10px;
-    --edge: rgba(var(--bb-accent-rgb, 255, 204, 0), .55);
-    --fill: #1a1205;
-    position: relative; isolation: isolate;
-    border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important;
-    padding-left: calc(var(--tip) + 12px) !important; padding-right: calc(var(--tip) + 12px) !important;
-    clip-path: polygon(var(--tip) 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, var(--tip) 100%, 0 50%);
-}
-html .btn.btn::before, html .bb-btn.bb-btn::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--edge); clip-path: inherit; }
-html .btn.btn::after, html .bb-btn.bb-btn::after {
-    content: ""; position: absolute; inset: 1.5px; z-index: -1; background: var(--fill);
-    clip-path: polygon(calc(var(--tip) - 1px) 0, calc(100% - var(--tip) + 1px) 0, 100% 50%, calc(100% - var(--tip) + 1px) 100%, calc(var(--tip) - 1px) 100%, 0 50%);
-}
-html .btn.btn.solid, html .bb-btn.bb-btn--main { --edge: var(--bb-accent-hi, #ffd84a); --fill: var(--bb-accent, #ffcc00); }
-html .btn.btn.danger { --edge: rgba(var(--bb-alt-rgb, 220, 20, 60), .75); }
-html .btn.btn.ghost { --fill: rgba(10, 7, 3, .6); }
-html .btn.btn:hover, html .bb-btn.bb-btn:hover { --edge: var(--bb-accent, #ffcc00); }
-html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; --edge: #fff; }
-
-/* Oct 30 2026 (Craft): mobile vs desktop split (boot.js sets the class) */
-html.bb-mobile .desktop-only, html.bb-desktop .mobile-only { display: none !important; }

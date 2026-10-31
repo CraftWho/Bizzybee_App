@@ -1,4 +1,4 @@
-// Phone reminders: runs every 15 minutes on Netlify, even when the app is
+// Phone reminders: runs every 5 minutes on Netlify, even when the app is
 // closed, and sends any reminder that is due to that account's devices.
 // It first reads one small blob (_next). If nothing is due yet, it stops there.
 import webpush from 'web-push';
@@ -56,5 +56,4 @@ export default async () => {
         if (!cur || at < cur.at) await store.setJSON(NEXT_KEY, { at: Math.min(at, cur?.at ?? at) }).catch(() => {});
     }
 };
-// Oct 29 2026 (Craft): every 15 minutes, not 5, to save Netlify credits.
-export const config = { schedule: '*/15 * * * *' };
+export const config = { schedule: '*/5 * * * *' };
