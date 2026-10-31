@@ -20,7 +20,7 @@ const BizzyPhone = (() => {
     // ------------------------------------------------------------------ perms
     const DEFS = {
         notifications: {
-            icon: '🔔', title: 'Notifications', why: 'Reminders and Smart Notifications',
+            icon: '🔔', title: 'Notifications', why: 'Reminders and Smart Notifications', app: true,   // Oct 31 2026 (Craft): app only
             card: ['TURN ON REMINDERS?', 'So BizzyBee can remind you about your tasks. You pick which ones.', ['Asked when you turn on reminders, or save a task with a reminder time.']],
             async check() {
                 if (isApp) { try { return norm((await P('LocalNotifications').checkPermissions()).display); } catch { return 'unsupported'; } }

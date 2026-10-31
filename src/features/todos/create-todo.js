@@ -73,7 +73,7 @@ function renderDue() {
     }
     document.getElementById('todo-due-hint').textContent = hint;
     document.getElementById('todo-rem-hint').textContent = value
-        ? 'Sends a notification on the due date, while Bizzybee is open in a tab.'
+        ? 'Rings on your phone in the BizzyBee Android app.'
         : 'Reminders go off on the due date, so set one above for these to fire.';
 }
 

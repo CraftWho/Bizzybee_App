@@ -56,4 +56,7 @@ export default async () => {
         if (!cur || at < cur.at) await store.setJSON(NEXT_KEY, { at: Math.min(at, cur?.at ?? at) }).catch(() => {});
     }
 };
-export const config = { schedule: '*/5 * * * *' };
+// Oct 31 2026 (Craft): turned off. Web push is retired (the Android app
+// rings with phone alarms), so this no longer runs on a timer. Saves the
+// ~100-288 scheduled runs a day.
+// export const config = { schedule: '*/5 * * * *' };

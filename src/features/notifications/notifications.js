@@ -33,8 +33,9 @@ async function masterState() {
         if (perm !== 'granted') return { on: false, note: 'Notifications are blocked. Turn this on to allow them.' };
         return { on: N.prefs.reminders(), note: N.prefs.reminders() ? 'On. The phone sends them, even offline.' : 'Off. Nothing will notify you on this phone.' };
     }
-    if (typeof BizzyPush === 'undefined' || !BizzyPush.supported()) return { on: false, note: 'This browser can\'t do notifications. Try Chrome, or the Android app.', disabled: true };
-    return { on: BizzyPush.isOn(), note: BizzyPush.isOn() ? 'On. Sent by BizzyBee\'s server, even when the site is closed. Can be up to 2–3 minutes off.' : 'Off. Needs your cloud account.' };
+    // Oct 31 2026 (Craft): notifications and reminders are Android-app only.
+    // The website no longer sends any (web push and in-tab reminders are off).
+    return { on: false, note: 'Notifications work in the BizzyBee Android app. The website doesn\'t send any.', disabled: true };
 }
 async function renderMaster() {
     const s = await masterState();
@@ -51,14 +52,8 @@ function initMaster() {
             if (isApp) {
                 if (box.checked && (await N.permission(true)) !== 'granted') { box.checked = false; Toast.show('Allow notifications for BizzyBee in Android settings.', 'negative'); }
                 N.set('rem', box.checked);
-            } else if (box.checked) {
-                const out = await BizzyPush.enable();
-                Toast.show(`🔔 On. ${out.upcoming || 0} coming up in the next 10 days.`, 'positive');
-            } else {
-                await BizzyPush.disable();
-            }
+            } else box.checked = false;   // Oct 31 2026 (Craft): app only
         } catch (error) {
-            if (!isApp) await BizzyPush.disable().catch(() => {});
             box.checked = false;
             Toast.show(error.message, 'negative');
         } finally {

@@ -2119,6 +2119,17 @@ class DatabaseManager {
         }
     }
 
+    // Oct 31 2026 (Craft): a save that is NOT an edit. The hive's hourly clock
+    // (bee vitals) used this.save(), which marked the save "changed" every
+    // hour, so opening a second device always looked like a conflict (merge,
+    // cloud backup, reload). This writes the device copy only: no "dirty"
+    // flag, no new updatedAt, no upload. The hourly result reaches the cloud
+    // with your next real change.
+    saveQuiet() {
+        if (!this.state) return;
+        try { localStorage.setItem(this.storageKey, JSON.stringify(this.state)); } catch { /* storage full: next real save warns */ }
+    }
+
     // When this device's own local data was last actually changed (not when
     // it was last synced/backed up - see the comment in save() above). null
     // for a save made before this field existed; the next real change stamps
@@ -4768,7 +4779,9 @@ class DatabaseManager {
     // (settings.js, login.js) reloads the page after a successful import so
     // Vault.init() re-runs fresh against the newly-loaded state, same as
     // any other schema-migration path.
-    importFullState(jsonString, { fromCloud = false } = {}) {
+    // Oct 31 2026 (Craft): backup:false skips the device copy. Routine cloud
+    // pulls used to make one each time, which pushed out the 3 real copies.
+    importFullState(jsonString, { fromCloud = false, backup = true } = {}) {
         let parsed;
         try {
             parsed = JSON.parse(jsonString);
@@ -4786,7 +4799,7 @@ class DatabaseManager {
         const previousDirty = localStorage.getItem(this.storageKey + ':dirty');
         try {
             this.validateFullState(parsed);
-            this.createLocalBackup('Before import or cloud restore');
+            if (backup) this.createLocalBackup('Before import or cloud restore');
             parsed.schemaVersion = VAULT_SCHEMA_VERSION;
             localStorage.setItem(this.storageKey + ':dirty', fromCloud ? 'false' : 'true');
             localStorage.setItem(this.storageKey, JSON.stringify(parsed));
@@ -5448,7 +5461,7 @@ Object.assign(DatabaseManager.prototype, {
         bees.forEach(b => { if (b.life && b.life.injuredUntil) { b.life.health = Math.min(b.life.health, 55); delete b.life.injuredUntil; } });
         for (let k = 1; k <= hours; k++) this._lifeHour(new Date(c.vitalsAt + k * HOUR));
         c.vitalsAt += hours * HOUR;
-        this.save();
+        this.saveQuiet();   // Oct 31 2026 (Craft): the clock isn't an edit
         return hours;
     },
 

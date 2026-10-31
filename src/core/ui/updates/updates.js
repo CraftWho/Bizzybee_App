@@ -27,6 +27,10 @@ const WHATS_NEW = [
         { icon: '🆘', title: 'Bee needs help', text: 'Home says exactly what each bee needs.' },
         { icon: '⬆️', title: 'Swipe up to go Home', text: 'Swipe up on the gold + button.' },
         // Oct 30 2026 (Craft): Terminal clear today.
+        // Oct 31 2026 (Craft): Batch 1, stability.
+        { icon: '📱', title: 'One device at a time', text: 'The device you open becomes active. Others show "Continue here", so saves never fight.' },
+        { icon: '🗄️', title: 'Daily backups', text: 'One cloud backup a day, last 4 days kept. No more backups every few minutes.' },
+        { icon: '🔔', title: 'Notifications in the app', text: 'Reminders ring in the Android app. The website no longer sends them.' },
         { icon: '🧹', title: 'Clear today', text: 'Terminal: type clear today to undo today\'s check-offs, XP and level.', href: 'plugins/terminal/terminal.html' },
       ],
       fixed: [

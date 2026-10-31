@@ -81,10 +81,6 @@ function initCloudSync() {
         await cloudEngine().request('backups', { action: 'create' });
         await refreshCloudBackups();
     });
-    wire('backup-schedule-btn', async () => {
-        await cloudEngine().request('backups', { action: 'schedule', hours: Number(document.getElementById('backup-interval').value) });
-        await refreshCloudBackups();
-    });
     window.addEventListener('cloud-sync-ready', () => {
         refreshCloudBackups().catch(error => { document.getElementById('backup-status').textContent = error.message; });
         refreshSyncCompare();
@@ -99,17 +95,14 @@ function initCloudSync() {
 }
 async function refreshCloudBackups() {
     const result = await cloudEngine().request('backups');
-    document.getElementById('backup-interval').value = result.schedule.hours;
-    const hours = result.schedule.hours;
-    const period = hours * 3600000;
-    const next = result.schedule.startsAt + (Math.floor((Date.now() - result.schedule.startsAt) / period) + 1) * period;
-    document.getElementById('backup-status').textContent = `Every ${hours} hours · next due ${new Date(next).toLocaleString()} (processed within the following hour). Keeping the latest ${result.retain} backups.`;
+    // Oct 31 2026 (Craft): daily backups, keep 4, plus copies made before a restore.
+    document.getElementById('backup-status').textContent = `Daily at about 4 AM, only when something changed. Keeps the last ${result.keepDaily || 4} days, plus up to ${result.keepOther || 3} copies made before a restore or Back Up Now.`;
     const list = document.getElementById('cloud-backup-list');
     list.replaceChildren();
     if (!result.backups.length) list.textContent = 'No cloud backups yet. Use Back Up Now to create your first.';
     for (const item of result.backups) {
         const row = document.createElement('div'); row.className = 'settings-action-row';
-        const label = document.createElement('span'); label.textContent = new Date(item.createdAt).toLocaleString();
+        const label = document.createElement('span'); label.textContent = `${item.kind === 'daily' ? 'Daily' : 'Before change'} · ${new Date(item.createdAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
         const button = document.createElement('button'); button.textContent = 'Restore';
         button.onclick = () => settingsAction(button, async () => {
             if (confirm('Restore this backup to your cloud account and this device? The current cloud and device copies will be preserved first.')) await cloudEngine().restoreBackup(item.id);
