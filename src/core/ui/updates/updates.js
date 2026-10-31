@@ -31,10 +31,6 @@ const WHATS_NEW = [
         { icon: '💻', title: 'Terminal', text: 'Real terminal commands (ls, cd, grep, pipes, Tab), a backup when it opens, and a Revert button.', href: 'plugins/terminal/terminal.html' },
       ],
       fixed: [
-        { icon: '🔑', title: 'Your royal is your hive key', text: 'Your King or Queen carries your hive\'s key (see Profile). Two different hives never mix when you sign in; you pick which one to keep, and the other is kept as a backup.', href: 'features/profile/profile.html' },
-        { icon: '🎃', title: 'Halloween for everyone', text: 'On Oct 31 the whole app turns Halloween for everyone, with the Grimzy challenge. It\'s no longer a theme you pick.', href: 'features/home/home.html' },
-        // Oct 31 2026 (Craft): card tuning + glare.
-        { icon: '✨', title: 'Shinier bee cards', text: 'Cards now catch the light when you tilt your phone. Skills fit, the Job bar is gone, and limited serials sit on a silver tag.', href: 'features/colony-bees/colony-bees.html' },
         { icon: '🔥', title: 'Streaks count every goal', text: 'Your streak now counts everything due that day, dailies and To-Dos, done on time. A To-Do done late breaks it.', href: 'features/home/home.html' },
       ]
     },

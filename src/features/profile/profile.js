@@ -49,7 +49,7 @@ function renderRoyal() {
         tile.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2, royal: royal ? royal.royal : 'queen' });
         art = tile.outerHTML;
     }
-    el.innerHTML = `${art}<div><b>Your ${kind}${royal && royal.name ? ` · ${esc(royal.name)}` : ''}</b><small>Founder of your colony · ${Vault.getColonyBees().length} bees</small>${Vault.getHiveKey && Vault.getHiveKey() ? `<small title="Your ${kind} is your hive's key. Your save belongs to this key.">🔑 Hive key ${esc(Vault.getHiveKey())}</small>` : ''}<small style="color:var(--gold);margin-top:6px">Visit the hive →</small></div>`;
+    el.innerHTML = `${art}<div><b>Your ${kind}${royal && royal.name ? ` · ${esc(royal.name)}` : ''}</b><small>Founder of your colony · ${Vault.getColonyBees().length} bees</small><small style="color:var(--gold);margin-top:6px">Visit the hive →</small></div>`;
 }
 
 function activeDays(S) {
