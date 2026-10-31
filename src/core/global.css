@@ -1070,3 +1070,7 @@ html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; 
 .ah-rankup.show { display: block; animation: bbShake 2.8s ease-in-out infinite; }
 .app-head.compact .ah-rankup { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .ah-rankup.show { animation: none; } }
+
+/* Oct 31 2026 (Craft, from 1.0.6): Claim level up on the Dashboard. */
+.lvl-claim { display: block; width: 100%; margin-top: 8px; padding: 8px 10px; border: 0; border-radius: 10px; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; font: 800 .74rem var(--font-main, monospace); letter-spacing: .04em; cursor: pointer; box-shadow: 0 0 0 2px rgba(var(--bb-alt-rgb, 220, 20, 60), .5), 0 0 12px rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
+.lvl-claim:disabled { opacity: .5; }

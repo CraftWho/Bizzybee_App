@@ -210,3 +210,17 @@ button.home-stat { border: 0; background: none; font: inherit; cursor: pointer; 
 /* Oct 31 2026 (Craft, from 1.0.6): hex ring follows the shape; bolder icons. */
 .home-app-ic::after { box-shadow: none !important; background: var(--cr); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }
 .home-app-ic svg { stroke-width: 2.6; }
+
+/* Oct 31 2026 (Craft, from 1.0.6): Done today rows link to their task; steps + weather in the stat strip. */
+.xt-list li { padding: 0; }
+.xt-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px 2px; color: inherit; text-decoration: none; border-radius: 10px; }
+a.xt-row:hover, a.xt-row:focus-visible { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .06); outline: none; }
+a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left: -2px; }
+.home-hive.six { grid-template-columns: repeat(3, 1fr); row-gap: 4px; }
+.home-hive.six .home-stat:nth-child(3n + 1)::before { display: none; }
+@media (min-width: 700px) {
+    .home-hive.six { grid-template-columns: repeat(6, 1fr); }
+    .home-hive.six .home-stat:nth-child(3n + 1)::before { display: block; }
+    .home-hive.six .home-stat:first-child::before { display: none; }
+}
+.home-stat .wxi { width: 20px; height: 20px; }

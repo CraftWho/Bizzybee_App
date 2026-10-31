@@ -4505,12 +4505,38 @@ class DatabaseManager {
 
         todo.completed = !todo.completed;
         todo.completedDate = todo.completed ? todayISO() : null;
+        todo.completedAt = todo.completed ? Date.now() : null;   // Oct 31 2026 (Craft, from 1.0.6): time for History
         if (todo.completed) this._queenHeal(`todo:${todo.id}`);
 
         this.save();
         this._syncLevelUpBees();
         if (todo.completed) this._collectMaterialsOnCompletion(`todo:${todo.id}`);
         return todo;
+    }
+
+    // Oct 31 2026 (Craft, from 1.0.6): everything finished on one day
+    // (YYYY-MM-DD), newest first. One list for Home's XP today, Done today
+    // and History, so they always match. Quest tasks use your local day; a
+    // bad habit tap costs half (same math as the level bar). t = ms or 0.
+    doneOn(day = todayISO()) {
+        if (!this.state) return [];
+        const out = [], S = this.state;
+        (S.dailyTasks || []).forEach(t => { if ((t.completedDates || []).includes(day)) out.push({ kind: 'daily', icon: '☀️', what: 'Daily', id: t.id, label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[day] && t._days[day].t) || 0 }); });
+        (S.todos || []).forEach(t => { if (t.completed && t.completedDate === day) out.push({ kind: 'todo', icon: '✅', what: 'To-Do', id: t.id, label: t.label, xp: Number(t.xp) || 0, t: t.completedAt || t._mt || 0 }); });
+        (S.quests || []).forEach(q => (q.tasks || []).forEach(t => {
+            if (!t.completed || localDayOf(t.dateCompleted) !== day) return;
+            const ms = String(t.dateCompleted || '').length > 10 ? (Date.parse(t.dateCompleted) || 0) : 0;
+            out.push({ kind: 'quest', icon: '🗺️', what: q.title, id: q.id, extra: t.id, label: t.label, xp: Number(t.xp) || 0, t: ms });
+        }));
+        (S.habits || []).forEach(h => {
+            const taps = (h.history || []).filter(x => x.date === day);
+            const good = taps.filter(x => x.direction === 'positive'), minus = taps.length - good.length;
+            const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
+            const last = taps.length ? Math.max(...taps.map(stamp)) : 0;
+            if (good.length) out.push({ kind: 'habit', icon: '🔁', what: `Habit${good.length > 1 ? ` ×${good.length}` : ''}`, id: h.id, label: h.label, xp: good.reduce((n, x) => n + completionXP(h, x.minutes), 0), t: last });
+            if (minus) out.push({ kind: 'habit', icon: '😖', what: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, id: h.id, label: h.label, xp: -minus * habitPenaltyXP(h), t: last });
+        });
+        return out.sort((a, b) => b.t - a.t);
     }
 
     addTodo({ label, xp, difficulty, notes, checklist, dueDate, dueTime, reminders, tags, minutes, skillsOff }) {

@@ -49,6 +49,7 @@ const Hints = (() => {
         dictionary: ['Each term belongs to a skill. Tasks that mention a term count toward that skill.'],
         projects: ['All your builds in one place. Live sites show a preview.',
             'Tap <b>＋ Add project</b> to add one. Tap ⋯ on a card to edit or pin it.'],
+        history: ['Everything you finished on a day. Use ‹ › to change the day, and tap a row to open it.'],   // Oct 31 2026 (Craft)
         map: ['Your quests as a trail. Done ones at the bottom, your current one in red.'],
     };
 
@@ -172,9 +173,10 @@ const Hints = (() => {
         { id: "queen-faint", icon: "😵", title: "If your Queen faints", cat: "XP & levels", text: "At 0 health she faints. You lose 10% of your coins and this level's XP progress (never a level). She comes back at half health and every bee gets sadder.", v: "1.0.0", page: F + 'home/home.html' },
         { id: "coins", icon: "🪙", title: "Honey coins", cat: "XP & levels", text: "Finishing tasks earns coins: Trivial 1, Easy 2, Medium 3, Hard 5. Unchecking takes them back. Spend them on Streak Charms and incubators.", v: "1.0.0", page: F + 'honey-store/honey-store.html' },
         { id: "streak-savers", icon: "🛡️", title: "Streak savers", cat: "XP & levels", text: "In Start My Day a missed daily's streak can be saved. Guard Bees go first, then Streak Charms. A saved day keeps the streak but gives no XP.", v: "1.0.0", page: F + 'honey-store/honey-store.html' },
-        { id: "done-today", icon: "✨", title: "Done today", cat: "XP & levels", text: "Tap XP today on Home to see everything you finished today. It starts fresh at midnight.", v: "1.0.4", page: F + 'home/home.html' },
-        { id: "home-strip", icon: "📊", title: "Home stats", cat: "XP & levels", text: "Bees, XP today, current streak and your focus quest. Tap one to open its page.", v: "1.0.4", page: F + 'home/home.html' },
-        { id: "dashboard", icon: "📈", title: "Dashboard", cat: "XP & levels", text: "Total XP, level, best streak and quests. Hours per skill on the road to 10,000, and XP for the last 14 days.", v: "1.0.0", page: F + 'dashboard/dashboard.html' },
+        { id: "done-today", icon: "✨", title: "Done today", cat: "XP & levels", text: "Tap XP today on Home to see everything you finished today, with times. Tap a row to open that task. History shows any past day.", v: "1.0.4", page: F + 'home/home.html' },
+        { id: "home-strip", icon: "📊", title: "Home stats", cat: "XP & levels", text: "Bees, XP today, current streak and your focus quest. Weather shows too when it's on, and steps in the Android app.", v: "1.0.4", page: F + 'home/home.html' },
+        { id: "history", icon: "🕘", title: "History", cat: "XP & levels", text: "Everything you finished on any day, with the time. Use ‹ › to step through days. Tap a row to open that task.", v: "1.0.5", intro: true, page: F + 'history/history.html' },
+        { id: "dashboard", icon: "📈", title: "Dashboard", cat: "XP & levels", text: "Total XP, level, best streak and quests. Claim a level up right here. Hours per skill on the road to 10,000, and XP for the last 14 days.", v: "1.0.0", page: F + 'dashboard/dashboard.html' },
         { id: "map", icon: "🧭", title: "Map", cat: "XP & levels", text: "Your quests as a hex trail: finished ones at the bottom, the current one in red, the rest ahead.", v: "1.0.0", page: F + 'map/map.html' },
         { id: "profile", icon: "🪪", title: "Profile", cat: "XP & levels", text: "Your photo, royal, bees, quests done, skills mastered, active days and what's in progress.", v: "1.0.0", page: F + 'profile/profile.html' },
         { id: "skills-honeycomb", icon: "🌱", title: "Skills honeycomb", cat: "Skills", text: "Each skill is a hex cell with its level and bar. Tap one for real and estimated time, XP, recent check-offs, Level up, its path and Merge.", v: "1.0.5", intro: true, page: F + 'skills/skills.html' },
@@ -205,7 +207,7 @@ const Hints = (() => {
         { id: "bees-need-help", icon: "🆘", title: "Bees need help", cat: "Bees & eggs", text: "Home lists which bees need what, and how to fix it.", v: "1.0.5", page: F + 'home/home.html' },
         { id: "named-beasts", icon: "🦁", title: "Named Beasts", cat: "Bees & eggs", text: "A Named Beast keeps its name and gets a title with a small power. Some titles lock the bee's job.", v: "1.0.0", page: F + 'gacha/gacha.html' },
         { id: "rename", icon: "✏️", title: "Name your bee", cat: "Bees & eggs", text: "Every bee gets a random name. Rename it any time, or tap 🎲 for another.", v: "1.0.0", page: F + 'hive-bees/hive-bees.html' },
-        { id: "keeperdex", icon: "📇", title: "KeeperDex", cat: "Bees & eggs", text: "A collection of every rarity and element. An entry shows once you've owned a matching bee.", v: "1.0.0", page: F + 'keeperdex/keeperdex.html' },
+        { id: "keeperdex", icon: "📇", title: "KeeperDex", cat: "Bees & eggs", text: "A card for every rarity and element. Cards you haven't found stay face-down. Tap a card to see it big, tap again to flip it.", v: "1.0.0", page: F + 'keeperdex/keeperdex.html' },
         { id: "models", icon: "🧩", title: "Bee Models", cat: "Bees & eggs", text: "Every kind of bee stays a silhouette until you meet it. Tap a locked one to learn how to find it.", v: "1.0.0", page: F + 'models/models.html' },
         { id: "incubator", icon: "🥚", title: "Egg Incubator", cat: "Bees & eggs", text: "A plugin, off at first. Buy incubators with Honey coins. Your steps and finished dailies hatch eggs inside them faster.", v: "1.0.5", intro: true, page: PL + 'incubator/incubator.html' },
         { id: "hive-mind", icon: "🏰", title: "Hive Mind", cat: "Hive Mind", text: "Your hive outside and in. Inside, Hive Life shows six combs: tap one to manage its bees. Classic shows the honey cells.", v: "1.0.0", page: F + 'hive-mind/hive-mind.html' },
