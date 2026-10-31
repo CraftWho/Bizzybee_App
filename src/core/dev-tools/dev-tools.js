@@ -3,8 +3,8 @@
 //
 // Who gets it (app.js's loadLocalDevTools decides whether to load this file,
 // and this file double-checks before showing anything):
-//   - This computer: after the Hacker / password login, which lives in the
-//     gitignored src/local/admin.local.js and never reaches GitHub or live.
+//   - This computer (PC LOCAL, Oct 31 2026): always, on the fake test
+//     account (Developer / Test Bee, see db.js). No login, no cloud.
 //   - Live site: only when signed in to Cloud Sync with an owner account.
 //     OWNER_HASHES holds SHA-256 hashes of the owner emails, so no address is
 //     written in the code. This is a convenience lock, not real security -
@@ -21,7 +21,6 @@
         'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d',
         '0fb7061c0faa822f969cf19e1e1e96f9abd3ea14b0c3e232f80b25eea65b374f'   // collaborator (Oct 2026)
     ];
-    const DEV_KEY = 'bizzybee_dev';
     const TEST_KEY = 'bizzybee_dev_test';
 
     const host = location.hostname;
@@ -31,10 +30,12 @@
     const nested = path.includes('/features/') || path.includes('/plugins/');
     if (!nested) return;
     const root = '../../..';
-    const localDev = isLocal && localStorage.getItem(DEV_KEY) === '1';
+    // Oct 31 2026 (Craft): this computer = PC LOCAL, the fake test account
+    // (db.js). Tools always work here; no Hacker login any more.
+    const localDev = typeof Vault !== 'undefined' ? !!Vault.pcLocal : isLocal;
     const testOn = () => localStorage.getItem(TEST_KEY) === '1';
-    // On this computer (Hacker login) the tools work on the open save, as
-    // before. Everywhere else they need the test save.
+    // On this computer (PC LOCAL) the tools work on the open save. Everywhere
+    // else they need the test save.
     const canAct = () => localDev || testOn();
 
     async function isOwner() {
@@ -220,10 +221,10 @@
     }
 
     function exportSave() {
-        const text = Vault.exportFullState();
+        const text = Vault.exportForFile();   // Oct 31 2026 (Craft): typed file name
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-        a.download = `bizzybee-dev-save-${Date.now()}.json`;
+        a.download = Vault.saveFileName();
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }
@@ -236,33 +237,19 @@
                 if (!pin) return;
                 try { text = await CryptoLite.decrypt(text, pin); } catch { alert('Wrong PIN, or the file is damaged.'); return; }
             }
+            if (!Vault.confirmImportKind(text)) return;   // Oct 31 2026 (Craft): REAL/TEST/PCLOCAL check
             const result = Vault.importFullState(text);
             if (!result.ok) { alert(result.error); return; }
             go('src/features/home/home.html');
         };
         reader.readAsText(file);
     }
-    async function loadPersonalFile() {
-        try {
-            const response = await fetch(`${root}/src/core/data.personal.json`, { cache: 'no-store' });
-            if (!response.ok) { alert('No src/core/data.personal.json on this computer.'); return; }
-            const result = Vault.importFullState(await response.text());
-            if (!result.ok) { alert(result.error); return; }
-            go('src/features/home/home.html');
-        } catch (error) { alert(error.message); }
-    }
     function freshSave() {
-        if (!confirm('Start a brand new local save? This one is wiped (export it first if you want it).')) return;
+        if (!confirm('Reset the PC test account? Its data is wiped and it starts over as Developer / Test Bee.')) return;
         localStorage.removeItem(Vault.storageKey);
         localStorage.removeItem('bizzybee_colony_hatched');
         go('src/features/home/home.html');
     }
-    function signOut() {
-        localStorage.removeItem('bizzybee_session');
-        localStorage.removeItem(DEV_KEY);
-        go('index.html');
-    }
-
     // Workshop pages only exist on this computer (gitignored).
     // ---- New in 1.0.4 (Oct 28 2026) ----
     const NEW = {
@@ -352,7 +339,9 @@
     const css = `
     .dev-fab{position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:70px;z-index:2000;width:40px;height:40px;border-radius:12px;border:1px solid #ff5a4a;background:#1a0606;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 0 12px rgba(255,60,40,.5);padding:0}
     body.onboarding-page .dev-fab{right:12px}
-    .dev-ribbon{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 2px);transform:translateX(-50%);z-index:2000;padding:2px 10px;border-radius:0 0 8px 8px;background:#b3121f;color:#fff;font:700 10px/1.6 monospace;letter-spacing:.14em;pointer-events:none}
+    .dev-badge{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 4px);transform:translateX(-50%);z-index:2001;padding:4px 12px;border-radius:999px;border:0;color:#fff;font:800 11px/1.4 monospace;letter-spacing:.12em;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+    .dev-badge.test{background:#b3121f}
+    .dev-badge.pc{background:#1d5fd1}
     .dev-panel{position:fixed;inset:0 0 0 auto;width:min(380px,100vw);z-index:2100;background:#0d0a05;border-left:1px solid #ff5a4a;color:#f1ede2;font:14px system-ui,sans-serif;overflow-y:auto;padding:14px 14px 40px;box-sizing:border-box;box-shadow:-20px 0 40px rgba(0,0,0,.7);transform:translateX(105%);transition:transform .3s ease}
     .dev-panel.open{transform:none}
     .dev-panel h2{margin:0 0 4px;font:700 18px var(--font-main,monospace);color:#ff7a6a;background:none;border:0;padding:0;text-align:left}
@@ -371,7 +360,7 @@
     function stateText() {
         const user = Vault.getUser(), bar = Vault.getCharacterLevelBar(), o = Vault.getOnboarding(), royal = Vault.getRoyalBee();
         return [
-            `Mode: ${localDev ? 'this computer (Hacker login)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
+            `Mode: ${localDev ? 'PC LOCAL (fake test account, never syncs)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
             `Save key: ${Vault.storageKey}`,
             `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
@@ -386,11 +375,17 @@
         style.textContent = css;
         document.head.appendChild(style);
 
-        if (testOn()) {
-            const ribbon = document.createElement('div');
-            ribbon.className = 'dev-ribbon';
-            ribbon.textContent = 'TEST SAVE';
-            document.body.appendChild(ribbon);
+        // Oct 31 2026 (Craft): a badge that always floats on a test save, so
+        // you can tell it's not your real save at a glance. Real save: none.
+        if (localDev || testOn()) {
+            const badge = document.createElement('button');
+            badge.type = 'button';
+            badge.className = 'dev-badge ' + (localDev ? 'pc' : 'test');
+            badge.textContent = localDev ? '💻 PC LOCAL' : '🧪 TEST SAVE';
+            badge.addEventListener('click', () => toast(localDev
+                ? 'PC LOCAL: a fake test account on this computer (Developer / Test Bee). No cloud. Your real save is never touched.'
+                : 'TEST SAVE: a separate save on this device. Never syncs. Switch back to your real save in 🛠.'));
+            document.body.appendChild(badge);
         }
 
         const fab = document.createElement('button');
@@ -557,9 +552,7 @@
             <div class="dev-row">
                 <button data-dev="export">Export save</button>
                 <button data-dev="import">Load a save file</button>
-                ${localDev ? `<button data-dev="personal">Load data.personal.json</button>
-                <button data-dev="fresh" class="danger">Fresh save</button>
-                <button data-dev="signout" class="danger">Sign out</button>` : ''}
+                ${localDev ? `<button data-dev="fresh" class="danger">Reset PC test data</button>` : ''}
             </div>
             <input type="file" id="dev-import-input" hidden>
             </div>
@@ -615,7 +608,7 @@
                 'n-starter': () => { close(); NEW.starter(); }, 'n-done': () => { close(); NEW.doneToday(); },
                 'n-merge': NEW.merge, 'n-icons': () => { close(); NEW.icons(); }
             };
-            if (localDev) Object.assign(actions, { personal: loadPersonalFile, fresh: freshSave, signout: signOut });
+            if (localDev) Object.assign(actions, { fresh: freshSave });
             if (actions[a]) actions[a]();
         });
     }

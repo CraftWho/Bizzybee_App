@@ -430,9 +430,9 @@ const BizzyPhone = (() => {
             const st = await f.status().catch(() => ({}));
             if (!st.picked) return false;
             const d = new Date(), pad = (n) => String(n).padStart(2, '0');
-            const name = `bizzybee-save-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.json`;
+            const name = Vault.saveFileName();   // Oct 31 2026 (Craft): bizzybee-REAL-... / TEST
             try {
-                await f.writeFile({ name, text: Vault.exportFullState(), keep: 14, prefix: 'bizzybee-save-' });
+                await f.writeFile({ name, text: Vault.exportForFile(), keep: 14, prefix: `bizzybee-${Vault.saveType()}-` });
                 set('bb_phone_backup_at', String(Date.now()));
                 if (reason !== 'auto') toast(`💾 Backup saved to ${st.folder}.`, 'positive');
                 return true;

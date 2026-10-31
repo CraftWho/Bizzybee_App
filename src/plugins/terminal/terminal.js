@@ -398,8 +398,7 @@ async function termExec(cmd, args, raw) {
 }
 
 async function termLoadAccess() {
-    // This computer with the Hacker login = owner, offline.
-    if (termIsLocal && localStorage.getItem('bizzybee_dev') === '1') { termLevel = 'owner'; return; }
+    if (typeof Vault !== 'undefined' && Vault.pcLocal) { termLevel = 'owner'; return; }   // Oct 31 2026 (Craft): PC LOCAL = owner, offline
     termSignedIn = localStorage.getItem('bizzybee_session') === 'identity';
     if (!termSignedIn) return;
     try {

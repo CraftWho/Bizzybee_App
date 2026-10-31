@@ -439,7 +439,9 @@ const AppShell = {
         const title = kind === 'king' ? 'King' : 'Queen';
         const name = Vault.state.displayName || (royal && royal.name) || user.name || 'Beekeeper';
         q('.ah-name').textContent = name;
-        q('.ah-line').innerHTML = !royal
+        q('.ah-line').innerHTML = Vault.pcLocal
+            ? `💻 <b>Test Account</b> · ${title} ${esc((royal && royal.name) || 'Test Bee')}`   // Oct 31 2026 (Craft): PC LOCAL
+            : !royal
             ? '🐝 Your hive awaits'
             : royal.name && royal.name !== name
                 ? `👑 ${title} <b>${esc(royal.name)}</b> rules your hive`
@@ -1023,9 +1025,8 @@ class CodexSystem {
     }
 
     // Dev tools (Craft, 2026-10-09).
-    //  - This computer: src/local/admin.local.js (gitignored) adds the
-    //    Hacker / password login; once signed in that way, the 🛠 panel
-    //    (src/core/dev-tools/dev-tools.js) loads on every page.
+    //  - This computer (PC LOCAL, Oct 31 2026): the 🛠 panel
+    //    (src/core/dev-tools/dev-tools.js) always loads, on the fake test account.
     //  - Live site: the 🛠 panel loads only when signed in to Cloud Sync
     //    with the owner's account (DevTools.isOwner checks a SHA-256 of the
     //    email, so the address itself isn't in the code). On live, every
@@ -1043,9 +1044,11 @@ class CodexSystem {
             script.onerror = () => script.remove();
             document.body.appendChild(script);
         };
-        if (isLocal) add('src/local/admin.local.js');
+        // Oct 31 2026 (Craft): this computer is PC LOCAL (fake test account,
+        // see db.js), so the 🛠 panel always loads here. The Hacker login
+        // (src/local/admin.local.js) is gone.
         if (!nested) return;   // no panel on the login page
-        const localDev = isLocal && localStorage.getItem('bizzybee_dev') === '1';
+        const localDev = typeof Vault !== 'undefined' ? !!Vault.pcLocal : isLocal;
         const maybeOwner = localStorage.getItem('bizzybee_session') === 'identity' && !!localStorage.getItem('gotrue.user');
         if (localDev || maybeOwner || localStorage.getItem('bizzybee_dev_test') === '1') add('src/core/dev-tools/dev-tools.js');
     }

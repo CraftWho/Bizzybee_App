@@ -21,7 +21,7 @@ const FolderBackup = (() => {
     const KEY = 'folder';
     const AUTO_THROTTLE_MS = 2 * 60 * 60 * 1000; // one silent write per 2h of activity, not per save
     const KEEP = 3;                               // save files kept in the folder (Oct 2026)
-    const SAVE_RE = /^bizzybee-save-.*\.json$/;
+    const SAVE_RE = /^bizzybee-(save|REAL|TEST|PCLOCAL)-(?!backup-).*\.json$/;   // Oct 31 2026 (Craft): old and typed names
     const AUTO_LAST_KEY = 'bizzybee_folder_backup_auto_last';
 
     const supported = () => typeof window.showDirectoryPicker === 'function' && 'indexedDB' in window;
@@ -129,11 +129,11 @@ const FolderBackup = (() => {
         try { permission = await handle.queryPermission({ mode: 'readwrite' }); }
         catch { return { ok: false, error: 'unavailable' }; }
         if (permission !== 'granted') return { ok: false, error: 'permission-needed' };
-        const filename = reason === 'auto' ? `bizzybee-save-${who()}-${local()}.json` : `bizzybee-backup-${reason}-${timestampSlug()}.json`;
+        const filename = reason === 'auto' ? `bizzybee-${Vault.saveType()}-${who()}-${local()}.json` : `bizzybee-${Vault.saveType()}-backup-${reason}-${timestampSlug()}.json`;   // Oct 31 2026 (Craft): typed names
         try {
             const fileHandle = await handle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
-            await writable.write(Vault.exportFullState());
+            await writable.write(Vault.exportForFile());
             await writable.close();
             if (reason === 'auto') await prune(handle);
             return { ok: true, filename };
@@ -143,11 +143,11 @@ const FolderBackup = (() => {
     // Universal fallback: an actual file download, works in every browser.
     function downloadNow() {
         if (typeof Vault === 'undefined' || !Vault.state) throw new Error('Nothing to back up yet.');
-        const blob = new Blob([Vault.exportFullState()], { type: 'application/json' });
+        const blob = new Blob([Vault.exportForFile()], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `bizzybee-backup-${timestampSlug()}.json`;
+        a.download = Vault.saveFileName('backup');   // Oct 31 2026 (Craft): typed name
         document.body.appendChild(a);
         a.click();
         a.remove();
