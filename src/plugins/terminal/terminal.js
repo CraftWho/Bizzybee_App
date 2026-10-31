@@ -161,6 +161,51 @@ const TERM_COMMANDS = [
         return [['Uploaded to the cloud.', 'ok']];
     } },
     { name: 'backup', need: 'user', help: 'Make a recovery copy on this device.', run: () => (termBackup('manual') ? [['Recovery copy saved.', 'ok']] : [['Could not make a copy (storage full?).', 'err']]) },
+    // Oct 30 2026 (Craft): clear today. Unchecks everything finished today
+    // (dailies, To-Dos, quest tasks, habit taps). XP, honey, loot and bees
+    // stay exactly as they are: the XP those check-offs gave is kept as one
+    // "Kept" bonus, so your level doesn't move. Backup first (confirm).
+    { name: 'clear today', need: 'user', confirm: true, help: 'Uncheck everything done today. XP and loot stay.', run: async () => {
+        const S = Vault.state, day = todayISO(), now = Date.now();
+        const before = Vault.getUser().totalXP;
+        let n = 0;
+        (S.dailyTasks || []).forEach(t => {
+            if (!(t.completedDates || []).includes(day)) return;
+            t.completedDates = t.completedDates.filter(d => d !== day);
+            t._days = t._days || {}; t._days[day] = { done: false, t: now };   // so a sync doesn't put it back
+            if (t.minutesLog) delete t.minutesLog[day];
+            n++;
+        });
+        (S.todos || []).forEach(t => {
+            if (!(t.completed && t.completedDate === day)) return;
+            t.completed = false; t.completedDate = null; delete t.completedAt; delete t.minutesSpent; n++;
+        });
+        (S.quests || []).forEach(q => {
+            let hit = false;
+            (q.tasks || []).forEach(t => {
+                const v = String(t.dateCompleted || '');
+                const d = v.length > 10 ? localISO(new Date(v)) : v.slice(0, 10);
+                if (!(t.completed && d === day)) return;
+                t.completed = false; t.dateCompleted = null; delete t.minutesSpent; hit = true; n++;
+            });
+            if (hit) Vault._updateQuestCompletionState(q);
+        });
+        (S.habits || []).forEach(h => {
+            const keep = (h.history || []).filter(x => x.date !== day);
+            n += (h.history || []).length - keep.length;
+            h.history = keep;
+        });
+        // Today's streak bonus would vanish on the next uncheck, so fold it in.
+        S.bonusXP = (S.bonusXP || []).filter(b => b.date !== day);
+        const kept = Math.round(before - Vault.getUser().totalXP);
+        if (kept) S.bonusXP.push({ key: `clear-today:${day}:${now}`, date: 'kept', xp: kept, why: 'Kept when today was cleared' });
+        Vault.save();
+        // Push now, so the cloud copy can't bring the habit taps back.
+        const cloud = typeof CloudSyncAuto !== 'undefined' ? CloudSyncAuto : null;
+        if (cloud && termSignedIn) { try { await cloud.pushNow(); } catch { /* syncs later */ } }
+        if (!n) return [['Nothing was finished today.', 'dim']];
+        return [[`Cleared ${n} check-off${n === 1 ? '' : 's'} from today.`, 'ok'], [`XP stays at ${Math.round(Vault.getUser().totalXP)}. Loot and honey untouched.`, 'ok'], ['Undo with: restore list, then restore 1', 'dim']];
+    } },
     { name: 'restore list', need: 'user', help: 'Recovery copies on this device.', run: () => {
         const list = Vault.getLocalBackups();
         if (!list.length) return [['No recovery copies yet.', 'dim']];
