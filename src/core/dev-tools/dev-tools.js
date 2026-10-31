@@ -16,12 +16,6 @@
 // on starts a fresh hive (the egg), so you can test things like the egg
 // rumble on your phone. Turning it off puts your real save straight back.
 // ============================================================================
-// Oct 30 2026 (Craft): back to how it worked in 1.0.7. Your real save is
-// hands-off: every tool that changes a save only works on the test save
-// (on live) or with this computer's Hacker login. On the real save the
-// panel shows the tools dimmed, plus the switch to the test save. (A later
-// change hid the tools and crashed the panel; this file is the 1.0.7 one,
-// minus the Halloween theme button, since Halloween isn't a pick now.)
 (function () {
     const OWNER_HASHES = [
         'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d',
@@ -37,12 +31,7 @@
     const nested = path.includes('/features/') || path.includes('/plugins/');
     if (!nested) return;
     const root = '../../..';
-    let localDev = isLocal && localStorage.getItem(DEV_KEY) === '1';
-    // Oct 30 2026 (Craft): signed in as the owner on this computer = the local
-    // test server (npm run dev). Its saves are a sandbox on this PC, never the
-    // live cloud, so the tools work right on the open save, like the Hacker
-    // login. On the live site the real save stays hands-off.
-    const localSignedIn = isLocal && localStorage.getItem('bizzybee_session') === 'identity';
+    const localDev = isLocal && localStorage.getItem(DEV_KEY) === '1';
     const testOn = () => localStorage.getItem(TEST_KEY) === '1';
     // On this computer (Hacker login) the tools work on the open save, as
     // before. Everywhere else they need the test save.
@@ -400,7 +389,7 @@
     function stateText() {
         const user = Vault.getUser(), bar = Vault.getCharacterLevelBar(), o = Vault.getOnboarding(), royal = Vault.getRoyalBee();
         return [
-            `Mode: ${localDev ? (localSignedIn ? 'this computer, signed in (local test server: saves stay on this PC)' : 'this computer (Hacker login)') : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
+            `Mode: ${localDev ? 'this computer (Hacker login)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
             `Save key: ${Vault.storageKey}`,
             `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
@@ -484,6 +473,7 @@
             <div class="dev-row">
                 <button data-dev="theme" data-t="auto">✨ Auto</button>
                 <button data-dev="theme" data-t="bee">🐝 BizzyBee</button>
+                <button data-dev="theme" data-t="halloween">🎃 Halloween</button>
                 <button data-dev="theme-day" data-d="halloween" class="go">Pretend it's Oct 31</button>
                 <button data-dev="theme-day">Back to today</button>
                 <a href="${root}/src/features/themes/themes.html">Themes page</a>
@@ -659,8 +649,7 @@
 
     // A test save stays reachable even if the owner check can't run (so
     // you can always switch back). Otherwise: this computer, or the owner.
-    const allowed = localDev || testOn() ? Promise.resolve(true)
-        : isOwner().then(ok => { if (ok && localSignedIn) localDev = true; return ok; });
+    const allowed = localDev || testOn() ? Promise.resolve(true) : isOwner();
     // Settings asks this to show its Developer section (Oct 2026).
     window.BizzyDev = { allowed: () => allowed };
     const start = () => allowed.then(ok => ok ? ready().then(build) : null).catch(() => {});

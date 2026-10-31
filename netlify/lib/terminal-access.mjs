@@ -43,22 +43,6 @@ export function addRequest(list, email, message, now = Date.now()) {
     return [{ id: randomUUID(), email, message: text, at: new Date(now).toISOString() }, ...(list || [])].slice(0, MAX_REQUESTS);
 }
 
-// Oct 30 2026 (Craft): redeem codes (FullHeal). Any signed-in user can redeem,
-// no grant needed. A code is active for CODE_MAX_USES total redemptions with
-// no time limit. Once used up, its record is removed.
-export const CODE_MAX_USES = 5;
-export function newCode(name, now = Date.now()) {
-    return { name: String(name).toLowerCase(), active: true, uses: 0, max: CODE_MAX_USES, activatedAt: new Date(now).toISOString() };
-}
-// Returns { next, left }: next is the record to save (null = remove it).
-export function redeemCode(record) {
-    if (!record || !record.active) throw new Error('That code is not active.');
-    if (record.uses >= record.max) throw new Error('That code has no uses left.');
-    const uses = record.uses + 1;
-    const left = record.max - uses;
-    return { next: left > 0 ? { ...record, uses } : null, left };
-}
-
 export function addLog(list, email, cmd, ok, now = Date.now()) {
     return [{ at: new Date(now).toISOString(), email, cmd: String(cmd || '').slice(0, 120), ok: !!ok }, ...(list || [])].slice(0, MAX_LOG);
 }

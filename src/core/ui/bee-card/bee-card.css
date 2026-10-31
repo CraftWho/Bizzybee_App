@@ -653,37 +653,3 @@
 /* Limited bees (Oct 29 2026): their own picture, and the serial number. */
 .bc-v2 .bc-beewrap--art img { filter: drop-shadow(0 1.5cqw 2cqw rgba(0, 0, 0, .7)); }
 .bc-v2 .bc-serial { color: #ffcf6b; letter-spacing: .06em; }
-
-/* Oct 30 2026 (Craft): card tuning.
-   - Abilities get the room the Job column used to take, so they aren't cut.
-   - Weakness / Obtained row and the quote are smaller.
-   - The serial is the smallest text, on a silver plate.
-   - Glare: a light sheen that follows the phone's tilt (BeeCardGlare). */
-.bc-v2 .bc-bar { grid-template-columns: 1fr 1fr; padding: .7cqw 0; }
-.bc-v2 .bc-bar > div { font-size: 2.4cqw; gap: .4cqw; }
-.bc-v2 .bc-bar small { font-size: 1.8cqw; }
-.bc-v2 .bee-card-flavor { font-size: 2.4cqw; -webkit-line-clamp: 1; }
-.bc-v2 .bc-coll { font-size: 1.9cqw; }
-.bc-v2 .bc-coll > b { font-size: 2.8cqw; }
-.bc-v2 .bc-abil.bc-many .bc-ab p { -webkit-line-clamp: 2; }
-.bc-v2 .bc-serial {
-    display: inline-block;
-    padding: .35cqw 1.4cqw;
-    border-radius: .8cqw;
-    font: 800 1.9cqw/1 ui-monospace, Menlo, monospace !important;
-    letter-spacing: .08em;
-    color: #1d2024 !important;
-    background: linear-gradient(135deg, #f4f6f8 0%, #b8bec6 35%, #eef1f4 55%, #9aa1aa 100%);
-    box-shadow: inset 0 .2cqw 0 rgba(255, 255, 255, .8), 0 0 0 .2cqw rgba(0, 0, 0, .5);
-}
-.bc-v2 .bc-glare {
-    position: absolute; inset: 0; z-index: 7; pointer-events: none; border-radius: inherit;
-    mix-blend-mode: screen; opacity: .55;
-    background:
-        radial-gradient(circle at var(--bc-gx, 50%) var(--bc-gy, 30%), rgba(255, 255, 255, .42), rgba(255, 255, 255, .08) 22%, transparent 45%),
-        linear-gradient(115deg, transparent 38%, rgba(255, 240, 200, .16) 47%, rgba(190, 220, 255, .14) 53%, transparent 62%);
-    background-size: 100% 100%, 250% 250%;
-    background-position: 0 0, var(--bc-gx, 50%) var(--bc-gy, 30%);
-}
-.bc-v2.is-flipped .bc-glare { display: none; }
-@media (prefers-reduced-motion: reduce) { .bc-v2 .bc-glare { opacity: .25; } }
