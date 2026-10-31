@@ -111,10 +111,6 @@ const Social = (() => {
         return out;
     }
     async function claimLimited(edition, day) {
-        // Oct 30 2026 (Craft): dev test profile on localhost only. It gets #001
-        // locally and never calls the server, so it doesn't use a real serial.
-        const localHost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-        if (localHost && localStorage.getItem('bizzybee_dev') === '1') return { serial: 1, left: null, local: true };
         const r = await call('limited', { action: 'claim', edition, day });
         write('bizzybee_limited_' + edition, { at: Date.now(), left: r.left, mine: r.serial });
         return r;

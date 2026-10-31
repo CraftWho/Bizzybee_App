@@ -46,8 +46,3 @@ node_modules/
 save-files/
 # Codebase dump tool output.
 repomix-output.xml
-
-# Oct 30 2026 (Craft): local test server (`npm run dev` = netlify dev).
-# .netlify/ holds the local sandbox saves and the site link; .env holds local keys.
-.netlify/
-.env

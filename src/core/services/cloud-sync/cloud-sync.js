@@ -102,14 +102,6 @@ const CloudSyncAuto = (() => {
             return true;
         } catch (error) {
             merging = false; running = false;
-            // Oct 30 2026 (Craft): two different hives (different King/Queen key).
-            // Never mix them; the player picks one in Settings.
-            if (error && error.code === 'different-hive') {
-                conflict = true;
-                status('Two different hives: this device and the cloud. Pick one in Settings › Account & cloud.');
-                if (typeof Toast !== 'undefined') Toast.show('👑 This account already has a different hive. Pick which one to keep: Load from Cloud or Use this device\'s copy. The other is kept as a backup.', 'negative', { action: { label: 'Choose', href: '/src/features/settings/settings.html#cloud' } });
-                return false;
-            }
             if (conflict && tries < 1) return await autoMerge(null, tries + 1);   // the cloud moved again: once more
             conflict = true;
             failure("Couldn't combine this device and the cloud automatically: " + error.message);
@@ -149,7 +141,6 @@ const CloudSyncAuto = (() => {
             const result = await request('load-state');
             if (!result.data) throw new Error('No cloud save exists yet.');
             if (before !== Vault.exportFullState()) throw new Error('Progress changed while loading. Try again when edits are finished.');
-            try { Vault.createLocalBackup('Before Load from Cloud'); } catch { /* no room: Settings still asked first */ }   // Oct 30 2026 (Craft)
             const imported = Vault.importFullState(result.data, { fromCloud: true });
             if (!imported.ok) throw new Error(imported.error);
             acknowledge(result);
