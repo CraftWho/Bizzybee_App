@@ -56,15 +56,6 @@ const Social = (() => {
     }
     const cachedFriends = () => read(K.friends);
     async function add(code, letter) { const r = await call('hive', { action: 'add', code, ...(letter ? { letter } : {}) }); await friends(true); return r; }
-    // Oct 30 2026 (Craft): gifts of held items. The item leaves your bag
-    // first and comes back if sending fails.
-    async function gift(code, itemId) {
-        if (!Vault.giftTakeOut(itemId)) throw new Error('You don\'t have that item.');
-        try { await call('hive', { action: 'gift', code, item: itemId }); }
-        catch (e) { Vault.giftPutIn(itemId, 1); throw e; }
-    }
-    async function gifts() { const r = await call('hive', { action: 'gifts' }); return r.gifts || []; }
-    async function acceptGift(id) { const r = await call('hive', { action: 'accept', id }); Vault.giftPutIn(r.item, r.n); return r; }
     async function remove(code) { await call('hive', { action: 'remove', code }); return friends(true); }
     async function sharing(on) { const r = await call('hive', { action: 'sharing', on }); const c = read(K.friends) || {}; c.sharing = r.sharing; write(K.friends, c); return r.sharing; }
 
@@ -100,21 +91,5 @@ const Social = (() => {
         }, 4000);
     });
 
-    // Limited editions (Oct 29 2026): how many are left (cached 10 min, so
-    // Home doesn't call the server on every visit) and claiming one.
-    async function limitedLeft(edition, force) {
-        const k = 'bizzybee_limited_' + edition, c = read(k);
-        if (!force && c && Date.now() - c.at < 10 * 60 * 1000) return c;
-        const r = await call('limited', { action: 'status', edition });
-        const out = { at: Date.now(), left: r.left, mine: r.mine || null };
-        write(k, out);
-        return out;
-    }
-    async function claimLimited(edition, day) {
-        const r = await call('limited', { action: 'claim', edition, day });
-        write('bizzybee_limited_' + edition, { at: Date.now(), left: r.left, mine: r.serial });
-        return r;
-    }
-
-    return { card, publish, myCode, friends, cachedFriends, add, remove, sharing, mail, cachedMail, unread, markRead, react, send, del, limitedLeft, claimLimited, gift, gifts, acceptGift, HOUR };
+    return { card, publish, myCode, friends, cachedFriends, add, remove, sharing, mail, cachedMail, unread, markRead, react, send, del, HOUR };
 })();

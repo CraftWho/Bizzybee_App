@@ -28,12 +28,11 @@ test('push: due once, never twice, late ones skipped', () => {
     assert.deepEqual(dueItems({ ...next, schedule: [...next.schedule, { id: 'due', at: '2026-10-11T12:00:10Z' }] }, now).map(i => i.id), []);
 });
 
-// Oct 29 2026: the sender runs every 15 min and sends early, never late.
-test('push: 15-minute sender sends up to 15 min early and knows the next time', () => {
+test('push: 5-minute sender sends up to 2.5 min early and knows the next time', () => {
     const now = Date.parse('2026-10-11T12:00:00Z');
-    const record = { schedule: [{ id: 'soon', at: '2026-10-11T12:07:00Z' }, { id: 'later', at: '2026-10-11T12:16:00Z' }], sent: [{ id: 'old' }] };
+    const record = { schedule: [{ id: 'soon', at: '2026-10-11T12:02:00Z' }, { id: 'later', at: '2026-10-11T12:04:00Z' }], sent: [{ id: 'old' }] };
     assert.deepEqual(dueItems(record, now).map(i => i.id), ['soon']);
-    assert.equal(nextAt(record), Date.parse('2026-10-11T12:07:00Z'));
-    assert.equal(nextAt(afterSend(record, ['soon'], now)), Date.parse('2026-10-11T12:16:00Z'));
+    assert.equal(nextAt(record), Date.parse('2026-10-11T12:02:00Z'));
+    assert.equal(nextAt(afterSend(record, ['soon'], now)), Date.parse('2026-10-11T12:04:00Z'));
     assert.equal(nextAt({ schedule: [] }), Infinity);
 });

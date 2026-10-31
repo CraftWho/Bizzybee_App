@@ -1,5 +1,4 @@
-// Egg Incubator (Oct 28 2026, approved demo). Oct 29: not a plugin any more;
-// incubators are bought in the Honey Store. This page shows yours. The rules live in
+// Egg Incubator plugin (Oct 28 2026, approved demo). The rules live in
 // db.js (INCUBATORS, Vault.getIncubator / buyIncubator / incubatorAdd ...).
 // This page draws the machine with your real eggs, today's progress, the
 // eggs waiting in the Nursery, and the incubator store.
@@ -35,7 +34,7 @@ function render() {
     const pct = Math.round(progress * 100);
     const ring = `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2a2010" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="${d.off >= d.cap && T ? '#3ddc84' : '#ffcc00'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="${(100.5 * (1 - progress)).toFixed(1)}" transform="rotate(-90 20 20)"/><text x="20" y="24" text-anchor="middle" font-size="10" fill="#ffcc00" font-weight="800">${T ? `${d.off}/${d.cap}` : '–'}</text></svg>`;
     let text;
-    if (!T) text = `<b>Get an incubator</b><small>Eggs take 7 days on their own. An incubator speeds them up with your steps.</small><small><a href="../honey-store/honey-store.html#incubators">Buy one in the Honey Store ›</a></small>`;
+    if (!T) text = `<b>Get an incubator</b><small>Eggs take 7 days on their own. An incubator speeds them up with your steps.</small>`;
     else if (d.off >= d.cap) text = `<b class="ok">Done for today ✓</b><small>${d.cap} days off every egg inside. Come back tomorrow.</small>`;
     else if (isApp) text = `<b>${(d.steps || 0).toLocaleString()} steps today</b><small>${d.toNext.toLocaleString()} more steps for 1 day off every egg.</small><small>Or ${d.dailiesToNext} more finished ${d.dailiesToNext === 1 ? 'daily' : 'dailies'}.</small>`;
     else text = `<b>${d.dailies} ${d.dailies === 1 ? 'daily' : 'dailies'} done today</b><small>${d.dailiesToNext} more for 1 day off every egg.</small><small>The Android app adds your steps too.</small>`;
@@ -45,7 +44,7 @@ function render() {
     const free = T ? T.slots - I.slots.length : 0;
     $('ic-waiting').innerHTML = I.waiting.length ? I.waiting.map(b => {
         const n = daysLeft(b);
-        return `<div class="ic-row"><span class="egg">${eggArt(b)}</span><span class="mid"><b>Unknown egg</b><small>Hatches ${n <= 0 ? 'tonight' : n === 1 ? 'tomorrow' : `in ${n} days`}</small></span>
+        return `<div class="ic-row"><span class="egg">${eggArt(b)}</span><span class="mid"><b>${esc(b.name)}</b><small>Mystery egg · hatches ${n <= 0 ? 'tonight' : n === 1 ? 'tomorrow' : `in ${n} days`}</small></span>
             <button type="button" class="ic-btn gold" data-add="${esc(b.id)}" ${free > 0 ? '' : 'disabled'}>${T ? (free > 0 ? 'Put in' : 'Full') : 'No incubator'}</button></div>`;
     }).join('') : `<p class="ic-empty">No eggs waiting. New bees from pulls and level-ups start as eggs.</p>`;
 
@@ -54,7 +53,7 @@ function render() {
         const t = INCUBATORS[id], own = I.owned.includes(id), use = I.tier === id;
         const btn = use ? '<button type="button" class="ic-btn" disabled>In use</button>'
             : own ? `<button type="button" class="ic-btn" data-use="${id}">Use this one</button>`
-            : `<a class="ic-btn gold" href="../honey-store/honey-store.html#incubators">In the Honey Store</a>`;
+            : `<button type="button" class="ic-btn gold" data-buy="${id}" ${I.coins >= t.price ? '' : 'disabled'}>${I.coins >= t.price ? 'Buy' : 'Not enough'}</button>`;
         return `<div class="ic-item${own ? ' owned' : ''}${use ? ' in-use' : ''}">${IncubatorArt.svg({ tier: id, mini: true, eggs: [] })}
             <div><h3 style="color:${id === 'royal' ? '#ff8fa3' : '#ffcc00'}">${t.icon} ${esc(t.label.toUpperCase())}</h3>
             <ul>${PERKS(t).map(p => `<li>${esc(p)}</li>`).join('')}</ul>
@@ -64,7 +63,7 @@ function render() {
 
 function sheet(bee) {
     const n = daysLeft(bee);
-    $('ic-sheet-body').innerHTML = `<div class="egg">${eggArt(bee)}</div><h3>UNKNOWN EGG</h3>
+    $('ic-sheet-body').innerHTML = `<div class="egg">${eggArt(bee)}</div><h3>${esc(bee.name.toUpperCase())}</h3>
         <p>${n <= 0 ? 'Ready. It hatches tonight.' : `Hatches in ${n} day${n === 1 ? '' : 's'}. Walk or finish dailies to speed it up.`}<br>What's inside stays a secret until it hatches.</p>
         <div class="btns">${n <= 0 && Vault.isEggReady(bee) ? `<button type="button" class="ic-btn gold" data-hatch="${esc(bee.id)}">🐣 Hatch it</button>` : `<button type="button" class="ic-btn red" data-out="${esc(bee.id)}">Take it out</button>`}<button type="button" class="ic-btn${n <= 0 ? '' : ' gold'}" data-close>Close</button></div>`;
     $('ic-sheet').hidden = false;
@@ -72,7 +71,10 @@ function sheet(bee) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
-    $('ic-main').hidden = false;
+    const installed = typeof Plugins === 'undefined' || Plugins.isEnabled('incubator');
+    $('ic-not-installed').hidden = installed;
+    $('ic-main').hidden = !installed;
+    if (!installed) return;
     // Fresh steps first (Android app).
     if (isApp) {
         let tries = 0;

@@ -4,20 +4,7 @@ const CloudSyncAuto = (() => {
     let timer, running = false, ready = false, conflict = false, revision = null;
     let accountId = null;
     let lastStatus = 'Connecting to cloud…', lastError = '';
-    // Oct 30 2026 (Craft): cloud only. Players can't turn auto sync off; an
-    // import or restore pauses it for 10 minutes so they can look it over.
-    // Only dev mode (the creator) can leave it off.
-    const enabled = () => {
-        // Oct 30 2026 (Craft): paused while the Terminal is open (terminal-shell.js).
-        try { if (sessionStorage.getItem('bizzybee_sync_paused') === '1') return false; } catch { /* storage off */ }
-        if (localStorage.getItem('bizzybee_auto_sync') !== 'false') return true;
-        if (localStorage.getItem('bizzybee_dev') === '1') return false;
-        let at = Number(localStorage.getItem('bizzybee_auto_sync_off_at')) || 0;
-        if (!at) { at = Date.now(); localStorage.setItem('bizzybee_auto_sync_off_at', String(at)); }
-        if (Date.now() - at < 10 * 60 * 1000) return false;
-        localStorage.setItem('bizzybee_auto_sync', 'true'); localStorage.setItem('bizzybee_auto_sync_off_at', '0');
-        return true;
-    };
+    const enabled = () => localStorage.getItem('bizzybee_auto_sync') !== 'false';
     const dirty = () => localStorage.getItem(Vault.storageKey + ':dirty') === 'true';
     const revisionKey = () => Vault.storageKey + ':revision';
     function status(message) {
@@ -58,25 +45,12 @@ const CloudSyncAuto = (() => {
         localStorage.setItem(revisionKey(), JSON.stringify(revision));
         if (result.updatedAt) localStorage.setItem(Vault.storageKey + ':syncedAt', result.updatedAt);
     }
-    // Oct 30 2026 (Craft): batched sync, to keep Netlify credits low. Changes
-    // save on the device at once, and go up to the cloud at most every 2
-    // minutes (the due time is shared across pages), when the app goes to the
-    // background, and every time it opens.
-    const BATCH_MS = 2 * 60 * 1000;
-    const dueKey = () => Vault.storageKey + ':pushDue';
     function schedule() {
         if (!enabled()) return;
         status('Saved on this device — cloud upload pending.');
         clearTimeout(timer);
-        let due = Number(localStorage.getItem(dueKey())) || 0;
-        if (!due || due < Date.now() - BATCH_MS) { due = Date.now() + BATCH_MS; localStorage.setItem(dueKey(), String(due)); }
-        timer = setTimeout(() => { if (enabled()) pushNow(); }, Math.max(1500, due - Date.now()));
+        timer = setTimeout(() => { if (enabled()) pushNow(); }, 1500);
     }
-    // Backgrounded (not just moving to another page): send what's waiting.
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState !== 'hidden') return;
-        setTimeout(() => { if (document.hidden && ready && enabled() && dirty() && !running) pushNow(); }, 900);
-    });
     // Save merge (Oct 28 2026): when this device and the cloud both have
     // changes, combine them (mergeSaves in db.js) instead of stopping.
     // The cloud keeps the replaced copy in Backups.
@@ -117,7 +91,6 @@ const CloudSyncAuto = (() => {
             status('Saving to encrypted cloud storage…');
             const result = await request('save-state', { data: snapshot, revision });
             acknowledge(result);
-            localStorage.setItem(dueKey(), '0');   // next change starts a new 2-minute batch
             lastError = '';
             // Never clear a newer edit's dirty flag while acknowledging an older request.
             if (snapshot === Vault.exportFullState() && JSON.stringify(JSON.parse(snapshot)) === localStorage.getItem(Vault.storageKey)) {

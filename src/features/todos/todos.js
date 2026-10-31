@@ -12,9 +12,6 @@ console.log("/// TO-DOS PLUGIN PROTOCOLS INITIALIZED ///");
 const openChecklists = new Set();
 let currentTab = 'active';
 try { currentTab = sessionStorage.getItem('bizzybee_todos_tab') || 'active'; } catch (e) { /* storage off */ }
-// Opened from a notification (?focus=<id>): show the tab that holds that To-Do,
-// not the last tab you used, so it can be found and glow (Oct 29 2026).
-const focusTodoId = new URLSearchParams(location.search).get('focus');
 
 function tabLists() {
     const all = Vault.getTodos();
@@ -59,10 +56,6 @@ function renderTodos() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
 
-    if (focusTodoId) {
-        const t = Vault.getTodos().find(x => x.id === focusTodoId);
-        if (t) currentTab = t.completed ? 'done' : 'active';
-    }
     renderTodos();
 
     document.querySelector('.td-tabs').addEventListener('click', (event) => {

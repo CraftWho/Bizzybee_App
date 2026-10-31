@@ -32,10 +32,7 @@ function renderDict() {
 // Links (Oct 28 2026). MDN text is CC-BY-SA, so a filled term keeps a
 // credit line. W3Schools doesn't allow copying, so it's a link only.
 const mdnSearch = (q) => `https://developer.mozilla.org/en-US/search?q=${encodeURIComponent(q)}`;
-// Oct 30 2026 (Craft): open the W3Schools page itself, not a Google results
-// list. DuckDuckGo's "\" search jumps straight to the top result on that site.
-// The term's category (e.g. JavaScript, CSS) is added so the right page wins.
-const w3Search = (q, cat) => `https://duckduckgo.com/?q=${encodeURIComponent(`\\ site:w3schools.com ${cat && !/general|other/i.test(cat) ? cat + ' ' : ''}${q}`)}`;
+const w3Search = (q) => `https://www.google.com/search?q=${encodeURIComponent(`site:w3schools.com ${q}`)}`;
 const safeUrl = (u) => (/^https:\/\//i.test(String(u || '')) ? String(u) : '');
 
 // Best effort: MDN's public search API, from your own browser. If it can't
@@ -66,7 +63,7 @@ function termView(t) {
         ${t.code ? `<label>CODE</label><div class="tv-code"><button type="button" class="tv-copy">Copy</button><pre><code>${esc(t.code)}</code></pre></div>` : ''}
         ${t.examples?.length ? `<label>EXAMPLES</label><ul class="tv-ex">${t.examples.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         <label>LEARN MORE</label>
-        <div class="tv-links"><a href="${esc(mdn || mdnSearch(t.name))}" target="_blank" rel="noopener">MDN ↗</a><a href="${esc(w3 || w3Search(t.name, t.category))}" target="_blank" rel="noopener">W3Schools ↗</a></div>
+        <div class="tv-links"><a href="${esc(mdn || mdnSearch(t.name))}" target="_blank" rel="noopener">MDN ↗</a><a href="${esc(w3 || w3Search(t.name))}" target="_blank" rel="noopener">W3Schools ↗</a></div>
         ${t.source === 'mdn' && mdn ? `<p class="tv-credit">Meaning${t.code ? ' and code' : ''} from <a href="${esc(mdn)}" target="_blank" rel="noopener">"${esc(t.name)}"</a> by Mozilla Contributors, <a href="https://creativecommons.org/licenses/by-sa/2.5/" target="_blank" rel="noopener">CC-BY-SA 2.5</a>.</p>` : ''}
         <div class="btns"><button type="button" class="del" id="tv-close">Close</button><button type="button" class="save" id="tv-edit">Edit</button></div>`;
     sheet.hidden = false;

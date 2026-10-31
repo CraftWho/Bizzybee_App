@@ -452,13 +452,6 @@ const BizzyPhone = (() => {
         const steps = isApp ? await Steps.sync().catch(() => null) : null;
         if (steps != null) parts.push(`<span class="ph-chip">👟 ${steps.toLocaleString()} steps</span>`);
         const w = await Weather.now().catch(() => null);
-        // Home (Oct 29 2026): steps and weather sit in the stat strip now.
-        if (document.getElementById('home-hive')) {
-            window.__homeStrip = { steps: steps == null ? null : steps,
-                wx: w ? { temp: w.temp, text: w.text, place: w.place, icon: iconSVG(w.kind || kindOf(w.code), w.isDay !== false) } : null };
-            window.dispatchEvent(new Event('home-strip'));
-            return;
-        }
         if (w) parts.push(`<span class="ph-chip" title="${esc(w.place)}">${iconSVG(w.kind || kindOf(w.code), w.isDay !== false)} ${w.temp}°${w.unit} · ${esc(w.text)} · ${w.hi}°/${w.lo}°${w.rain >= 40 ? ` · ${w.rain}% rain` : ''}</span>`);
         let el = document.getElementById('ph-strip');
         if (!parts.length) { if (el) el.remove(); return; }

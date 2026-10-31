@@ -228,92 +228,6 @@ function textContainsTerm(text, term) {
 // quest's title and objective). A tag that isn't a Dictionary word becomes
 // its own skill. Each contribution carries real MINUTES (for mastery
 // hours) and XP. Imported Codex history counts like any finished task.
-// ---- Everyday skills (Oct 29 2026, approved demo) ----
-// A library of common skills with plain words, so "Wake up on time" counts
-// toward Time Management without typing any tags. measure: 'time' = real
-// hours; 'times' = how often you do it (time doesn't matter for it).
-const SKILL_LIBRARY = [
-    { name: 'Time Management', icon: '⏰', color: '#ffb000', measure: 'times', words: ['wake up', 'wake', 'alarm', 'on time', 'early', 'bedtime', 'schedule', 'planner', 'routine', 'calendar', 'agenda', 'organize'] },
-    { name: 'Fitness', icon: '💪', color: '#3ddc84', measure: 'times', words: ['run', 'running', 'jog', 'gym', 'workout', 'walk', 'yoga', 'stretch', 'push-ups', 'lift', 'swim', 'bike', 'steps'] },
-    { name: 'Health', icon: '❤️', color: '#ff6a8a', measure: 'times', words: ['water', 'vitamins', 'vitamin', 'sleep', 'floss', 'brush teeth', 'doctor', 'dentist', 'skincare', 'medicine'] },
-    { name: 'Study', icon: '📚', color: '#5aa9ff', measure: 'time', words: ['study', 'read', 'reading', 'homework', 'lecture', 'exam', 'flashcards', 'course', 'lesson'] },
-    { name: 'Coding', icon: '💻', color: '#e3304a', measure: 'time', words: ['code', 'coding', 'javascript', 'html', 'css', 'python', 'react', 'debug', 'github', 'leetcode'] },
-    { name: 'Cooking', icon: '🍳', color: '#ff8a3d', measure: 'times', words: ['cook', 'cooking', 'meal prep', 'recipe', 'bake', 'dinner', 'lunch', 'breakfast'] },
-    { name: 'Work', icon: '💼', color: '#9aa6b6', measure: 'time', words: ['meeting', 'email', 'emails', 'report', 'client', 'deadline', 'presentation'] },
-    { name: 'Mindfulness', icon: '🧘', color: '#c99bff', measure: 'times', words: ['meditate', 'meditation', 'journal', 'breathe', 'gratitude', 'mindful', 'pray'] },
-    { name: 'Home', icon: '🏠', color: '#d9a441', measure: 'times', words: ['clean', 'laundry', 'dishes', 'vacuum', 'tidy', 'groceries', 'chores', 'trash'] },
-    { name: 'Creative', icon: '🎨', color: '#ff7ad9', measure: 'time', words: ['draw', 'paint', 'writing', 'design', 'sketch', 'photo'] },
-    { name: 'Music', icon: '🎵', color: '#7fe08a', measure: 'time', words: ['guitar', 'piano', 'sing', 'song', 'drums', 'music'] },
-    { name: 'Money', icon: '💰', color: '#ffd700', measure: 'times', words: ['budget', 'bills', 'savings', 'invest', 'expenses', 'taxes'] },
-    { name: 'Language', icon: '🗣️', color: '#5fd6ff', measure: 'time', words: ['spanish', 'french', 'duolingo', 'vocab', 'japanese', 'german'] },
-    { name: 'Social', icon: '🤝', color: '#ffa24a', measure: 'times', words: ['call mom', 'call dad', 'friend', 'friends', 'family', 'visit', 'date night'] },
-];
-const SKILL_PALETTE = ['#ffcc00', '#5aa9ff', '#3ddc84', '#ff8a3d', '#c99bff', '#ff6a8a', '#5fd6ff', '#ffa24a', '#7fe08a', '#e3304a', '#ff7ad9', '#9aa6b6'];
-// A "times done" skill counts each completion as this many minutes toward its level.
-const TIMES_UNIT_MIN = { Trivial: 5, Easy: 10, Medium: 20, Hard: 30 };
-const SKILL_AUTO_AFTER = 2;   // check-offs of any kind before a library skill makes itself
-
-// Skill paths (Oct 29 2026, approved demo): each skill has its own row of
-// milestones, in place of the separate skill tree. Times-done skills count
-// check-offs; time skills count hours (real + estimated). Your Codex tree
-// nodes become steps on the path of the skill they need (Codex Architect
-// goes on HTML). Each milestone's reward is claimed once.
-const SKILL_PATHS = {
-    'Fitness': { times: [['👟', 'First Steps', 5], ['🔁', 'Regular', 25], ['🏃', 'Athlete', 50], ['🦾', 'Iron Bee', 100], ['🏆', 'Legend', 365]] },
-    'Time Management': { times: [['🌅', 'Early Bird', 5], ['🗓️', 'Planner', 15], ['⚙️', 'Clockwork', 40], ['⏳', 'Time Lord', 100], ['👑', 'Master of Hours', 365]] },
-};
-const SKILL_PATH_DEFAULT = {
-    time: [['🌱', 'Starter', 2], ['🌿', 'Steady', 10], ['🌳', 'Skilled', 50], ['⭐', 'Expert', 100], ['👑', 'Master', 500]],
-    times: [['🌱', 'Started', 5], ['🌿', 'Habit', 25], ['🌳', 'Routine', 50], ['⭐', 'Second Nature', 100], ['👑', 'Master', 365]],
-};
-function skillPathSteps(category, measure, has = () => false) {
-    const mk = ([icon, name, need]) => ({ id: 'p-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), icon, name, need });
-    const custom = (SKILL_PATHS[category] || {})[measure];
-    if (custom) return { from: null, list: custom.map(mk) };
-    const gen = SKILL_PATH_DEFAULT[measure === 'times' ? 'times' : 'time'].map(mk);
-    if (measure === 'times') return { from: null, list: gen };
-    const key = String(category).toLowerCase();
-    // A node with two skills (HTML + Tools) goes on the first one you have.
-    const owner = (e) => { const k = e.needs.skills || []; return String(k.find(x => has(x)) || k[0] || '').toLowerCase(); };
-    const codex = SKILL_TREE_CATALOG.filter(e => e.needs && (e.needs.total ? key === 'html' : owner(e) === key))
-        .map(e => ({ id: e.id, icon: e.icon, name: e.name, need: e.needs.hours, description: e.description }));
-    if (!codex.length) return { from: null, list: gen };
-    const list = [...codex, ...gen.filter(g => !codex.some(c => c.need === g.need))].sort((a, b) => a.need - b.need);
-    return { from: 'your Codex tree', list };
-}
-const SKILL_PATH_REWARDS = {
-    pollen: { kind: 'material', id: 'pollen', qty: 5, icon: '🌼', name: 'Pollen' },
-    nectar: { kind: 'material', id: 'royal-nectar', qty: 1, icon: '✨', name: 'Royal Nectar' },
-    ticket: { kind: 'tickets', qty: 1, icon: '🎟️', name: 'Gacha ticket' },
-    drop: { kind: 'material', id: 'honey-drop', qty: 1, icon: '🍯', name: 'Honey Drop' },
-    bee: { kind: 'bee', qty: 1, icon: '🐝', name: 'New bee' },
-    jelly: { kind: 'material', id: 'royal-jelly', qty: 1, icon: '👑', name: 'Royal Jelly' },
-};
-// Last step = Royal Jelly, the one before = a bee, the rest climb from Pollen.
-function skillPathReward(i, n) {
-    const R = SKILL_PATH_REWARDS;
-    if (i === n - 1) return R.jelly;
-    if (i === n - 2) return R.bee;
-    return [R.pollen, R.nectar, R.ticket, R.drop][Math.min(i, 3)];
-}
-function skillLibEntry(name) { const n = String(name || '').toLowerCase(); return SKILL_LIBRARY.find(s => s.name.toLowerCase() === n) || null; }
-function skillColorFor(name) {
-    const lib = skillLibEntry(name);
-    if (lib) return lib.color;
-    let h = 7; for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) | 0;
-    return SKILL_PALETTE[Math.abs(h) % SKILL_PALETTE.length];
-}
-const _libWordRe = new Map();
-function libraryMatches(text) {
-    const hay = ` ${String(text || '').toLowerCase()} `;
-    return SKILL_LIBRARY.filter(s => s.words.some(w => {
-        if (!_libWordRe.has(w)) _libWordRe.set(w, new RegExp(`(?:^|[^a-z0-9])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[^a-z0-9])`));
-        return _libWordRe.get(w).test(hay);
-    }));
-}
-// Was this completion's time entered by you (real) or the planned guess?
-const completionIsReal = (task, logged) => Number(logged) > 0 || Number(task && task.minutes) > 0 || !!minutesFromText(task && task.label);
-
 function skillMatcher(dictionaryTerms) {
     const terms = (dictionaryTerms || []).filter(t => t && t.name && String(t.name).trim().length >= 2)
         .map(t => ({ name: String(t.name).trim(), category: t.category || t.name,
@@ -363,31 +277,31 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, 
     const contributions = [];
     const skillsOf = (task, extra, extraTags) => match([extra, task.label, task.notes].filter(Boolean).join(' '), [...(task.tags || []), ...(extraTags || [])])
         .filter(s => !(task.skillsOff || []).includes(s.category));
-    const push = (cats, task, minutes, date, source, real) => cats.forEach(({ category }) => contributions.push({
-        category, label: task.label, minutes, xp: xpForMinutes(minutes, task.difficulty), date, source, real: !!real, difficulty: task.difficulty }));
+    const push = (cats, task, minutes, date, source) => cats.forEach(({ category }) => contributions.push({
+        category, label: task.label, minutes, xp: xpForMinutes(minutes, task.difficulty), date, source }));
 
     (dailyTasks || []).forEach(task => {
         const cats = skillsOf(task);
         if (!cats.length) return;
         const log = task.minutesLog || {};
-        (task.completedDates || []).forEach(d => push(cats, task, completionMinutes(task, log[d]), d, 'daily', completionIsReal(task, log[d])));
+        (task.completedDates || []).forEach(d => push(cats, task, completionMinutes(task, log[d]), d, 'daily'));
     });
     // Habits: only good (+) taps are practice.
     (habits || []).forEach(habit => {
         const cats = skillsOf(habit);
         if (!cats.length) return;
         (habit.history || []).filter(h => h.direction === 'positive')
-            .forEach(h => push(cats, habit, completionMinutes(habit, h.minutes), h.date, 'habit', completionIsReal(habit, h.minutes)));
+            .forEach(h => push(cats, habit, completionMinutes(habit, h.minutes), h.date, 'habit'));
     });
     (todos || []).forEach(todo => {
         if (!todo.completed) return;
-        push(skillsOf(todo), todo, completionMinutes(todo, todo.minutesSpent), todo.completedDate || null, 'todo', completionIsReal(todo, todo.minutesSpent));
+        push(skillsOf(todo), todo, completionMinutes(todo, todo.minutesSpent), todo.completedDate || null, 'todo');
     });
     (quests || []).forEach(quest => {
         (quest.tasks || []).forEach(task => {
             if (!task.completed) return;
             const source = Number(task.historyXP) > 0 ? 'history' : 'quest';
-            push(skillsOf(task, questSkillText(quest, task), questSkillTags(quest, task)), task, completionMinutes(task, task.minutesSpent), task.dateCompleted || null, source, source === 'history' || completionIsReal(task, task.minutesSpent));
+            push(skillsOf(task, questSkillText(quest, task), questSkillTags(quest, task)), task, completionMinutes(task, task.minutesSpent), task.dateCompleted || null, source);
         });
     });
     return contributions;
@@ -406,10 +320,8 @@ function computeTotalPracticeMinutes(dailyTasks, quests, habits, todos) {
 function computeSkillMatrixXP(dailyTasks, dictionaryTerms, quests, habits, todos) {
     const by = {};
     computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos).forEach(c => {
-        const e = by[c.category] || (by[c.category] = { category: c.category, xp: 0, minutes: 0, bySource: {}, count: 0, realMinutes: 0, estMinutes: 0, timesMinutes: 0 });
-        e.xp += c.xp; e.minutes += c.minutes; e.count++;
-        if (c.real) e.realMinutes += c.minutes; else e.estMinutes += c.minutes;
-        e.timesMinutes += TIMES_UNIT_MIN[c.difficulty] || 10;
+        const e = by[c.category] || (by[c.category] = { category: c.category, xp: 0, minutes: 0, bySource: {} });
+        e.xp += c.xp; e.minutes += c.minutes;
         e.bySource[c.source] = (e.bySource[c.source] || 0) + c.minutes;
     });
     return Object.values(by).map(e => ({ ...e, hours: e.minutes / 60 })).sort((a, b) => b.minutes - a.minutes);
@@ -614,25 +526,9 @@ const NAMED_TITLES = {
     champ: { label: 'The Champ', icon: '🏆', power: 'Main Event', text: '+15% power in counter-raids.', job: null, quote: '{n} has never lost a fight worth winning.' },
     bold: { label: 'The Bold', icon: '🦁', power: 'Fearless', text: 'Never hurt when a raid gets in.', job: null, quote: '{n} flies straight at the hornets.' },
     wanderer: { label: 'The Wanderer', icon: '🧭', power: 'Far Flyer', text: 'Counts as two Scouts when guiding Foragers to rare finds.', job: 'scout', quote: '{n} knows every flower for a mile.' },
-    unyielding: { label: 'The Unyielding', icon: '🧱', power: 'Iron Seal', text: '+15% raid defense while a Propolis Sealer.', job: 'barrier', quote: 'Cracks close wherever {n} goes.' },
-    // Limited titles (Oct 29 2026) belong to one limited bee and are never rolled.
-    reaper: { label: 'The Reaper', icon: '💀', power: 'Soul Harvest', text: 'While an Undertaker, every fallen bee also leaves a Honey Drop.', job: 'undertaker', quote: 'When the moon is full, {n} comes to collect.', limited: true }
+    unyielding: { label: 'The Unyielding', icon: '🧱', power: 'Iron Seal', text: '+15% raid defense while a Propolis Sealer.', job: 'barrier', quote: 'Cracks close wherever {n} goes.' }
 };
-const NAMED_TITLE_IDS = Object.keys(NAMED_TITLES).filter(id => !NAMED_TITLES[id].limited);
-
-// Limited editions (Oct 29 2026, Craft): numbered bees, 50 in the world.
-// The serial comes from the server (netlify/functions/limited.mjs), which
-// keeps the official list (serial -> account). #001 is the creator's.
-// Claimable only on the event day; miss it and it's gone until it returns.
-// Limited bees never age, die, get destroyed or combined, and keep their name.
-const LIMITED_EDITIONS = {
-    'grimzy-2026': {
-        id: 'grimzy-2026', label: 'Halloween 2026', name: 'Grimzy', title: 'reaper', element: 'fire', of: 50,
-        art: 'grimzy', scene: 'halloween', month: 10, day: 31,
-        challenge: { need: 3, text: 'Finish 3 tasks on Halloween' }
-    }
-};
-const beeIsLimited = (b) => !!(b && b.limited && b.limited.serial);
+const NAMED_TITLE_IDS = Object.keys(NAMED_TITLES);
 const rollNamedTitle = () => NAMED_TITLE_IDS[Math.floor(Math.random() * NAMED_TITLE_IDS.length)];
 // True when this bee's title power is switched on (its job matches).
 function beeTitlePower(bee, titleId) {
@@ -1561,8 +1457,7 @@ function beeGear(bee, key) {
     }, 1);
 }
 
-// Egg Incubator (Oct 28 2026, approved demo; src/features/incubator/).
-// Oct 29 2026: no longer a plugin. Bought in the Honey Store.
+// Egg Incubator (Oct 28 2026, approved demo; plugin src/plugins/incubator/).
 // Bought with Honey coins. Every egg inside loses 1 day each time you reach
 // the step goal, and every INCUBATOR_DAILIES finished dailies also count
 // (so it works on the website too). At most `cap` days off a day.
@@ -1685,27 +1580,6 @@ function beeFeeling(bee, today = todayISO()) {
 
 // Exactly what a bee needs, with numbers and the fix (Oct 28 2026, Craft:
 // "no guess work"). [] = nothing.
-// Eggs have no name on screen until they hatch (Oct 29 2026, Craft).
-function beeDisplayName(bee) { return bee && bee.life && bee.life.hatchOn ? 'Unknown egg' : (bee ? bee.name : ''); }
-// A bee "needs help" only while nobody is looking after it. In a Nursery bed
-// or set to Recuperate counts as looked after (Oct 29 2026).
-function beeNeedsHelp(bee) {
-    if (!bee || bee.rarity === 'Royal' || !bee.life || bee.life.hatchOn) return false;
-    if (bee.life.faintedAt) return true;
-    if (bee.life.nursery || bee.life.recuperate) return false;
-    return beeNeeds(bee).length > 0;
-}
-// The 🛏️ Nursery bed choice for a bee's job list (Oct 29 2026). Shown to
-// sick or hurt bees, and to a bee already in bed (so it shows as picked).
-function beeNurseryOption(bee) {
-    const L = bee && bee.life;
-    if (!L || L.hatchOn || L.faintedAt) return '';
-    const inBed = !!L.nursery;
-    if (!inBed && !L.sickUntil && beeHurtLevel(bee) === 0) return '';
-    const beds = typeof Vault !== 'undefined' && Vault.nurseryBeds ? Vault.nurseryBeds() : null;
-    const full = beds && !beds.free && !inBed;
-    return `<option value="nursery"${inBed ? ' selected' : ''}${full ? ' disabled' : ''}>🛏️ Nursery bed (heals 4× faster)${beds ? ` · ${beds.free} of ${beds.total} free` : ''}</option>`;
-}
 function beeNeeds(bee, today = todayISO()) {
     const L = bee && bee.life;
     if (!L || L.hatchOn) return [];
@@ -1714,9 +1588,9 @@ function beeNeeds(bee, today = todayISO()) {
     const idle = !bee.class && L.idleSince ? (daysBetween(L.idleSince, today) || 0) : 0;
     if (!bee.class && !L.recuperate && idle >= LIFE.idleUpsetDays) out.push({ need: 'No job', value: `${idle} days`, fix: 'Give it a job, or set it to Recuperate.' });
     const inBed = !!L.nursery;
-    if (L.sickUntil) out.push({ need: 'Sick', value: `until ${L.sickUntil}`, fix: inBed ? 'In a Nursery bed: it heals 2× faster.' : 'Pick 🛏️ Nursery bed in its job list to heal 2× faster.' });
+    if (L.sickUntil) out.push({ need: 'Sick', value: `until ${L.sickUntil}`, fix: inBed ? 'In the Nursery: it heals 2× faster.' : 'Send it to the Nursery to heal 2× faster.' });
     const hurt = beeHurtLevel(bee);
-    if (hurt) out.push({ need: HURT_LEVELS[hurt].label, value: `health ${Math.round(L.health)}/100`, fix: inBed ? 'In the Nursery: +4 health an hour.' : hurt === 3 ? 'Can\'t work. Pick 🛏️ Nursery bed (+4 an hour) or 💤 Recuperate (+1 an hour) in its job list.' : 'Job list: 🛏️ Nursery bed +4 health an hour, 💤 Recuperate +1 an hour.' });
+    if (hurt) out.push({ need: HURT_LEVELS[hurt].label, value: `health ${Math.round(L.health)}/100`, fix: inBed ? 'In the Nursery: +4 health an hour.' : hurt === 3 ? 'Can\'t work. Send it to the Nursery (+4 an hour) or set it to Recuperate (+1 an hour).' : 'Nursery: +4 health an hour. Recuperate: +1 an hour.' });
     if (L.fullness < 40) out.push({ need: 'Hungry', value: `fullness ${Math.round(L.fullness)}/100`, fix: 'Finish tasks (+4 each), or let it recuperate (eats +2.5 an hour).' });
     if (L.stamina < 30) out.push({ need: 'Tired', value: `stamina ${Math.round(L.stamina)}/100`, fix: 'Recuperate: +4 an hour by day, +7 asleep at night.' });
     if ((L.fatigue || 0) >= 80) out.push({ need: 'Worn out', value: `fatigue ${Math.round(L.fatigue)}/100`, fix: 'Recuperate: −3 an hour by day, −6 at night. At 100 it must rest 2 days.' });
@@ -1724,31 +1598,19 @@ function beeNeeds(bee, today = todayISO()) {
     return out;
 }
 
-// Oct 30 2026 (Craft): a streak is about doing what you wrote down, on
-// time - not only dailies. Your goals for a day are every daily due that day
-// and every To-Do due that day. A To-Do counts as kept only if it was done
-// on or before its due date. Days with nothing due don't count either way.
-// Returns null (nothing due) or true/false (all kept or not).
-function goalsKeptOn(dailies, todos, day, { saved = false } = {}) {
-    const due = (dailies || []).filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-    const dueTodos = (todos || []).filter(t => t && t.dueDate === day);
-    if (!due.length && !dueTodos.length) return null;
-    return due.every(d => (d.completedDates || []).includes(day) || (saved && (d.savedDates || []).includes(day)))
-        && dueTodos.every(t => t.completed && t.completedDate && t.completedDate <= t.dueDate);
-}
-
-// Hive streak from your goals: +N = N days in a row with everything due
-// done on time, -N = N days in a row missing something. Today doesn't count
-// yet. Each working Guard Bee forgives one missed day per week (max 2).
-function computeHiveStreak(dailies, today = todayISO(), guards = 0, todos = []) {
-    if (!(dailies || []).length && !(todos || []).some(t => t && t.dueDate)) return 0;
+// Hive streak from your Dailies: +N = N days in a row with every due daily
+// done, -N = N days in a row missing one. Today doesn't count yet. Each
+// working Guard Bee forgives one missed day per week (max 2).
+function computeHiveStreak(dailies, today = todayISO(), guards = 0) {
+    const list = dailies || [];
+    if (!list.length) return 0;
     let forgive = Math.min(2, guards);
     let streak = 0, sign = 0;
     for (let i = 1; i <= 14; i++) {
         const day = shiftISODate(today, -i);
-        const kept = goalsKeptOn(dailies, todos, day);
-        if (kept === null) continue;
-        let ok = kept;
+        const due = list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
+        if (!due.length) continue;
+        let ok = due.every(d => (d.completedDates || []).includes(day));
         if (!ok && i <= 7 && forgive > 0) { forgive--; ok = true; }
         const s = ok ? 1 : -1;
         if (sign === 0) sign = s;
@@ -3453,30 +3315,6 @@ class DatabaseManager {
         return this.addColonyBee(bee);
     }
 
-    // Limited editions (Oct 29 2026): today's challenge, and adding the
-    // numbered bee once the server has given it a serial.
-    limitedChallenge(editionId, today = todayISO()) {
-        const ed = LIMITED_EDITIONS[editionId];
-        if (!ed) return null;
-        const owned = this.getColonyBees().find(b => b.limited && b.limited.edition === editionId) || null;
-        const done = this.doneOn(today).filter(x => x.xp > 0).length;
-        return { edition: ed, owned, done: Math.min(done, ed.challenge.need), need: ed.challenge.need, ready: done >= ed.challenge.need };
-    }
-    addLimitedBee(editionId, serial) {
-        const ed = LIMITED_EDITIONS[editionId];
-        if (!this.state || !ed || !(serial >= 1 && serial <= ed.of)) return null;
-        const have = this.getColonyBees().find(b => b.limited && b.limited.edition === editionId);
-        if (have) { have.limited.serial = serial; this.save(); return have; }
-        const bee = this.addColonyBee({
-            id: generateBeeId(), name: ed.name, rarity: 'Named', title: ed.title,
-            obtainedAt: new Date().toISOString(), source: 'limited', stats: rollBeeStats('Named'), weight: rollBeeWeight('Named'),
-            dexNumber: this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1, element: ed.element,
-            customNamed: true, art: ed.art, scene: ed.scene, class: NAMED_TITLES[ed.title].job || null,
-            limited: { edition: editionId, serial, of: ed.of, label: ed.label, claimedAt: new Date().toISOString() }
-        });
-        return bee;
-    }
-
     // Renames a bee - works on any bee regardless of rarity/source, not
     // just Named Beasts (their generated "<Noun> The <Title>" name is just
     // a starting point). Trimmed and length-capped so a swarm name label
@@ -3488,7 +3326,6 @@ class DatabaseManager {
 
         const trimmed = (newName || '').trim();
         if (!trimmed) return null;
-        if (beeIsLimited(bee)) return null;   // limited bees keep their name (Oct 29 2026)
 
         bee.name = trimmed.slice(0, 40);
         // Flags this bee as user-named - the Identity Card store item
@@ -3507,19 +3344,12 @@ class DatabaseManager {
         if (!this.state || !this.state.colony) return null;
         const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
-        this.lastJobError = null;
-        // Nursery bed (Oct 29 2026): picked from the same job list.
-        if (className === 'nursery') {
-            const r = this.sendToNursery(beeId);
-            if (!r.ok) { this.lastJobError = r.error; return null; }
-            return bee;
-        }
         // Recuperate (Oct 28 2026): no job, on purpose. Eats, sleeps, heals slowly. Never gets upset.
         if (className === 'recuperate') {
             if (beeIsBrood(bee) || beeLockedJob(bee)) return null;
             if (bee.class) bee.jobSince = todayISO();
             bee.class = null;
-            if (bee.life) { bee.life.recuperate = true; delete bee.life.idleSince; delete bee.life.nursery; }
+            if (bee.life) { bee.life.recuperate = true; delete bee.life.idleSince; }
             this.save();
             return bee;
         }
@@ -3540,7 +3370,6 @@ class DatabaseManager {
         // Comb rooms: how long a bee has gone without a job (upset at 3 days).
         if (bee.life) {
             delete bee.life.recuperate;
-            delete bee.life.nursery;            // any other choice takes it out of bed
             if (bee.class) delete bee.life.idleSince;
             else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
         }
@@ -3978,7 +3807,6 @@ class DatabaseManager {
         const index = bees.findIndex(b => b.id === beeId);
         if (index === -1) return null;
         if (bees[index].rarity === 'Royal') return null;   // the founder stays
-        if (beeIsLimited(bees[index])) return null;        // limited bees stay (Oct 29 2026)
 
         const [removed] = bees.splice(index, 1);
 
@@ -4012,7 +3840,6 @@ class DatabaseManager {
         const beeB = bees.find(b => b.id === beeIdB);
         if (!beeA || !beeB) return null;
         if (beeA.rarity === 'Royal' || beeB.rarity === 'Royal') return null;
-        if (beeIsLimited(beeA) || beeIsLimited(beeB)) return null;   // Oct 29 2026
 
         const indexOf = (rarity) => {
             const idx = RARITY_ORDER.indexOf(rarity);
@@ -4196,12 +4023,12 @@ class DatabaseManager {
         if (mine.length) return;
         // Days in a row (today included) with every due daily done or saved.
         const list = this.state.dailyTasks || [];
-        // Oct 30 2026 (Craft): streak milestones count every goal kept on time (goalsKeptOn).
         let streak = 1;
         for (let i = 1; i <= 120; i++) {
-            const kept = goalsKeptOn(list, this.state.todos, shiftISODate(today, -i), { saved: true });
-            if (kept === null) continue;
-            if (!kept) break;
+            const day = shiftISODate(today, -i);
+            const dueDay = list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
+            if (!dueDay.length) continue;
+            if (!dueDay.every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day))) break;
             streak++;
         }
         const add = [{ key: `all-dailies:${today}`, date: today, xp: STREAK_BONUS.allDailies, why: 'All dailies done' }];
@@ -4251,7 +4078,7 @@ class DatabaseManager {
 
         const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
         if (!task) return null;
-        const textBefore = (task.tags || []).join('\n');   // tags before the edit (see _captureHashtags)
+        const textBefore = hashtagTextOf(task);
 
         if (label !== undefined) task.label = label;
         if (xp !== undefined) task.xp = Number(xp) || 0;
@@ -4383,7 +4210,7 @@ class DatabaseManager {
 
         const habit = (this.state.habits || []).find(h => h.id === habitId);
         if (!habit) return null;
-        const textBefore = (habit.tags || []).join('\n');   // tags before the edit (see _captureHashtags)
+        const textBefore = hashtagTextOf(habit);
 
         if (label !== undefined) habit.label = label;
         if (xp !== undefined) habit.xp = Number(xp) || 0;
@@ -4480,38 +4307,12 @@ class DatabaseManager {
 
         todo.completed = !todo.completed;
         todo.completedDate = todo.completed ? todayISO() : null;
-        todo.completedAt = todo.completed ? Date.now() : null;   // time for the Done list (Oct 29 2026)
         if (todo.completed) this._queenHeal(`todo:${todo.id}`);
 
         this.save();
         this._syncLevelUpBees();
         if (todo.completed) this._collectMaterialsOnCompletion();
         return todo;
-    }
-
-    // Everything finished on one day (YYYY-MM-DD), newest first, for the Done
-    // today sheet and History (Oct 29 2026). t = when, in ms (0 if unknown).
-    // Quest tasks store UTC time, so they're matched by your local day.
-    doneOn(day = todayISO()) {
-        if (!this.state) return [];
-        const out = [], S = this.state;
-        const localDay = (ms) => (ms ? localISO(new Date(ms)) : '');
-        (S.dailyTasks || []).forEach(t => { if ((t.completedDates || []).includes(day)) out.push({ kind: 'daily', icon: '☀️', what: 'Daily', id: t.id, label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[day] && t._days[day].t) || 0 }); });
-        (S.todos || []).forEach(t => { if (t.completed && t.completedDate === day) out.push({ kind: 'todo', icon: '✅', what: 'To-Do', id: t.id, label: t.label, xp: Number(t.xp) || 0, t: t.completedAt || t._mt || 0 }); });
-        (S.quests || []).forEach(q => (q.tasks || []).forEach(t => {
-            const ms = Date.parse(t.dateCompleted || '') || 0;
-            const d = ms && String(t.dateCompleted).length > 10 ? localDay(ms) : String(t.dateCompleted || '').slice(0, 10);
-            if (t.completed && d === day) out.push({ kind: 'quest', icon: '🗺️', what: q.title, id: q.id, extra: t.id, label: t.label, xp: Number(t.xp) || 0, t: String(t.dateCompleted).length > 10 ? ms : 0 });
-        }));
-        (S.habits || []).forEach(h => {
-            const taps = (h.history || []).filter(x => x.date === day);
-            const plus = taps.filter(x => x.direction === 'positive').length, minus = taps.length - plus;
-            const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
-            const last = taps.length ? Math.max(...taps.map(stamp)) : 0;
-            if (plus) out.push({ kind: 'habit', icon: '🔁', what: `Habit${plus > 1 ? ` ×${plus}` : ''}`, id: h.id, label: h.label, xp: plus * (Number(h.xp) || 0), t: last });
-            if (minus) out.push({ kind: 'habit', icon: '😖', what: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, id: h.id, label: h.label, xp: -minus * (Number(h.xp) || 0), t: last });
-        });
-        return out.sort((a, b) => b.t - a.t);
     }
 
     addTodo({ label, xp, difficulty, notes, checklist, dueDate, dueTime, reminders, tags, minutes, skillsOff }) {
@@ -4527,7 +4328,7 @@ class DatabaseManager {
             checklist: Array.isArray(checklist) ? checklist : [],
             dueDate: dueDate || null,
             // Deadline time (Oct 27 2026), "HH:MM" or null. Smart Notifications count down to it.
-            dueTime: dueDate ? (/^\d{2}:\d{2}$/.test(dueTime || '') ? dueTime : '22:00') : null,   // a date with no time: 10 PM
+            dueTime: dueDate && /^\d{2}:\d{2}$/.test(dueTime || '') ? dueTime : null,
             reminders: Array.isArray(reminders) ? reminders : [],
             tags: Array.isArray(tags) ? tags : [],
             minutes: Number(minutes) > 0 ? Number(minutes) : null,
@@ -4547,7 +4348,7 @@ class DatabaseManager {
 
         const todo = (this.state.todos || []).find(t => t.id === todoId);
         if (!todo) return null;
-        const textBefore = (todo.tags || []).join('\n');   // tags before the edit (see _captureHashtags)
+        const textBefore = hashtagTextOf(todo);
 
         if (label !== undefined) todo.label = label;
         if (xp !== undefined) todo.xp = Number(xp) || 0;
@@ -4557,7 +4358,6 @@ class DatabaseManager {
         if (dueDate !== undefined) todo.dueDate = dueDate || null;
         if (dueTime !== undefined) todo.dueTime = /^\d{2}:\d{2}$/.test(dueTime || '') ? dueTime : null;
         if (!todo.dueDate) todo.dueTime = null;
-        else if (!todo.dueTime) todo.dueTime = '22:00';   // a date with no time: 10 PM
         if (reminders !== undefined) todo.reminders = Array.isArray(reminders) ? reminders : [];
         if (tags !== undefined) todo.tags = Array.isArray(tags) ? tags : [];
         if (minutes !== undefined) todo.minutes = Number(minutes) > 0 ? Number(minutes) : null;
@@ -4726,30 +4526,28 @@ class DatabaseManager {
 
     // See findHashtags above. `beforeText` = the item's text before this
     // edit (empty for a new item). Doesn't save - the caller does.
-    // Oct 29 2026 (Craft): no more #words. A NEW tag on a task that also has
-    // a skill tag becomes a Dictionary word of that skill ("Closure" on a task
-    // tagged JavaScript). A lone new tag stays its own skill. `beforeText`
-    // is the task's tags before the edit, one per line (only new ones count,
-    // so a deleted Dictionary word doesn't come back on the next edit).
     _captureHashtags(item, beforeText = '') {
         if (!this.state || !this.state.plugins || !this.state.plugins.dictionary || !item) return [];
+        const was = new Set(findHashtags(beforeText).map(n => n.toLowerCase()));
         if (!this.state.dictionary) this.state.dictionary = [];
-        const was = new Set(String(beforeText || '').split('\n').map(x => x.trim().toLowerCase()).filter(Boolean));
         const have = new Set(this.state.dictionary.map(t => String(t.name || '').toLowerCase()));
-        const cats = new Map(this.state.dictionary.map(t => [String(t.category || '').toLowerCase(), t.category]));
-        const tags = (item.tags || []).map(t => String(t || '').trim()).filter(Boolean);
-        const skill = tags.find(t => cats.has(t.toLowerCase()) || skillLibEntry(t));
-        if (!skill) return [];
+        const category = (item.tags || []).find(t => t && String(t).trim()) || 'General';
         const added = [];
-        tags.forEach(name => {
+        for (const name of findHashtags(hashtagTextOf(item))) {
             const key = name.toLowerCase();
-            if (name === skill || was.has(key) || have.has(key) || cats.has(key) || skillLibEntry(name)) return;
+            if (was.has(key) || have.has(key)) continue;
             have.add(key);
-            const term = { id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, definition: '', category: cats.get(skill.toLowerCase()) || skill, createdAt: new Date().toISOString(), source: 'tag' };
+            const term = {
+                id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                name, definition: '', category: String(category).trim(),
+                createdAt: new Date().toISOString(), source: 'hashtag'
+            };
             this.state.dictionary.push(term);
             added.push(term);
-        });
-        if (added.length && typeof Toast !== 'undefined') Toast.show(`📖 Added to Dictionary: ${added.map(t => t.name).join(', ')}`, 'positive');
+        }
+        if (added.length && typeof Toast !== 'undefined') {
+            Toast.show(`📖 Added to Dictionary: ${added.map(t => t.name).join(', ')}`, 'positive');
+        }
         return added;
     }
 
@@ -4842,175 +4640,14 @@ class DatabaseManager {
     // computeSkillLevelState above for how that xp maps onto a level/bar.
     // Each entry comes back pre-merged with its level info so the Dashboard
     // never has to cross-reference two separate calls per row.
-    // ---- Smart skills (Oct 29 2026, approved demo) ----
-    // Icon, color and how a skill is measured ('time' or 'times').
-    skillMeta(category) {
-        const m = (this.state && this.state.skillMeta && this.state.skillMeta[category]) || {};
-        const lib = skillLibEntry(category) || {};
-        return { icon: m.icon || lib.icon || '🌱', color: m.color || lib.color || skillColorFor(category), measure: m.measure || lib.measure || 'time' };
-    }
-    setSkillMeasure(category, measure) {
-        if (!this.state || !['time', 'times'].includes(measure)) return;
-        this.state.skillMeta = this.state.skillMeta || {};
-        this.state.skillMeta[category] = { ...(this.state.skillMeta[category] || {}), measure };
-        this.save();
-    }
-    // Skill paths (see SKILL_PATHS). entry = this skill's getSkillMatrix row,
-    // passed in when the caller already has it.
-    getSkillPath(category, entry) {
-        const meta = this.skillMeta(category);
-        if (entry === undefined) entry = this.getSkillMatrix().find(m => m.category === category);
-        const times = meta.measure === 'times';
-        const progress = entry ? (times ? entry.count || 0 : entry.timeHours || 0) : 0;
-        const claims = ((this.state && this.state.pathClaims) || {})[category] || {};
-        const old = (this.state && this.state.skillsMastered) || {};
-        const steps = skillPathSteps(category, meta.measure, (k) => this.hasSkill(k));
-        return { category, measure: meta.measure, progress, from: steps.from,
-            milestones: steps.list.map((st, i, all) => ({ ...st, reached: progress >= st.need || !!old[st.id], claimed: !!claims[st.id], reward: skillPathReward(i, all.length) })) };
-    }
-    skillPathWaiting(category, entry) {
-        return this.getSkillPath(category, entry).milestones.filter(m => m.reached && !m.claimed).length;
-    }
-    // Hands out one reached milestone's reward, once. Null if not reached or taken.
-    claimSkillMilestone(category, id) {
-        if (!this.state) return null;
-        const m = this.getSkillPath(category).milestones.find(x => x.id === id);
-        if (!m || !m.reached || m.claimed) return null;
-        const r = m.reward, bees = [];
-        if (r.kind === 'material') this._addMaterial(r.id, r.qty);
-        else if (r.kind === 'tickets') {
-            if (!this.state.colony) this.state.colony = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
-            this.state.colony.tickets = (Number(this.state.colony.tickets) || 0) + r.qty;
-        } else if (r.kind === 'bee') bees.push(this.awardBee('skill'));
-        this.state.pathClaims = this.state.pathClaims || {};
-        this.state.pathClaims[category] = { ...(this.state.pathClaims[category] || {}), [id]: new Date().toISOString() };
-        this.save();
-        return { category, milestone: m, reward: r, bees };
-    }
-    // Every skill name you have: Dictionary categories, tags on tasks, levels.
-    _skillNames() {
-        const S = this.state || {}, names = new Set();
-        const add = (t) => { if (t && String(t).trim()) names.add(String(t).trim().toLowerCase()); };
-        (S.dictionary || []).forEach(t => add(t.category));
-        [...(S.dailyTasks || []), ...(S.todos || []), ...(S.habits || [])].forEach(t => (t.tags || []).forEach(add));
-        (S.quests || []).forEach(q => { (q.tags || []).forEach(add); (q.tasks || []).forEach(t => (t.tags || []).forEach(add)); });
-        Object.keys(S.skillLevels || {}).forEach(add);
-        return names;
-    }
-    hasSkill(name) { return this._skillNames().has(String(name || '').trim().toLowerCase()); }
-    // A library skill that fits this text but that you don't have yet.
-    librarySuggestion(text) {
-        const declined = (this.state && this.state.skillDeclined) || {};
-        const names = this._skillNames();
-        return libraryMatches(text).find(s => !names.has(s.name.toLowerCase()) && !declined[s.name]) || null;
-    }
-    // Makes a library skill: its words go into the Dictionary under it.
-    createLibrarySkill(name, { auto = false } = {}) {
-        const lib = skillLibEntry(name);
-        if (!this.state || !lib) return null;
-        if (!this.state.dictionary) this.state.dictionary = [];
-        const have = new Set(this.state.dictionary.map(t => String(t.name || '').toLowerCase()));
-        lib.words.forEach(w => {
-            if (have.has(w)) return;
-            this.state.dictionary.push({ id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: w, definition: '', category: lib.name, createdAt: new Date().toISOString(), source: 'library' });
-        });
-        this.state.skillMeta = this.state.skillMeta || {};
-        this.state.skillMeta[lib.name] = { icon: lib.icon, color: lib.color, measure: lib.measure, fromLibrary: true, auto };
-        if (this.state.skillHits) delete this.state.skillHits[lib.name];
-        if (this.state.skillDeclined) delete this.state.skillDeclined[lib.name];
-        this.save();
-        if (typeof window !== 'undefined' && window.dispatchEvent) window.dispatchEvent(new CustomEvent('skill-created', { detail: { name: lib.name, auto } }));
-        return lib.name;
-    }
-    declineLibrarySkill(name) {
-        if (!this.state) return;
-        this.state.skillDeclined = { ...(this.state.skillDeclined || {}), [name]: true };
-        this.save();
-    }
-    // Called after any check-off. A library skill you keep doing makes itself
-    // after SKILL_AUTO_AFTER check-offs of any kind. Returns names it made.
-    noteCheckoff(task, extraText = '') {
-        if (!this.state || !task) return [];
-        const s = this.librarySuggestion([extraText, task.label, task.notes].filter(Boolean).join(' '));
-        if (!s) return [];
-        this.state.skillHits = this.state.skillHits || {};
-        this.state.skillHits[s.name] = (this.state.skillHits[s.name] || 0) + 1;
-        if (this.state.skillHits[s.name] >= SKILL_AUTO_AFTER) return [this.createLibrarySkill(s.name, { auto: true })];
-        this.save();
-        return [];
-    }
-    // Old skills that the new one covers ("Time" inside "Time Management"),
-    // with how many past tasks would move. Ones you said "Keep both" to are skipped.
-    mergeCandidates(to) {
-        if (!this.state || !to) return [];
-        const skip = this.state.skillMergeSkip || {};
-        const toWords = new Set(String(to).toLowerCase().split(/\s+/));
-        const S = this.state, lower = String(to).toLowerCase();
-        return [...this._skillNames()].filter(n => n !== lower && n.split(/\s+/).every(w => toWords.has(w)) && !skip[`${n}>${lower}`])
-            .map(n => {
-                const items = [...(S.dailyTasks || []), ...(S.todos || []), ...(S.habits || []), ...(S.quests || []).flatMap(q => q.tasks || [])];
-                const count = items.filter(t => (t.tags || []).some(x => String(x).toLowerCase() === n)).length
-                    + (S.dictionary || []).filter(t => String(t.category || '').toLowerCase() === n).length;
-                const proper = (S.dictionary || []).map(t => t.category).concat(items.flatMap(t => t.tags || [])).find(x => String(x || '').toLowerCase() === n) || n;
-                return { from: proper, to, count };
-            });
-    }
-    skipMerge(from, to) {
-        if (!this.state) return;
-        this.state.skillMergeSkip = { ...(this.state.skillMergeSkip || {}), [`${String(from).toLowerCase()}>${String(to).toLowerCase()}`]: true };
-        this.save();
-    }
-    // Merge skill/tag `from` into `to` everywhere (tasks, quests, Dictionary,
-    // levels). Undo with undoMerge() right after (kept in memory only).
-    mergeSkill(from, to) {
-        if (!this.state || !from || !to || String(from).toLowerCase() === String(to).toLowerCase()) return 0;
-        const S = this.state, f = String(from).toLowerCase();
-        this._mergeUndo = JSON.stringify({ dailyTasks: S.dailyTasks, todos: S.todos, habits: S.habits, quests: S.quests, dictionary: S.dictionary, skillLevels: S.skillLevels, skillMeta: S.skillMeta });
-        let moved = 0;
-        const fix = (arr) => {
-            if (!Array.isArray(arr) || !arr.some(x => String(x).toLowerCase() === f)) return arr;
-            moved++;
-            const out = arr.filter(x => String(x).toLowerCase() !== f);
-            if (!out.some(x => String(x).toLowerCase() === String(to).toLowerCase())) out.push(to);
-            return out;
-        };
-        [...(S.dailyTasks || []), ...(S.todos || []), ...(S.habits || [])].forEach(t => { t.tags = fix(t.tags); if (t.skillsOff) t.skillsOff = fix(t.skillsOff); });
-        (S.quests || []).forEach(q => {
-            q.tags = fix(q.tags);
-            if (q.moduleTags) Object.keys(q.moduleTags).forEach(k => { q.moduleTags[k] = fix(q.moduleTags[k]); });
-            (q.tasks || []).forEach(t => { t.tags = fix(t.tags); });
-        });
-        (S.dictionary || []).forEach(t => { if (String(t.category || '').toLowerCase() === f) { t.category = to; moved++; } });
-        if (S.skillLevels) {
-            const key = Object.keys(S.skillLevels).find(k => k.toLowerCase() === f);
-            if (key) {
-                const a = S.skillLevels[key], b = S.skillLevels[to];
-                if (!b || (a && a.level > b.level)) S.skillLevels[to] = a;
-                delete S.skillLevels[key];
-            }
-        }
-        if (S.skillMeta) Object.keys(S.skillMeta).filter(k => k.toLowerCase() === f).forEach(k => delete S.skillMeta[k]);
-        this.save();
-        return moved;
-    }
-    undoMerge() {
-        if (!this.state || !this._mergeUndo) return false;
-        Object.assign(this.state, JSON.parse(this._mergeUndo));
-        this._mergeUndo = null;
-        this.save();
-        return true;
-    }
-
     getSkillMatrix() {
         if (!this.state) return [];
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
         return computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
             const stored = this.state.skillLevels[entry.category];
-            const meta = this.skillMeta(entry.category);
-            // "Times done" skills level up by how often, not how long (Oct 29 2026).
-            const levelState = computeSkillLevelState(meta.measure === 'times' ? entry.timesMinutes : entry.minutes, stored ? stored.level : 1);
-            return { ...entry, ...levelState, ...meta, realHours: entry.realMinutes / 60, estHours: entry.estMinutes / 60, timeHours: entry.minutes / 60 };
+            const levelState = computeSkillLevelState(entry.minutes, stored ? stored.level : 1);
+            return { ...entry, ...levelState };
         });
     }
 
@@ -5780,7 +5417,7 @@ Object.assign(DatabaseManager.prototype, {
     },
 
     getHiveStreak() {
-        return computeHiveStreak(this.state ? this.state.dailyTasks : [], todayISO(), this._workers('guardian').length, this.state ? this.state.todos : []);
+        return computeHiveStreak(this.state ? this.state.dailyTasks : [], todayISO(), this._workers('guardian').length);
     },
 
     // Runs each day missed since the last visit (max LIFE.maxCatchUp).
@@ -5860,7 +5497,6 @@ Object.assign(DatabaseManager.prototype, {
             // Healed: leave the Nursery and go back to the old job.
             if (L.nursery && !L.sickUntil && L.health >= 90) {
                 delete L.nursery; delete L.sickProgress;
-                if (!b.class && !L.recuperate) L.idleSince = isoLocalDate(at);   // healed: leaves with no job
                 this._lifeEvent('heal', `💗 ${b.name} is healed and left the Nursery.`, { beeId: b.id });
             }
             if (L.health <= 0) { L.faintedAt = day; delete L.nursery; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
@@ -5913,12 +5549,7 @@ Object.assign(DatabaseManager.prototype, {
         if (b.life.nursery) return { ok: true };
         if (!b.life.sickUntil && beeHurtLevel(b) === 0) return { ok: false, error: 'Only sick or hurt bees need a bed.' };
         if (!this.nurseryBeds().free) return { ok: false, error: 'No free bed. Each working Nurse adds one.' };
-        // Oct 29 2026: the bed is a choice in the job list. A bee in bed has
-        // no job, and when it's healed it leaves with no job (Craft's pick).
-        if (b.class) b.jobSince = todayISO();
-        b.class = null;
         b.life.nursery = true;
-        delete b.life.recuperate; delete b.life.idleSince;
         this.save();
         return { ok: true };
     },
@@ -5926,7 +5557,6 @@ Object.assign(DatabaseManager.prototype, {
         const b = this.getColonyBees().find(x => x.id === beeId);
         if (!b || !b.life || !b.life.nursery) return false;
         delete b.life.nursery; delete b.life.sickProgress;
-        if (!b.class && !b.life.recuperate) b.life.idleSince = todayISO();
         this.save();
         return true;
     },
@@ -5963,8 +5593,7 @@ Object.assign(DatabaseManager.prototype, {
         // Faint too long, or too old -> the bee dies (only while death is on).
         if (LIFE.deathEnabled) bees.slice().forEach(b => {
             const L = b.life;
-            if (beeIsLimited(b)) { /* limited bees never die */ }
-            else if (L.faintedAt && (daysBetween(L.faintedAt, day) || 0) >= LIFE.faintDays) this._beeDies(b, 'neglect', day);
+            if (L.faintedAt && (daysBetween(L.faintedAt, day) || 0) >= LIFE.faintDays) this._beeDies(b, 'neglect', day);
             else if (beeAgeDays(b, day) >= beeLifespan(b)) this._beeDies(b, 'old age', day);
         });
 
@@ -5984,7 +5613,6 @@ Object.assign(DatabaseManager.prototype, {
         c.bees = c.bees.filter(b => b.id !== bee.id);
         const undertakers = this._workers('undertaker').length;
         if (undertakers) this._addMaterial('pollen', Math.min(2, undertakers));
-        if (this._workers('undertaker').some(u => beeTitlePower(u, 'reaper'))) this._addMaterial('honey-drop', 1);   // The Reaper (Oct 29 2026)
         c.fallen.unshift({ id: bee.id, name: bee.name, rarity: bee.rarity, element: bee.element, sex: bee.sex, role: bee.class, cause, diedAt: day, bornAt: bee.life && bee.life.bornAt, dexNumber: bee.dexNumber });
         this._lifeEvent('death', cause === 'old age' ? `🕯️ ${bee.name} died of old age.` : `🕯️ ${bee.name} died after being fainted too long.`, { beeId: bee.id });
     },
@@ -6469,225 +6097,6 @@ Object.assign(DatabaseManager.prototype, {
         p.pinned = !p.pinned;
         this.save();
     },
-});
-
-// ============================================================================
-// DAILY BONUS (Oct 30 2026, Craft). Open BizzyBee each day to claim a reward.
-// A month of honeycomb cells: claimed = full, today = glowing, coming = empty,
-// missed = cracked. Missed days are gone for good ("a missed day is a missed
-// opportunity"), and a miss restarts the 7-day reward cycle.
-// Month chests at 10, 20 and every day of the month. "Claim all" takes today
-// and every chest that's ready in one tap.
-// state.dailyBonus = { days: ['YYYY-MM-DD'], streak, last, chests: { 'YYYY-MM': [10, 20, 'all'] } }
-// ============================================================================
-const DAILY_BONUS = {
-    cycle: [
-        { coins: 10 }, { mat: 'pollen', n: 2 }, { coins: 15 }, { mat: 'royal-nectar', n: 1 },
-        { coins: 20 }, { mat: 'pollen', n: 4 }, { coins: 25, tickets: 1 }
-    ],
-    chests: [
-        { id: 10, need: 10, label: '10 days', reward: { coins: 40, mat: 'royal-nectar', n: 1 } },
-        { id: 20, need: 20, label: '20 days', reward: { coins: 60, tickets: 1 } },
-        { id: 'all', need: 'all', label: 'Every day', reward: { mat: 'honey-drop', n: 1, tickets: 1 } }
-    ]
-};
-function dailyBonusText(r) {
-    const m = r.mat && MATERIAL_CATALOG.find(x => x.id === r.mat);
-    return [r.coins && `🍯 ${r.coins} coins`, m && `${m.icon} ${r.n} ${m.label}`, r.tickets && `🎟️ ${r.tickets} ticket${r.tickets > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
-}
-Object.assign(DatabaseManager.prototype, {
-    _bonus() {
-        if (!this.state) return null;
-        const b = this.state.dailyBonus && typeof this.state.dailyBonus === 'object' ? this.state.dailyBonus : (this.state.dailyBonus = {});
-        if (!Array.isArray(b.days)) b.days = [];
-        if (!b.chests || typeof b.chests !== 'object') b.chests = {};
-        if (!b.since) { b.since = todayISO(); }   // days before you had the Daily bonus never crack
-        return b;
-    },
-    _giveReward(r) {
-        if (r.coins) { const q = this._ensureQueen(); q.spent = (q.spent || 0) - r.coins; }   // a gift = negative spend
-        if (r.mat) this._addMaterial(r.mat, r.n || 1);
-        if (r.tickets && this.state.colony) this.state.colony.tickets = (this.state.colony.tickets || 0) + r.tickets;
-    },
-    // Today's place in the 7-day cycle: yesterday claimed -> streak + 1, else day 1.
-    getDailyBonus(today = todayISO()) {
-        const b = this._bonus();
-        if (!b) return null;
-        const claimedToday = b.days.includes(today);
-        const yesterday = shiftISODate(today, -1);
-        const streak = claimedToday ? (b.streak || 1) : (b.last === yesterday ? (b.streak || 0) + 1 : 1);
-        const step = (streak - 1) % DAILY_BONUS.cycle.length;
-        const month = today.slice(0, 7);
-        const [Y, M] = month.split('-').map(Number);
-        const daysInMonth = new Date(Y, M, 0).getDate();
-        const cells = [];
-        for (let d = 1; d <= daysInMonth; d++) {
-            const iso = `${month}-${String(d).padStart(2, '0')}`;
-            const state = b.days.includes(iso) ? 'full' : iso === today ? 'glow' : iso > today ? 'empty' : iso < b.since ? 'before' : 'cracked';
-            cells.push({ day: d, iso, state });
-        }
-        const got = cells.filter(c => c.state === 'full').length;
-        const taken = b.chests[month] || [];
-        const chests = DAILY_BONUS.chests.map(c => {
-            // "Every day" counts from the day you got the Daily bonus.
-            const need = c.need === 'all' ? cells.filter(x => x.state !== 'before').length : c.need;
-            // "Every day" can't happen once a day of this month is cracked.
-            const lost = c.need === 'all' && cells.some(x => x.state === 'cracked');
-            return { ...c, need, have: got, taken: taken.includes(c.id), ready: !taken.includes(c.id) && got >= need, lost, text: dailyBonusText(c.reward) };
-        });
-        return {
-            today, claimedToday, streak, step, cycle: DAILY_BONUS.cycle.map((r, i) => ({ i, text: dailyBonusText(r), reward: r })),
-            reward: DAILY_BONUS.cycle[step], rewardText: dailyBonusText(DAILY_BONUS.cycle[step]),
-            month, cells, got, chests, readyCount: (claimedToday ? 0 : 1) + chests.filter(c => c.ready).length
-        };
-    },
-    claimDailyBonus(today = todayISO()) {
-        const info = this.getDailyBonus(today);
-        if (!info || info.claimedToday) return null;
-        const b = this._bonus();
-        b.days.push(today);
-        b.days = b.days.filter(d => d >= shiftISODate(today, -70)).sort();
-        b.streak = info.streak; b.last = today; b.best = Math.max(b.best || 0, info.streak);
-        this._giveReward(info.reward);
-        // The special title you wear adds a little (TITLES below).
-        const perk = typeof this.titlePerk === 'function' ? this.titlePerk() : null;
-        if (perk) this._giveReward(perk);
-        this.save();
-        return { text: info.rewardText + (perk ? ` + ${dailyBonusText(perk)} (title)` : ''), streak: info.streak };
-    },
-    claimBonusChest(id, today = todayISO()) {
-        const info = this.getDailyBonus(today);
-        const c = info && info.chests.find(x => String(x.id) === String(id));
-        if (!c || !c.ready) return null;
-        const b = this._bonus();
-        (b.chests[info.month] = b.chests[info.month] || []).push(c.id);
-        Object.keys(b.chests).forEach(m => { if (m < shiftISODate(today, -70).slice(0, 7)) delete b.chests[m]; });
-        this._giveReward(c.reward);
-        this.save();
-        return { text: c.text, label: c.label };
-    },
-    // Today's reward plus every chest that's ready (after today counts).
-    claimAllBonus(today = todayISO()) {
-        const out = [];
-        const d = this.claimDailyBonus(today);
-        if (d) out.push(d.text);
-        for (const c of this.getDailyBonus(today).chests) if (c.ready) { const r = this.claimBonusChest(c.id, today); if (r) out.push(r.text); }
-        return out;
-    }
-});
-
-// ============================================================================
-// TITLES (Oct 30 2026, Craft). Who you are, under your name.
-// - Level titles come by themselves as you level up (the ladder).
-// - Special titles are earned (badges of honor and duty). Each gives a small
-//   perk while you wear it: extra on every Daily bonus.
-// - Quest titles come from quest unlocks (state.titles), for honor only.
-// You wear one at a time (state.titleWorn = id). Chosen on the Titles page.
-// ============================================================================
-const TITLE_LADDER = [
-    { lvl: 1, name: 'Larva' }, { lvl: 3, name: 'Hatchling' }, { lvl: 5, name: 'Worker' }, { lvl: 10, name: 'Forager' },
-    { lvl: 15, name: 'Builder' }, { lvl: 20, name: 'Guardian' }, { lvl: 25, name: 'Scout' }, { lvl: 30, name: 'Hivekeeper' },
-    { lvl: 40, name: 'Elder' }, { lvl: 50, name: 'Royal Keeper' }, { lvl: 51, name: 'Legend' }
-];
-const SPECIAL_TITLES = [
-    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'All dailies done 7 days in a row', perk: { coins: 5 }, need: 1,
-        have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100):/.test(b.key)) ? 1 : 0 },
-    { id: 'early-bird', icon: '🌅', name: 'Faithful', how: 'Claim the Daily bonus 7 days in a row', perk: { mat: 'pollen', n: 1 }, need: 7,
-        have: (S) => (S.dailyBonus && S.dailyBonus.best) || (S.dailyBonus && S.dailyBonus.streak) || 0 },
-    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', perk: { coins: 5 }, need: 3,
-        have: (S) => (S.quests || []).filter(q => q.dateCompleted || ((q.tasks || []).length && q.tasks.every(t => t.completed))).length },
-    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', perk: { coins: 5 }, need: 25,
-        have: (S) => ((S.colony && S.colony.bees) || []).filter(b => b.rarity !== 'Royal').length },
-    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', perk: { coins: 10 }, need: 100,
-        have: (S) => (S.dailyTasks || []).reduce((n, t) => n + (t.completedDates || []).length, 0) + (S.todos || []).filter(t => t.completed).length
-            + (S.quests || []).reduce((n, q) => n + (q.tasks || []).filter(t => t.completed).length, 0) }
-];
-const titlePerkText = (p) => p ? `+${dailyBonusText(p)} on every Daily bonus` : '';
-Object.assign(DatabaseManager.prototype, {
-    getTitles() {
-        if (!this.state) return null;
-        const S = this.state, bar = this.getCharacterLevelBar(), level = bar ? bar.level : 1;
-        const ladder = TITLE_LADDER.map(t => ({ id: `lvl-${t.lvl}`, kind: 'level', icon: '⬆️', name: t.lvl > LEVEL_CAP ? `${t.name}` : t.name, lvl: t.lvl,
-            how: t.lvl > LEVEL_CAP ? 'Reach Prestige' : `Reach level ${t.lvl}`, earned: level >= t.lvl }));
-        const special = SPECIAL_TITLES.map(t => { const have = Math.min(t.need, t.have(S)); return { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, perk: t.perk, perkText: titlePerkText(t.perk), have, need: t.need, earned: have >= t.need }; });
-        const quest = (S.titles || []).map((t, i) => ({ id: `quest-${i}-${String(t.title).toLowerCase().replace(/\W+/g, '-')}`, kind: 'quest', icon: '📜', name: t.title, how: t.ability || 'Earned on a quest', earned: true }));
-        const all = [...ladder, ...special, ...quest];
-        const levelNow = [...ladder].reverse().find(t => t.earned) || ladder[0];
-        const worn = all.find(t => t.id === S.titleWorn && t.earned) || levelNow;
-        return { ladder, special, quest, levelNow, worn, level };
-    },
-    wearTitle(id) {
-        const t = this.getTitles();
-        const pick = t && [...t.ladder, ...t.special, ...t.quest].find(x => x.id === id && x.earned);
-        if (!pick) return null;
-        this.state.titleWorn = pick.kind === 'level' ? null : id;   // a level title follows your level
-        this.save();
-        return pick;
-    },
-    // The perk of the title you wear, or null.
-    titlePerk() { const t = this.getTitles(); return t && t.worn.kind === 'special' ? t.worn.perk : null; }
-});
-
-// ============================================================================
-// STORE v3 helpers (Oct 30 2026, Craft): buy several at once (capped by what
-// you can afford), sell for half, and gifts between friends (hive.mjs).
-// Sell values: coins as-is; materials count as MAT_COIN coins each.
-// ============================================================================
-const MAT_COIN = { pollen: 4, 'royal-nectar': 15, 'honey-drop': 40, 'royal-jelly': 200 };
-const SELL_RATE = 0.5;
-function storePriceHave(vault, item) {
-    if (item.price.currency === 'coins') return vault.getCoins();
-    return vault.getMaterials()[item.price.materialId] || 0;
-}
-Object.assign(DatabaseManager.prototype, {
-    maxAffordable(itemId) {
-        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId);
-        if (!item || !this.state) return 0;
-        return Math.max(0, Math.min(99, Math.floor(storePriceHave(this, item) / item.price.amount)));
-    },
-    buyStoreItems(itemId, qty = 1) {
-        const n = Math.max(1, Math.min(Math.floor(qty) || 1, this.maxAffordable(itemId)));
-        if (!this.maxAffordable(itemId)) return null;
-        let last = null;
-        for (let i = 0; i < n; i++) { const r = this.purchaseStoreItem(itemId); if (!r) break; last = r; last.count = i + 1; }
-        return last;
-    },
-    // What one of this sells for, in Honey coins (half its worth, at least 1).
-    sellValue(id) {
-        const item = STORE_ITEM_CATALOG.find(i => i.id === id);
-        if (item) return Math.max(1, Math.floor((item.price.currency === 'coins' ? item.price.amount : item.price.amount * (MAT_COIN[item.price.materialId] || 4)) * SELL_RATE));
-        if (MAT_COIN[id]) return Math.max(1, Math.floor(MAT_COIN[id] * SELL_RATE));
-        return 0;
-    },
-    sellOwned(id, qty = 1) {
-        if (!this.state || !this.state.inventory) return null;
-        const inv = this.state.inventory, isMat = !!MAT_COIN[id] && !STORE_ITEM_CATALOG.some(i => i.id === id);
-        const bag = isMat ? (inv.materials = inv.materials || {}) : (inv.items = inv.items || {});
-        const have = bag[id] || 0, n = Math.max(1, Math.min(Math.floor(qty) || 1, have)), each = this.sellValue(id);
-        if (!have || !each) return null;
-        bag[id] = have - n;
-        const q = this._ensureQueen(); q.spent = (q.spent || 0) - each * n;   // coins in = negative spend
-        this.save();
-        return { n, coins: each * n };
-    },
-    // Gifts: held items only. Taken out before sending; put back if it fails.
-    giftTakeOut(itemId) {
-        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
-        const items = this.getItems();
-        if (!item || !(items[itemId] > 0)) return null;
-        this.state.inventory.items[itemId] = items[itemId] - 1;
-        this.save();
-        return item;
-    },
-    giftPutIn(itemId, n = 1) {
-        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
-        if (!item || !this.state) return null;
-        if (!this.state.inventory) this.state.inventory = { materials: {}, items: {} };
-        if (!this.state.inventory.items) this.state.inventory.items = {};
-        this.state.inventory.items[itemId] = (this.state.inventory.items[itemId] || 0) + Math.max(1, Math.min(5, n));
-        this.save();
-        return item;
-    }
 });
 
 // =====================================================================

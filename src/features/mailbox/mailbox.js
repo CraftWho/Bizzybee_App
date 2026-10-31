@@ -37,26 +37,7 @@ async function load(force) {
     }
 }
 
-// Updates tab (Oct 29 2026, Craft): every What's New entry as a changelog,
-// named by version ("Update 1.0.6"), newest first. The first one is open.
-function renderUpdates(tries = 0) {
-    const box = $('mb-updates');
-    if (typeof BizzyUpdates === 'undefined') { if (tries < 50) setTimeout(() => renderUpdates(tries + 1), 100); else box.innerHTML = '<p class="mb-empty">Updates could not load. Try again later.</p>'; return; }
-    const part = (label, list) => list && list.length ? `<h4>${label}</h4><ul>${list.map(i => `<li><span aria-hidden="true">${i.icon}</span><span><b>${esc(i.title)}</b> ${esc(i.text)}</span></li>`).join('')}</ul>` : '';
-    box.innerHTML = BizzyUpdates.entries.map((e, n) => `<details class="bb-box mb-up"${n === 0 ? ' open' : ''}>
-        <summary><b>Update ${esc(e.version)}</b><small>${esc(e.date || '')}${n === 0 ? ' · latest' : ''}</small></summary>
-        ${part('New', e.new)}${part('Better', e.improved)}${part('Fixed', e.fixed)}</details>`).join('');
-}
-function showTab(tab) {
-    const up = tab === 'updates';
-    $('mb-updates').hidden = !up; $('mb-letters').hidden = up;
-    $('mb-tab-letters').setAttribute('aria-selected', String(!up)); $('mb-tab-updates').setAttribute('aria-selected', String(up));
-    if (up && !$('mb-updates').innerHTML) renderUpdates();
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
-    document.querySelector('.mb-tabs').addEventListener('click', (e) => { const t = e.target.closest('[data-tab]'); if (t) { showTab(t.dataset.tab); try { history.replaceState(null, '', t.dataset.tab === 'updates' ? '#updates' : location.pathname); } catch { /* ignore */ } } });
-    if (location.hash === '#updates') showTab('updates');
     await Vault.init();
     if (typeof Waggle !== 'undefined' && typeof baseWaggleActions === 'function') Waggle.setActions(baseWaggleActions());
     try { seenBefore = JSON.parse(localStorage.getItem('bizzybee_mail_seen') || '{}'); } catch { seenBefore = {}; }
