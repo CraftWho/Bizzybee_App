@@ -224,3 +224,14 @@ a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left
     .home-hive.six .home-stat:first-child::before { display: none; }
 }
 .home-stat .wxi { width: 20px; height: 20px; }
+
+/* Oct 31 2026 (Craft): PC LOCAL placeholder tile (can't work on this computer). */
+.home-stat.ph { opacity: .55; outline: 1.5px dashed color-mix(in srgb, var(--sc, #ffcc00) 60%, transparent); outline-offset: -4px; border-radius: 12px; }
+.home-stat.ph small { font-size: .62rem; }
+
+/* Oct 31 2026 (Craft): Done today sits higher: it floats above the dock,
+   stays in the lower half of the screen, and its buttons land near your
+   thumb. A long list scrolls inside it. */
+.xt-scrim { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.xt-sheet { max-height: calc(50vh - 104px - env(safe-area-inset-bottom)); min-height: 200px; border-radius: 22px; border: 2px solid #34c77b; padding-bottom: 14px; }
+.xt-sheet .xt-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }

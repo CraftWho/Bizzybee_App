@@ -26,3 +26,6 @@
 .kd-zoom-hint { margin: 0; color: #a69a80; font-size: .78rem; text-align: center; }
 @keyframes kdIn { from { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) { .kd-zoom { animation: none; } }
+
+/* Oct 31 2026 (Craft): cards you haven't found are greyed out. */
+.keeperdex-card.is-locked { filter: grayscale(1) brightness(.55); }
