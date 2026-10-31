@@ -50,3 +50,6 @@ repomix-output.xml
 # .netlify/ holds the local sandbox saves and the site link; .env holds local keys.
 .netlify/
 .env
+
+# Oct 31 2026 (Craft): written at deploy by tools/stamp-version.mjs.
+version.json

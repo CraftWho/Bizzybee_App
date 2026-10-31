@@ -858,6 +858,13 @@ const BizzyFocus = {
     }
 };
 
+// Oct 31 2026 (Craft): SHA-256 of the owner emails (no address in the code).
+// The 🛠 panel only downloads for these accounts; dev-tools.js reads the same list.
+const DEV_OWNER_HASHES = [
+    'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d',
+    '0fb7061c0faa822f969cf19e1e1e96f9abd3ea14b0c3e232f80b25eea65b374f'   // collaborator (Oct 2026)
+];
+
 class CodexSystem {
     constructor() {
         this.init();
@@ -865,6 +872,7 @@ class CodexSystem {
 
     init() {
         this.renderGlobalUI();
+        this.registerAppCache();
         this.initAppLock();
         this.initCloudSyncAuto();
         this.initFolderBackupAuto();
@@ -1020,6 +1028,15 @@ class CodexSystem {
     //    with the owner's account (DevTools.isOwner checks a SHA-256 of the
     //    email, so the address itself isn't in the code). On live, every
     //    tool works on a separate test save that never syncs.
+    // Oct 31 2026 (Craft): the app cache (sw.js). Keeps a copy of the app per
+    // deploy on the device, so tab switches load from the phone and the app
+    // opens offline. Not on this computer (PC LOCAL always loads fresh).
+    registerAppCache() {
+        if (!('serviceWorker' in navigator) || (typeof Vault !== 'undefined' && Vault.pcLocal)) return;
+        const go = () => navigator.serviceWorker.register('/sw.js').catch(() => {});
+        if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
+    }
+
     loadLocalDevTools() {
         const host = window.location.hostname;
         const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
@@ -1038,8 +1055,20 @@ class CodexSystem {
         // (src/local/admin.local.js) is gone.
         if (!nested) return;   // no panel on the login page
         const localDev = typeof Vault !== 'undefined' ? !!Vault.pcLocal : isLocal;
-        const maybeOwner = localStorage.getItem('bizzybee_session') === 'identity' && !!localStorage.getItem('gotrue.user');
-        if (localDev || maybeOwner || localStorage.getItem('bizzybee_dev_test') === '1') add('src/core/dev-tools/dev-tools.js');
+        // Oct 31 2026 (Craft): check the owner BEFORE downloading the 41 KB
+        // panel, so other people's devices (testers) never load it.
+        if (localDev || localStorage.getItem('bizzybee_dev_test') === '1') { add('src/core/dev-tools/dev-tools.js'); return; }
+        if (localStorage.getItem('bizzybee_session') !== 'identity') return;
+        (async () => {
+            try {
+                const user = JSON.parse(localStorage.getItem('gotrue.user') || 'null');
+                const email = user && user.email && String(user.email).trim().toLowerCase();
+                if (!email || !window.crypto || !crypto.subtle) return;
+                const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+                const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+                if (DEV_OWNER_HASHES.includes(hex)) add('src/core/dev-tools/dev-tools.js');
+            } catch { /* no panel */ }
+        })();
     }
 
     renderGlobalUI() {
