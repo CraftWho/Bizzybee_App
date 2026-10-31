@@ -1201,6 +1201,10 @@ const KEEPERDEX_ELEMENT_FLAVOR = {
 const KEEPERDEX_ENTRIES = (() => {
     const entries = [];
     BEE_RARITIES.forEach(rarityInfo => {
+        // Oct 31 2026 (Craft): your Royal has no element, so its 4 cards could
+        // never be found and 100% was impossible. Royal is last, so no other
+        // card's number changes.
+        if (rarityInfo.rarity === 'Royal') return;
         BEE_ELEMENT_KEYS.forEach(element => {
             const flavor = KEEPERDEX_ELEMENT_FLAVOR[element];
             const skills = [...KEEPERDEX_ELEMENT_SKILLS[element]];
