@@ -161,11 +161,12 @@ const TERM_COMMANDS = [
         return [['Uploaded to the cloud.', 'ok']];
     } },
     { name: 'backup', need: 'user', help: 'Make a recovery copy on this device.', run: () => (termBackup('manual') ? [['Recovery copy saved.', 'ok']] : [['Could not make a copy (storage full?).', 'err']]) },
-    // Oct 30 2026 (Craft): clear today. Unchecks everything finished today
-    // (dailies, To-Dos, quest tasks, habit taps). XP, honey, loot and bees
-    // stay exactly as they are: the XP those check-offs gave is kept as one
-    // "Kept" bonus, so your level doesn't move. Backup first (confirm).
-    { name: 'clear today', need: 'user', confirm: true, help: 'Uncheck everything done today. XP and loot stay.', run: async () => {
+    // Oct 30 2026 (Craft): clear today = today never happened. Unchecks
+    // everything finished today (dailies, To-Dos, quest tasks, habit taps),
+    // drops today's XP and streak bonus, and puts the level back to what the
+    // remaining XP supports. Loot isn't tracked per task, so it stays.
+    // Backup first (confirm).
+    { name: 'clear today', need: 'user', confirm: true, help: 'Undo today: check-offs, XP and level.', run: async () => {
         const S = Vault.state, day = todayISO(), now = Date.now();
         const before = Vault.getUser().totalXP;
         let n = 0;
@@ -195,16 +196,23 @@ const TERM_COMMANDS = [
             n += (h.history || []).length - keep.length;
             h.history = keep;
         });
-        // Today's streak bonus would vanish on the next uncheck, so fold it in.
-        S.bonusXP = (S.bonusXP || []).filter(b => b.date !== day);
-        const kept = Math.round(before - Vault.getUser().totalXP);
-        if (kept) S.bonusXP.push({ key: `clear-today:${day}:${now}`, date: 'kept', xp: kept, why: 'Kept when today was cleared' });
+        // Today's streak bonus goes too, and the XP an earlier clear today kept.
+        S.bonusXP = (S.bonusXP || []).filter(b => b.date !== day && !String(b.key || '').startsWith(`clear-today:${day}`));
+        // Level back to what the XP supports (never higher than it was).
+        const live = Vault.getUser().level;
+        const bar = S.characterLevelBar;
+        const levelBefore = bar ? (bar.acknowledgedLevel || 1) : live;
+        if (bar && bar.acknowledgedLevel > live) bar.acknowledgedLevel = live;
         Vault.save();
         // Push now, so the cloud copy can't bring the habit taps back.
         const cloud = typeof CloudSyncAuto !== 'undefined' ? CloudSyncAuto : null;
         if (cloud && termSignedIn) { try { await cloud.pushNow(); } catch { /* syncs later */ } }
-        if (!n) return [['Nothing was finished today.', 'dim']];
-        return [[`Cleared ${n} check-off${n === 1 ? '' : 's'} from today.`, 'ok'], [`XP stays at ${Math.round(Vault.getUser().totalXP)}. Loot and honey untouched.`, 'ok'], ['Undo with: restore list, then restore 1', 'dim']];
+        const xpGone = Math.round(before - Vault.getUser().totalXP);
+        const levelNow = bar ? bar.acknowledgedLevel : live;
+        if (!n && !xpGone) return [['Nothing from today to clear.', 'dim']];
+        return [[`Cleared ${n} check-off${n === 1 ? '' : 's'} from today.`, 'ok'],
+            [`XP ${Math.round(before)} → ${Math.round(Vault.getUser().totalXP)} (−${xpGone}). Level ${levelBefore}${levelNow !== levelBefore ? ' → ' + levelNow : ' (same)'}.`, 'ok'],
+            ['Undo with: restore list, then restore 1', 'dim']];
     } },
     { name: 'restore list', need: 'user', help: 'Recovery copies on this device.', run: () => {
         const list = Vault.getLocalBackups();
