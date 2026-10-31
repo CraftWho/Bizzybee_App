@@ -22,23 +22,9 @@ const TimeLog = (() => {
 
     // ask({ kind: 'daily'|'habit'|'todo'|'quest', id, questId })
     function ask({ kind, id, questId }) {
-        if (typeof Vault === 'undefined' || !Vault.state) return;
+        if (!enabled() || typeof Vault === 'undefined' || !Vault.state) return;
         const { task, quest } = find(kind, id, questId);
         if (!task) return;
-        // Smart skills (Oct 29 2026): every check-off counts toward making an
-        // everyday skill (2 of any kind and it makes itself).
-        if (typeof Vault.noteCheckoff === 'function') {
-            const made = Vault.noteCheckoff(task, quest ? `${quest.title || ''}` : '');
-            made.filter(Boolean).forEach(name => {
-                const meta = Vault.skillMeta(name);
-                if (typeof Toast !== 'undefined') Toast.show(`${meta.icon} New skill: ${name}. Tasks like this now count toward it.`, 'positive');
-                if (typeof SkillMerge !== 'undefined') setTimeout(() => SkillMerge.offer(name), 1200);
-            });
-        }
-        if (!enabled()) return;
-        // "Times done" skills don't care how long it took, so don't ask.
-        const counted = skillsForTask(task, Vault.getDictionaryTerms(), quest).map(x => x.category);
-        if (counted.length && typeof Vault.skillMeta === 'function' && counted.every(c => Vault.skillMeta(c).measure === 'times')) return;
         const planned = plannedMinutes(task);
         if (kind === 'habit' && planned < HABIT_MIN) return;
         close();
@@ -64,7 +50,7 @@ const TimeLog = (() => {
             if (b.dataset.d) { m = Math.max(1, Math.min(600, m + Number(b.dataset.d))); draw(); }
             else if (b.dataset.x) { m = Number(b.dataset.x); draw(); }
             else if (b.hasAttribute('data-save')) {
-                {   // Saving always marks the time as real, even if it matches the plan.
+                if (m !== planned) {
                     const xp = Vault.logCompletionMinutes(kind, id, m, { questId });
                     if (typeof Toast !== 'undefined' && xp) Toast.show(`⏱️ ${fmt(m)} logged · ${xp} XP`, 'positive');
                     window.dispatchEvent(new CustomEvent('time-logged', { detail: { kind, id, minutes: m } }));

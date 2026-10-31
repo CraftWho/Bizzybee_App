@@ -14,6 +14,3 @@
 .gdv .gd-new { margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: var(--bb-alt, #dc143c); color: #fff; font: 800 .56rem var(--font-main, monospace); vertical-align: middle; }
 .gdv .gd-empty, .gdv .gd-foot { color: #c2b48f; font-size: .8rem; }
 .gdv .gd-foot { text-align: center; margin: 12px 0 30px; }
-
-/* Oct 30 2026 (Craft): ✓ = already seen */
-.gd-read { margin-left: 8px; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(46, 204, 113, .18); color: #5fe39a; font-size: .7rem; vertical-align: 1px; }

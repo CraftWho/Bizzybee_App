@@ -42,32 +42,21 @@ function renderKeeperDex() {
         btn.dataset.dex = entry.dexNumber;
         btn.setAttribute('aria-label', obtained ? `${entry.name}, found` : `Entry ${entry.dexNumber}, not found yet`);
         btn.innerHTML = '<div class="kd-scale"><div></div></div>';
-        // Not found yet = face-down, so the grid gives no hints (Oct 29 2026).
-        KeeperDexCard.render(btn.querySelector('.kd-scale > div'), entry, { obtained, flipped: !obtained });
+        KeeperDexCard.render(btn.querySelector('.kd-scale > div'), entry, { obtained });
         grid.appendChild(btn);
     });
     requestAnimationFrame(kdScale);
 }
 
-// Tap a card: just the card, bigger. Tap it to flip (Oct 29 2026, Craft).
 function openDexEntry(dexNumber) {
     const x = kdEntries().find(e => String(e.entry.dexNumber) === String(dexNumber));
     if (!x) return;
-    let ov = document.getElementById('kd-zoom');
-    if (ov) ov.remove();
-    ov = document.createElement('div');
-    ov.id = 'kd-zoom'; ov.className = 'kd-zoom';
-    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
-    ov.setAttribute('aria-label', x.obtained ? x.entry.name : `Entry ${x.entry.dexNumber}, not found yet`);
-    ov.innerHTML = '<div class="kd-zoom-card" tabindex="0"></div><p class="kd-zoom-hint">Tap the card to flip it. Tap outside to close.</p>';
-    document.body.appendChild(ov);
-    const card = ov.querySelector('.kd-zoom-card');
-    KeeperDexCard.render(card, x.entry, { obtained: x.obtained, flipped: !x.obtained });
-    const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
-    const onKey = (e) => { if (e.key === 'Escape') close(); else if ((e.key === 'Enter' || e.key === ' ') && document.activeElement === card) { e.preventDefault(); KeeperDexCard.flip(card); } };
-    document.addEventListener('keydown', onKey);
-    ov.addEventListener('click', (e) => { if (e.target.closest('.kd-zoom-card')) KeeperDexCard.flip(card); else close(); });
-    card.focus({ preventScroll: true });
+    const box = PV2.sheet(`
+        <div class="head"><div><h2>${x.obtained ? PV2.esc(x.entry.name) : `No. ${String(x.entry.dexNumber).padStart(3, '0')}`}</h2>
+            <small>${x.obtained ? 'Found' : 'Not found yet. Get a matching bee to reveal it.'}</small></div>
+            <button type="button" class="x" data-close aria-label="Close">×</button></div>
+        <div class="kd-full"></div>`, x.entry.name);
+    KeeperDexCard.render(box.querySelector('.kd-full'), x.entry, { obtained: x.obtained });
 }
 
 // Fallen bees (Hive Life, Oct 2026): name, job, how long they lived.

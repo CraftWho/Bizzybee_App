@@ -22,7 +22,6 @@ let termSignedIn = false;
 let termPending = null;
 let termCloudList = [];
 let termRequests = [];
-let termSupport = [];   // Oct 30 2026 (Craft): support save copies (supportsaves)
 const termHistory = [];
 let termHistoryAt = -1;
 
@@ -282,25 +281,6 @@ const TERM_COMMANDS = [
         const r = await termServer({ action: 'grants' });
         if (!r.grants.length) return [['Nobody has access right now.', 'dim']];
         return r.grants.map(g => [`  ${g.email} · ${g.level}${g.expiresAt ? ' · until ' + new Date(g.expiresAt).toLocaleString() : ''}`]);
-    } },
-    // Oct 30 2026 (Craft): save copies people attached in Contact support.
-    { name: 'supportsaves', need: 'owner', help: 'Saves attached to support messages.', run: async () => {
-        const r = await CloudSyncAuto.request('support', { action: 'list' });
-        termSupport = r.items || [];
-        if (!termSupport.length) return [['No save copies. (They are kept 30 days.)', 'dim']];
-        return termSupport.slice(0, 20).map((q, i) => [`  ${i + 1}. ${q.email} · ${new Date(q.at).toLocaleString()} · ${q.id}`])
-            .concat([['Download one with: supportsave <n>   (the id matches "save_copy" in the support email)', 'dim']]);
-    } },
-    { name: 'supportsave', usage: 'supportsave <n>', need: 'owner', args: true, help: 'Download a support save copy.', run: async (a) => {
-        const q = termSupport[(parseInt(a[0], 10) || 0) - 1] || termSupport.find(x => x.id === a[0]);
-        if (!q) return [['Run supportsaves first, then pick a number.', 'err']];
-        const r = await CloudSyncAuto.request('support', { action: 'get', id: q.id });
-        const url = URL.createObjectURL(new Blob([r.data], { type: 'application/json' }));
-        const link = document.createElement('a');
-        link.href = url; link.download = `support-${q.email.replace(/[^\w.-]+/g, '_')}-${q.id}.json`;
-        document.body.appendChild(link); link.click(); link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        return [[`Downloaded ${q.email}'s save. Open it on a dev test save (Settings › Import & export).`, 'ok']];
     } },
     { name: 'logs', need: 'owner', help: 'What people ran in their Terminals.', run: async () => {
         const r = await termServer({ action: 'logs', limit: 25 });

@@ -19,8 +19,6 @@ const EVERY_UNIT = { daily: ['Day', 'Days'], weekly: ['Week', 'Weeks'], monthly:
 
 let selectedDifficulty = 'Easy';
 let timePicker = null;   // TaskForm.timePicker (Oct 2026: XP = minutes x effort)
-// A tag added or removed updates "Counts toward" right away (Oct 29 2026).
-document.addEventListener('tagschange', (e) => { if (e.target && e.target.id === 'daily-tags-list' && timePicker) timePicker.refresh(); });
 let selectedXP = 20;
 let repeatsType = 'weekly';
 let selectedDays = [0, 1, 2, 3, 4, 5, 6];
@@ -149,7 +147,7 @@ function saveDaily() {
         xp: selectedXP,
         difficulty: selectedDifficulty,
         notes: document.getElementById('daily-notes-input').value.trim(),
-        checklist: checklistEditor.get().map(i => ({ id: i.id, text: i.text, done: i.doneOn === todayISO(), ...(i.doneOn ? { doneOn: i.doneOn } : {}) })),
+        checklist: checklistEditor.get().map(i => ({ id: i.id, text: i.text, done: false, ...(i.doneOn ? { doneOn: i.doneOn } : {}) })),
         startDate: document.getElementById('daily-start-date').value || TaskForm.todayISOLocal(),
         repeats: {
             type: repeatsType,
@@ -179,18 +177,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     Waggle.setActions(baseWaggleActions());
 
-    checklistEditor = TaskForm.checklist(document.getElementById('df-checklist'), document.getElementById('df-cl-add'), { checkable: 'daily' });
+    checklistEditor = TaskForm.checklist(document.getElementById('df-checklist'), document.getElementById('df-cl-add'));
     reminderEditor = TaskForm.reminders(document.getElementById('df-reminders'), document.getElementById('df-rem-add'));
-    // Oct 30 2026 (Craft): in the Android app reminders are real phone notifications.
-    if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) document.getElementById('df-rem-hint').textContent = 'Sends a phone notification on due days, even with the app closed.';
-    // Oct 30 2026 (Craft): Add to calendar (repeats too) / Set alarm, at the first reminder time.
-    TaskForm.phoneButtons(document.getElementById('df-phone'), () => {
-        const start = document.getElementById('daily-start-date').value, today = TaskForm.todayISOLocal();
-        const times = reminderEditor.get().map(r => r.time).sort();
-        return { title: document.getElementById('daily-title-input').value.trim(), notes: document.getElementById('daily-notes-input').value.trim(),
-            date: start && start > today ? start : today, time: times[0] || null,
-            repeat: { type: repeatsType, every: everyValue(), days: repeatsType === 'weekly' ? [...selectedDays].sort() : [] } };
-    });
 
     editingTaskId = new URLSearchParams(window.location.search).get('id');
     const existing = editingTaskId ? Vault.getDailyTasks().find(t => t.id === editingTaskId) : null;

@@ -13,9 +13,6 @@
 
     // Don't start inside things that scroll on their own, or with a sheet/dialog open.
     function blocked(target) {
-        // Dragging the dev button (or anything marked data-no-pull) never refreshes (Oct 29 2026).
-        if (target && target.closest && target.closest('.dev-fab, [data-no-pull]')) return true;
-        if (document.body.classList.contains('bb-dragging')) return true;
         if (window.scrollY > 0 || document.scrollingElement.scrollTop > 0) return true;
         if (document.querySelector('.lvr, .gfx.on, dialog[open], .hn-tip, [role="dialog"]:not([hidden])')) return true;
         for (let n = target; n && n !== document.body; n = n.parentElement) {

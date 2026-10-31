@@ -64,7 +64,7 @@ const BizzyNotify = (() => {
         },
     };
     const DEFAULT_DAILY_TIME = '18:00';
-    const DEFAULT_DEADLINE = '22:00';   // a To-Do with a date but no time is due at 10 PM (Oct 29 2026)
+    const DEFAULT_DEADLINE = '21:00';
     const smartOn = () => read('bizzybee_smart_notify', 'off') === 'on';
     const smartLevel = () => read('bizzybee_smart_level', 'normal');
     const quiet = () => read('bizzybee_smart_quiet', '22-7');
@@ -139,9 +139,9 @@ const BizzyNotify = (() => {
                 shrink(PLAN.todo[diffOf(t)]).forEach(([m, lvl, title, text, sticky], n) => add('todo', t, new Date(deadline.getTime() + m * 60000), lvl, title, text, sticky, `s${n}`));
                 return;
             }
-            const dueAt = t.dueTime || '22:00';   // a date with no time: 10 PM (Oct 29 2026)
-            if (P.todo.morning) add('todo', t, at(t.dueDate, '09:00'), 1, 'Due today', `Due at ${dueAt}`, false, 'morning');
-            const deadline = at(t.dueDate, dueAt);
+            if (P.todo.morning) add('todo', t, at(t.dueDate, '09:00'), 1, 'Due today', t.dueTime ? `Due at ${t.dueTime}` : '', false, 'morning');
+            if (!t.dueTime) return;
+            const deadline = at(t.dueDate, t.dueTime);
             if (P.todo.h1) add('todo', t, new Date(deadline.getTime() - 3600000), 2, 'Due in 1 hour', '', false, 'h1');
             if (P.todo.m15) add('todo', t, new Date(deadline.getTime() - 900000), 3, '15 minutes left', '', false, 'm15');
             if (P.todo.at) add('todo', t, deadline, 3, 'Due now', 'Mark it done?', false, 'at');
