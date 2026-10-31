@@ -90,11 +90,3 @@
 .pfv2 .link-row i { color: var(--muted); font-style: normal; }
 .pfv2 [hidden] { display: none !important; }
 .pfv2 details.more summary { margin-top: 8px; color: var(--gold); font-size: .8rem; cursor: pointer; }
-
-/* Oct 29 2026: hex ring follows the shape. */
-.pfv2 .hx::after { box-shadow: none !important; background: rgba(var(--bb-alt-rgb, 220, 20, 60), .85); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }
-
-/* Project links as small buttons (Oct 29 2026, Craft). */
-.pf-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.pf-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .35); background: rgba(20, 14, 5, .9); color: var(--bb-accent, #ffcc00); font: 700 .72rem var(--font-main, monospace); text-decoration: none; }
-.pf-btn:hover, .pf-btn:focus-visible { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .12); outline: none; }

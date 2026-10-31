@@ -11,9 +11,9 @@
 (function () {
     const me = document.currentScript;
     const core = me.src.replace(/boot\.js(?:\?.*)?$/, '');
-    const STYLES = ['global.css', 'ui/themes/themes.css', 'ui/hive-mind/hive-mind.css', 'ui/hive-mind/nano-bee.css', 'ui/toast/toast.css', 'ui/llm-engine/llm-engine.css', 'ui/thumb-pad/thumb-pad.css'];   // Oct 30 2026 (Craft): + thumb pad
+    const STYLES = ['global.css', 'ui/themes/themes.css', 'ui/hive-mind/hive-mind.css', 'ui/hive-mind/nano-bee.css', 'ui/toast/toast.css', 'ui/llm-engine/llm-engine.css'];
     const before = ['db.js', 'plugins.js', 'services/notify/notify.js'];
-    const after = ['app.js', 'ui/themes/themes.js', 'services/social/social.js', 'ui/skill-merge/skill-merge.js', 'ui/hive-mind/nano-bee.js', 'ui/hive-mind/hive-mind.js', 'ui/toast/toast.js', 'services/reminders/reminders.js', 'ui/llm-engine/llm-engine.js', 'ui/thumb-pad/thumb-pad.js'];
+    const after = ['app.js', 'ui/themes/themes.js', 'services/social/social.js', 'ui/hive-mind/nano-bee.js', 'ui/hive-mind/hive-mind.js', 'ui/toast/toast.js', 'services/reminders/reminders.js', 'ui/llm-engine/llm-engine.js'];
     const extra = (me.dataset.with || '').split(/\s+/).filter(Boolean);
     // Themes (Oct 28 2026): set the theme before anything paints, so there's
     // no flash. 'auto' = BizzyBee, and Halloween on Oct 31 (your local day).
@@ -26,13 +26,6 @@
         const auto = (d.getMonth() === 9 && d.getDate() === 31) ? 'halloween' : 'bee';
         const skin = pick === 'auto' ? auto : pick;
         if (skin && skin !== 'bee') document.documentElement.dataset.skin = skin;
-    }
-    // Oct 30 2026 (Craft): mobile vs desktop. A phone-sized touch screen gets
-    // html.bb-mobile, everything else html.bb-desktop. CSS hides .desktop-only
-    // on phones and .mobile-only on computers (global.css).
-    if (me.dataset.load === 'styles') {
-        const mobile = (window.matchMedia && matchMedia('(pointer: coarse)').matches) && Math.min(screen.width, screen.height) < 820;
-        document.documentElement.classList.add(mobile ? 'bb-mobile' : 'bb-desktop');
     }
     if (me.dataset.load === 'styles') {
         document.write(STYLES.map(f => `<link rel="stylesheet" href="${core}${f}">`).join(''));

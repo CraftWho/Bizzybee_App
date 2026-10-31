@@ -73,6 +73,13 @@ const PLUGIN_CATALOG = [
         description: 'A support console, like the one in Fallout. If an update breaks your save, request help here - the team unlocks repair commands for you.'
     },
     {
+        id: 'incubator',
+        icon: '🥚',
+        label: 'Egg Incubator',
+        status: 'available',
+        description: 'Hatch eggs faster with your steps (Android app) or finished dailies. Buy incubators with Honey coins. Better tiers hold more eggs and give hatchlings a head start.'
+    },
+    {
         id: 'fitness',
         icon: '💪',
         label: 'Fitness & Health',

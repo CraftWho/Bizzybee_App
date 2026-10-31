@@ -10,7 +10,7 @@ export const MAX_SUBS = 6;          // devices per account
 export const MAX_ITEMS = 400;       // upcoming reminders kept per account
 export const MAX_SENT = 600;        // recently sent ids remembered (no repeats)
 export const LATE_MS = 20 * 60000;  // a reminder more than 20 min late is skipped
-export const EARLY_MS = 900000;     // Oct 29 2026 (Craft): runs every 15 min; send anything due before the next run, so up to 15 min early, never late
+export const EARLY_MS = 150000;     // the sender runs every 5 min, so send up to 2.5 min early
 export const NEXT_KEY = '_next';    // one small blob: the earliest unsent reminder of any account
 
 const str = (v, max) => typeof v === 'string' && v.length > 0 && v.length <= max;

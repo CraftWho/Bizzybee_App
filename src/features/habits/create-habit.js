@@ -19,8 +19,6 @@ const HABIT_DIFFICULTY_TIERS = [
 
 let selectedDifficulty = 'Easy';
 let timePicker = null;   // TaskForm.timePicker (Oct 2026: XP = minutes x effort)
-// A tag added or removed updates "Counts toward" right away (Oct 29 2026).
-document.addEventListener('tagschange', (e) => { if (e.target && e.target.id === 'habit-tags-list' && timePicker) timePicker.refresh(); });
 let selectedXP = 20;
 let editingHabitId = null;
 let habitPositiveEnabled = true;

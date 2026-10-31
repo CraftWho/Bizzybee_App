@@ -14,12 +14,6 @@ async function settingsAction(button, action) {
 function initCloudSync() {
     const toggle = document.getElementById('cloud-sync-auto-toggle');
     toggle.checked = localStorage.getItem('bizzybee_auto_sync') !== 'false';
-    // Oct 30 2026 (Craft): cloud only - the switch is for the creator (dev mode).
-    if (localStorage.getItem('bizzybee_dev') !== '1') {
-        const row = toggle.closest('.row') || toggle.parentElement;
-        if (row) { row.querySelector('small') && (row.querySelector('small').textContent = 'Always on. Your hive is saved to your account every couple of minutes.'); }
-        toggle.disabled = true; toggle.checked = true;
-    }
     toggle.addEventListener('change', () => {
         localStorage.setItem('bizzybee_auto_sync', String(toggle.checked));
         if (toggle.checked && typeof CloudSyncAuto !== 'undefined') CloudSyncAuto.schedule();

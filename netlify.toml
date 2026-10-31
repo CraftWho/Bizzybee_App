@@ -19,12 +19,6 @@
   to = "/src/features/todos/:splat"
   status = 301
 
-# The Egg Incubator stopped being a plugin on 2026-10-29 (bought in the Honey Store).
-[[redirects]]
-  from = "/src/plugins/incubator/*"
-  to = "/src/features/incubator/:splat"
-  status = 301
-
 # Dictionary became a plugin on 2026-10-11 (src/features/ -> src/plugins/).
 [[redirects]]
   from = "/src/features/dictionary/*"

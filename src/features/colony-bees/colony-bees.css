@@ -72,9 +72,3 @@
 .pv2-sheet .cb-slot small, .pv2-sheet .cb-item small { display: block; color: var(--muted); font-size: .72rem; }
 .pv2-sheet .cb-items { display: grid; gap: 6px; }
 .pv2-sheet .cb-items[hidden] { display: none; }
-/* Limited bees (Oct 29 2026). */
-.cb-limited { margin: 4px 0; color: #ffcf6b; font-size: .86rem; }
-
-/* Oct 30 2026 (Craft): pop-up card from the grid */
-.cb-pop-hint { margin: 10px 0 0; text-align: center; color: #c2b48f; font-size: .76rem; }
-#cb-expanded.is-pop .cb-expanded-hint { display: none; }

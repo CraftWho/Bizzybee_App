@@ -43,30 +43,6 @@ async function renderMaster() {
     $('nt-master-note').textContent = s.note;
     if (isApp) $('nt-exact').hidden = !(s.on && !(await N.exactAlarmsOk()));
 }
-// Web reminders, the honest version (Oct 29 2026, Craft). Off until you
-// turn them on, and before they turn on you see what to expect.
-function confirmWebReminders() {
-    return new Promise(resolve => {
-        const bg = document.createElement('div');
-        bg.className = 'nt-warn-bg';
-        bg.innerHTML = `<div class="nt-warn" role="dialog" aria-modal="true" aria-labelledby="nt-warn-h">
-            <h3 id="nt-warn-h">🔔 Before you turn on web reminders</h3>
-            <ul>
-                <li><b>Can come early.</b> When BizzyBee is closed, a reminder can arrive up to 15 minutes early, never late. With BizzyBee open, it shows at the exact time.</li>
-                <li><b>iPhone:</b> only works after you add BizzyBee to your Home Screen, and the sound is the iPhone default.</li>
-                <li><b>Your browser decides.</b> Battery saver or "Do not disturb" can delay or hide them.</li>
-                <li><b>Need exact times?</b> Use the Android app, or add the task to your phone's calendar.</li>
-            </ul>
-            <div class="nt-warn-btns"><button type="button" class="btn" data-a="no">Not now</button><button type="button" class="btn solid" data-a="yes">Turn on</button></div>
-        </div>`;
-        const done = (v) => { bg.remove(); document.removeEventListener('keydown', esc); resolve(v); };
-        const esc = (e) => { if (e.key === 'Escape') done(false); };
-        bg.addEventListener('click', (e) => { const b = e.target.closest('[data-a]'); if (b) done(b.dataset.a === 'yes'); else if (e.target === bg) done(false); });
-        document.addEventListener('keydown', esc);
-        document.body.appendChild(bg);
-        bg.querySelector('[data-a="yes"]').focus();
-    });
-}
 function initMaster() {
     $('nt-master').addEventListener('change', async (e) => {
         const box = e.target;
@@ -76,7 +52,6 @@ function initMaster() {
                 if (box.checked && (await N.permission(true)) !== 'granted') { box.checked = false; Toast.show('Allow notifications for BizzyBee in Android settings.', 'negative'); }
                 N.set('rem', box.checked);
             } else if (box.checked) {
-                if (!(await confirmWebReminders())) { box.checked = false; return; }
                 const out = await BizzyPush.enable();
                 Toast.show(`🔔 On. ${out.upcoming || 0} coming up in the next 10 days.`, 'positive');
             } else {

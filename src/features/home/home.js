@@ -42,40 +42,51 @@ function todayData() {
     return { dailies, todos, quest, habits: pluginOn('habits') ? Vault.getHabits() : [] };
 }
 
-// XP earned today across everything (habits count + and −). Same list as
-// the Done today sheet, so the two always match (Oct 29 2026).
+// XP earned today across everything (habits count + and −).
 function xpToday() {
-    return Vault.doneOn(todayISO()).reduce((n, x) => n + x.xp, 0);
+    const today = todayISO();
+    let xp = 0;
+    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) xp += Number(t.xp) || 0; });
+    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) xp += Number(t.xp) || 0; });
+    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) xp += Number(t.xp) || 0; }));
+    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => (h.history || []).forEach(x => {
+        if (x.date === today) xp += (x.direction === 'positive' ? 1 : -1) * (Number(h.xp) || 0);
+    }));
+    return xp;
 }
 
-// Each row links to its task and says when it was done (Oct 29 2026).
-function doneHref(x) {
-    if (typeof BizzyNotify === 'undefined') return null;
-    try { return BizzyNotify.urlFor(x.kind, x.id, x.extra); } catch { return null; }
-}
-function doneTime(x) {
-    return x.t ? new Date(x.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
-}
-function doneRows(list) {
-    return list.map(x => {
-        const href = doneHref(x), when = doneTime(x);
-        const inner = `<span class="xt-ic" aria-hidden="true">${x.icon}</span><span class="xt-mid"><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.what)}${when ? ' · ' + when : ''}</small></span><span class="xt-xp${x.xp < 0 ? ' neg' : ''}">${x.xp > 0 ? '+' : ''}${x.xp}</span>`;
-        return href ? `<li><a class="xt-row" href="${escapeHTML(href)}">${inner}</a></li>` : `<li><span class="xt-row">${inner}</span></li>`;
-    }).join('');
+// Everything finished today, for the XP today list (Oct 28 2026). Built
+// from today's data, so it starts fresh at midnight on its own.
+function doneToday() {
+    const today = todayISO();
+    const out = [];
+    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) out.push({ icon: '☀️', kind: 'Daily', label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[today] && t._days[today].t) || 0 }); });
+    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) out.push({ icon: '✅', kind: 'To-Do', label: t.label, xp: Number(t.xp) || 0, t: t._mt || 0 }); });
+    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => {
+        if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) out.push({ icon: '🗺️', kind: q.title, label: t.label, xp: Number(t.xp) || 0, t: Date.parse(t.dateCompleted) || 0 });
+    }));
+    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => {
+        const taps = (h.history || []).filter(x => x.date === today);
+        const plus = taps.filter(x => x.direction === 'positive').length, minus = taps.length - plus;
+        const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
+        if (plus) out.push({ icon: '🔁', kind: `Habit${plus > 1 ? ` ×${plus}` : ''}`, label: h.label, xp: plus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
+        if (minus) out.push({ icon: '😖', kind: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, label: h.label, xp: -minus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
+    });
+    return out.sort((a, b) => b.t - a.t);
 }
 
 function openDoneToday() {
     if (document.querySelector('.xt-scrim')) return;
-    const list = Vault.doneOn(todayISO());
+    const list = doneToday();
     const total = list.reduce((n, x) => n + x.xp, 0);
     const s = document.createElement('div');
     s.className = 'xt-scrim';
     s.innerHTML = `<div class="xt-sheet" role="dialog" aria-modal="true" aria-label="Done today">
         <div class="xt-head"><div><h2>DONE TODAY</h2><small>${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · starts fresh at midnight</small></div>
             <b class="xt-total">${total > 0 ? '+' : ''}${total} XP</b></div>
-        ${list.length ? `<ul class="xt-list">${doneRows(list)}</ul>`
+        ${list.length ? `<ul class="xt-list">${list.map(x => `<li><span class="xt-ic" aria-hidden="true">${x.icon}</span><span class="xt-mid"><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.kind)}</small></span><span class="xt-xp${x.xp < 0 ? ' neg' : ''}">${x.xp > 0 ? '+' : ''}${x.xp}</span></li>`).join('')}</ul>`
             : '<p class="xt-empty">Nothing finished yet today. Check off a daily to get started.</p>'}
-        <div class="xt-btns"><a class="xt-btn" href="../history/history.html">History</a><button type="button" class="xt-btn gold" data-k="close">Close</button></div></div>`;
+        <div class="xt-btns"><a class="xt-btn" href="../dashboard/dashboard.html">Dashboard</a><button type="button" class="xt-btn gold" data-k="close">Close</button></div></div>`;
     const close = () => s.remove();
     s.addEventListener('click', e => { if (e.target === s || e.target.closest('[data-k="close"]')) close(); });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
@@ -83,17 +94,19 @@ function openDoneToday() {
     s.querySelector('[data-k="close"]').focus();
 }
 
-// Days in a row with every goal kept on time: dailies and To-Dos due that
-// day (Oct 30 2026, Craft: not just dailies). Today counts once it's all done.
+// Days in a row with every daily done (today counts once it's all done).
 function currentStreak() {
-    const S = Vault.state || {};
+    const list = (Vault.state && Vault.state.dailyTasks) || [];
+    if (!list.length) return 0;
     const today = todayISO();
+    const dueOn = (day) => list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
+    const allDone = (day) => dueOn(day).every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day));
     let n = 0;
-    if (goalsKeptOn(S.dailyTasks, S.todos, today, { saved: true }) === true) n++;
+    if (dueOn(today).length && allDone(today)) n++;
     for (let i = 1; i <= 730; i++) {
-        const kept = goalsKeptOn(S.dailyTasks, S.todos, shiftISODate(today, -i), { saved: true });
-        if (kept === null) continue;
-        if (!kept) break;
+        const day = shiftISODate(today, -i);
+        if (!dueOn(day).length) continue;
+        if (!allDone(day)) break;
         n++;
     }
     return n;
@@ -101,11 +114,7 @@ function currentStreak() {
 
 // ---- hive strip: four stats, each to its own page ----
 const STRIP_ICONS = {
-    // Top-down bee (Oct 29 2026): antennae, round head, torso, striped
-    // pointed tail, and big wings.
-    bees: '<path d="M10.6 4.4 9.2 2.4M13.4 4.4l1.4-2"/><circle cx="12" cy="5.9" r="1.8"/><ellipse cx="12" cy="10.1" rx="2.3" ry="2.1"/><path d="M12 12.2c-2.7 0-3.6 2.4-3.4 4.5.3 2.5 1.9 4.1 3.4 5.6 1.5-1.5 3.1-3.1 3.4-5.6.2-2.1-.7-4.5-3.4-4.5z"/><path d="M8.8 15.4h6.4M9.3 18.3h5.4"/><path d="M9.8 9.4C6.3 6.1 2.6 6.8 2.7 9.5c.1 2.4 3.9 2.6 7.1 1z"/><path d="M14.2 9.4c3.5-3.3 7.2-2.6 7.1.1-.1 2.4-3.9 2.6-7.1 1z"/><path d="M9.8 11.3c-2.9.6-4.8 2.6-3.8 4 1 1.3 3 .1 4-2.2M14.2 11.3c2.9.6 4.8 2.6 3.8 4-1 1.3-3 .1-4-2.2"/>',
-    steps: '<path d="M8 3.5c1.7 0 2.6 2 2.6 4.6S9.7 13 8 13s-2.6-2.3-2.6-4.9S6.3 3.5 8 3.5z"/><path d="M6 15.5h4v1.3a2 2 0 0 1-4 0z"/><path d="M16 7.5c1.7 0 2.6 2 2.6 4.6S17.7 17 16 17s-2.6-2.3-2.6-4.9.9-4.6 2.6-4.6z"/><path d="M14 19.5h4v1.3a2 2 0 0 1-4 0z"/>',
-    wx: '<path d="M7.2 18.5h10a3.7 3.7 0 0 0 .3-7.4 5.2 5.2 0 0 0-10-.9A3.9 3.9 0 0 0 7.2 18.5z"/>',
+    bees: '<path d="M12 6.5a3 3 0 1 1 0 .1"/><path d="M8.5 11h7l-.8 7.5a2.7 2.7 0 0 1-5.4 0z"/><path d="M8.8 14h6.4M9.2 16.8h5.6M8.5 11C5 8 3 9.5 4.2 11.8S8.2 13 8.5 11zM15.5 11c3.5-3 5.5-1.5 4.3.8S15.8 13 15.5 11z"/>',
     xp: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
     streak: '<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-8.3.7 1.9 1.8 3 3 3.4-.2-2.6.8-5.3 2.9-6.9.1 3.4 3.5 6 3.5 10.4C18.5 18.2 16 21 12 21z"/><path d="M12 21c-1.7 0-2.8-1.2-2.8-2.8 0-1.8 1.6-2.7 2.2-4.2.9 1.5 3.4 2.4 3.4 4.4 0 1.5-1.2 2.6-2.8 2.6z"/>',
     quest: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2"/>'
@@ -123,23 +132,14 @@ function renderHive() {
         { key: 'streak', value: streak, label: 'Current streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
         { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
     ];
-    // Steps and weather (Oct 29 2026): fixed slots so nothing pops in late.
-    // phone.js fills them once the data arrives (window.__homeStrip).
-    const hs = window.__homeStrip || {};
-    const app = typeof BizzyPhone !== 'undefined' && BizzyPhone.isApp;
-    if (app && hs.steps !== null) stats.push({ key: 'steps', value: hs.steps != null ? hs.steps.toLocaleString() : '–', label: 'Steps', color: '#9be15d', still: true });
-    if (hs.wx !== null) stats.push({ key: 'wx', value: hs.wx ? `${hs.wx.temp}°` : '–', label: hs.wx ? hs.wx.text : 'Weather', color: '#7fc8ff', still: true, icon: hs.wx && hs.wx.icon, title: hs.wx && hs.wx.place });
     const host = document.getElementById('home-hive');
-    const tag = (s) => s.button ? 'button' : s.still ? 'div' : 'a';
-    host.classList.toggle('six', stats.length > 4);
     host.innerHTML = stats.map(s => `
-        <${s.button ? 'button type="button" data-done-today' : s.still ? `div data-stat="${s.key}"${s.title ? ` title="${escapeHTML(s.title)}"` : ''}` : `a href="${s.href}"`} class="home-stat" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}${s.button ? '. Show what you finished today' : ''}">
-            ${s.icon || `<svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>`}
+        <${s.button ? 'button type="button" data-done-today' : `a href="${s.href}"`} class="home-stat" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}${s.button ? '. Show what you finished today' : ''}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>
             <b>${escapeHTML(s.value)}</b><small>${escapeHTML(s.label)}</small>
-        </${tag(s)}>`).join('');
+        </${s.button ? 'button' : 'a'}>`).join('');
     host.querySelector('[data-done-today]').onclick = openDoneToday;
 }
-window.addEventListener('home-strip', () => { try { renderHive(); } catch { /* not ready yet */ } });
 
 // ---- Bees that need help (Hive Life moods) ----
 // 😢 hungry / tired / hurt, 😠 no job for 3+ days, 😵 fainted. One line,
@@ -160,63 +160,12 @@ function renderReadyEggs() {
     el.innerHTML = `<span class="home-help-ic" aria-hidden="true">🥚</span><span class="home-help-t"><b>${eggs.length} egg${eggs.length === 1 ? ' is' : 's are'} ready to hatch!</b><small>Tap to crack ${eggs.length === 1 ? 'it' : 'the first one'} open.</small></span><span class="home-help-go" aria-hidden="true">›</span>`;
 }
 
-// Halloween challenge (Oct 29 2026, Craft): on Oct 31 only, finish 3 tasks
-// to claim Grimzy The Reaper, a numbered limited bee (50 exist; #001 is the
-// creator's). Miss the day and it's gone until it comes back.
-const LIMITED_NOW = 'grimzy-2026';
-function renderHalloween() {
-    const help = document.getElementById('home-help');
-    let el = document.getElementById('home-limited');
-    const on = typeof Themes !== 'undefined' && Themes.seasonal && Themes.seasonal() === 'halloween' && typeof Vault.limitedChallenge === 'function';
-    if (!on || !help) { if (el) el.remove(); return; }
-    const ch = Vault.limitedChallenge(LIMITED_NOW);
-    if (!el) {
-        el = document.createElement('section');
-        el.id = 'home-limited'; el.className = 'home-card home-limited';
-        help.parentNode.insertBefore(el, help);
-        el.addEventListener('click', (e) => { if (e.target.closest('[data-claim]')) claimLimited(e.target.closest('[data-claim]')); });
-    }
-    const name = `${ch.edition.name} ${NAMED_TITLES[ch.edition.title].label}`;
-    if (ch.owned) {
-        el.innerHTML = `<span class="hl-ic" aria-hidden="true">💀</span><span class="hl-t"><b>${escapeHTML(name)} #${String(ch.owned.limited.serial).padStart(3, '0')} is yours</b><small>Happy Halloween! One of only ${ch.edition.of}.</small></span>
-            <a class="hl-go" href="../colony-bees/colony-bees.html?bee=${encodeURIComponent(ch.owned.id)}">See</a>`;
-        return;
-    }
-    const pct = Math.round(ch.done / ch.need * 100);
-    el.innerHTML = `<span class="hl-ic" aria-hidden="true">🎃</span><span class="hl-t"><b>Halloween challenge</b>
-        <small>${escapeHTML(ch.edition.challenge.text)} to claim <b>${escapeHTML(name)}</b>. Only ${ch.edition.of} exist. Today only.</small>
-        <span class="hl-bar" role="img" aria-label="${ch.done} of ${ch.need} done"><i style="width:${pct}%"></i></span>
-        <small class="hl-left" id="hl-left">${ch.done}/${ch.need} done</small></span>
-        ${ch.ready ? '<button type="button" class="hl-go" data-claim>Claim</button>' : ''}`;
-    if (typeof Social !== 'undefined') Social.limitedLeft(LIMITED_NOW).then(r => {
-        const t = document.getElementById('hl-left');
-        if (t) t.textContent = `${ch.done}/${ch.need} done · ${r.left} of ${ch.edition.of} left`;
-        if (r.mine && !Vault.limitedChallenge(LIMITED_NOW).owned) { Vault.addLimitedBee(LIMITED_NOW, r.mine); renderHalloween(); }
-    }).catch(() => { const t = document.getElementById('hl-left'); if (t) t.textContent = `${ch.done}/${ch.need} done · sign in to Cloud sync to claim`; });
-}
-async function claimLimited(btn) {
-    btn.disabled = true; btn.textContent = '…';
-    try {
-        const r = await Social.claimLimited(LIMITED_NOW, todayISO());
-        const bee = Vault.addLimitedBee(LIMITED_NOW, r.serial);
-        renderHalloween(); renderHive();
-        try { await AppShell.loadLevelBar(); } catch { /* toast below */ }
-        const ed = LIMITED_EDITIONS[LIMITED_NOW], no = `#${String(r.serial).padStart(3, '0')}/${String(ed.of).padStart(3, '0')}`;
-        if (typeof LevelBar !== 'undefined' && bee) LevelBar.celebrate({ title: `${ed.name} The Reaper joined your hive!`, lines: [], rich: { cap: `${ed.label.toUpperCase()} · LIMITED`, level: null, ribbon: no, perks: ['💀 Soul Harvest: fallen bees leave a Honey Drop'], loot: [{ bee }], beeId: bee.id } });
-        else Toast.show(`💀 ${ed.name} The Reaper ${no} is yours!`, 'positive');
-    } catch (e) {
-        Toast.show(e.message || 'Could not claim it. Try again.', 'negative');
-        btn.disabled = false; btn.textContent = 'Claim';
-    }
-}
-
 function renderBeeHelp() {
-    renderHalloween();
     renderReadyEggs();
     const el = document.getElementById('home-help');
     if (!el || typeof beeNeeds !== 'function') return;
     // Oct 28 2026 (Craft): say exactly who needs what, and how to fix it.
-    const list = Vault.getColonyBees().filter(b => typeof beeNeedsHelp === 'function' ? beeNeedsHelp(b) : b.rarity !== 'Royal')
+    const list = Vault.getColonyBees().filter(b => b.rarity !== 'Royal')
         .map(b => ({ b, needs: beeNeeds(b) })).filter(x => x.needs.length);
     el.hidden = !list.length;
     if (!list.length) return;
@@ -418,25 +367,12 @@ function installedPluginApps() {
 }
 
 function hrefFor(app) {
-    if (app.path) return `../../../${app.path}`;
     return app.base === 'plugins' ? `../../plugins/${app.key}/${app.key}.html` : `../${app.key}/${app.key}.html`;
 }
 
-// Oct 30 2026 (Craft): Home tiles are chosen now (HomeTiles in hive-mind.js).
-// Defaults minus removed ones, plus pages pinned from the menu or the ＋ tile.
-function tileCatalog() {
-    const all = [...HOME_APPS, ...installedPluginApps()];
-    const have = new Set(all.map(a => a.key));
-    const extra = typeof HomeTiles === 'undefined' ? [] : HomeTiles.menuPages()
-        .filter(p => !have.has(p.key) && !DOCK_PLUGINS.includes(p.key))
-        .map(p => ({ key: p.key, label: p.label, emoji: p.icon, path: p.path }));
-    return [...all, ...extra];
-}
-const tileOn = (key) => typeof HomeTiles === 'undefined' ? HOME_APPS.some(a => a.key === key) || installedPluginApps().some(a => a.key === key) : HomeTiles.isOn(key);
-
-// Saved order first, then any tile the order doesn't know yet (new plugin or pin).
+// Saved order first, then any app the order doesn't know yet (new plugin).
 function orderedApps() {
-    const all = tileCatalog().filter(a => tileOn(a.key));
+    const all = [...HOME_APPS, ...installedPluginApps()];
     const saved = (Vault.state && Array.isArray(Vault.state.homeAppOrder)) ? Vault.state.homeAppOrder : [];
     const byKey = new Map(all.map(a => [a.key, a]));
     const out = saved.filter(k => byKey.has(k)).map(k => byKey.get(k));
@@ -444,45 +380,18 @@ function orderedApps() {
     return out;
 }
 
-const tileIcon = (app) => APP_ICONS[app.key] ? `<svg viewBox="0 0 28 28">${APP_ICONS[app.key]}</svg>`
-    : app.emoji ? `<span class="home-app-emoji">${app.emoji}</span>` : `<svg viewBox="0 0 28 28">${APP_ICONS.plugin}</svg>`;
-
-let homeGridEditing = false;
 function renderAppGrid() {
     const section = document.getElementById('home-app-grid');
     section.innerHTML = `
-        <div class="home-apps-bar"><span class="home-apps-hint" id="home-apps-hint">${homeGridEditing ? 'Drag to move · ✕ to remove' : 'Hold an app to edit Home'}</span>
-            <span class="home-apps-btns"><button type="button" class="home-apps-reset" id="home-apps-reset"${homeGridEditing ? '' : ' hidden'}>Reset Home</button>
-            <button type="button" class="home-apps-done" id="home-apps-done"${homeGridEditing ? '' : ' hidden'}>Done</button></span></div>
-        <div class="home-app-grid${homeGridEditing ? ' editing' : ''}" id="home-app-list">${orderedApps().map(app => `
+        <div class="home-apps-bar"><span class="home-apps-hint" id="home-apps-hint">Hold an app to move it</span>
+            <button type="button" class="home-apps-done" id="home-apps-done" hidden>Done</button></div>
+        <div class="home-app-grid" id="home-app-list">${orderedApps().map(app => `
             <a class="home-app" data-key="${app.key}" href="${hrefFor(app)}" draggable="false">
-                <span class="home-app-ic" aria-hidden="true">${tileIcon(app)}</span>
+                <span class="home-app-ic" aria-hidden="true"><svg viewBox="0 0 28 28">${APP_ICONS[app.key] || APP_ICONS.plugin}</svg></span>
                 <span class="home-app-label">${escapeHTML(app.label)}</span>
-                <button type="button" class="home-app-x" data-remove="${app.key}" aria-label="Remove ${escapeHTML(app.label)} from Home">✕</button>
             </a>`).join('')}
-            <button type="button" class="home-app home-app-add" id="home-app-add" aria-label="Add a page to Home">
-                <span class="home-app-ic" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M14 8v12M8 14h12"/></svg></span>
-                <span class="home-app-label">Add</span></button>
         </div>`;
     setupAppGridEditing();
-}
-
-// ＋ tile: every page that isn't on Home yet.
-function openAddTile() {
-    const off = tileCatalog().filter(a => !tileOn(a.key));
-    const el = document.createElement('div');
-    el.className = 'app-create-sheet';
-    el.innerHTML = `<div class="acs-card" role="dialog" aria-modal="true" aria-label="Add to Home"><h3>Add to Home</h3>
-        ${off.length ? `<div class="acs-grid home-add-grid">${off.map(a => `<button type="button" class="acs-opt" data-add="${a.key}">${APP_ICONS[a.key] ? `<svg viewBox="0 0 28 28">${APP_ICONS[a.key]}</svg>` : `<span class="home-add-emoji">${a.emoji || '🧩'}</span>`}<span>${escapeHTML(a.label)}</span></button>`).join('')}</div>`
-            : '<p class="home-add-none">Every page is already on Home.</p>'}
-        <p class="home-add-tip">You can also hold a page in the menu to pin it.</p></div>`;
-    const close = () => el.remove();
-    el.addEventListener('click', e => {
-        const b = e.target.closest('[data-add]');
-        if (b) { HomeTiles.set(b.dataset.add, true); close(); renderAppGrid(); return; }
-        if (e.target === el) close();
-    });
-    document.body.appendChild(el);
 }
 
 // Hold (0.45s) -> edit mode; drag to move (the others slide over); Done saves.
@@ -490,37 +399,27 @@ function setupAppGridEditing() {
     const grid = document.getElementById('home-app-list');
     const done = document.getElementById('home-apps-done');
     const hint = document.getElementById('home-apps-hint');
-    let editing = homeGridEditing, holdTimer = null, drag = null, held = false;
-    const reset = document.getElementById('home-apps-reset');
+    let editing = false, holdTimer = null, drag = null, held = false;
 
     const save = () => {
-        Vault.state.homeAppOrder = [...grid.querySelectorAll('.home-app[data-key]')].map(a => a.dataset.key);
+        Vault.state.homeAppOrder = [...grid.children].map(a => a.dataset.key);
         Vault.save();
     };
     const startEditing = () => {
-        editing = homeGridEditing = true;
+        editing = true;
         grid.classList.add('editing');
-        done.hidden = false; reset.hidden = false;
-        hint.textContent = 'Drag to move · ✕ to remove';
+        done.hidden = false;
+        hint.textContent = 'Drag apps to move them';
         if (navigator.vibrate) navigator.vibrate(15);
     };
     const stopEditing = () => {
-        editing = homeGridEditing = false;
+        editing = false;
         grid.classList.remove('editing');
-        done.hidden = true; reset.hidden = true;
-        hint.textContent = 'Hold an app to edit Home';
+        done.hidden = true;
+        hint.textContent = 'Hold an app to move it';
         save();
     };
     done.addEventListener('click', stopEditing);
-    // Oct 30 2026 (Craft): remove a tile, add one, or go back to the default Home.
-    reset.addEventListener('click', () => { HomeTiles.reset(); homeGridEditing = false; renderAppGrid(); if (typeof Toast !== 'undefined') Toast.show('Home is back to the default tiles.', 'neutral'); });
-    document.getElementById('home-app-add').addEventListener('click', openAddTile);
-    grid.addEventListener('click', e => {
-        const x = e.target.closest('[data-remove]');
-        if (!x) return;
-        e.preventDefault(); e.stopPropagation();
-        save(); HomeTiles.set(x.dataset.remove, false); renderAppGrid();
-    }, true);
 
     // In edit mode (or right after a hold) a tap doesn't open the app.
     grid.addEventListener('click', e => { if ((editing || held) && e.target.closest('.home-app')) { e.preventDefault(); held = false; } });
@@ -529,8 +428,8 @@ function setupAppGridEditing() {
     document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
 
     grid.addEventListener('pointerdown', e => {
-        const app = e.target.closest('.home-app[data-key]');
-        if (!app || e.target.closest('[data-remove]')) return;
+        const app = e.target.closest('.home-app');
+        if (!app) return;
         held = false;
         if (editing) { beginDrag(app, e); return; }
         const start = { x: e.clientX, y: e.clientY };
@@ -558,9 +457,9 @@ function setupAppGridEditing() {
         if (!drag) return;
         drag.ghost.style.left = `${e.clientX}px`; drag.ghost.style.top = `${e.clientY}px`;
         const over = document.elementFromPoint(e.clientX, e.clientY);
-        const target = over && over.closest('#home-app-list .home-app[data-key]');
+        const target = over && over.closest('#home-app-list .home-app');
         if (!target || target === drag.app) return;
-        const apps = [...grid.querySelectorAll('.home-app[data-key]')];
+        const apps = [...grid.children];
         const before = new Map(apps.map(a => [a, a.getBoundingClientRect()]));
         const from = apps.indexOf(drag.app), to = apps.indexOf(target);
         grid.insertBefore(drag.app, to > from ? target.nextSibling : target);
@@ -580,25 +479,8 @@ function setupAppGridEditing() {
     }
 }
 
-// Oct 30 2026 (Craft): Daily bonus card. Claim right here, or tap for the calendar.
-function renderBonus() {
-    const el = document.getElementById('home-bonus');
-    if (!el || typeof Vault.getDailyBonus !== 'function') return;
-    const b = Vault.getDailyBonus();
-    el.hidden = b.claimedToday;
-    if (b.claimedToday) return;
-    el.innerHTML = `<a class="hb-link" href="../daily-bonus/daily-bonus.html"><span class="home-help-ic" aria-hidden="true">🎁</span><span class="home-help-t"><b>Daily bonus · day ${b.streak}</b><small>${escapeHTML(b.rewardText)}</small></span></a>
-        <button type="button" class="hb-claim" id="hb-claim">Claim</button>`;
-    document.getElementById('hb-claim').onclick = () => {
-        const got = Vault.claimAllBonus();
-        if (got.length && typeof Toast !== 'undefined') Toast.show(`🎁 ${got.join('  +  ')}`, 'positive');
-        renderBonus(); renderHive();
-    };
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
-    renderBonus();
 
     renderHive();
     renderBeeHelp();
@@ -608,5 +490,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupToday();
 
     Waggle.setActions(baseWaggleActions());
-    window.addEventListener('home-tiles-changed', () => renderAppGrid());
 });
