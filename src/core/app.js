@@ -326,6 +326,7 @@ const AppShell = {
                         <span class="ah-coins" title="Honey coins"></span>
                     </div>
                     <button type="button" class="ah-levelup">LEVEL UP ✦</button>
+                    <button type="button" class="ah-rankup">RANK UP 🎖️</button>
                 </div>
             </div>`;
         document.body.insertBefore(head, document.body.firstChild);
@@ -337,6 +338,7 @@ const AppShell = {
 
         head.addEventListener('click', (event) => {
             if (event.target.closest('.ah-levelup')) { this.levelUp(); return; }
+            if (event.target.closest('.ah-rankup')) { this.rankUp(); return; }   // Oct 31 2026 (Craft): ranks
             const chip = event.target.closest('.ah-chip');
             if (chip && chip.classList.contains('ready')) {
                 if (this.isHome) this.levelUp(); else this.goHome();
@@ -439,13 +441,15 @@ const AppShell = {
         const title = kind === 'king' ? 'King' : 'Queen';
         const name = Vault.state.displayName || (royal && royal.name) || user.name || 'Beekeeper';
         q('.ah-name').textContent = name;
-        q('.ah-line').innerHTML = Vault.pcLocal
-            ? `💻 <b>Test Account</b> · ${title} ${esc((royal && royal.name) || 'Test Bee')}`   // Oct 31 2026 (Craft): PC LOCAL
-            : !royal
+        // Oct 31 2026 (Craft): your RANK replaces "King of the hive" (approved
+        // demo). Earned titles join it later ("Forager · Streak Keeper"); on
+        // PC LOCAL the title is "Test Account".
+        const rk = typeof Vault.getRank === 'function' ? Vault.getRank() : null;
+        q('.ah-line').innerHTML = !royal && !Vault.pcLocal
             ? '🐝 Your hive awaits'
-            : royal.name && royal.name !== name
-                ? `👑 ${title} <b>${esc(royal.name)}</b> rules your hive`
-                : `👑 <b>${title}</b> of the hive`;
+            : rk ? `${rankBadgeSVG(rk.rank, 16)} <b>${esc(rk.rank.name)}</b>${Vault.pcLocal ? ' · 💻 Test Account' : ''}`
+            : `👑 <b>${title}</b> of the hive`;
+        q('.ah-rankup').classList.toggle('show', !!(rk && rk.pending.length) && this.isHome);
         q('.ah-chip').textContent = levelLabel(bar.level);
         // Bar colour changes every 10 levels (purple-pink for Tiers).
         const [lvA, lvB] = levelColor(bar.level);
@@ -545,6 +549,34 @@ const AppShell = {
         else if (typeof Toast !== 'undefined') Toast.show(`🎉 ${formatted.title}`, 'positive');
     },
 
+    // Rank up (Oct 31 2026, Craft): claim the oldest rank up, then the shared
+    // reward screen with the new badge.
+    async rankUp() {
+        const r = typeof Vault.claimRankUp === 'function' ? Vault.claimRankUp() : null;
+        this.refresh();
+        if (!r) return;
+        this.flutter();
+        this.burst();
+        const loot = r.awardedBees.map(bee => ({ bee }));
+        loot.push({ icon: '🎟️', name: r.ticketsGranted === 1 ? 'Gacha ticket' : 'Gacha tickets', qty: r.ticketsGranted, sub: 'Spend in the Pollination Chamber' });
+        const mats = {};
+        r.awardedMaterials.forEach(id => { mats[id] = (mats[id] || 0) + 1; });
+        Object.entries(mats).forEach(([id, n]) => {
+            const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
+            loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' });
+        });
+        const next = typeof Vault.getRank === 'function' ? Vault.getRank() : null;
+        const formatted = {
+            title: `New rank: ${r.rank.name}!`, lines: [],
+            rich: { cap: 'NEW RANK', level: r.rank.name, word: true, badge: rankBadgeSVG(r.rank, 82), ribbon: 'RANK UP', perks: ['🎖️ New badge'], loot,
+                next: null, beeId: r.awardedBees[0] ? r.awardedBees[0].id : null }
+        };
+        try { await this.loadLevelBar(); } catch (e) { /* falls back to a toast */ }
+        if (typeof LevelBar !== 'undefined' && LevelBar.celebrate) LevelBar.celebrate(formatted);
+        else if (typeof Toast !== 'undefined') Toast.show(`🎖️ ${formatted.title}`, 'positive');
+        if (next && next.pending.length && typeof Toast !== 'undefined') setTimeout(() => Toast.show(`🎖️ ${next.pending.length} more rank up${next.pending.length === 1 ? '' : 's'} to claim.`, 'positive'), 1500);
+    },
+
     // Skill level-up (Skills page + Dashboard): claims the level, then shows
     // the shared reward screen. Returns Vault.levelUpSkill's result or null.
     async levelUpSkill(category) {
@@ -611,14 +643,14 @@ const AppShell = {
             const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
             loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' });
         });
-        const isTier = reward.newLevel > LEVEL_CAP;
+        const isTier = reward.newLevel > LEVEL_CAP;   // Oct 31 2026: past 50 the level number stays; Tiers are ranks now
         const perks = ['❤️ Health refilled'];
         if (isTier) perks.push('👑 Guaranteed Epic bee');
         else if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level · new bar colour');
         const bar = typeof Vault.getCharacterLevelBar === 'function' ? Vault.getCharacterLevelBar() : null;
         const bee = reward.awardedBees.find(b => Vault.getColonyBees().some(x => x.id === b.id));
         const rich = {
-            cap: isTier ? 'PRESTIGE TIER' : 'CHARACTER LEVEL', level: isTier ? reward.newLevel - LEVEL_CAP : reward.newLevel,
+            cap: isTier ? 'PRESTIGE LEVEL' : 'CHARACTER LEVEL', level: reward.newLevel,
             ribbon: isTier ? (reward.newLevel === LEVEL_CAP + 1 ? 'PRESTIGE' : 'TIER UP') : reward.newLevel === LEVEL_CAP ? 'MAX LEVEL' : reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
             next: bar ? { level: levelName(reward.newLevel + 1), now: bar.xpIntoLevel, cap: bar.cap } : null,
             beeId: bee ? bee.id : null
@@ -857,6 +889,23 @@ const BizzyFocus = {
         setTimeout(() => el.classList.remove('bb-focus'), 4200);
     }
 };
+
+// Oct 31 2026 (Craft): a rank's insignia (approved demo). Stripes, pips,
+// wings, crown; Tiers get the crown and a star. size = px height.
+function rankBadgeSVG(rank, size = 16) {
+    const k = (rank && rank.kind) || 'stripes', n = (rank && rank.n) || 0;
+    const FILL = { stripes: '#ffcc00', pips: '#e8a317', wings: '#c97b10', crown: '#7a0f24', tier: '#4a0a18' };
+    const edge = k === 'crown' || k === 'tier' ? '#ffcc00' : '#a87b00';
+    const hex = (cx, cy, r) => [0, 1, 2, 3, 4, 5].map(i => { const a = Math.PI / 180 * (60 * i - 90); return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`; }).join(' ');
+    let marks = '';
+    if (k === 'stripes') marks = ({ 1: [33], 2: [27, 39], 3: [22, 33, 44] }[n] || []).map(y => `<rect x="13" y="${y}" width="38" height="6" rx="1" fill="#2a1c08"/>`).join('');
+    if (k === 'pips') marks = ({ 1: [32], 2: [22, 42], 3: [16, 32, 48] }[n] || []).map(x => `<polygon points="${hex(x, 36, 8)}" fill="#2a1c08"/>`).join('');
+    if (k === 'wings') marks = ({ 1: [36], 2: [29, 43], 3: [24, 36, 48] }[n] || []).map(y => `<ellipse cx="21" cy="${y}" rx="11" ry="5" fill="#2a1c08" transform="rotate(-14 21 ${y})"/><ellipse cx="43" cy="${y}" rx="11" ry="5" fill="#2a1c08" transform="rotate(14 43 ${y})"/>`).join('');
+    if (k === 'crown' || k === 'tier') marks = '<path d="M16 46 L19 26 L27 36 L32 22 L37 36 L45 26 L48 46 Z" fill="#ffcc00" stroke="#a87b00" stroke-width="2" stroke-linejoin="round"/>';
+    if (k === 'tier') marks += '<polygon points="32,50 34.4,55 40,55.6 35.8,59.2 37,64.6 32,61.8 27,64.6 28.2,59.2 24,55.6 29.6,55" fill="#fff1b3"/>';
+    const w = Math.round(size * 64 / 72);
+    return `<svg class="rank-badge" width="${w}" height="${size}" viewBox="0 0 64 72" aria-hidden="true" style="vertical-align:-3px"><polygon points="32,2 62,19 62,53 32,70 2,53 2,19" fill="${FILL[k] || FILL.stripes}" stroke="${edge}" stroke-width="3"/>${marks}</svg>`;
+}
 
 // Oct 31 2026 (Craft): SHA-256 of the owner emails (no address in the code).
 // The 🛠 panel only downloads for these accounts; dev-tools.js reads the same list.

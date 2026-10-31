@@ -228,7 +228,8 @@ const LevelBar = {
                 </div>
                 <div class="lvr-st2">
                     <div class="lvr-cap">${esc(rich.cap || '')}</div>
-                    <div class="lvr-lvl">${rich.level != null ? esc(String(rich.level)) : '🎉'}</div>
+                    ${rich.badge ? `<div class="lvr-badge" aria-hidden="true">${rich.badge}</div>` : ''}
+                    <div class="lvr-lvl${rich.word ? ' word' : ''}">${rich.level != null ? esc(String(rich.level)) : '🎉'}</div>
                     <div class="lvr-perks">${(rich.perks || []).map(p => `<span>${esc(p)}</span>`).join('')}</div>
                     <div class="lvr-bees">${(rich.loot || []).filter(l => l.bee).map(l => LevelBar._lootHTML(l)).join('')}</div>
                     <div class="lvr-loot">${(rich.loot || []).filter(l => !l.bee).map(l => LevelBar._lootHTML(l)).join('')}</div>
