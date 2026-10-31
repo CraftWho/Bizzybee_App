@@ -237,7 +237,7 @@ test('time XP: minutes from titles, effort and the gentle level curve with Tiers
     assert.equal(g('computeLevelProgress(1200).level'), 6);          // 20 h -> level 6 (gentle curve)
     assert.equal(g('computeLevelProgress(41340).level'), 50);        // level 50 cap
     assert.equal(g('computeLevelProgress(41340 + 12000).level'), 52); // then a Tier every 6,000 XP
-    assert.equal(g('levelLabel(52)'), '✦ TIER 2');
+    assert.equal(g('levelLabel(52)'), 'LV 52');   // Oct 31 2026: past 50 the chip keeps the level; Tiers are ranks now
 });
 test('time XP: logged minutes change a completion, history counts, level never jumps on its own', async () => {
     const old = JSON.parse(sample());
