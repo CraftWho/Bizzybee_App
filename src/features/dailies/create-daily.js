@@ -169,7 +169,6 @@ function saveDaily() {
         if (wantedStreak > 0 && Vault._lastDailyId) Vault.setDailyStreak(Vault._lastDailyId, wantedStreak);
         Toast.show(`☀️ New daily: ${label}`, 'positive');
     }
-    if (payload.reminders.length) Reminders.requestPermissionIfNeeded();
     goBack();
 }
 

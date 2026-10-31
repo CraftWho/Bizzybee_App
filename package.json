@@ -3,8 +3,7 @@
   "private": true,
   "dependencies": {
     "@netlify/blobs": "11.0.3",
-    "@netlify/identity": "2.0.0",
-    "web-push": "3.6.7"
+    "@netlify/identity": "2.0.0"
   },
   "scripts": {
     "test": "node --experimental-test-module-mocks --test tests/*.test.mjs",

@@ -13,7 +13,7 @@
     const core = me.src.replace(/boot\.js(?:\?.*)?$/, '');
     const STYLES = ['global.css', 'ui/themes/themes.css', 'ui/hive-mind/hive-mind.css', 'ui/hive-mind/nano-bee.css', 'ui/toast/toast.css', 'ui/llm-engine/llm-engine.css'];
     const before = ['db.js', 'plugins.js', 'services/notify/notify.js'];
-    const after = ['app.js', 'ui/themes/themes.js', 'services/social/social.js', 'ui/hive-mind/nano-bee.js', 'ui/hive-mind/hive-mind.js', 'ui/toast/toast.js', 'services/reminders/reminders.js', 'ui/llm-engine/llm-engine.js'];
+    const after = ['app.js', 'ui/themes/themes.js', 'services/social/social.js', 'ui/hive-mind/nano-bee.js', 'ui/hive-mind/hive-mind.js', 'ui/toast/toast.js', 'ui/llm-engine/llm-engine.js'];
     const extra = (me.dataset.with || '').split(/\s+/).filter(Boolean);
     // Themes (Oct 28 2026): set the theme before anything paints, so there's
     // no flash. 'auto' = BizzyBee, and Halloween on Oct 31 (your local day).

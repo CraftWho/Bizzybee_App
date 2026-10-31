@@ -266,11 +266,7 @@
                 toast('🔔 Notification in 5 seconds. Lock the phone, then tap it.');
                 return;
             }
-            if (!('Notification' in window) || !navigator.serviceWorker) { toast('This browser can\'t show notifications.'); return; }
-            if ((await Notification.requestPermission()) !== 'granted') { toast('Allow notifications for this site first.'); return; }
-            const reg = await navigator.serviceWorker.register('/sw.js');
-            setTimeout(() => reg.showNotification('🐝 Dev test', { body: `Tap me: opens "${d.label}"`, data: { url }, icon: '/src/assets/icons/icon-192x192.png' }), 5000);
-            toast('🔔 Notification in 5 seconds. Tap it.');
+            toast('Notifications are Android-app only (Oct 31 2026).');
         },
         focus(kind) {
             const list = kind === 'todo' ? Vault.state.todos : kind === 'habit' ? Vault.state.habits : Vault.state.dailyTasks;

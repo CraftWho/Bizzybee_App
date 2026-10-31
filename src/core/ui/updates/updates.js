@@ -35,6 +35,9 @@ const WHATS_NEW = [
       ],
       fixed: [
         { icon: '👣', title: 'Steps', text: 'Now counts your whole day.' },
+        // Oct 31 2026 (Craft): Batch 2.
+        { icon: '🌙', title: 'Evening quest tasks', text: 'Quest tasks done after 8 PM now count on today, not tomorrow.' },
+        { icon: '🎁', title: 'Fair rewards', text: 'A quest pays its loot once. Each task rolls materials once a day.' },
         { icon: '◀️', title: 'Back button', text: 'Goes back one page, not all the way Home.' },
         { icon: '🌤️', title: 'Header', text: 'The weather was removed from the header.' },
       ] },

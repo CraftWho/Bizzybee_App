@@ -7,7 +7,7 @@ console.log("/// DASHBOARD ONLINE ///");
 // Everything is computed live from your save (db.js), XP = time.
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const dayKey = (v) => String(v || '').slice(0, 10);
+const dayKey = (v) => localDayOf(v);   // Oct 31 2026 (Craft): local day, not UTC
 const fmtH = (h) => h < 10 ? (+h.toFixed(1)).toString() : Math.round(h).toLocaleString();
 const GOAL_H = 10000;
 const SOURCE_NAMES = { daily: 'Dailies', habit: 'Habits', todo: 'To-Dos', quest: 'Quests', history: 'Codex history' };
@@ -38,7 +38,7 @@ function renderTiles(S) {
 
 function renderChart(m) {
     const daysList = [];
-    for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); daysList.push({ d, xp: Math.max(0, m[isoLocal(d)] || m[d.toISOString().slice(0, 10)] || 0) }); }
+    for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); daysList.push({ d, xp: Math.max(0, m[isoLocal(d)] || 0) }); }
     const total = daysList.reduce((a, x) => a + x.xp, 0), max = Math.max(...daysList.map(x => x.xp), 1);
     document.getElementById('db-total').textContent = `${total.toLocaleString()} XP`;
     document.getElementById('db-avg').textContent = `${Math.round(total / 14)} a day on average`;

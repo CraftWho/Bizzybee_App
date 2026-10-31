@@ -129,7 +129,6 @@ function saveTodo() {
         Vault.addTodo(payload);
         Toast.show(`📝 New to-do: ${label}`, 'positive');
     }
-    if (payload.reminders.length && payload.dueDate) Reminders.requestPermissionIfNeeded();
     goBack();
 }
 

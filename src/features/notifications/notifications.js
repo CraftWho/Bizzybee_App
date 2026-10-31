@@ -104,7 +104,6 @@ function renderTypes() {
 }
 function changed() {
     if (isApp && N) N.reschedule();
-    if (typeof BizzyPush !== 'undefined' && BizzyPush.isOn()) { localStorage.removeItem('bizzybee_push_hash'); BizzyPush.refresh(); }
     renderUp();
 }
 function initTypes() {
@@ -155,7 +154,7 @@ function initSmart() {
 function initSound() {
     $('nt-names').checked = get('bizzybee_push_names', '1') !== '0';
     $('nt-names').addEventListener('change', (e) => {
-        if (typeof BizzyPush !== 'undefined') BizzyPush.setShowNames(e.target.checked); else put('bizzybee_push_names', e.target.checked ? '1' : '0');
+        put('bizzybee_push_names', e.target.checked ? '1' : '0');
         changed();
     });
     const appRows = document.querySelectorAll('.nt-app');
@@ -203,11 +202,7 @@ function initButtons() {
                     schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true }, smallIcon: 'ic_stat_bee', iconColor: '#FFCC00',
                     extra: { test: true, kind: 'test', url: '/src/features/notifications/notifications.html' } }] });
                 Toast.show('🧪 Test alert in 5 seconds. Lock your phone to see it.', 'positive');
-            } else {
-                if (!BizzyPush.isOn()) { Toast.show('Turn notifications on first.', 'neutral'); return; }
-                await BizzyPush.test();
-                Toast.show('🔔 Test sent. It arrives in a few seconds.', 'positive');
-            }
+            } else Toast.show('Notifications work in the BizzyBee Android app.', 'neutral');   // Oct 31 2026 (Craft): app only
         } catch (error) { Toast.show(error.message, 'negative'); }
         finally { b.disabled = false; }
     });
