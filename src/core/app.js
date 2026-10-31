@@ -871,7 +871,6 @@ class CodexSystem {
         this.injectInstallButton();
         this.loadLocalDevTools();
         this.loadHabiticaSync();
-        this.loadPhoneReminders();
         this.loadTimeLog();
         this.loadHints();
         this.loadPullRefresh();
@@ -992,18 +991,8 @@ class CodexSystem {
         document.body.appendChild(script);
     }
 
-    // Phone reminders (src/core/services/push/push.js) - loads on every app page once
-    // they're turned on in Settings, so reminder times stay up to date.
-    loadPhoneReminders() {
-        const path = window.location.pathname;
-        const nested = path.includes('features') || path.includes('plugins');
-        if (!nested || path.includes('/onboarding/')) return;
-        if (localStorage.getItem('bizzybee_push_on') !== '1' || localStorage.getItem('bizzybee_dev_test') === '1') return;
-        if (document.querySelector('script[src*="push/push.js"]')) return;
-        const script = document.createElement('script');
-        script.src = '../../../src/core/services/push/push.js';
-        document.body.appendChild(script);
-    }
+    // Oct 31 2026 (Craft): web reminders and web push were removed (Android
+    // app only; see docs/OPEN-ISSUES.md). Code kept in git tag web-reminders-archive.
 
     // Habitica two-way sync (src/core/services/habitica-sync/) - loads on every app
     // page once this device has the Habitica key (Account Info saves it).

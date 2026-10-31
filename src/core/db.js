@@ -151,6 +151,17 @@ function computeTodoXP(todos) {
 function localISO(d = new Date()) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+// Oct 31 2026 (Craft): the LOCAL day of a stored date. Quest tasks store
+// the exact moment (UTC ISO time), so slicing the first 10 characters gave
+// the UTC day: after 8 PM in Florida that's already tomorrow. This uses the
+// device's own clock and time zone. Plain dates ("2026-10-31") pass through.
+function localDayOf(value) {
+    if (!value) return '';
+    const s = String(value);
+    if (s.length <= 10) return s.slice(0, 10);
+    const ms = Date.parse(s);
+    return Number.isNaN(ms) ? s.slice(0, 10) : localISO(new Date(ms));
+}
 function todayISO() {
     return localISO();
 }
@@ -1389,7 +1400,7 @@ function computeQueenCoins(state, since) {
     (state.dailyTasks || []).forEach(t => { n += (t.completedDates || []).filter(d => d >= since).length * queenCoin(t); });
     (state.todos || []).forEach(t => { if (t.completed && t.completedDate && t.completedDate >= since) n += queenCoin(t); });
     (state.habits || []).forEach(h => { n += (h.history || []).filter(x => x.direction === 'positive' && x.date >= since).length * queenCoin(h); });
-    (state.quests || []).forEach(q => (q.tasks || []).forEach(t => { if (t.completed && t.dateCompleted && t.dateCompleted.slice(0, 10) >= since) n += queenCoin(t); }));
+    (state.quests || []).forEach(q => (q.tasks || []).forEach(t => { if (t.completed && t.dateCompleted && localDayOf(t.dateCompleted) >= since) n += queenCoin(t);   /* Oct 31 2026 (Craft): local day */ }));
     return n;
 }
 
@@ -2426,6 +2437,8 @@ class DatabaseManager {
         if (!task) return null;
 
         const wasQuestCompleted = quest.status === 'completed';
+        // Quests finished before Oct 31 2026 already paid out: remember that.
+        if (wasQuestCompleted && !quest.rewardedAt) quest.rewardedAt = quest.dateCompleted || todayISO();
 
         task.completed = !task.completed;
         // Full timestamp (not just the date) so the UI can show exactly when
@@ -2438,10 +2451,14 @@ class DatabaseManager {
 
         this.save();
         this._syncLevelUpBees();
-        if (task.completed) this._collectMaterialsOnCompletion();
-        if (!wasQuestCompleted && quest.status === 'completed') {
+        if (task.completed) this._collectMaterialsOnCompletion(`quest:${task.id}`);
+        // Oct 31 2026 (Craft): a quest pays out once. Unchecking its last task
+        // and checking it again used to pay the loot and ticket again.
+        if (!wasQuestCompleted && quest.status === 'completed' && !quest.rewardedAt) {
+            quest.rewardedAt = new Date().toISOString();
             this._awardQuestTicketIfSignificant(quest);
             this._awardLootOnQuestCompletion(quest);
+            this.save();
         }
         return quest;
     }
@@ -2754,8 +2771,16 @@ class DatabaseManager {
     // whenever a real task/daily gets completed - called from
     // toggleTask/toggleDailyTask, only on the transition INTO completed
     // (not when unchecking). No-ops silently if you have no Collectors.
-    _collectMaterialsOnCompletion() {
+    // Oct 31 2026 (Craft): key = the task. Each task rolls these rewards once
+    // per day, so checking it off/on again can't farm materials or tickets.
+    _collectMaterialsOnCompletion(key) {
         if (!this.state) return;
+        if (key) {
+            const day = todayISO();
+            if (!this.state.lootDay || this.state.lootDay.day !== day) this.state.lootDay = { day, keys: [] };
+            if (this.state.lootDay.keys.includes(key)) return;
+            this.state.lootDay.keys.push(key);
+        }
         // Hive Life: every finished task feeds the hive; Scouts may find a ticket.
         this._feedHive();
         this._workers('scout').forEach(scout => {
@@ -4036,7 +4061,7 @@ class DatabaseManager {
         if (justCompleted && typeof this.incubatorTick === 'function') this.incubatorTick(today);   // dailies warm the Egg Incubator
         this.save();
         this._syncLevelUpBees();
-        if (justCompleted) this._collectMaterialsOnCompletion();
+        if (justCompleted) this._collectMaterialsOnCompletion(`daily:${task.id}`);
         return task;
     }
 
@@ -4202,7 +4227,7 @@ class DatabaseManager {
         // Collector-bee material drops only fire on genuine accomplishment,
         // same reasoning as computeSkillContributions skipping negative
         // clicks for the matrix - a lapse shouldn't drop loot.
-        if (direction === 'positive') this._collectMaterialsOnCompletion();
+        if (direction === 'positive') this._collectMaterialsOnCompletion(`habit:${habit.id}`);
         return habit;
     }
 
@@ -4343,7 +4368,7 @@ class DatabaseManager {
 
         this.save();
         this._syncLevelUpBees();
-        if (todo.completed) this._collectMaterialsOnCompletion();
+        if (todo.completed) this._collectMaterialsOnCompletion(`todo:${todo.id}`);
         return todo;
     }
 
@@ -5984,7 +6009,7 @@ Object.assign(DatabaseManager.prototype, {
         const S = this.state, out = [];
         (S.dailyTasks || []).forEach(t => { if ((t.completedDates || []).includes(day)) out.push({ icon: '☀️', label: t.label, xp: Number(t.xp) || 0 }); });
         (S.todos || []).forEach(t => { if (t.completed && t.completedDate === day) out.push({ icon: '✅', label: t.label, xp: Number(t.xp) || 0 }); });
-        (S.quests || []).forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === day) out.push({ icon: '🗺️', label: t.label, xp: Number(t.xp) || 0 }); }));
+        (S.quests || []).forEach(q => (q.tasks || []).forEach(t => { if (t.completed && localDayOf(t.dateCompleted) === day) out.push({ icon: '🗺️', label: t.label, xp: Number(t.xp) || 0 });   /* Oct 31 2026 (Craft): local day */ }));
         (S.habits || []).forEach(h => { const n = (h.history || []).filter(x => x.date === day && x.direction === 'positive').length; if (n) out.push({ icon: '🔁', label: h.label + (n > 1 ? ` ×${n}` : ''), xp: n * (Number(h.xp) || 0) }); });
         return out;
     },

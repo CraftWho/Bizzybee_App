@@ -87,9 +87,10 @@ async function initFeed() {
 
 function initStatus() {
     setTimeout(() => {
-        const push = typeof BizzyPush !== 'undefined' && BizzyPush.isOn();
-        document.getElementById('sy-push-status').textContent = push ? 'On.' : 'Off.';
-        document.getElementById('sy-push').classList.toggle('on', push);
+        // Oct 31 2026 (Craft): reminders ring in the Android app only.
+        const app = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        document.getElementById('sy-push-status').textContent = app ? 'On this phone: see Notifications.' : 'Android app only.';
+        document.getElementById('sy-push').classList.toggle('on', app);
         const hab = typeof HabiticaSync !== 'undefined' && HabiticaSync.isConnected();
         document.getElementById('sy-habitica-status').textContent = hab ? 'Connected on this device.' : 'Not connected on this device.';
         document.getElementById('sy-habitica').classList.toggle('on', hab);

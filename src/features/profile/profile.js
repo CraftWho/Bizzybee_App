@@ -56,7 +56,7 @@ function activeDays(S) {
     (S.dailyTasks || []).forEach(t => (t.completedDates || []).forEach(d => days.add(d)));
     (S.habits || []).forEach(h => (h.history || []).filter(x => x.direction === 'positive').forEach(x => days.add(x.date)));
     (S.todos || []).filter(t => t.completed && t.completedDate).forEach(t => days.add(String(t.completedDate).slice(0, 10)));
-    (S.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed && t.dateCompleted).forEach(t => days.add(String(t.dateCompleted).slice(0, 10))));
+    (S.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed && t.dateCompleted).forEach(t => days.add(localDayOf(t.dateCompleted))));   // Oct 31 2026 (Craft): local day
     return days.size;
 }
 

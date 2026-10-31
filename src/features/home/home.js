@@ -48,7 +48,7 @@ function xpToday() {
     let xp = 0;
     Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) xp += Number(t.xp) || 0; });
     Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) xp += Number(t.xp) || 0; });
-    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) xp += Number(t.xp) || 0; }));
+    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && localDayOf(t.dateCompleted) === today) xp += Number(t.xp) || 0;   /* Oct 31 2026 (Craft): local day */ }));
     (Vault.getHabits ? Vault.getHabits() : []).forEach(h => (h.history || []).forEach(x => {
         if (x.date === today) xp += (x.direction === 'positive' ? 1 : -1) * (Number(h.xp) || 0);
     }));
@@ -63,7 +63,8 @@ function doneToday() {
     Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) out.push({ icon: '☀️', kind: 'Daily', label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[today] && t._days[today].t) || 0 }); });
     Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) out.push({ icon: '✅', kind: 'To-Do', label: t.label, xp: Number(t.xp) || 0, t: t._mt || 0 }); });
     Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => {
-        if (t.completed && String(t.dateCompleted || '').slice(0, 10) === today) out.push({ icon: '🗺️', kind: q.title, label: t.label, xp: Number(t.xp) || 0, t: Date.parse(t.dateCompleted) || 0 });
+        if (t.completed && localDayOf(t.dateCompleted) === today) out.push(   // Oct 31 2026 (Craft): local day
+            { icon: '🗺️', kind: q.title, label: t.label, xp: Number(t.xp) || 0, t: Date.parse(t.dateCompleted) || 0 });
     }));
     (Vault.getHabits ? Vault.getHabits() : []).forEach(h => {
         const taps = (h.history || []).filter(x => x.date === today);

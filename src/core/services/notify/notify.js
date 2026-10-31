@@ -1,7 +1,7 @@
 // Notifications planner (Oct 28 2026, approved demo). One list of everything
 // that will notify you, used by:
 //   - the Android app (services/native/native.js) - the phone fires them offline
-//   - web push (services/push/push.js)           - the 5-minute server sender
+//   - (web push was removed Oct 31 2026; Android app only, see docs/OPEN-ISSUES.md)
 //   - the Notifications page (features/notifications/) - "Coming up"
 // Each type has its own switch. Tapping a notification opens that item (url).
 const BizzyNotify = (() => {
