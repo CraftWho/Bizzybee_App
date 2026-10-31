@@ -444,6 +444,7 @@ const BeeCard = {
                 <div class="bee-card-face bee-card-front${(showEvolveAction || showRebirthAction || showTraitAction || showIdentityAction) ? ' bc-has-actions' : ''}">
                     <i class="bc-hexbg"></i><i class="bc-trim"></i>${rivets}
                     ${isLegendary ? beeCardSparkles(8) : ''}
+                    <i class="bc-glare" aria-hidden="true"></i>
 
                     <div class="bc-top">
                         <span class="bc-rpill">${bee.rarity.toUpperCase()}</span>
@@ -456,7 +457,7 @@ const BeeCard = {
                     <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${title ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
 
                     <div class="bc-dex">
-                        <span><b>No.${dexNo}</b></span>
+                        ${bee.limited && bee.limited.serial ? '' : `<span><b>No.${dexNo}</b></span>`}
                         ${bee.sex === 'f' || bee.sex === 'm' ? `<span class="bc-sex bc-sex-${bee.sex}" title="${bee.sex === 'm' ? 'Male' : 'Female'}">${bee.sex === 'm' ? '♂ M' : '♀ F'}</span>` : ''}
                         <span class="bc-dex-species">${archetype.title}</span>
                         <span>WT ${weight}g</span>
@@ -496,11 +497,9 @@ const BeeCard = {
                         <button class="bee-card-identity-btn">🪪 Make Named Beast (${ownedIdentityCards})</button>
                     </div>` : ''}
 
+                    <!-- Oct 30 2026 (Craft): no Job on the card (jobs are set in Colony Bees / Hive Life). -->
                     <div class="bc-bar">
                         <div><small>Weakness</small><span>${weakElementInfo ? `<em title="${weakElementInfo.label}">${weakElementInfo.emoji}</em> ×2` : '—'}</span></div>
-                        <div><small>Job</small>${editable
-                            ? BeeCard._classSelectHTML(bee)
-                            : `<span>${classInfo ? classInfo.label : 'Unassigned'}</span>`}</div>
                         <div><small>Obtained</small><span>${formatBeeObtainedDate(bee.obtainedAt)}</span></div>
                     </div>
 
@@ -673,3 +672,56 @@ const BeeCard = {
         return `<select class="bee-card-class-select" title="Assign work${sexLabel ? ' · ' + sexLabel : ''}"><option value="">Unassigned${sexLabel ? ' · ' + sexLabel : ''}</option>${groupsHTML}</select>`;
     }
 };
+
+// ---------------------------------------------------------------------------
+// Card glare (Oct 30 2026, Craft). A light sheen slides across every bee
+// card as you tilt the phone (gyroscope / device orientation). Phones that
+// need permission (iPhone) ask once, on the first tap of a card. Computers
+// follow the mouse over a card instead. Off for "reduce motion".
+// One listener for the whole page; cards read --bc-gx / --bc-gy.
+// ---------------------------------------------------------------------------
+const BeeCardGlare = (() => {
+    let started = false, asked = false, raf = null, base = null, gx = 50, gy = 30;
+    const root = document.documentElement;
+    const still = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const paint = () => { raf = null; root.style.setProperty('--bc-gx', gx.toFixed(1) + '%'); root.style.setProperty('--bc-gy', gy.toFixed(1) + '%'); };
+    const queue = () => { if (!raf) raf = requestAnimationFrame(paint); };
+    function onTilt(e) {
+        if (e.beta == null || e.gamma == null) return;
+        if (!base) base = { b: e.beta, g: e.gamma };   // how you hold it now = the middle
+        const clamp = (v) => Math.max(-1, Math.min(1, v));
+        gx = 50 + clamp((e.gamma - base.g) / 30) * 50;
+        gy = 30 + clamp((e.beta - base.b) / 30) * 40;
+        queue();
+    }
+    function listen() { window.addEventListener('deviceorientation', onTilt, { passive: true }); }
+    // iPhone: permission has to be asked inside a tap.
+    function askIfNeeded() {
+        if (asked) return; asked = true;
+        const D = window.DeviceOrientationEvent;
+        if (D && typeof D.requestPermission === 'function') D.requestPermission().then(r => { if (r === 'granted') listen(); }).catch(() => {});
+    }
+    function start() {
+        if (started || still()) return;
+        started = true;
+        const D = window.DeviceOrientationEvent;
+        if (D && typeof D.requestPermission !== 'function') listen();
+        document.addEventListener('pointerdown', (e) => { if (e.target.closest && e.target.closest('.bc-v2')) askIfNeeded(); }, { passive: true });
+        // Mouse: the sheen follows the pointer over a card.
+        document.addEventListener('pointermove', (e) => {
+            if (e.pointerType !== 'mouse') return;
+            const card = e.target.closest && e.target.closest('.bc-v2');
+            if (!card) return;
+            const r = card.getBoundingClientRect();
+            card.style.setProperty('--bc-gx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+            card.style.setProperty('--bc-gy', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+        }, { passive: true });
+        // Re-center when the phone wakes up or the page comes back.
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) base = null; });
+    }
+    return { start };
+})();
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => BeeCardGlare.start());
+    else BeeCardGlare.start();
+}
