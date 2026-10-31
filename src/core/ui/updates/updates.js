@@ -26,6 +26,8 @@ const WHATS_NEW = [
         { icon: '💤', title: 'Recuperate', text: 'A job with no work. Eat, sleep and heal.' },
         { icon: '🆘', title: 'Bee needs help', text: 'Home says exactly what each bee needs.' },
         { icon: '⬆️', title: 'Swipe up to go Home', text: 'Swipe up on the gold + button.' },
+        // Oct 30 2026 (Craft): Terminal clear today.
+        { icon: '🧹', title: 'Clear today', text: 'Terminal: type clear today to uncheck today\'s check-offs. XP and loot stay.', href: 'plugins/terminal/terminal.html' },
       ],
       fixed: [
         { icon: '👣', title: 'Steps', text: 'Now counts your whole day.' },
