@@ -17,6 +17,11 @@ const Reminders = {
     // never on a bare page load, so nobody gets prompted before they've
     // asked for anything.
     requestPermissionIfNeeded() {
+        // Oct 31 2026 (Craft): in-tab reminders are retired. The Android app
+        // rings with phone alarms (native.js); the website sends nothing.
+        // Kept as a no-op because the task forms still call it.
+        return;
+        // eslint-disable-next-line no-unreachable
         if (!('Notification' in window)) {
             Toast.show('This browser doesn\'t support reminder notifications.', 'negative');
             return;
@@ -103,6 +108,4 @@ const Reminders = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    Reminders.start();
-});
+// Oct 31 2026 (Craft): not started any more (see requestPermissionIfNeeded).

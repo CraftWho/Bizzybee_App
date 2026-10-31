@@ -105,6 +105,11 @@ const BizzyPush = (() => {
     }
 
     function start() {
+        // Oct 31 2026 (Craft): web push is off. A browser that had it on
+        // unsubscribes once (removes its server copy), then nothing runs.
+        if (isOn()) disable().catch(() => {});
+        return;
+        // eslint-disable-next-line no-unreachable
         if (!isOn()) return;
         window.addEventListener('vault-saved', () => { clearTimeout(timer); timer = setTimeout(refresh, 8000); });
         setTimeout(refresh, 4000);

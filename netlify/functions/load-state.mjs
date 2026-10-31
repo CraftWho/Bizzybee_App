@@ -7,6 +7,6 @@ export default async (req) => {
     if (!user) return json({ ok: false, error: 'Not signed in' }, 401);
     try {
         const entry = await readLatest(user.id);
-        return json({ ok: true, data: entry ? plain(entry.data, user.id) : null, revision: entry?.etag ?? null, updatedAt: entry?.data.updatedAt ?? null, encrypted: !!entry?.data.encrypted });
+        return json({ ok: true, data: entry ? plain(entry.data, user.id) : null, revision: entry?.etag ?? null, updatedAt: entry?.data.updatedAt ?? null, encrypted: !!entry?.data.encrypted, device: entry?.data.device ?? null });   // Oct 31 2026 (Craft): active device
     } catch { return json({ ok: false, error: 'Could not read cloud save. Check encryption configuration.' }, 503); }
 };

@@ -89,12 +89,20 @@ test('legacy save upgrade preserves an encrypted recovery backup', async () => {
     assert.equal((await recovery.json()).data, sample());
     assert.equal((await backup(req('backups?id=' + items[0].id, null, 'bob'))).status, 404);
 });
-test('backup schedule accepts exactly 4, 8, 12 and 24 hours', async () => {
-    for (const hours of [4, 8, 12, 24]) {
-        assert.equal((await backup(req('backups', { action: 'schedule', hours }))).status, 200);
-        assert.equal((await store('bizzybee-backup-schedules').get('alice')).hours, hours);
-    }
-    assert.equal((await backup(req('backups', { action: 'schedule', hours: 3 }))).status, 400);
+// Oct 31 2026 (Craft): backups are daily only; the old picker is ignored.
+test('backups are daily: the old interval picker is accepted and ignored', async () => {
+    const res = await backup(req('backups', { action: 'schedule', hours: 4 }));
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).keepDaily, 4);
+});
+test('one active device: another device cannot save until it takes over', async () => {
+    const first = await (await save(req('save-state', { data: sample(), revision: null, device: 'phone' }))).json();
+    const blocked = await save(req('save-state', { data: sample(), revision: first.revision, device: 'pc' }));
+    assert.equal(blocked.status, 423);
+    const taken = await (await save(req('save-state', { data: sample(), revision: first.revision, device: 'pc', takeover: true }))).json();
+    assert.equal(taken.ok, true);
+    assert.equal((await save(req('save-state', { data: sample(), revision: taken.revision, device: 'phone' }))).status, 423);
+    assert.equal((await cloud.listBackups('alice')).length, 0);   // switching devices makes no backups
 });
 test('server scheduler backs up without an open client and is idempotent', async () => {
     await save(req('save-state', { data: sample(), revision: null }));
@@ -102,12 +110,14 @@ test('server scheduler backs up without an open client and is idempotent', async
     await scheduled(); await scheduled();
     assert.equal((await cloud.listBackups('alice')).length, 1);
 });
-test('backup retention keeps the latest 30 snapshots', async () => {
+test('backup retention keeps 4 daily copies and 3 others', async () => {
     const entry = { data: sample(), updatedAt: new Date().toISOString() };
-    for (let i = 0; i < 33; i++) await cloud.createBackup('alice', entry, 'manual', `${1700000000000 + i}-test`);
+    for (let i = 0; i < 6; i++) await cloud.createBackup('alice', entry, 'scheduled', `${1700000000000 + i * 86400000}-scheduled`);
+    for (let i = 0; i < 5; i++) await cloud.createBackup('alice', entry, 'manual', `${1700000000000 + i}-test`);
     const entries = await cloud.listBackups('alice');
-    assert.equal(entries.length, 30);
-    assert.equal(entries[0].id, '1700000000032-test');
+    assert.equal(entries.filter(e => e.kind === 'daily').length, 4);
+    assert.equal(entries.filter(e => e.kind !== 'daily').length, 3);
+    assert.equal(entries[0].id, `${1700000000000 + 5 * 86400000}-scheduled`);
 });
 
 function vaultHarness(raw = sample()) {
