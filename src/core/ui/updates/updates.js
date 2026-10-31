@@ -18,6 +18,11 @@ const WHATS_NEW = [
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Oct 31 2026 (Craft): Batch 5, Skills (from 1.0.6, with ask-first).
+        { icon: '🌱', title: 'Skills honeycomb', text: 'Each skill is a cell with its own path of milestones and rewards. A red dot means a reward is waiting.', href: 'features/skills/skills.html' },
+        { icon: '💡', title: 'Smart skills', text: 'Plain words count: "Go for a run" counts toward Fitness. Skills count time or times done. Time is optional.', href: 'features/skills/skills.html' },
+        { icon: '📖', title: 'Asks first', text: 'A new tag next to a skill asks before it goes in your Dictionary. New everyday skills ask too.', href: 'plugins/dictionary/dictionary.html' },
+        { icon: '🔀', title: 'Merge skills', text: 'Join two look-alike skills, with Undo. A backup is made first.', href: 'features/skills/skills.html' },
         // Oct 31 2026 (Craft): Colony renamed Hive Mind everywhere.
         { icon: '🐝', title: 'Colony is now the Hive Mind', text: 'One name everywhere: Hive Mind and Hive Bees. Your bees, tickets and settings moved over by themselves.', href: 'features/hive-mind/hive-mind.html' },
         // Oct 31 2026 (Craft): ranks.

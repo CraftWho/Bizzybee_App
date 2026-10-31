@@ -275,6 +275,92 @@ function textContainsTerm(text, term) {
 // quest's title and objective). A tag that isn't a Dictionary word becomes
 // its own skill. Each contribution carries real MINUTES (for mastery
 // hours) and XP. Imported Codex history counts like any finished task.
+// ---- Everyday skills (Oct 29 2026, approved demo) ----
+// A library of common skills with plain words, so "Wake up on time" counts
+// toward Time Management without typing any tags. measure: 'time' = real
+// hours; 'times' = how often you do it (time doesn't matter for it).
+const SKILL_LIBRARY = [
+    { name: 'Time Management', icon: '⏰', color: '#ffb000', measure: 'times', words: ['wake up', 'wake', 'alarm', 'on time', 'early', 'bedtime', 'schedule', 'planner', 'routine', 'calendar', 'agenda', 'organize'] },
+    { name: 'Fitness', icon: '💪', color: '#3ddc84', measure: 'times', words: ['run', 'running', 'jog', 'gym', 'workout', 'walk', 'yoga', 'stretch', 'push-ups', 'lift', 'swim', 'bike', 'steps'] },
+    { name: 'Health', icon: '❤️', color: '#ff6a8a', measure: 'times', words: ['water', 'vitamins', 'vitamin', 'sleep', 'floss', 'brush teeth', 'doctor', 'dentist', 'skincare', 'medicine'] },
+    { name: 'Study', icon: '📚', color: '#5aa9ff', measure: 'time', words: ['study', 'read', 'reading', 'homework', 'lecture', 'exam', 'flashcards', 'course', 'lesson'] },
+    { name: 'Coding', icon: '💻', color: '#e3304a', measure: 'time', words: ['code', 'coding', 'javascript', 'html', 'css', 'python', 'react', 'debug', 'github', 'leetcode'] },
+    { name: 'Cooking', icon: '🍳', color: '#ff8a3d', measure: 'times', words: ['cook', 'cooking', 'meal prep', 'recipe', 'bake', 'dinner', 'lunch', 'breakfast'] },
+    { name: 'Work', icon: '💼', color: '#9aa6b6', measure: 'time', words: ['meeting', 'email', 'emails', 'report', 'client', 'deadline', 'presentation'] },
+    { name: 'Mindfulness', icon: '🧘', color: '#c99bff', measure: 'times', words: ['meditate', 'meditation', 'journal', 'breathe', 'gratitude', 'mindful', 'pray'] },
+    { name: 'Home', icon: '🏠', color: '#d9a441', measure: 'times', words: ['clean', 'laundry', 'dishes', 'vacuum', 'tidy', 'groceries', 'chores', 'trash'] },
+    { name: 'Creative', icon: '🎨', color: '#ff7ad9', measure: 'time', words: ['draw', 'paint', 'writing', 'design', 'sketch', 'photo'] },
+    { name: 'Music', icon: '🎵', color: '#7fe08a', measure: 'time', words: ['guitar', 'piano', 'sing', 'song', 'drums', 'music'] },
+    { name: 'Money', icon: '💰', color: '#ffd700', measure: 'times', words: ['budget', 'bills', 'savings', 'invest', 'expenses', 'taxes'] },
+    { name: 'Language', icon: '🗣️', color: '#5fd6ff', measure: 'time', words: ['spanish', 'french', 'duolingo', 'vocab', 'japanese', 'german'] },
+    { name: 'Social', icon: '🤝', color: '#ffa24a', measure: 'times', words: ['call mom', 'call dad', 'friend', 'friends', 'family', 'visit', 'date night'] },
+];
+const SKILL_PALETTE = ['#ffcc00', '#5aa9ff', '#3ddc84', '#ff8a3d', '#c99bff', '#ff6a8a', '#5fd6ff', '#ffa24a', '#7fe08a', '#e3304a', '#ff7ad9', '#9aa6b6'];
+// A "times done" skill counts each completion as this many minutes toward its level.
+const TIMES_UNIT_MIN = { Trivial: 5, Easy: 10, Medium: 20, Hard: 30 };
+const SKILL_AUTO_AFTER = 2;   // check-offs of any kind before a library skill makes itself
+
+// Skill paths (Oct 29 2026, approved demo): each skill has its own row of
+// milestones, in place of the separate skill tree. Times-done skills count
+// check-offs; time skills count hours (real + estimated). Your Codex tree
+// nodes become steps on the path of the skill they need (Codex Architect
+// goes on HTML). Each milestone's reward is claimed once.
+const SKILL_PATHS = {
+    'Fitness': { times: [['👟', 'First Steps', 5], ['🔁', 'Regular', 25], ['🏃', 'Athlete', 50], ['🦾', 'Iron Bee', 100], ['🏆', 'Legend', 365]] },
+    'Time Management': { times: [['🌅', 'Early Bird', 5], ['🗓️', 'Planner', 15], ['⚙️', 'Clockwork', 40], ['⏳', 'Time Lord', 100], ['👑', 'Master of Hours', 365]] },
+};
+const SKILL_PATH_DEFAULT = {
+    time: [['🌱', 'Starter', 2], ['🌿', 'Steady', 10], ['🌳', 'Skilled', 50], ['⭐', 'Expert', 100], ['👑', 'Master', 500]],
+    times: [['🌱', 'Started', 5], ['🌿', 'Habit', 25], ['🌳', 'Routine', 50], ['⭐', 'Second Nature', 100], ['👑', 'Master', 365]],
+};
+function skillPathSteps(category, measure, has = () => false) {
+    const mk = ([icon, name, need]) => ({ id: 'p-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), icon, name, need });
+    const custom = (SKILL_PATHS[category] || {})[measure];
+    if (custom) return { from: null, list: custom.map(mk) };
+    const gen = SKILL_PATH_DEFAULT[measure === 'times' ? 'times' : 'time'].map(mk);
+    if (measure === 'times') return { from: null, list: gen };
+    const key = String(category).toLowerCase();
+    // A node with two skills (HTML + Tools) goes on the first one you have.
+    const owner = (e) => { const k = e.needs.skills || []; return String(k.find(x => has(x)) || k[0] || '').toLowerCase(); };
+    const codex = SKILL_TREE_CATALOG.filter(e => e.needs && (e.needs.total ? key === 'html' : owner(e) === key))
+        .map(e => ({ id: e.id, icon: e.icon, name: e.name, need: e.needs.hours, description: e.description }));
+    if (!codex.length) return { from: null, list: gen };
+    const list = [...codex, ...gen.filter(g => !codex.some(c => c.need === g.need))].sort((a, b) => a.need - b.need);
+    return { from: 'your Codex tree', list };
+}
+const SKILL_PATH_REWARDS = {
+    pollen: { kind: 'material', id: 'pollen', qty: 5, icon: '🌼', name: 'Pollen' },
+    nectar: { kind: 'material', id: 'royal-nectar', qty: 1, icon: '✨', name: 'Royal Nectar' },
+    ticket: { kind: 'tickets', qty: 1, icon: '🎟️', name: 'Gacha ticket' },
+    drop: { kind: 'material', id: 'honey-drop', qty: 1, icon: '🍯', name: 'Honey Drop' },
+    bee: { kind: 'bee', qty: 1, icon: '🐝', name: 'New bee' },
+    jelly: { kind: 'material', id: 'royal-jelly', qty: 1, icon: '👑', name: 'Royal Jelly' },
+};
+// Last step = Royal Jelly, the one before = a bee, the rest climb from Pollen.
+function skillPathReward(i, n) {
+    const R = SKILL_PATH_REWARDS;
+    if (i === n - 1) return R.jelly;
+    if (i === n - 2) return R.bee;
+    return [R.pollen, R.nectar, R.ticket, R.drop][Math.min(i, 3)];
+}
+function skillLibEntry(name) { const n = String(name || '').toLowerCase(); return SKILL_LIBRARY.find(s => s.name.toLowerCase() === n) || null; }
+function skillColorFor(name) {
+    const lib = skillLibEntry(name);
+    if (lib) return lib.color;
+    let h = 7; for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) | 0;
+    return SKILL_PALETTE[Math.abs(h) % SKILL_PALETTE.length];
+}
+const _libWordRe = new Map();
+function libraryMatches(text) {
+    const hay = ` ${String(text || '').toLowerCase()} `;
+    return SKILL_LIBRARY.filter(s => s.words.some(w => {
+        if (!_libWordRe.has(w)) _libWordRe.set(w, new RegExp(`(?:^|[^a-z0-9])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[^a-z0-9])`));
+        return _libWordRe.get(w).test(hay);
+    }));
+}
+// Was this completion's time entered by you (real) or the planned guess?
+const completionIsReal = (task, logged) => Number(logged) > 0 || Number(task && task.minutes) > 0 || !!minutesFromText(task && task.label);
+
 function skillMatcher(dictionaryTerms) {
     const terms = (dictionaryTerms || []).filter(t => t && t.name && String(t.name).trim().length >= 2)
         .map(t => ({ name: String(t.name).trim(), category: t.category || t.name,
@@ -324,31 +410,31 @@ function computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, 
     const contributions = [];
     const skillsOf = (task, extra, extraTags) => match([extra, task.label, task.notes].filter(Boolean).join(' '), [...(task.tags || []), ...(extraTags || [])])
         .filter(s => !(task.skillsOff || []).includes(s.category));
-    const push = (cats, task, minutes, date, source) => cats.forEach(({ category }) => contributions.push({
-        category, label: task.label, minutes, xp: xpForMinutes(minutes, task.difficulty), date, source }));
+    const push = (cats, task, minutes, date, source, real) => cats.forEach(({ category }) => contributions.push({
+        category, label: task.label, minutes, xp: xpForMinutes(minutes, task.difficulty), date, source, real: !!real, difficulty: task.difficulty }));
 
     (dailyTasks || []).forEach(task => {
         const cats = skillsOf(task);
         if (!cats.length) return;
         const log = task.minutesLog || {};
-        (task.completedDates || []).forEach(d => push(cats, task, completionMinutes(task, log[d]), d, 'daily'));
+        (task.completedDates || []).forEach(d => push(cats, task, completionMinutes(task, log[d]), d, 'daily', completionIsReal(task, log[d])));
     });
     // Habits: only good (+) taps are practice.
     (habits || []).forEach(habit => {
         const cats = skillsOf(habit);
         if (!cats.length) return;
         (habit.history || []).filter(h => h.direction === 'positive')
-            .forEach(h => push(cats, habit, completionMinutes(habit, h.minutes), h.date, 'habit'));
+            .forEach(h => push(cats, habit, completionMinutes(habit, h.minutes), h.date, 'habit', completionIsReal(habit, h.minutes)));
     });
     (todos || []).forEach(todo => {
         if (!todo.completed) return;
-        push(skillsOf(todo), todo, completionMinutes(todo, todo.minutesSpent), todo.completedDate || null, 'todo');
+        push(skillsOf(todo), todo, completionMinutes(todo, todo.minutesSpent), todo.completedDate || null, 'todo', completionIsReal(todo, todo.minutesSpent));
     });
     (quests || []).forEach(quest => {
         (quest.tasks || []).forEach(task => {
             if (!task.completed) return;
             const source = Number(task.historyXP) > 0 ? 'history' : 'quest';
-            push(skillsOf(task, questSkillText(quest, task), questSkillTags(quest, task)), task, completionMinutes(task, task.minutesSpent), task.dateCompleted || null, source);
+            push(skillsOf(task, questSkillText(quest, task), questSkillTags(quest, task)), task, completionMinutes(task, task.minutesSpent), task.dateCompleted || null, source, source === 'history' || completionIsReal(task, task.minutesSpent));
         });
     });
     return contributions;
@@ -367,8 +453,10 @@ function computeTotalPracticeMinutes(dailyTasks, quests, habits, todos) {
 function computeSkillMatrixXP(dailyTasks, dictionaryTerms, quests, habits, todos) {
     const by = {};
     computeSkillContributions(dailyTasks, dictionaryTerms, quests, habits, todos).forEach(c => {
-        const e = by[c.category] || (by[c.category] = { category: c.category, xp: 0, minutes: 0, bySource: {} });
-        e.xp += c.xp; e.minutes += c.minutes;
+        const e = by[c.category] || (by[c.category] = { category: c.category, xp: 0, minutes: 0, bySource: {}, count: 0, realMinutes: 0, estMinutes: 0, timesMinutes: 0 });
+        e.xp += c.xp; e.minutes += c.minutes; e.count++;
+        if (c.real) e.realMinutes += c.minutes; else e.estMinutes += c.minutes;
+        e.timesMinutes += TIMES_UNIT_MIN[c.difficulty] || 10;
         e.bySource[c.source] = (e.bySource[c.source] || 0) + c.minutes;
     });
     return Object.values(by).map(e => ({ ...e, hours: e.minutes / 60 })).sort((a, b) => b.minutes - a.minutes);
@@ -4184,7 +4272,7 @@ class DatabaseManager {
 
         const task = (this.state.dailyTasks || []).find(t => t.id === taskId);
         if (!task) return null;
-        const textBefore = hashtagTextOf(task);
+        const textBefore = (task.tags || []).join('\n');   // tags before the edit (see _captureHashtags)
 
         if (label !== undefined) task.label = label;
         if (xp !== undefined) task.xp = Number(xp) || 0;
@@ -4316,7 +4404,7 @@ class DatabaseManager {
 
         const habit = (this.state.habits || []).find(h => h.id === habitId);
         if (!habit) return null;
-        const textBefore = hashtagTextOf(habit);
+        const textBefore = (habit.tags || []).join('\n');   // tags before the edit (see _captureHashtags)
 
         if (label !== undefined) habit.label = label;
         if (xp !== undefined) habit.xp = Number(xp) || 0;
@@ -4454,7 +4542,7 @@ class DatabaseManager {
 
         const todo = (this.state.todos || []).find(t => t.id === todoId);
         if (!todo) return null;
-        const textBefore = hashtagTextOf(todo);
+        const textBefore = (todo.tags || []).join('\n');   // tags before the edit (see _captureHashtags)
 
         if (label !== undefined) todo.label = label;
         if (xp !== undefined) todo.xp = Number(xp) || 0;
@@ -4632,29 +4720,69 @@ class DatabaseManager {
 
     // See findHashtags above. `beforeText` = the item's text before this
     // edit (empty for a new item). Doesn't save - the caller does.
+    // Oct 29 2026 (Craft): no more #words. A NEW tag on a task that also has
+    // a skill tag becomes a Dictionary word of that skill ("Closure" on a task
+    // tagged JavaScript). A lone new tag stays its own skill. `beforeText`
+    // is the task's tags before the edit, one per line (only new ones count,
+    // so a deleted Dictionary word doesn't come back on the next edit).
     _captureHashtags(item, beforeText = '') {
         if (!this.state || !this.state.plugins || !this.state.plugins.dictionary || !item) return [];
-        const was = new Set(findHashtags(beforeText).map(n => n.toLowerCase()));
         if (!this.state.dictionary) this.state.dictionary = [];
+        const was = new Set(String(beforeText || '').split('\n').map(x => x.trim().toLowerCase()).filter(Boolean));
         const have = new Set(this.state.dictionary.map(t => String(t.name || '').toLowerCase()));
-        const category = (item.tags || []).find(t => t && String(t).trim()) || 'General';
-        const added = [];
-        for (const name of findHashtags(hashtagTextOf(item))) {
+        const cats = new Map(this.state.dictionary.map(t => [String(t.category || '').toLowerCase(), t.category]));
+        const tags = (item.tags || []).map(t => String(t || '').trim()).filter(Boolean);
+        const skill = tags.find(t => cats.has(t.toLowerCase()) || skillLibEntry(t));
+        if (!skill) return [];
+        // Oct 31 2026 (Craft): ask first. New words wait in state.offers and
+        // a small card asks "Add to Dictionary?" (SkillMerge.ask). Nothing is
+        // added until you say yes; a "No" isn't asked again.
+        const offered = [];
+        // "Java Script" is just JavaScript: compare without spaces or dashes too.
+        const flat = (x) => String(x || '').toLowerCase().replace(/[\s\-_.]+/g, '');
+        const known = new Set([...have, ...cats.keys(), skill.toLowerCase()].map(flat));
+        tags.forEach(name => {
             const key = name.toLowerCase();
-            if (was.has(key) || have.has(key)) continue;
+            if (name === skill || was.has(key) || have.has(key) || cats.has(key) || skillLibEntry(name) || known.has(flat(name))) return;
             have.add(key);
-            const term = {
-                id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                name, definition: '', category: String(category).trim(),
-                createdAt: new Date().toISOString(), source: 'hashtag'
-            };
-            this.state.dictionary.push(term);
-            added.push(term);
+            if (this._offer({ kind: 'term', name, category: cats.get(skill.toLowerCase()) || skill })) offered.push(name);
+        });
+        return offered;
+    }
+
+    // ---- Ask-first offers (Oct 31 2026, Craft) ----
+    // { kind: 'term', name, category } = add a word to the Dictionary
+    // { kind: 'skill', name }          = make an everyday skill
+    // Kept in the save, so a question asked as you leave a page shows on the next.
+    _offer(o) {
+        if (!this.state || !o || !o.name) return false;
+        const id = `${o.kind}:${String(o.name).toLowerCase()}`;
+        const no = this.state.offersDeclined || {};
+        this.state.offers = this.state.offers || [];
+        if (no[id] || this.state.offers.some(x => x.id === id)) return false;
+        this.state.offers.push({ ...o, id, at: new Date().toISOString() });
+        if (typeof window !== 'undefined' && window.dispatchEvent && typeof CustomEvent !== 'undefined') setTimeout(() => window.dispatchEvent(new CustomEvent('bb-offers')), 0);
+        return true;
+    }
+    getOffers() { return (this.state && this.state.offers) || []; }
+    // yes = add it; no = drop it and don't ask again. Returns what was made.
+    answerOffer(id, yes) {
+        if (!this.state) return null;
+        const o = this.getOffers().find(x => x.id === id);
+        if (!o) return null;
+        this.state.offers = this.getOffers().filter(x => x.id !== id);
+        let made = null;
+        if (yes && o.kind === 'term') {
+            const have = (this.state.dictionary || []).some(t => String(t.name || '').toLowerCase() === o.name.toLowerCase());
+            made = have ? null : this.addDictionaryTerm({ name: o.name, category: o.category, source: 'tag' });
+        } else if (yes && o.kind === 'skill') {
+            made = this.createLibrarySkill(o.name, { auto: true });
+        } else if (!yes) {
+            this.state.offersDeclined = { ...(this.state.offersDeclined || {}), [id]: new Date().toISOString() };
+            if (o.kind === 'skill') this.state.skillDeclined = { ...(this.state.skillDeclined || {}), [o.name]: true };
         }
-        if (added.length && typeof Toast !== 'undefined') {
-            Toast.show(`📖 Added to Dictionary: ${added.map(t => t.name).join(', ')}`, 'positive');
-        }
-        return added;
+        this.save();
+        return made;
     }
 
     addDictionaryTerm({ name, definition, category, ...more }) {
@@ -4746,14 +4874,179 @@ class DatabaseManager {
     // computeSkillLevelState above for how that xp maps onto a level/bar.
     // Each entry comes back pre-merged with its level info so the Dashboard
     // never has to cross-reference two separate calls per row.
+    // ---- Smart skills (Oct 29 2026, approved demo) ----
+    // Icon, color and how a skill is measured ('time' or 'times').
+    skillMeta(category) {
+        const m = (this.state && this.state.skillMeta && this.state.skillMeta[category]) || {};
+        const lib = skillLibEntry(category) || {};
+        return { icon: m.icon || lib.icon || '🌱', color: m.color || lib.color || skillColorFor(category), measure: m.measure || lib.measure || 'time' };
+    }
+    setSkillMeasure(category, measure) {
+        if (!this.state || !['time', 'times'].includes(measure)) return;
+        this.state.skillMeta = this.state.skillMeta || {};
+        this.state.skillMeta[category] = { ...(this.state.skillMeta[category] || {}), measure };
+        this.save();
+    }
+    // Skill paths (see SKILL_PATHS). entry = this skill's getSkillMatrix row,
+    // passed in when the caller already has it.
+    getSkillPath(category, entry) {
+        const meta = this.skillMeta(category);
+        if (entry === undefined) entry = this.getSkillMatrix().find(m => m.category === category);
+        const times = meta.measure === 'times';
+        const progress = entry ? (times ? entry.count || 0 : entry.timeHours || 0) : 0;
+        const claims = ((this.state && this.state.pathClaims) || {})[category] || {};
+        const old = (this.state && this.state.skillsMastered) || {};
+        const steps = skillPathSteps(category, meta.measure, (k) => this.hasSkill(k));
+        return { category, measure: meta.measure, progress, from: steps.from,
+            milestones: steps.list.map((st, i, all) => ({ ...st, reached: progress >= st.need || !!old[st.id], claimed: !!claims[st.id], reward: skillPathReward(i, all.length) })) };
+    }
+    skillPathWaiting(category, entry) {
+        return this.getSkillPath(category, entry).milestones.filter(m => m.reached && !m.claimed).length;
+    }
+    // Hands out one reached milestone's reward, once. Null if not reached or taken.
+    claimSkillMilestone(category, id) {
+        if (!this.state) return null;
+        const m = this.getSkillPath(category).milestones.find(x => x.id === id);
+        if (!m || !m.reached || m.claimed) return null;
+        const r = m.reward, bees = [];
+        if (r.kind === 'material') this._addMaterial(r.id, r.qty);
+        else if (r.kind === 'tickets') {
+            if (!this.state.hive) this.state.hive = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
+            this.state.hive.tickets = (Number(this.state.hive.tickets) || 0) + r.qty;
+        } else if (r.kind === 'bee') bees.push(this.awardBee('skill'));
+        this.state.pathClaims = this.state.pathClaims || {};
+        this.state.pathClaims[category] = { ...(this.state.pathClaims[category] || {}), [id]: new Date().toISOString() };
+        this.save();
+        return { category, milestone: m, reward: r, bees };
+    }
+    // Every skill name you have: Dictionary categories, tags on tasks, levels.
+    _skillNames() {
+        const S = this.state || {}, names = new Set();
+        const add = (t) => { if (t && String(t).trim()) names.add(String(t).trim().toLowerCase()); };
+        (S.dictionary || []).forEach(t => add(t.category));
+        [...(S.dailyTasks || []), ...(S.todos || []), ...(S.habits || [])].forEach(t => (t.tags || []).forEach(add));
+        (S.quests || []).forEach(q => { (q.tags || []).forEach(add); (q.tasks || []).forEach(t => (t.tags || []).forEach(add)); });
+        Object.keys(S.skillLevels || {}).forEach(add);
+        return names;
+    }
+    hasSkill(name) { return this._skillNames().has(String(name || '').trim().toLowerCase()); }
+    // A library skill that fits this text but that you don't have yet.
+    librarySuggestion(text) {
+        const declined = (this.state && this.state.skillDeclined) || {};
+        const names = this._skillNames();
+        return libraryMatches(text).find(s => !names.has(s.name.toLowerCase()) && !declined[s.name]) || null;
+    }
+    // Makes a library skill: its words go into the Dictionary under it.
+    createLibrarySkill(name, { auto = false } = {}) {
+        const lib = skillLibEntry(name);
+        if (!this.state || !lib) return null;
+        if (!this.state.dictionary) this.state.dictionary = [];
+        const have = new Set(this.state.dictionary.map(t => String(t.name || '').toLowerCase()));
+        lib.words.forEach(w => {
+            if (have.has(w)) return;
+            this.state.dictionary.push({ id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: w, definition: '', category: lib.name, createdAt: new Date().toISOString(), source: 'library' });
+        });
+        this.state.skillMeta = this.state.skillMeta || {};
+        this.state.skillMeta[lib.name] = { icon: lib.icon, color: lib.color, measure: lib.measure, fromLibrary: true, auto };
+        if (this.state.skillHits) delete this.state.skillHits[lib.name];
+        if (this.state.skillDeclined) delete this.state.skillDeclined[lib.name];
+        this.save();
+        if (typeof window !== 'undefined' && window.dispatchEvent) window.dispatchEvent(new CustomEvent('skill-created', { detail: { name: lib.name, auto } }));
+        return lib.name;
+    }
+    declineLibrarySkill(name) {
+        if (!this.state) return;
+        this.state.skillDeclined = { ...(this.state.skillDeclined || {}), [name]: true };
+        this.save();
+    }
+    // Called after any check-off. A library skill you keep doing makes itself
+    // after SKILL_AUTO_AFTER check-offs of any kind. Returns names it made.
+    noteCheckoff(task, extraText = '') {
+        if (!this.state || !task) return [];
+        const s = this.librarySuggestion([extraText, task.label, task.notes].filter(Boolean).join(' '));
+        if (!s) return [];
+        this.state.skillHits = this.state.skillHits || {};
+        this.state.skillHits[s.name] = (this.state.skillHits[s.name] || 0) + 1;
+        // Oct 31 2026 (Craft): asks first instead of making itself.
+        if (this.state.skillHits[s.name] >= SKILL_AUTO_AFTER) this._offer({ kind: 'skill', name: s.name });
+        this.save();
+        return [];
+    }
+    // Old skills that the new one covers ("Time" inside "Time Management"),
+    // with how many past tasks would move. Ones you said "Keep both" to are skipped.
+    mergeCandidates(to) {
+        if (!this.state || !to) return [];
+        const skip = this.state.skillMergeSkip || {};
+        const toWords = new Set(String(to).toLowerCase().split(/\s+/));
+        const S = this.state, lower = String(to).toLowerCase();
+        return [...this._skillNames()].filter(n => n !== lower && n.split(/\s+/).every(w => toWords.has(w)) && !skip[`${n}>${lower}`])
+            .map(n => {
+                const items = [...(S.dailyTasks || []), ...(S.todos || []), ...(S.habits || []), ...(S.quests || []).flatMap(q => q.tasks || [])];
+                const count = items.filter(t => (t.tags || []).some(x => String(x).toLowerCase() === n)).length
+                    + (S.dictionary || []).filter(t => String(t.category || '').toLowerCase() === n).length;
+                const proper = (S.dictionary || []).map(t => t.category).concat(items.flatMap(t => t.tags || [])).find(x => String(x || '').toLowerCase() === n) || n;
+                return { from: proper, to, count };
+            });
+    }
+    skipMerge(from, to) {
+        if (!this.state) return;
+        this.state.skillMergeSkip = { ...(this.state.skillMergeSkip || {}), [`${String(from).toLowerCase()}>${String(to).toLowerCase()}`]: true };
+        this.save();
+    }
+    // Merge skill/tag `from` into `to` everywhere (tasks, quests, Dictionary,
+    // levels). Undo with undoMerge() right after (kept in memory only).
+    mergeSkill(from, to) {
+        if (!this.state || !from || !to || String(from).toLowerCase() === String(to).toLowerCase()) return 0;
+        const S = this.state, f = String(from).toLowerCase();
+        // Oct 31 2026 (Craft): a device copy first, so a merge can be undone
+        // even after the app closes (Settings › device backups).
+        try { this.createLocalBackup(`Before merging ${from} into ${to}`); } catch { /* storage full: Undo still works this session */ }
+        this._mergeUndo = JSON.stringify({ dailyTasks: S.dailyTasks, todos: S.todos, habits: S.habits, quests: S.quests, dictionary: S.dictionary, skillLevels: S.skillLevels, skillMeta: S.skillMeta });
+        let moved = 0;
+        const fix = (arr) => {
+            if (!Array.isArray(arr) || !arr.some(x => String(x).toLowerCase() === f)) return arr;
+            moved++;
+            const out = arr.filter(x => String(x).toLowerCase() !== f);
+            if (!out.some(x => String(x).toLowerCase() === String(to).toLowerCase())) out.push(to);
+            return out;
+        };
+        [...(S.dailyTasks || []), ...(S.todos || []), ...(S.habits || [])].forEach(t => { t.tags = fix(t.tags); if (t.skillsOff) t.skillsOff = fix(t.skillsOff); });
+        (S.quests || []).forEach(q => {
+            q.tags = fix(q.tags);
+            if (q.moduleTags) Object.keys(q.moduleTags).forEach(k => { q.moduleTags[k] = fix(q.moduleTags[k]); });
+            (q.tasks || []).forEach(t => { t.tags = fix(t.tags); });
+        });
+        (S.dictionary || []).forEach(t => { if (String(t.category || '').toLowerCase() === f) { t.category = to; moved++; } });
+        if (S.skillLevels) {
+            const key = Object.keys(S.skillLevels).find(k => k.toLowerCase() === f);
+            if (key) {
+                const a = S.skillLevels[key], b = S.skillLevels[to];
+                if (!b || (a && a.level > b.level)) S.skillLevels[to] = a;
+                delete S.skillLevels[key];
+            }
+        }
+        if (S.skillMeta) Object.keys(S.skillMeta).filter(k => k.toLowerCase() === f).forEach(k => delete S.skillMeta[k]);
+        this.save();
+        return moved;
+    }
+    undoMerge() {
+        if (!this.state || !this._mergeUndo) return false;
+        Object.assign(this.state, JSON.parse(this._mergeUndo));
+        this._mergeUndo = null;
+        this.save();
+        return true;
+    }
+
     getSkillMatrix() {
         if (!this.state) return [];
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
         return computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
             const stored = this.state.skillLevels[entry.category];
-            const levelState = computeSkillLevelState(entry.minutes, stored ? stored.level : 1);
-            return { ...entry, ...levelState };
+            const meta = this.skillMeta(entry.category);
+            // "Times done" skills level up by how often, not how long (Oct 29 2026).
+            const levelState = computeSkillLevelState(meta.measure === 'times' ? entry.timesMinutes : entry.minutes, stored ? stored.level : 1);
+            return { ...entry, ...levelState, ...meta, realHours: entry.realMinutes / 60, estHours: entry.estMinutes / 60, timeHours: entry.minutes / 60 };
         });
     }
 
@@ -4799,7 +5092,8 @@ class DatabaseManager {
 
         const matrixEntry = computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
             .find(entry => entry.category === category);
-        const minutes = matrixEntry ? matrixEntry.minutes : 0;
+        // Oct 31 2026 (Craft): a "times done" skill levels by count, same as its bar.
+        const minutes = matrixEntry ? (this.skillMeta(category).measure === 'times' ? matrixEntry.timesMinutes : matrixEntry.minutes) : 0;
 
         const stored = this.state.skillLevels[category] || { level: 1, leveledUpAt: null };
         const levelState = computeSkillLevelState(minutes, stored.level);

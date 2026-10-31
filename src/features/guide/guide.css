@@ -14,3 +14,9 @@
 .gdv .gd-new { margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: var(--bb-alt, #dc143c); color: #fff; font: 800 .56rem var(--font-main, monospace); vertical-align: middle; }
 .gdv .gd-empty, .gdv .gd-foot { color: #c2b48f; font-size: .8rem; }
 .gdv .gd-foot { text-align: center; margin: 12px 0 30px; }
+
+/* Oct 31 2026 (Craft): topic headings. */
+.gdv .gd-cat { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 2px; padding: 0; border: 0; background: none; text-align: left; font: 800 .78rem var(--font-main, monospace); letter-spacing: .12em; text-transform: uppercase; color: var(--bb-accent, #ffcc00); }
+.gdv .gd-cat:first-child { margin-top: 2px; }
+.gdv .gd-cat small { color: #c2b48f; font: 600 .7rem system-ui, sans-serif; letter-spacing: 0; }
+.gdv .gd-cat + .gd-item { border-top: 0; }
