@@ -1665,7 +1665,7 @@ class DatabaseManager {
         // backup while it's on.
         this.devTest = localStorage.getItem('bizzybee_dev_test') === '1';
         // Oct 31 2026 (Craft): PC LOCAL. On this computer (localhost, a local
-        // network address, or a file opened directly) the app runs a fake
+        // network address, or a file opened directly) the app runs a local
         // test account under its own key: name "Developer", King "Test Bee".
         // No login, no cloud, dev tools always on. It can't reach your real
         // save. Counts as a test save everywhere (devTest), so every
@@ -4822,7 +4822,7 @@ class DatabaseManager {
 
     // ---- Save types (Oct 31 2026, Craft) ----
     // REAL = your account, TEST = the 🛠 test save, PCLOCAL = this computer's
-    // fake test account. Shown in every save file name so you can tell them
+    // local test account. Shown in every save file name so you can tell them
     // apart at a glance: bizzybee-REAL-2026-10-31_08-15.json
     saveType() { return this.pcLocal ? 'PCLOCAL' : this.devTest ? 'TEST' : 'REAL'; }
     saveFileName(note = '') {
@@ -4845,7 +4845,7 @@ class DatabaseManager {
         return confirm(`This is a ${kind} save file. Load it into your ${here} save?`);
     }
 
-    // PC LOCAL: the fake test account (name Developer, King Test Bee).
+    // PC LOCAL: the local test account (name Developer, King Test Bee).
     _seedPcLocal() {
         if (!this.state.onboarding && typeof freshOnboardingRecord === 'function') this.state.onboarding = freshOnboardingRecord();
         this.completeOnboarding({ royal: 'king', name: 'Test Bee' });

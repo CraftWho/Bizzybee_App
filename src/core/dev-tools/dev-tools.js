@@ -3,7 +3,7 @@
 //
 // Who gets it (app.js's loadLocalDevTools decides whether to load this file,
 // and this file double-checks before showing anything):
-//   - This computer (PC LOCAL, Oct 31 2026): always, on the fake test
+//   - This computer (PC LOCAL, Oct 31 2026): always, on the local test
 //     account (Developer / Test Bee, see db.js). No login, no cloud.
 //   - Live site: only when signed in to Cloud Sync with an owner account.
 //     OWNER_HASHES holds SHA-256 hashes of the owner emails, so no address is
@@ -28,7 +28,7 @@
     const nested = path.includes('/features/') || path.includes('/plugins/');
     if (!nested) return;
     const root = '../../..';
-    // Oct 31 2026 (Craft): this computer = PC LOCAL, the fake test account
+    // Oct 31 2026 (Craft): this computer = PC LOCAL, the local test account
     // (db.js). Tools always work here; no Hacker login any more.
     const localDev = typeof Vault !== 'undefined' ? !!Vault.pcLocal : isLocal;
     const testOn = () => localStorage.getItem(TEST_KEY) === '1';
@@ -354,7 +354,7 @@
     function stateText() {
         const user = Vault.getUser(), bar = Vault.getCharacterLevelBar(), o = Vault.getOnboarding(), royal = Vault.getRoyalBee();
         return [
-            `Mode: ${localDev ? 'PC LOCAL (fake test account, never syncs)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
+            `Mode: ${localDev ? 'PC LOCAL (local test account, never syncs)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
             `Save key: ${Vault.storageKey}`,
             `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
@@ -377,7 +377,7 @@
             badge.className = 'dev-badge ' + (localDev ? 'pc' : 'test');
             badge.textContent = localDev ? '💻 PC LOCAL' : '🧪 TEST SAVE';
             badge.addEventListener('click', () => toast(localDev
-                ? 'PC LOCAL: a fake test account on this computer (Developer / Test Bee). No cloud. Your real save is never touched.'
+                ? 'PC LOCAL: a local test account on this computer (Developer / Test Bee). No cloud. Your real save is never touched.'
                 : 'TEST SAVE: a separate save on this device. Never syncs. Switch back to your real save in 🛠.'));
             document.body.appendChild(badge);
         }

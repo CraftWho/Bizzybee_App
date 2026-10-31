@@ -1023,7 +1023,7 @@ class CodexSystem {
 
     // Dev tools (Craft, 2026-10-09).
     //  - This computer (PC LOCAL, Oct 31 2026): the 🛠 panel
-    //    (src/core/dev-tools/dev-tools.js) always loads, on the fake test account.
+    //    (src/core/dev-tools/dev-tools.js) always loads, on the local test account.
     //  - Live site: the 🛠 panel loads only when signed in to Cloud Sync
     //    with the owner's account (DevTools.isOwner checks a SHA-256 of the
     //    email, so the address itself isn't in the code). On live, every
@@ -1050,7 +1050,7 @@ class CodexSystem {
             script.onerror = () => script.remove();
             document.body.appendChild(script);
         };
-        // Oct 31 2026 (Craft): this computer is PC LOCAL (fake test account,
+        // Oct 31 2026 (Craft): this computer is PC LOCAL (local test account,
         // see db.js), so the 🛠 panel always loads here. The Hacker login
         // (src/local/admin.local.js) is gone.
         if (!nested) return;   // no panel on the login page
