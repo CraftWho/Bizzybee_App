@@ -31,6 +31,8 @@ const WHATS_NEW = [
         { icon: '📱', title: 'One device at a time', text: 'The device you open becomes active. Others show "Continue here", so saves never fight.' },
         { icon: '🗄️', title: 'Daily backups', text: 'One cloud backup a day, last 4 days kept. No more backups every few minutes.' },
         { icon: '🔔', title: 'Notifications in the app', text: 'Reminders ring in the Android app. The website no longer sends them.' },
+        // Oct 31 2026 (Craft): speed.
+        { icon: '⚡', title: 'Faster app', text: 'Pages load from your phone after the first visit, and the app opens offline.' },
         { icon: '🧹', title: 'Clear today', text: 'Terminal: type clear today to undo today\'s check-offs, XP and level.', href: 'plugins/terminal/terminal.html' },
       ],
       fixed: [

@@ -17,10 +17,8 @@
 // rumble on your phone. Turning it off puts your real save straight back.
 // ============================================================================
 (function () {
-    const OWNER_HASHES = [
-        'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d',
-        '0fb7061c0faa822f969cf19e1e1e96f9abd3ea14b0c3e232f80b25eea65b374f'   // collaborator (Oct 2026)
-    ];
+    // Oct 31 2026 (Craft): one list, in app.js (DEV_OWNER_HASHES).
+    const OWNER_HASHES = typeof DEV_OWNER_HASHES !== 'undefined' ? DEV_OWNER_HASHES : [];
     const TEST_KEY = 'bizzybee_dev_test';
 
     const host = location.hostname;
