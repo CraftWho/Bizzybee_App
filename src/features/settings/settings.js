@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('export-full-save-btn').addEventListener('click', async () => {
-        const snapshot = Vault.exportFullState() || localStorage.getItem(Vault.storageKey);
+        const snapshot = Vault.exportForFile() || localStorage.getItem(Vault.storageKey);   // Oct 31 2026 (Craft): carries its save type
         if (!snapshot) {
             Toast.show('Nothing to export yet.', 'negative');
             return;
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // memory; never store the actual PIN in it.
                 const hint = document.getElementById('full-save-hint').value.trim();
                 if (hint) encrypted.hint = hint;
-                downloadFile(JSON.stringify(encrypted), 'bizzybee-full-save.json', 'application/json');
+                downloadFile(JSON.stringify(encrypted), Vault.saveFileName('locked'), 'application/json');   // Oct 31 2026 (Craft): REAL/TEST/PCLOCAL in the name
                 Toast.show('🔐 Full save exported (encrypted).', 'positive');
             } catch (error) {
                 Toast.show('⚠️ Encryption failed - export cancelled.', 'negative');
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        downloadFile(snapshot, 'bizzybee-full-save.json', 'application/json');
+        downloadFile(snapshot, Vault.saveFileName(), 'application/json');   // Oct 31 2026 (Craft): REAL/TEST/PCLOCAL in the name
         Toast.show('📤 Full save exported.', 'positive');
     });
 
@@ -135,6 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
+            if (!Vault.confirmImportKind(plainText)) return;   // Oct 31 2026 (Craft): REAL/TEST/PCLOCAL check
             localStorage.setItem('bizzybee_auto_sync', 'false');
             const result = Vault.importFullState(plainText);
             if (!result.ok) {

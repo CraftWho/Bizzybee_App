@@ -1635,6 +1635,15 @@ function beeMood(bee, streak = 0) {
 function raidChance(streak) { return Math.max(0.03, Math.min(0.45, 0.12 - streak * 0.03)); }
 
 
+// Oct 31 2026 (Craft): is this the PC LOCAL test copy? (see DatabaseManager)
+function isPcLocalHost() {
+    if (typeof location === 'undefined') return false;
+    const host = location.hostname || '';
+    if (location.protocol === 'file:') return true;
+    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')
+        || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+}
+
 class DatabaseManager {
     constructor() {
         this.dbName = 'BizzybeeVault';
@@ -1644,7 +1653,18 @@ class DatabaseManager {
         // can never touch your real save. app.js skips Cloud Sync and folder
         // backup while it's on.
         this.devTest = localStorage.getItem('bizzybee_dev_test') === '1';
-        if (this.devTest) {
+        // Oct 31 2026 (Craft): PC LOCAL. On this computer (localhost, a local
+        // network address, or a file opened directly) the app runs a fake
+        // test account under its own key: name "Developer", King "Test Bee".
+        // No login, no cloud, dev tools always on. It can't reach your real
+        // save. Counts as a test save everywhere (devTest), so every
+        // "never sync / never back up" guard applies.
+        this.pcLocal = isPcLocalHost();
+        if (this.pcLocal) {
+            this.devTest = true;
+            this.storageKey = 'bizzybee_user_data:pclocal';
+            if (localStorage.getItem('bizzybee_session') !== 'local') localStorage.setItem('bizzybee_session', 'local');
+        } else if (this.devTest) {
             this.storageKey = 'bizzybee_user_data:devtest';
         } else if (localStorage.getItem('bizzybee_session') === 'identity' && localStorage.getItem('bizzybee_cloud_owner')) {
             this.storageKey += ':' + localStorage.getItem('bizzybee_cloud_owner');
@@ -1767,6 +1787,7 @@ class DatabaseManager {
         this._splitNamedTitles();
         this._splitHashtagTerms();
         this._ensureQueen();
+        if (this.pcLocal && !this.state.pcLocalSeeded) this._seedPcLocal();   // Oct 31 2026 (Craft)
         this.hiveHourlyTick();
         this._pendingLifeEvents = this.hiveDailyTick();
         // Backfills state.dictionary onto any save from before the
@@ -4774,6 +4795,41 @@ class DatabaseManager {
         return JSON.stringify(this.state, null, 2);
     }
 
+    // ---- Save types (Oct 31 2026, Craft) ----
+    // REAL = your account, TEST = the 🛠 test save, PCLOCAL = this computer's
+    // fake test account. Shown in every save file name so you can tell them
+    // apart at a glance: bizzybee-REAL-2026-10-31_08-15.json
+    saveType() { return this.pcLocal ? 'PCLOCAL' : this.devTest ? 'TEST' : 'REAL'; }
+    saveFileName(note = '') {
+        const d = new Date(), pad = n => String(n).padStart(2, '0');
+        const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+        return `bizzybee-${this.saveType()}-${note ? note + '-' : ''}${stamp}.json`;
+    }
+    // A save file you keep: the save plus its type, so importing it into a
+    // different type of save asks first.
+    exportForFile() {
+        if (!this.state) return null;
+        return JSON.stringify({ ...this.state, saveKind: this.saveType() }, null, 2);
+    }
+    // true = go ahead. Asks when the file's type doesn't match this save.
+    confirmImportKind(text) {
+        let kind = null;
+        try { kind = JSON.parse(text).saveKind || null; } catch { return true; }
+        const here = this.saveType();
+        if (!kind || kind === here) return true;
+        return confirm(`This is a ${kind} save file. Load it into your ${here} save?`);
+    }
+
+    // PC LOCAL: the fake test account (name Developer, King Test Bee).
+    _seedPcLocal() {
+        if (!this.state.onboarding && typeof freshOnboardingRecord === 'function') this.state.onboarding = freshOnboardingRecord();
+        this.completeOnboarding({ royal: 'king', name: 'Test Bee' });
+        this.state.displayName = 'Developer';
+        if (this.state.user) this.state.user.name = 'Developer';
+        this.state.pcLocalSeeded = true;
+        this.save();
+    }
+
     // Returns { ok: true } on success or { ok: false, error } on failure.
     // Doesn't call save()/re-run init()'s backfills itself - the caller
     // (settings.js, login.js) reloads the page after a successful import so
@@ -4800,6 +4856,7 @@ class DatabaseManager {
         try {
             this.validateFullState(parsed);
             if (backup) this.createLocalBackup('Before import or cloud restore');
+            delete parsed.saveKind;   // Oct 31 2026 (Craft): file label only, not part of the save
             parsed.schemaVersion = VAULT_SCHEMA_VERSION;
             localStorage.setItem(this.storageKey + ':dirty', fromCloud ? 'false' : 'true');
             localStorage.setItem(this.storageKey, JSON.stringify(parsed));

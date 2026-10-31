@@ -114,7 +114,7 @@ async function refreshCloudBackups() {
             const backup = await cloudEngine().request('backups?id=' + encodeURIComponent(item.id));
             const text = typeof backup.data === 'string' ? backup.data : JSON.stringify(backup.data, null, 2);
             const d = new Date(item.createdAt), pad = n => String(n).padStart(2, '0');
-            const name = `bizzybee-cloud-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.json`;
+            const name = `bizzybee-REAL-cloud-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.json`;   // Oct 31 2026 (Craft): cloud = REAL
             const written = typeof FolderBackup !== 'undefined' ? await FolderBackup.writeFile(name, text) : { ok: false };
             if (written.ok) { Toast.show(`💾 Saved ${name} to ${written.folder}.`, 'positive'); return; }
             const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
