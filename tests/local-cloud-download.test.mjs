@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import vm from 'node:vm';
 
-const sample = () => ({ schemaVersion: 8, user: { name: 'Cloud Bee' }, quests: [{ id: 'q', tasks: [{ id: 't', xp: 75, completed: true }] }], profilePhoto: 'photo-data', colony: { bees: [] } });
+const sample = () => ({ schemaVersion: 8, user: { name: 'Cloud Bee' }, quests: [{ id: 'q', tasks: [{ id: 't', xp: 75, completed: true }] }], profilePhoto: 'photo-data', hive: { bees: [] } });
 function directory(files, prefix = '', failWrite = '') {
     return {
         async getFileHandle(name, options = {}) {

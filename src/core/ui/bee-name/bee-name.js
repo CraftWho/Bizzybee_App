@@ -24,7 +24,7 @@ const BeeName = {
         };
         el.querySelector('.bn-dice').addEventListener('click', (e) => {
             e.stopPropagation();
-            const taken = Vault.getColonyBees().map(b => b.name).concat(input.value);
+            const taken = Vault.getHiveBees().map(b => b.name).concat(input.value);
             input.value = typeof randomBeeName === 'function' ? randomBeeName(taken) : input.value;
             input.focus();
         });

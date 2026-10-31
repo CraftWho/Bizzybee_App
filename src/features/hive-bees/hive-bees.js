@@ -1,4 +1,4 @@
-console.log("/// COLONY BEES ONLINE ///");
+console.log("/// HIVE BEES ONLINE ///");
 
 // Hive Bees (Oct 2026, approved demo). Its own page now - it used to be
 // a pop-up on the Inventory page. A list (or the real bee cards, scaled
@@ -6,7 +6,7 @@ console.log("/// COLONY BEES ONLINE ///");
 // Need help. Tap a bee for a sheet with its mood, vitals and job picker;
 // "Open card" shows the real, editable bee card (rename, items, evolve).
 // Mood faces come from beeFeeling() in db.js (same as the Hive Life combs).
-const CB_KEY = 'bizzybee_colony_bees_view';
+const CB_KEY = 'bizzybee_hive_bees_view';
 const CB_TABS = [
     ['all', 'All'], ['working', 'Working'], ['idle', 'No job'], ['eggs', 'Eggs'], ['help', 'Need help']
 ];
@@ -80,7 +80,7 @@ function cbSorted(list) {
 
 function cbRender() {
     const esc = PV2.esc;
-    const all = Vault.getColonyBees();
+    const all = Vault.getHiveBees();
     const eggs = all.filter(cbIsEgg).length;
     document.getElementById('cb-lead').textContent = all.length
         ? `${all.length - eggs} bee${all.length - eggs === 1 ? '' : 's'}${eggs ? ` and ${eggs} egg${eggs === 1 ? '' : 's'}` : ''}. Tap a bee for its card.`
@@ -138,7 +138,7 @@ function cbVital(icon, label, value, color, rate = 0) {
 
 function cbOpenBee(id) {
     const esc = PV2.esc;
-    const b = Vault.getColonyBees().find(x => x.id === id);
+    const b = Vault.getHiveBees().find(x => x.id === id);
     if (!b) { PV2.close(); return; }
     const f = cbFeeling(b);
     const L = b.life;
@@ -230,7 +230,7 @@ function cbOpenBee(id) {
 function cbOpenCard(id) {
     const overlay = document.getElementById('cb-expanded');
     const host = overlay.querySelector('.cb-expanded-host');
-    const b = Vault.getColonyBees().find(x => x.id === id);
+    const b = Vault.getHiveBees().find(x => x.id === id);
     if (!b) { cbCloseCard(); return; }
     host.innerHTML = '';
     BeeCard.render(host, b, { editable: true, onChange: () => { cbRender(); cbOpenCard(id); } });
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     cbRender();
     // ?bee=<id> (the level-up reward's "See my bee") opens that bee.
     const beeId = new URLSearchParams(window.location.search).get('bee');
-    if (beeId && Vault.getColonyBees().some(b => b.id === beeId)) cbOpenBee(beeId);
+    if (beeId && Vault.getHiveBees().some(b => b.id === beeId)) cbOpenBee(beeId);
 
     document.getElementById('cb-q').addEventListener('input', (e) => { cbState.q = e.target.value; cbRender(); });
     document.getElementById('cb-sort').addEventListener('change', (e) => { cbState.sort = e.target.value; cbSave(); cbRender(); });

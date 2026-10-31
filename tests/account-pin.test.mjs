@@ -7,7 +7,7 @@ import { createHash, webcrypto } from 'node:crypto';
 import vm from 'node:vm';
 
 function harness(state) {
-    const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], colony: { bees: [], tickets: 0 }, ...state };
+    const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], hive: { bees: [], tickets: 0 }, ...state };
     const data = new Map([['bizzybee_user_data', JSON.stringify(save)]]);
     const localStorage = { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, String(v)), removeItem: k => data.delete(k) };
     const context = vm.createContext({ localStorage, console: { log() {}, error() {} }, Event, crypto: webcrypto, TextEncoder, atob, btoa, Uint8Array,

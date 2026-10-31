@@ -28,7 +28,7 @@
             "dateCompleted": null,
             "tasks": [
                 { "id": "welcome-t1", "label": "Check off this first calibration step", "xp": 50, "completed": false, "dateCompleted": null, "link": null },
-                { "id": "welcome-t2", "label": "Open the Hive Mind menu (🏰 button) and visit the Colony page", "xp": 30, "completed": false, "dateCompleted": null, "link": null },
+                { "id": "welcome-t2", "label": "Open the Hive Mind menu (🏰 button) and visit the Hive Mind page", "xp": 30, "completed": false, "dateCompleted": null, "link": null },
                 { "id": "welcome-t3", "label": "Complete every task on this quest to see it auto-complete", "xp": 40, "completed": false, "dateCompleted": null, "link": null }
             ]
         },

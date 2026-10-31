@@ -17,6 +17,42 @@ const VAULT_SCHEMA_VERSION = 8;
 // backup restore, an imported file - via validateFullState below, so an old
 // save never reaches the rest of the app. Values are never changed, only
 // the key. Encrypted personal info is a string and is left alone.
+// Oct 31 2026 (Craft): "Colony" was renamed "Hive Mind" everywhere. Saves
+// made before keep the bees, tickets, honey and hive life under "colony";
+// this moves them to "hive", and renames the page keys kept in the save
+// (Home tile order, seen hints). Runs on load, import, cloud load and
+// backup restore (validateFullState), so old files keep working. Returns
+// true when it changed something.
+const HIVE_PAGE_KEYS = { colony: 'hive-mind', 'colony-bees': 'hive-bees' };
+function migrateHiveKey(s) {
+    if (!s || typeof s !== 'object' || Array.isArray(s)) return false;
+    let changed = false;
+    if (s.colony && typeof s.colony === 'object' && !s.hive) { s.hive = s.colony; changed = true; }
+    if (Object.prototype.hasOwnProperty.call(s, 'colony')) { delete s.colony; changed = true; }
+    if (Array.isArray(s.homeAppOrder) && s.homeAppOrder.some(k => HIVE_PAGE_KEYS[k])) {
+        s.homeAppOrder = s.homeAppOrder.map(k => HIVE_PAGE_KEYS[k] || k); changed = true;
+    }
+    if (s.hints && typeof s.hints === 'object') {
+        ['seen', 'snooze'].forEach(field => {
+            const o = s.hints[field];
+            if (!o || typeof o !== 'object') return;
+            Object.keys(HIVE_PAGE_KEYS).forEach(k => {
+                if (!Object.prototype.hasOwnProperty.call(o, k)) return;
+                if (!(HIVE_PAGE_KEYS[k] in o)) o[HIVE_PAGE_KEYS[k]] = o[k];
+                delete o[k]; changed = true;
+            });
+        });
+    }
+    return changed;
+}
+// Device-only settings that used the old name (bee hatch memory, list view).
+function migrateHiveStorage() {
+    if (typeof localStorage === 'undefined') return;
+    [['bizzybee_colony_hatched', 'bizzybee_hive_hatched'], ['bizzybee_colony_bees_view', 'bizzybee_hive_bees_view']].forEach(([from, to]) => {
+        try { const v = localStorage.getItem(from); if (v !== null && localStorage.getItem(to) === null) localStorage.setItem(to, v); } catch { /* storage off */ }
+    });
+}
+
 function upgradeLegacyPoints(state) {
     const LEGACY = 'dp';
     const walk = (node) => {
@@ -490,9 +526,9 @@ function computeDailyStreak(task, today) {
     return count;
 }
 
-// Colony bee rarities - lives here (not hive-mind.js) because bees are now
+// Hive Mind bee rarities - lives here (not hive-mind.js) because bees are now
 // awarded on level-up too (see toggleTask/toggleDailyTask below), which
-// happens from Home/Quests/Dailies, not just the Colony page itself.
+// happens from Home/Quests/Dailies, not just the Hive Mind page itself.
 // hive-mind.js's rendering re-uses this exact same table so a bee's color is
 // identical everywhere it's shown, no matter how it was earned.
 // weight: 0 on Named is deliberate - rollBeeRarity() below can never
@@ -603,8 +639,8 @@ function rollNamedBeeName() {
 // whenever you complete a real task/daily - see
 // _collectMaterialsOnCompletion below); the rest are flavor + their own
 // distinct swarm animation for now (hive-mind.js reads bee.class to pick
-// which - see hive-mind.css's colony-patrol/colony-forage/colony-fortify/
-// colony-build/colony-tend keyframes), same intentional "groundwork
+// which - see hive-mind.css's hive-mind-patrol/hive-mind-forage/hive-mind-fortify/
+// hive-mind-build/hive-mind-tend keyframes), same intentional "groundwork
 // before mechanics" spirit as the numeric stats note used to be here.
 // Oct 2026 (Hive Life): real honeybee jobs. Keys stay the same for saves
 // made before (collector/guardian/barrier/architect/nurse) - only the
@@ -674,7 +710,7 @@ const QUEST_TICKET_XP_THRESHOLD = 150;
 // A second, rarer loot category alongside MATERIAL_CATALOG above - these
 // aren't "collectibles," they're consumed to change a bee (see evolveBee/
 // applyTraitItem below). Nanite-flavored on purpose (bolts/screws, drills)
-// since the colony is explicitly mechanical, not organic - matches the
+// since the hive is explicitly mechanical, not organic - matches the
 // existing "nanite hive" framing everywhere else in the app.
 // How many fragments assemble into one complete item - see _addFragment()
 // below. Only 'evo-stone' uses fragments right now (via its
@@ -1745,6 +1781,14 @@ class DatabaseManager {
         let parsed;
         try { parsed = existingData ? JSON.parse(existingData) : null; }
         catch { throw new Error('Your saved data could not be read. It has been preserved; recover a backup in Settings.'); }
+        // Oct 31 2026 (Craft): Colony -> Hive Mind. Keep a device copy of the
+        // save as it was, then move "colony" to "hive" (see migrateHiveKey).
+        migrateHiveStorage();
+        let hiveRenamed = false;
+        if (parsed && typeof parsed === 'object' && Object.prototype.hasOwnProperty.call(parsed, 'colony')) {
+            try { this.createLocalBackup('Before Hive Mind rename'); } catch { /* full: the move is safe anyway */ }
+            hiveRenamed = migrateHiveKey(parsed);
+        }
         if (existingData !== null) this.validateFullState(parsed);
 
         if (parsed) {
@@ -1757,6 +1801,7 @@ class DatabaseManager {
             console.log("Vault: Local data found. Loading state...");
             this.state = parsed;
             if (migrated) this.save();
+            else if (hiveRenamed) { try { localStorage.setItem(this.storageKey, JSON.stringify(parsed)); } catch { /* next save writes it */ } }
         } else {
             console.log("Vault: No local data found.");
             const recovered = this._looksLikeExistingCloudAccount() && await this._tryRecoverFromCloud();
@@ -1925,16 +1970,16 @@ class DatabaseManager {
             // not authored) - always starts fresh here since loadBlueprint is
             // used by both first-run init and a full Reset.
             this.state.eevee = { conversations: [] };
-            // Same reasoning for the colony's gacha-pulled bees - these are
+            // Same reasoning for the hive's gacha-pulled bees - these are
             // random results that can't be recomputed from a formula (unlike
             // XP/level), so they have to actually be stored, but they're not
-            // blueprint content either. The colony always starts with the
+            // blueprint content either. The hive always starts with the
             // Queen (a fixed, separate visual - see hive-mind.js, never stored
             // here) plus exactly one Common Worker Bee, so the collection
             // isn't empty on a fresh start. Only runs on first init or a
             // full Reset - an existing player's already-earned bees are
             // never touched or retroactively seeded.
-            this.state.colony = {
+            this.state.hive = {
                 bees: [{
                     id: 'bee-starter',
                     name: 'Worker Bee #1',
@@ -1957,7 +2002,7 @@ class DatabaseManager {
                 ticketsAwarded: 0
             };
             // Collector-bee material drops - see _collectMaterialsOnCompletion.
-            // Not blueprint content (random results, same reasoning as colony
+            // Not blueprint content (random results, same reasoning as hive
             // above), so this only gets seeded fresh here, never touched by
             // syncFromBlueprint. `items` (Evolution Items) is the same idea
             // as `materials`, just a second, rarer loot pool - see
@@ -1968,7 +2013,7 @@ class DatabaseManager {
             this.state.inventory = { materials: {}, items: {}, fragments: {} };
             // Which optional plugins (see PLUGIN_CATALOG in plugins.js) the
             // user has switched on - a local setting, not blueprint
-            // content, same reasoning as colony/inventory above. Keyed by
+            // content, same reasoning as hive/inventory above. Keyed by
             // plugin id -> boolean. Only plugins.js knows what a given id
             // actually IS or whether it's currently available to toggle at
             // all (see PLUGIN_CATALOG's 'coming-soon' status) - db.js just
@@ -2176,6 +2221,7 @@ class DatabaseManager {
 
     validateFullState(parsed) {
         const object = value => value && typeof value === 'object' && !Array.isArray(value);
+        migrateHiveKey(parsed);   // Oct 31 2026 (Craft): colony -> hive
         // Old saves (schema 7 and older) still say "dp" - rename to "xp" first.
         if (object(parsed) && (parsed.schemaVersion == null || parsed.schemaVersion < 8)) upgradeLegacyPoints(parsed);
         if (!object(parsed) || !object(parsed.user) || !Array.isArray(parsed.quests)) throw new Error('That is not a Bizzybee save file.');
@@ -2233,13 +2279,13 @@ class DatabaseManager {
         const ack = Math.min(s.characterLevelBar.acknowledgedLevel || 1, live);
         s.timeXPRecalc = { at: new Date().toISOString(), levelBefore: s.characterLevelBar.acknowledgedLevel || 1, liveLevel: live };
         s.characterLevelBar.acknowledgedLevel = ack;
-        if (s.colony) {
+        if (s.hive) {
             let bees = 0;
             for (let l = 2; l <= ack; l++) bees += beesForLevel(l);
-            s.colony.levelUpBeesAwarded = Math.min(Number(s.colony.levelUpBeesAwarded) || 0, bees);
-            s.colony.ticketsAwarded = Math.min(Number(s.colony.ticketsAwarded) || 0, expectedLevelTickets(ack));
-            s.colony.materialsAwardedForLevels = Math.min(Number(s.colony.materialsAwardedForLevels) || 0, Math.max(0, ack - 1));
-            s.colony.beeRateOct2026 = true;
+            s.hive.levelUpBeesAwarded = Math.min(Number(s.hive.levelUpBeesAwarded) || 0, bees);
+            s.hive.ticketsAwarded = Math.min(Number(s.hive.ticketsAwarded) || 0, expectedLevelTickets(ack));
+            s.hive.materialsAwardedForLevels = Math.min(Number(s.hive.materialsAwardedForLevels) || 0, Math.max(0, ack - 1));
+            s.hive.beeRateOct2026 = true;
         }
         s.skillLevels = {};
         s.timeXPVersion = 1;
@@ -2490,11 +2536,11 @@ class DatabaseManager {
     // celebration payload without having to separately diff state.
     _syncLevelUpBees({ silent } = {}) {
         if (!this.state) return { awardedBees: [], ticketsGranted: 0, awardedMaterials: [] };
-        if (!this.state.colony) this.state.colony = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
-        if (typeof this.state.colony.levelUpBeesAwarded !== 'number') this.state.colony.levelUpBeesAwarded = 0;
-        if (typeof this.state.colony.tickets !== 'number') this.state.colony.tickets = 0;
-        if (typeof this.state.colony.ticketsAwarded !== 'number') this.state.colony.ticketsAwarded = 0;
-        if (typeof this.state.colony.materialsAwardedForLevels !== 'number') this.state.colony.materialsAwardedForLevels = 0;
+        if (!this.state.hive) this.state.hive = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
+        if (typeof this.state.hive.levelUpBeesAwarded !== 'number') this.state.hive.levelUpBeesAwarded = 0;
+        if (typeof this.state.hive.tickets !== 'number') this.state.hive.tickets = 0;
+        if (typeof this.state.hive.ticketsAwarded !== 'number') this.state.hive.ticketsAwarded = 0;
+        if (typeof this.state.hive.materialsAwardedForLevels !== 'number') this.state.hive.materialsAwardedForLevels = 0;
         // First time this runs on a given save, the character level bar
         // starts ACKNOWLEDGED at the current live level - not level 1 -
         // since everything up to here has already been silently granted
@@ -2511,21 +2557,21 @@ class DatabaseManager {
         for (let lvl = 2; lvl <= level; lvl++) expectedBees += beesForLevel(lvl);
         // Oct 2026 rate change: saves that got more bees under the old,
         // faster formula keep them, and still get 1 bee on their next level.
-        if (!this.state.colony.beeRateOct2026) {
-            this.state.colony.levelUpBeesAwarded = Math.min(this.state.colony.levelUpBeesAwarded, expectedBees);
-            this.state.colony.beeRateOct2026 = true;
+        if (!this.state.hive.beeRateOct2026) {
+            this.state.hive.levelUpBeesAwarded = Math.min(this.state.hive.levelUpBeesAwarded, expectedBees);
+            this.state.hive.beeRateOct2026 = true;
         }
-        const beeDeficit = expectedBees - this.state.colony.levelUpBeesAwarded;
+        const beeDeficit = expectedBees - this.state.hive.levelUpBeesAwarded;
 
         // Tickets per level-up grow with the level (ticketsForLevel).
         const expectedTickets = expectedLevelTickets(level);
-        const ticketDeficit = expectedTickets - this.state.colony.ticketsAwarded;
+        const ticketDeficit = expectedTickets - this.state.hive.ticketsAwarded;
 
         // 1 material roll per level-up too - flat, unlike the escalating
         // bee formula, since this is meant to be a small steady trickle
         // rather than the main reward for leveling.
         const expectedMaterialRolls = Math.max(0, level - 1);
-        const materialDeficit = expectedMaterialRolls - this.state.colony.materialsAwardedForLevels;
+        const materialDeficit = expectedMaterialRolls - this.state.hive.materialsAwardedForLevels;
 
         if (beeDeficit <= 0 && ticketDeficit <= 0 && materialDeficit <= 0) {
             return { awardedBees: [], ticketsGranted: 0, awardedMaterials: [] };
@@ -2534,12 +2580,12 @@ class DatabaseManager {
         const awardedBees = [];
         if (beeDeficit > 0) {
             for (let i = 0; i < beeDeficit; i++) awardedBees.push(this.awardBee('levelup'));
-            this.state.colony.levelUpBeesAwarded = expectedBees;
+            this.state.hive.levelUpBeesAwarded = expectedBees;
         }
 
         if (ticketDeficit > 0) {
-            this.state.colony.tickets += ticketDeficit;
-            this.state.colony.ticketsAwarded = expectedTickets;
+            this.state.hive.tickets += ticketDeficit;
+            this.state.hive.ticketsAwarded = expectedTickets;
         }
 
         const awardedMaterials = [];
@@ -2551,7 +2597,7 @@ class DatabaseManager {
                 this.state.inventory.materials[materialId] = (this.state.inventory.materials[materialId] || 0) + 1;
                 awardedMaterials.push(materialId);
             }
-            this.state.colony.materialsAwardedForLevels = expectedMaterialRolls;
+            this.state.hive.materialsAwardedForLevels = expectedMaterialRolls;
         }
 
         this.save();
@@ -2606,7 +2652,7 @@ class DatabaseManager {
         if (reached > LEVEL_CAP) {
             const epic = this.awardBee('tier', 'Epic');
             if (epic) awardedBees.push(epic);
-            this.state.colony.tickets = (this.state.colony.tickets || 0) + 5;
+            this.state.hive.tickets = (this.state.hive.tickets || 0) + 5;
             ticketsGranted += 5;
             this._addMaterial('royal-jelly', 1); awardedMaterials.push('royal-jelly');
             this.save();
@@ -2726,7 +2772,7 @@ class DatabaseManager {
     // index+1 IS each bee's true acquisition order) rather than rolled.
     // Purely additive, mirrors _syncLevelUpBees' catch-up philosophy.
     _ensureBeeCardData() {
-        if (!this.state || !this.state.colony) return;
+        if (!this.state || !this.state.hive) return;
         let changed = false;
 
         // Backfills the fragments bucket onto any save from before the
@@ -2737,7 +2783,7 @@ class DatabaseManager {
             changed = true;
         }
 
-        (this.state.colony.bees || []).forEach((bee, index) => {
+        (this.state.hive.bees || []).forEach((bee, index) => {
             if (!bee.stats) {
                 bee.stats = rollBeeStats(bee.rarity);
                 changed = true;
@@ -2788,16 +2834,16 @@ class DatabaseManager {
         this._feedHive();
         this._workers('scout').forEach(scout => {
             if (lifeRand() < (0.03 + (beeTitlePower(scout, 'swift') ? 0.02 : 0)) * beeTalentBoost(scout)) {
-                this.state.colony.tickets = (this.state.colony.tickets || 0) + 1;
+                this.state.hive.tickets = (this.state.hive.tickets || 0) + 1;
                 if (typeof Toast !== 'undefined') Toast.show(`🎟️ ${scout.name} the Scout found a gacha ticket!`, 'positive');
             }
         });
         // Foragers (collectors) only work while awake and rested; Speed helps.
-        const collectors = this.getColonyBees().filter(b => b.class === 'collector' && (!b.life || beeCanWork(b)));
+        const collectors = this.getHiveBees().filter(b => b.class === 'collector' && (!b.life || beeCanWork(b)));
         // Title "The Bright": +3% gacha ticket chance on every finished task.
         this._lifeBees().filter(b => beeTitlePower(b, 'bright') && beeCanWork(b)).forEach(b => {
             if (lifeRand() < 0.03) {
-                this.state.colony.tickets = (this.state.colony.tickets || 0) + 1;
+                this.state.hive.tickets = (this.state.hive.tickets || 0) + 1;
                 if (typeof Toast !== 'undefined') Toast.show(`🎟️ ${b.name} \u201cThe Bright\u201d found a gacha ticket!`, 'positive');
             }
         });
@@ -2846,9 +2892,9 @@ class DatabaseManager {
         const totalXP = (quest.tasks || []).reduce((sum, t) => sum + t.xp, 0);
         if (totalXP < QUEST_TICKET_XP_THRESHOLD) return;
 
-        if (!this.state.colony) this.state.colony = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
-        if (typeof this.state.colony.tickets !== 'number') this.state.colony.tickets = 0;
-        this.state.colony.tickets += 1;
+        if (!this.state.hive) this.state.hive = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
+        if (typeof this.state.hive.tickets !== 'number') this.state.hive.tickets = 0;
+        this.state.hive.tickets += 1;
         this.save();
 
         if (typeof Toast !== 'undefined') {
@@ -3293,37 +3339,37 @@ class DatabaseManager {
         return this.state && this.state.eevee ? (this.state.eevee.conversations || []) : [];
     }
 
-    // 5g. Logic: the colony's gacha-pulled bees (src/features/hive-mind/). Each
+    // 5g. Logic: the hive's gacha-pulled bees (src/features/hive-mind/). Each
     // pull's rarity/name is random, so - unlike XP/level - there's no formula
     // to recompute it from; it has to be stored as its own fact.
-    getColonyBees() {
-        return this.state && this.state.colony ? (this.state.colony.bees || []) : [];
+    getHiveBees() {
+        return this.state && this.state.hive ? (this.state.hive.bees || []) : [];
     }
 
-    addColonyBee(bee) {
+    addHiveBee(bee) {
         if (!this.state) return null;
-        if (!this.state.colony) this.state.colony = { bees: [] };
+        if (!this.state.hive) this.state.hive = { bees: [] };
 
         ensureBeeLife(bee, todayISO(), { isNew: true });
-        this.state.colony.bees.push(bee);
+        this.state.hive.bees.push(bee);
         this._noteModels(beeModelKeys(bee));
         this.save();
         return bee;
     }
 
     // ---- Bee Models (Oct 2026): which kinds of bee you've met ----------------
-    // colony.seenModels = { key: 'YYYY-MM-DD' } - kept even if the bee is later
-    // destroyed or combined. colony.modelsViewed = keys you've tapped (NEW tag).
+    // hive.seenModels = { key: 'YYYY-MM-DD' } - kept even if the bee is later
+    // destroyed or combined. hive.modelsViewed = keys you've tapped (NEW tag).
     _noteModels(keys) {
-        if (!this.state || !this.state.colony || !keys.length) return false;
-        const seen = this.state.colony.seenModels || (this.state.colony.seenModels = {});
+        if (!this.state || !this.state.hive || !keys.length) return false;
+        const seen = this.state.hive.seenModels || (this.state.hive.seenModels = {});
         let changed = false;
         keys.forEach(k => { if (!seen[k]) { seen[k] = todayISO(); changed = true; } });
         return changed;
     }
     getSeenModels() {
-        if (!this.state || !this.state.colony) return {};
-        const c = this.state.colony, keys = [];
+        if (!this.state || !this.state.hive) return {};
+        const c = this.state.hive, keys = [];
         (c.bees || []).forEach(b => keys.push(...beeModelKeys(b)));
         const working = (c.bees || []).filter(b => b.class && b.rarity !== 'Royal' && !(b.life && (b.life.hatchOn || b.life.faintedAt))).length;
         if (working > 0) keys.push('hive:worker');
@@ -3338,15 +3384,15 @@ class DatabaseManager {
         return Object.assign({}, c.seenModels || {});
     }
     getViewedModels() {
-        if (!this.state || !this.state.colony) return [];
+        if (!this.state || !this.state.hive) return [];
         // First visit: everything you already have counts as seen, so only
         // later finds get the NEW tag.
-        if (!this.state.colony.modelsViewed) { this.state.colony.modelsViewed = Object.keys(this.getSeenModels()); this.save(); }
-        return this.state.colony.modelsViewed;
+        if (!this.state.hive.modelsViewed) { this.state.hive.modelsViewed = Object.keys(this.getSeenModels()); this.save(); }
+        return this.state.hive.modelsViewed;
     }
     markModelViewed(key) {
-        if (!this.state || !this.state.colony) return;
-        const v = this.state.colony.modelsViewed || (this.state.colony.modelsViewed = []);
+        if (!this.state || !this.state.hive) return;
+        const v = this.state.hive.modelsViewed || (this.state.hive.modelsViewed = []);
         if (!v.includes(key)) { v.push(key); this.save(); }
     }
 
@@ -3358,10 +3404,10 @@ class DatabaseManager {
     // in the UI later - nothing currently branches on it.
     awardBee(source, forcedRarity) {
         const rarityInfo = (forcedRarity && BEE_RARITIES.find(r => r.rarity === forcedRarity)) || rollBeeRarity();
-        const dexNumber = this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
+        const dexNumber = this.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1;
         const bee = {
             id: generateBeeId(),
-            name: randomBeeName(this.getColonyBees().map(b => b.name)),
+            name: randomBeeName(this.getHiveBees().map(b => b.name)),
             rarity: rarityInfo.rarity,
             class: null,
             obtainedAt: new Date().toISOString(),
@@ -3372,7 +3418,7 @@ class DatabaseManager {
             element: rollBeeElement(),
             customNamed: false
         };
-        return this.addColonyBee(bee);
+        return this.addHiveBee(bee);
     }
 
     // Renames a bee - works on any bee regardless of rarity/source, not
@@ -3380,8 +3426,8 @@ class DatabaseManager {
     // a starting point). Trimmed and length-capped so a swarm name label
     // can't grow unboundedly.
     renameBee(beeId, newName) {
-        if (!this.state || !this.state.colony) return null;
-        const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
+        if (!this.state || !this.state.hive) return null;
+        const bee = (this.state.hive.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
 
         const trimmed = (newName || '').trim();
@@ -3401,8 +3447,8 @@ class DatabaseManager {
     // BEE_CLASSES above for what each does. Rejects unknown class keys
     // rather than silently storing garbage.
     assignBeeClass(beeId, className) {
-        if (!this.state || !this.state.colony) return null;
-        const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
+        if (!this.state || !this.state.hive) return null;
+        const bee = (this.state.hive.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
         // Recuperate (Oct 28 2026): no job, on purpose. Eats, sleeps, heals slowly. Never gets upset.
         if (className === 'recuperate') {
@@ -3441,13 +3487,13 @@ class DatabaseManager {
     // without a Rare or better is a guaranteed Rare or better (pity).
     // Named Beasts now cost NAMED_BEAST_TICKETS tickets (unwrapTicket).
     getPityCount() {
-        return this.state && this.state.colony ? (this.state.colony.pity || 0) : 0;
+        return this.state && this.state.hive ? (this.state.hive.pity || 0) : 0;
     }
 
     pullWithTicket() {
-        if (!this.state || !this.state.colony || !(this.state.colony.tickets > 0)) return null;
-        this.state.colony.tickets -= 1;
-        const pity = (this.state.colony.pity || 0) + 1;
+        if (!this.state || !this.state.hive || !(this.state.hive.tickets > 0)) return null;
+        this.state.hive.tickets -= 1;
+        const pity = (this.state.hive.pity || 0) + 1;
         let rarity = rollBeeRarity().rarity;
         const guaranteed = pity >= GACHA_PITY_PULLS && rarity === 'Common';
         if (guaranteed) {
@@ -3456,17 +3502,17 @@ class DatabaseManager {
             rarity = (pool.find(r => (roll -= r.weight) < 0) || pool[0]).rarity;
         }
         // Hive Life: a Drone's mating gives this pull a 50% shot at Rare.
-        if (this.state.colony.droneBoost) {
-            this.state.colony.droneBoost = false;
+        if (this.state.hive.droneBoost) {
+            this.state.hive.droneBoost = false;
             if (rarity === 'Common' && lifeRand() < 0.5) rarity = 'Rare';
         }
-        this.state.colony.pity = rarity === 'Common' ? pity : 0;
+        this.state.hive.pity = rarity === 'Common' ? pity : 0;
         const bee = this.awardBee('gacha', rarity);
-        return { bee, guaranteed, pity: this.state.colony.pity };
+        return { bee, guaranteed, pity: this.state.hive.pity };
     }
 
     getTicketCount() {
-        return this.state && this.state.colony ? (this.state.colony.tickets || 0) : 0;
+        return this.state && this.state.hive ? (this.state.hive.tickets || 0) : 0;
     }
 
     // Consumes 1 ticket and guarantees a Named Beast - the ONLY path that
@@ -3475,13 +3521,13 @@ class DatabaseManager {
     // if there's no ticket to spend, so the caller (hive-mind.js's unwrap UI)
     // can guard the tear/reveal interaction on a real ticket existing.
     unwrapTicket() {
-        if (!this.state || !this.state.colony) return null;
-        if (!this.state.colony.tickets || this.state.colony.tickets < NAMED_BEAST_TICKETS) return null;
+        if (!this.state || !this.state.hive) return null;
+        if (!this.state.hive.tickets || this.state.hive.tickets < NAMED_BEAST_TICKETS) return null;
 
-        this.state.colony.tickets -= NAMED_BEAST_TICKETS;
+        this.state.hive.tickets -= NAMED_BEAST_TICKETS;
         const bee = {
             id: generateBeeId(),
-            name: randomBeeName(this.getColonyBees().map(b => b.name)),
+            name: randomBeeName(this.getHiveBees().map(b => b.name)),
             title: rollNamedTitle(),
             sex: 'f',
             rarity: 'Named',
@@ -3490,7 +3536,7 @@ class DatabaseManager {
             source: 'ticket',
             stats: rollBeeStats('Named'),
             weight: rollBeeWeight('Named'),
-            dexNumber: this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1,
+            dexNumber: this.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1,
             element: rollBeeElement(),
             // Named Beasts from a ticket already have a generated themed
             // name (rollNamedBeeName above), but that's not a CUSTOM name
@@ -3499,7 +3545,7 @@ class DatabaseManager {
         };
         bee.class = beeLockedJob(bee);            // its title sets its job
         if (bee.class) bee.jobSince = todayISO();
-        return this.addColonyBee(bee); // also saves - persists the ticket spend + the new bee together
+        return this.addHiveBee(bee); // also saves - persists the ticket spend + the new bee together
     }
 
     // Materials a Collector bee can bring back - see MATERIAL_CATALOG for
@@ -3521,7 +3567,7 @@ class DatabaseManager {
 
     // ---- Held items (Oct 28 2026) ----
     giveBeeItem(beeId, itemId, slot = 0) {
-        const bee = this.getColonyBees().find(b => b.id === beeId);
+        const bee = this.getHiveBees().find(b => b.id === beeId);
         const it = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
         if (!bee || !it) return { ok: false, error: 'Unknown item.' };
         const slots = beeItemSlots(bee);
@@ -3537,7 +3583,7 @@ class DatabaseManager {
         return { ok: true };
     }
     takeBeeItem(beeId, slot = 0) {
-        const bee = this.getColonyBees().find(b => b.id === beeId);
+        const bee = this.getHiveBees().find(b => b.id === beeId);
         if (!bee || !Array.isArray(bee.held) || !bee.held[slot]) return false;
         const items = this.state.inventory.items;
         items[bee.held[slot]] = (items[bee.held[slot]] || 0) + 1;
@@ -3709,10 +3755,10 @@ class DatabaseManager {
     // Named (index -1 in RARITY_ORDER, tops out beyond either stone's
     // reach) - returns null on an ineligible rarity/item/missing bee.
     evolveBee(beeId, itemId) {
-        if (!this.state || !this.state.colony) return null;
+        if (!this.state || !this.state.hive) return null;
         if (itemId !== 'evo-stone' && itemId !== 'rebirth-stone') return null;
 
-        const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
+        const bee = (this.state.hive.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
 
         const rarityIndex = RARITY_ORDER.indexOf(bee.rarity);
@@ -3735,10 +3781,10 @@ class DatabaseManager {
     // The item is spent either way. Returns null on an ineligible
     // rarity/item/missing bee.
     applyTraitItem(beeId, itemId) {
-        if (!this.state || !this.state.colony) return null;
+        if (!this.state || !this.state.hive) return null;
         if (itemId === 'evo-stone' || itemId === 'rebirth-stone' || itemId === 'evo-stone-fragment') return null; // wrong item for this action
 
-        const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
+        const bee = (this.state.hive.bees || []).find(b => b.id === beeId);
         if (!bee) return null;
 
         const eligibleRarities = ['Epic', 'Legendary', 'Named'];
@@ -3795,11 +3841,11 @@ class DatabaseManager {
     // independently hit or miss. Returns null on an ineligible item/
     // rarity/missing bee.
     applyStoreItem(beeId, itemId) {
-        if (!this.state || !this.state.colony) return null;
+        if (!this.state || !this.state.hive) return null;
         const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'trait');
         if (!item) return null;
 
-        const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
+        const bee = (this.state.hive.bees || []).find(b => b.id === beeId);
         if (!bee || bee.rarity === 'Named' || bee.rarity === 'Royal') return null;
         if (!this._consumeItem(itemId, 1)) return null;
 
@@ -3832,11 +3878,11 @@ class DatabaseManager {
     // excludes bees already Named (nothing to evolve into). Returns null
     // on any ineligible bee/item/insufficient stock.
     evolveToNamed(beeId, itemId) {
-        if (!this.state || !this.state.colony) return null;
+        if (!this.state || !this.state.hive) return null;
         const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'identity');
         if (!item) return null;
 
-        const bee = (this.state.colony.bees || []).find(b => b.id === beeId);
+        const bee = (this.state.hive.bees || []).find(b => b.id === beeId);
         if (!bee || bee.rarity === 'Named' || bee.rarity === 'Royal') return null;
         if (!this._consumeItem(itemId, 1)) return null;
 
@@ -3862,8 +3908,8 @@ class DatabaseManager {
     // same table a live Collector bee drops from. Returns null if the bee
     // doesn't exist so the caller can guard against a stale selection.
     destroyBee(beeId) {
-        if (!this.state || !this.state.colony) return null;
-        const bees = this.state.colony.bees || [];
+        if (!this.state || !this.state.hive) return null;
+        const bees = this.state.hive.bees || [];
         const index = bees.findIndex(b => b.id === beeId);
         if (index === -1) return null;
         if (bees[index].rarity === 'Royal') return null;   // the founder stays
@@ -3893,9 +3939,9 @@ class DatabaseManager {
     // Returns null on an invalid pick (missing bee, or the same bee
     // picked for both slots) so the caller can guard the UI on it.
     combineBees(beeIdA, beeIdB) {
-        if (!this.state || !this.state.colony || !beeIdA || !beeIdB || beeIdA === beeIdB) return null;
+        if (!this.state || !this.state.hive || !beeIdA || !beeIdB || beeIdA === beeIdB) return null;
 
-        const bees = this.state.colony.bees || [];
+        const bees = this.state.hive.bees || [];
         const beeA = bees.find(b => b.id === beeIdA);
         const beeB = bees.find(b => b.id === beeIdB);
         if (!beeA || !beeB) return null;
@@ -3923,13 +3969,13 @@ class DatabaseManager {
             stats[k] = Math.min(beeStatCap(resultRarity, k), best + boost);
         });
 
-        this.state.colony.bees = bees.filter(b => b.id !== beeIdA && b.id !== beeIdB);
+        this.state.hive.bees = bees.filter(b => b.id !== beeIdA && b.id !== beeIdB);
 
-        const dexNumber = this.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
+        const dexNumber = this.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1;
         const keepName = lead.customNamed && lead.rarity === resultRarity;
         const newBee = {
             id: generateBeeId(),
-            name: keepName ? lead.name : randomBeeName(this.getColonyBees().map(b => b.name)),
+            name: keepName ? lead.name : randomBeeName(this.getHiveBees().map(b => b.name)),
             rarity: resultRarity,
             class: lead.class || null,
             obtainedAt: new Date().toISOString(),
@@ -3943,7 +3989,7 @@ class DatabaseManager {
             customNamed: !!keepName
         };
 
-        this.addColonyBee(newBee); // also saves - persists the consumption + the new bee together
+        this.addHiveBee(newBee); // also saves - persists the consumption + the new bee together
         return { newBee, upgraded, statGain: Math.round(total(stats) - before) };
     }
 
@@ -4740,7 +4786,7 @@ class DatabaseManager {
     // maxed yet - the Dashboard only ever shows the button when it is, but
     // this guards the method itself against being called out of turn.
     //
-    // Rewards: always +1 gacha ticket (added to the existing Colony ticket
+    // Rewards: always +1 gacha ticket (added to the existing Hive Mind ticket
     // pool - unwrap it from the Pollination Chamber like any other ticket),
     // plus Pollen and an optional rarer bonus material judged by Eve
     // against everything completed in this skill since its last level-up
@@ -4796,9 +4842,9 @@ class DatabaseManager {
             this.state.inventory.materials[id] = (this.state.inventory.materials[id] || 0) + 1;
             materials.push(id);
         }
-        if (!this.state.colony) this.state.colony = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
-        if (typeof this.state.colony.tickets !== 'number') this.state.colony.tickets = 0;
-        this.state.colony.tickets += reward.tickets;
+        if (!this.state.hive) this.state.hive = { bees: [], levelUpBeesAwarded: 0, tickets: 0, ticketsAwarded: 0 };
+        if (typeof this.state.hive.tickets !== 'number') this.state.hive.tickets = 0;
+        this.state.hive.tickets += reward.tickets;
         const bees = [];
         for (let i = 0; i < reward.bees; i++) bees.push(this.awardBee('skill'));
 
@@ -5297,8 +5343,8 @@ class DatabaseManager {
         if (!this.state || !this.state.onboarding) return null;
         const kind = royal === 'king' ? 'king' : 'queen';
         const label = kind === 'king' ? 'King' : 'Queen';
-        if (!this.state.colony) this.state.colony = { bees: [] };
-        const bees = this.state.colony.bees || (this.state.colony.bees = []);
+        if (!this.state.hive) this.state.hive = { bees: [] };
+        const bees = this.state.hive.bees || (this.state.hive.bees = []);
         const existing = bees.find(b => b.rarity === 'Royal');
         if (existing) {
             existing.royal = kind;
@@ -5346,7 +5392,7 @@ class DatabaseManager {
         const CAP = 320, BASE = 8, PER_LEVEL = 3, DAYS = 14;
         const dayISO = n => shiftISODate(todayISO(), -n);
         const user = this.getUser() || { level: 1, currentXP: 0, nextLevelXP: 1 };
-        const bees = this.getColonyBees();
+        const bees = this.getHiveBees();
         const ids = [];
         const today = dayISO(0), windowStart = dayISO(DAYS);
         const dailies = this.getDailyTasks ? this.getDailyTasks() : [];
@@ -5376,7 +5422,7 @@ class DatabaseManager {
     }
 
     getRoyalBee() {
-        return this.getColonyBees().find(b => b.rarity === 'Royal') || null;
+        return this.getHiveBees().find(b => b.rarity === 'Royal') || null;
     }
 
     // 6. Logic: Privacy Preference Write
@@ -5397,13 +5443,13 @@ class DatabaseManager {
 Object.assign(DatabaseManager.prototype, {
     // Living, non-royal bees.
     _lifeBees() {
-        return this.getColonyBees().filter(b => b.rarity !== 'Royal' && b.life);
+        return this.getHiveBees().filter(b => b.rarity !== 'Royal' && b.life);
     },
     _workers(role) {
         return this._lifeBees().filter(b => b.class === role && beeCanWork(b));
     },
     _lifeEvent(type, text, extra = {}) {
-        const c = this.state.colony;
+        const c = this.state.hive;
         if (!Array.isArray(c.lifeEvents)) c.lifeEvents = [];
         c.lifeEvents.unshift({ id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, at: new Date().toISOString(), type, text, ...extra });
         c.lifeEvents = c.lifeEvents.slice(0, LIFE.eventsKept);
@@ -5418,23 +5464,23 @@ Object.assign(DatabaseManager.prototype, {
 
     // Backfills sex + life onto every bee (fair start: age counts from today).
     _ensureBeeLife() {
-        if (!this.state || !this.state.colony) return;
+        if (!this.state || !this.state.hive) return;
         const today = todayISO();
         let changed = false;
         // One recovery copy of the save from before Hive Life touched it.
-        if (!this.state.colony.lifeTick && (this.state.colony.bees || []).some(b => b.rarity !== 'Royal' && !b.life)) {
+        if (!this.state.hive.lifeTick && (this.state.hive.bees || []).some(b => b.rarity !== 'Royal' && !b.life)) {
             try { this.createLocalBackup('Before Hive Life'); } catch { /* best effort */ }
         }
-        (this.state.colony.bees || []).forEach(b => { if (ensureBeeLife(b, today)) changed = true; });
-        if (!Array.isArray(this.state.colony.fallen)) { this.state.colony.fallen = []; changed = true; }
-        if (!this.state.colony.lifeTick) { this.state.colony.lifeTick = today; changed = true; }
+        (this.state.hive.bees || []).forEach(b => { if (ensureBeeLife(b, today)) changed = true; });
+        if (!Array.isArray(this.state.hive.fallen)) { this.state.hive.fallen = []; changed = true; }
+        if (!this.state.hive.lifeTick) { this.state.hive.lifeTick = today; changed = true; }
         if (changed) this.save();
     },
 
     // One time: bees still called "Common Bee #12" get a real name.
     _nameDefaultBees() {
-        if (!this.state || !this.state.colony) return;
-        const bees = this.state.colony.bees || [];
+        if (!this.state || !this.state.hive) return;
+        const bees = this.state.hive.bees || [];
         const todo = bees.filter(b => b.rarity !== 'Royal' && !b.customNamed && DEFAULT_BEE_NAME.test(String(b.name || '')));
         if (!todo.length) return;
         todo.forEach(b => { b.name = randomBeeName(bees.map(x => x.name)); });
@@ -5477,7 +5523,7 @@ Object.assign(DatabaseManager.prototype, {
     },
 
     _splitNamedTitles() {
-        const bees = this.getColonyBees().filter(b => b.rarity === 'Named' && !b.title);
+        const bees = this.getHiveBees().filter(b => b.rarity === 'Named' && !b.title);
         if (!bees.length) return;
         bees.forEach(b => {
             const m = /^(.+?) (The \w+)$/.exec(String(b.name || ''));
@@ -5489,7 +5535,7 @@ Object.assign(DatabaseManager.prototype, {
         this.save();
     },
     randomBeeName() {
-        return randomBeeName(this.getColonyBees().map(b => b.name));
+        return randomBeeName(this.getHiveBees().map(b => b.name));
     },
 
     // Missed dailies / late to-dos hit every bee: health and happiness drop,
@@ -5497,7 +5543,7 @@ Object.assign(DatabaseManager.prototype, {
     // Sick and injured bees can't work; a Nurse can cure sickness early.
     _hiveMissed(misses, today = todayISO()) {
         const out = { misses, sick: [], injured: [], hp: 0 };
-        if (!misses || !this.state.colony) return out;
+        if (!misses || !this.state.hive) return out;
         out.hp = Math.min(30, 5 * misses);
         this._lifeBees().forEach(b => {
             const L = b.life;
@@ -5520,8 +5566,8 @@ Object.assign(DatabaseManager.prototype, {
 
     // Runs each day missed since the last visit (max LIFE.maxCatchUp).
     hiveDailyTick(today = todayISO()) {
-        if (!this.state || !this.state.colony) return [];
-        const c = this.state.colony;
+        if (!this.state || !this.state.hive) return [];
+        const c = this.state.hive;
         if (!c.lifeTick) { c.lifeTick = today; this.save(); return []; }
         let days = Math.min(LIFE.maxCatchUp, Math.max(0, daysBetween(c.lifeTick, today) || 0));
         const before = (c.lifeEvents || []).length ? c.lifeEvents[0].id : null;
@@ -5535,8 +5581,8 @@ Object.assign(DatabaseManager.prototype, {
     // ---- Hour by hour (Oct 28 2026) ----
     // Catches up every whole hour since the last run (max 14 days).
     hiveHourlyTick(now = Date.now()) {
-        if (!this.state || !this.state.colony) return 0;
-        const c = this.state.colony;
+        if (!this.state || !this.state.hive) return 0;
+        const c = this.state.hive;
         const HOUR = 3600000;
         if (!c.vitalsAt) { c.vitalsAt = now; return 0; }
         const hours = Math.min(14 * 24, Math.floor((now - c.vitalsAt) / HOUR));
@@ -5610,7 +5656,7 @@ Object.assign(DatabaseManager.prototype, {
     readyEggs() { return this._lifeBees().filter(b => this.isEggReady(b)); },
     // The player tapped it open. Returns the new bee, or null.
     hatchEgg(beeId) {
-        const b = this.getColonyBees().find(x => x.id === beeId);
+        const b = this.getHiveBees().find(x => x.id === beeId);
         if (!b || !this.isEggReady(b)) return null;
         this._hatchBee(b, todayISO());
         this.save();
@@ -5642,7 +5688,7 @@ Object.assign(DatabaseManager.prototype, {
     },
     // Sick or hurt bees can take a Nursery bed (instead of needing a Nurse each).
     sendToNursery(beeId) {
-        const b = this.getColonyBees().find(x => x.id === beeId);
+        const b = this.getHiveBees().find(x => x.id === beeId);
         if (!b || !b.life || b.life.hatchOn || b.life.faintedAt) return { ok: false, error: 'This bee can\'t go to the Nursery.' };
         if (b.life.nursery) return { ok: true };
         if (!b.life.sickUntil && beeHurtLevel(b) === 0) return { ok: false, error: 'Only sick or hurt bees need a bed.' };
@@ -5652,7 +5698,7 @@ Object.assign(DatabaseManager.prototype, {
         return { ok: true };
     },
     leaveNursery(beeId) {
-        const b = this.getColonyBees().find(x => x.id === beeId);
+        const b = this.getHiveBees().find(x => x.id === beeId);
         if (!b || !b.life || !b.life.nursery) return false;
         delete b.life.nursery; delete b.life.sickProgress;
         this.save();
@@ -5660,7 +5706,7 @@ Object.assign(DatabaseManager.prototype, {
     },
 
     _lifeDay(day) {
-        const c = this.state.colony;
+        const c = this.state.hive;
         const streak = this.getHiveStreak();
         const bees = this._lifeBees();
         if (!bees.length) return;
@@ -5707,7 +5753,7 @@ Object.assign(DatabaseManager.prototype, {
     },
 
     _beeDies(bee, cause, day = todayISO()) {
-        const c = this.state.colony;
+        const c = this.state.hive;
         c.bees = c.bees.filter(b => b.id !== bee.id);
         const undertakers = this._workers('undertaker').length;
         if (undertakers) this._addMaterial('pollen', Math.min(2, undertakers));
@@ -5759,8 +5805,8 @@ Object.assign(DatabaseManager.prototype, {
 
     // Once a day: your 3 strongest awake bees raid a nest.
     counterRaid() {
-        if (!this.state || !this.state.colony) return { ok: false, error: 'No hive yet.' };
-        const c = this.state.colony;
+        if (!this.state || !this.state.hive) return { ok: false, error: 'No hive yet.' };
+        const c = this.state.hive;
         const today = todayISO();
         if (c.lastCounterRaid === today) return { ok: false, error: 'Your bees already raided today. Try again tomorrow.' };
         const power = b => (b.stats.offense || 0) + (b.stats.speed || 0) + (b.stats.power || 0);
@@ -5784,7 +5830,7 @@ Object.assign(DatabaseManager.prototype, {
     },
 
     reviveBee(beeId) {
-        const bee = this.getColonyBees().find(b => b.id === beeId);
+        const bee = this.getHiveBees().find(b => b.id === beeId);
         if (!bee || !bee.life || !bee.life.faintedAt) return { ok: false, error: 'That bee is not fainted.' };
         const have = (this.state.inventory && this.state.inventory.materials && this.state.inventory.materials['honey-drop']) || 0;
         if (have < LIFE.reviveCost) return { ok: false, error: `Reviving costs ${LIFE.reviveCost} Honey Drops. You have ${have}.` };
@@ -5805,7 +5851,7 @@ Object.assign(DatabaseManager.prototype, {
     },
 
     giveRoyalJelly(beeId) {
-        const bee = this.getColonyBees().find(b => b.id === beeId);
+        const bee = this.getHiveBees().find(b => b.id === beeId);
         if (!bee || !bee.life) return { ok: false, error: 'Bee not found.' };
         if (bee.life.royalJelly) return { ok: false, error: `${bee.name} already had Royal Jelly.` };
         const have = (this.state.inventory && this.state.inventory.materials && this.state.inventory.materials['royal-jelly']) || 0;
@@ -5816,8 +5862,8 @@ Object.assign(DatabaseManager.prototype, {
         return { ok: true, bee };
     },
 
-    getFallenBees() { return (this.state && this.state.colony && this.state.colony.fallen) || []; },
-    getLifeEvents() { return (this.state && this.state.colony && this.state.colony.lifeEvents) || []; }
+    getFallenBees() { return (this.state && this.state.hive && this.state.hive.fallen) || []; },
+    getLifeEvents() { return (this.state && this.state.hive && this.state.hive.lifeEvents) || []; }
 });
 
 
@@ -5866,7 +5912,7 @@ Object.assign(DatabaseManager.prototype, {
     },
     getIncubator() {
         const i = this._incubator();
-        const bees = (this.state && this.state.colony && this.state.colony.bees) || [];
+        const bees = (this.state && this.state.hive && this.state.hive.bees) || [];
         const eggs = bees.filter(b => beeIsBrood(b));
         return {
             tier: i ? i.tier : null, owned: i ? i.owned.slice() : [], info: i ? INCUBATORS[i.tier] : null,
@@ -5899,7 +5945,7 @@ Object.assign(DatabaseManager.prototype, {
     },
     incubatorAdd(beeId) {
         const i = this._incubator(), T = i && INCUBATORS[i.tier];
-        const bee = this.getColonyBees().find(b => b.id === beeId);
+        const bee = this.getHiveBees().find(b => b.id === beeId);
         if (!T || !bee || !beeIsBrood(bee)) return { ok: false, error: 'Only eggs go in the incubator.' };
         if (i.slots.includes(beeId)) return { ok: true };
         if (i.slots.length >= T.slots) return { ok: false, error: 'No free slot. A better incubator has more.' };
@@ -5921,7 +5967,7 @@ Object.assign(DatabaseManager.prototype, {
     incubatorTick(today = todayISO()) {
         const i = this._incubator();
         if (!i || !INCUBATORS[i.tier]) return 0;
-        const bees = this.getColonyBees();
+        const bees = this.getHiveBees();
         i.slots = i.slots.filter(id => { const b = bees.find(x => x.id === id); return b && beeIsBrood(b); });
         const earned = this.incubatorEarnedToday(today).off;
         let moved = 0;
@@ -6266,8 +6312,8 @@ Object.assign(DatabaseManager.prototype, {
         const rank = info.pending[0];
         const pay = RANK_REWARDS[rank.kind] || RANK_REWARDS.stripes;
         this.state.rankClaims.push(rank.id);
-        if (!this.state.colony) this.state.colony = { bees: [] };
-        this.state.colony.tickets = (this.state.colony.tickets || 0) + pay.tickets;
+        if (!this.state.hive) this.state.hive = { bees: [] };
+        this.state.hive.tickets = (this.state.hive.tickets || 0) + pay.tickets;
         const awardedMaterials = [];
         pay.mats.forEach(([id, n]) => { for (let i = 0; i < n; i++) { this._addMaterial(id, 1); awardedMaterials.push(id); } });
         const awardedBees = [];
@@ -6288,7 +6334,7 @@ Object.assign(DatabaseManager.prototype, {
 //  - Habit taps from both devices are kept.
 //  - Deleted items leave a tombstone (_tomb) so an old copy can't bring
 //    them back.
-//  - Everything else (colony stats, inventory, settings): the copy saved
+//  - Everything else (hive stats, inventory, settings): the copy saved
 //    most recently wins. The cloud keeps the replaced copy as a backup.
 // =====================================================================
 const MERGE_LISTS = [
@@ -6296,7 +6342,7 @@ const MERGE_LISTS = [
     ['todos', (s) => s.todos],
     ['habits', (s) => s.habits],
     ['quests', (s) => s.quests],
-    ['bees', (s) => s.colony && s.colony.bees],
+    ['bees', (s) => s.hive && s.hive.bees],
     ['dictionary', (s) => s.dictionary],
     ['projects', (s) => s.profile && s.profile.projects],
 ];
@@ -6403,7 +6449,7 @@ function mergeSaves(a, b) {
     out.todos = mergeList('todos', base.todos, other.todos, tomb);
     out.habits = mergeList('habits', base.habits, other.habits, tomb);
     out.quests = mergeList('quests', base.quests, other.quests, tomb);
-    if (out.colony) out.colony.bees = mergeList('bees', base.colony && base.colony.bees, other.colony && other.colony.bees, tomb);
+    if (out.hive) out.hive.bees = mergeList('bees', base.hive && base.hive.bees, other.hive && other.hive.bees, tomb);
     if (base.dictionary || other.dictionary) out.dictionary = mergeList('dictionary', base.dictionary, other.dictionary, tomb);
     if (out.profile || other.profile) {
         out.profile = out.profile || mergeClone(other.profile);

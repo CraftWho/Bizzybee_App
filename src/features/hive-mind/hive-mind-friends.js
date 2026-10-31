@@ -2,13 +2,13 @@
 // in the distance on both sides of yours, smaller and softer, with their
 // name and a few bees. Tap one to visit. Data comes from Social's saved
 // copy, refreshed at most once an hour (keeps Netlify free).
-const ColonyFriends = (() => {
+const HiveMindFriends = (() => {
     const SPOTS = [{ x: 3, y: 34 }, { x: 77, y: 30 }, { x: 4, y: 58 }, { x: 76, y: 55 }];
     const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const tierFor = (lvl) => (typeof nestTier === 'function' ? nestTier(lvl) : 1);
 
     function mini(level) {
-        const h = ColonyHive.build(tierFor(level));
+        const h = HiveMindHive.build(tierFor(level));
         const box = document.createElement('div');
         box.innerHTML = h.svg;
         const svg = box.querySelector('svg');
@@ -24,10 +24,10 @@ const ColonyFriends = (() => {
     }
 
     function render() {
-        const scene = document.getElementById('colony-nest-scene');
-        if (!scene || typeof Social === 'undefined' || typeof ColonyHive === 'undefined') return;
-        let host = document.getElementById('colony-friends');
-        if (!host) { host = document.createElement('div'); host.id = 'colony-friends'; host.className = 'cf-wrap'; scene.appendChild(host); }
+        const scene = document.getElementById('hive-mind-nest-scene');
+        if (!scene || typeof Social === 'undefined' || typeof HiveMindHive === 'undefined') return;
+        let host = document.getElementById('hive-mind-friends');
+        if (!host) { host = document.createElement('div'); host.id = 'hive-mind-friends'; host.className = 'cf-wrap'; scene.appendChild(host); }
         const list = ((Social.cachedFriends() || {}).list || []).filter(f => f.status === 'ok').slice(0, SPOTS.length);
         host.innerHTML = list.map((f, i) => {
             const s = SPOTS[i], bees = Math.min(4, Math.max(1, Math.round(f.card.bees.length / 4)));

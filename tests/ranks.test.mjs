@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 function harness(level) {
-    const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], colony: { bees: [], tickets: 0 }, onboarding: { stage: 'done' }, characterLevelBar: { acknowledgedLevel: level, leveledUpAt: null } };
+    const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], hive: { bees: [], tickets: 0 }, onboarding: { stage: 'done' }, characterLevelBar: { acknowledgedLevel: level, leveledUpAt: null } };
     const data = new Map([['bizzybee_user_data', JSON.stringify(save)]]);
     const localStorage = { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, String(v)), removeItem: k => data.delete(k) };
     const context = vm.createContext({ localStorage, console: { log() {}, error() {} }, Event,

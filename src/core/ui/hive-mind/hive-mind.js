@@ -114,7 +114,7 @@ const Waggle = {
         try { bar = v ? v.getCharacterLevelBar() : null; } catch { /* not ready */ }
         try { tickets = v && v.getTicketCount ? v.getTicketCount() : 0; } catch { /* not ready */ }
         let fainted = 0;
-        try { fainted = v ? v.getColonyBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
+        try { fainted = v ? v.getHiveBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
         let mail = 0;
         try { mail = typeof Social !== 'undefined' ? Social.unread() : 0; } catch { /* not ready */ }
         let rankUp = 0;   // Oct 31 2026 (Craft): unclaimed rank ups
@@ -134,7 +134,7 @@ const Waggle = {
         const s = this.status();
         const v = typeof Vault !== 'undefined' && Vault.state ? Vault : null;
         const name = v ? (v.state.displayName || (v.getRoyalBee && v.getRoyalBee() || {}).name || (v.getUser() || {}).name || 'Beekeeper') : 'Beekeeper';
-        const bees = v && v.getColonyBees ? v.getColonyBees().length : 0;
+        const bees = v && v.getHiveBees ? v.getHiveBees().length : 0;
         const pluginOn = (id) => typeof Plugins === 'undefined' || Plugins.isEnabled(id);
 
         const pageActs = this.actions.map((a, i) => ({ a, i })).filter(x => !x.a.footer);

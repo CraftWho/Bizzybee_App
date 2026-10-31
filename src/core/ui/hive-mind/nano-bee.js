@@ -34,7 +34,7 @@ const NanoBee = {
     },
 
     // options.color: CSS color string - overrides the bee's gold accents
-    // (wings/eye/outline) via the --bee-accent custom property, so a colony
+    // (wings/eye/outline) via the --bee-accent custom property, so a hive
     // bee's icon can mirror its rarity color (see BEE_RARITIES in db.js).
     // Leaves the hex-core glow (if shown) gold regardless, since that's the
     // hive's own color, not any individual bee's.

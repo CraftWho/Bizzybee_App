@@ -238,7 +238,7 @@ const EggDesign = (() => {
 <g clip-path="url(#${id}-clip)">${p.base}<g fill="${p.inkFill}" stroke="${p.inkFill}">${p.ink}</g>${p.shade}</g></svg>`;
     }
 
-    // A colony bee's egg (Oct 2026): random from the collection, but always
+    // A hive bee's egg (Oct 2026): random from the collection, but always
     // the same egg for the same bee (seeded from its id).
     function forBee(bee) {
         const seed = seedFrom((bee && bee.id) || 'egg');

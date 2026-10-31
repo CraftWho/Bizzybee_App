@@ -40,7 +40,7 @@ const EggHatch = (() => {
 
     function open(beeId, { onDone } = {}) {
         if (typeof Vault === 'undefined' || document.querySelector('.eh-scrim')) return;
-        const bee = Vault.getColonyBees().find(b => b.id === beeId);
+        const bee = Vault.getHiveBees().find(b => b.id === beeId);
         if (!bee || !Vault.isEggReady(bee)) { if (typeof Toast !== 'undefined') Toast.show('That egg isn\'t ready yet.', 'neutral'); return; }
         const seed = typeof EggDesign !== 'undefined' ? EggDesign.seedFrom(bee.id) : 7;
         const eggHTML = typeof EggDesign !== 'undefined' ? EggDesign.forBee(bee) : '<svg viewBox="0 0 120 150"><ellipse cx="60" cy="80" rx="48" ry="64" fill="#f0d9a8"/></svg>';

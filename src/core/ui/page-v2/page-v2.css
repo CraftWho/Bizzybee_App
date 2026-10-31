@@ -1,5 +1,5 @@
 /* Page v2 (Oct 2026): the look of the new Settings page, shared by
-   Inventory and Colony Bees. Scope everything to .pv2 so older pages
+   Inventory and Hive Bees. Scope everything to .pv2 so older pages
    are untouched. Hex icons, dark rounded cards, gold section labels with
    a red line, pill tabs, bottom sheets. */
 .pv2 { --gold: var(--bb-accent, #ffcc00); --gold2: var(--bb-t-hi, #ffd977); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .94);

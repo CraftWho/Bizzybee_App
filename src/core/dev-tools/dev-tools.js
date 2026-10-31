@@ -105,8 +105,8 @@
     }
 
     function addBee(rarity) {
-        const n = Vault.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
-        Vault.addColonyBee({
+        const n = Vault.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1;
+        Vault.addHiveBee({
             id: generateBeeId(), name: `${rarity} Bee #${n}`, rarity, class: null,
             obtainedAt: new Date().toISOString(), source: 'dev',
             stats: rollBeeStats(rarity), weight: rollBeeWeight(rarity), dexNumber: n,
@@ -135,7 +135,7 @@
     function fakeBee(rarity) {
         const bee = {
             id: 'dev-' + Math.random().toString(36).slice(2), rarity, class: null, sex: 'f',
-            name: randomBeeName(Vault.getColonyBees().map(b => b.name)),
+            name: randomBeeName(Vault.getHiveBees().map(b => b.name)),
             obtainedAt: new Date().toISOString(), source: 'dev-preview', dexNumber: 99,
             stats: rollBeeStats(rarity), weight: rollBeeWeight(rarity), element: rollBeeElement(), customNamed: false
         };
@@ -182,7 +182,7 @@
     // ---- hive life + tickets (these DO change the save) ---------------------
     const today = () => todayISO();
     const HIVE = {
-        tickets: (n) => { Vault.state.colony.tickets = (Vault.state.colony.tickets || 0) + n; Vault.save(); toast(`🎟️ +${n} tickets (${Vault.getTicketCount()})`); },
+        tickets: (n) => { Vault.state.hive.tickets = (Vault.state.hive.tickets || 0) + n; Vault.save(); toast(`🎟️ +${n} tickets (${Vault.getTicketCount()})`); },
         day: () => { Vault._ensureBeeLife(); Vault._lifeDay(today()); Vault.save(); reload(); },
         raid: () => { Vault._ensureBeeLife(); Vault._raid(today()); Vault.save(); reload(); },
         egg: () => { Vault.awardBee('gacha', 'Common'); toast('🥚 Egg added to the Nursery'); },
@@ -245,7 +245,7 @@
     function freshSave() {
         if (!confirm('Reset the PC test account? Its data is wiped and it starts over as Developer / Test Bee.')) return;
         localStorage.removeItem(Vault.storageKey);
-        localStorage.removeItem('bizzybee_colony_hatched');
+        localStorage.removeItem('bizzybee_hive_hatched');
         go('src/features/home/home.html');
     }
     // Workshop pages only exist on this computer (gitignored).
@@ -320,9 +320,9 @@
     const SKIES = [['Noon', 'clear', 12], ['Sunset', 'partly', 18], ['Night', 'clear', 23], ['Rain', 'rain', 21], ['Heavy rain', 'heavy', 14], ['Storm', 'storm', 16], ['Snow', 'snow', 10], ['Fog', 'fog', 7], ['Cloudy', 'cloudy', 13]];
 
     const LINKS = [
-        ['Hive inside · Queen', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=queen'],
-        ['Hive inside · King', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=king'],
-        ['Hive outside', 'workshop/harnesses/colony-exterior-harness.html?lvl=30'],
+        ['Hive inside · Queen', 'workshop/harnesses/hive-mind-interior-harness.html?lvl=20&royal=queen'],
+        ['Hive inside · King', 'workshop/harnesses/hive-mind-interior-harness.html?lvl=20&royal=king'],
+        ['Hive outside', 'workshop/harnesses/hive-mind-exterior-harness.html?lvl=30'],
         ['Cards (incl. Queen & King)', 'workshop/harnesses/cards-harness.html'],
         ['Bee Action Lab', 'workshop/test-pages/bee-lab/bee-lab.html'],
         ['Card Lab', 'workshop/test-pages/card-lab/card-lab.html'],
@@ -358,8 +358,8 @@
             `Save key: ${Vault.storageKey}`,
             `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
-            `Royal: ${royal ? `${royal.royal} "${royal.name}"` : 'none'} · bees ${Vault.getColonyBees().length}`,
-            `Tickets ${Vault.getTicketCount()} · eggs ${Vault.getColonyBees().filter(x => x.life && x.life.hatchOn).length}`,
+            `Royal: ${royal ? `${royal.royal} "${royal.name}"` : 'none'} · bees ${Vault.getHiveBees().length}`,
+            `Tickets ${Vault.getTicketCount()} · eggs ${Vault.getHiveBees().filter(x => x.life && x.life.hatchOn).length}`,
             `Habits ${Vault.getHabits().length} · To-Dos ${Vault.getTodos().length} · Dailies ${Vault.getDailyTasks().length}`
         ].join('\n');
     }
@@ -588,7 +588,7 @@
                 'xp-50': () => addXP(50), 'xp-150': () => addXP(150), 'xp-fill': fillBar, 'xp-clear': clearDevXP,
                 bee: () => { addBee(b.dataset.r); open(); },
                 'royal-queen': () => setRoyal('queen'), 'royal-king': () => setRoyal('king'),
-                rehatch: () => { localStorage.setItem('bizzybee_colony_hatched', '[]'); toast('Bees will hatch again on the Hive page'); },
+                rehatch: () => { localStorage.setItem('bizzybee_hive_hatched', '[]'); toast('Bees will hatch again on the Hive page'); },
                 samples: addSamples, export: exportSave, import: () => fileInput.click(),
                 'pv-pull': () => { close(); PREVIEW.pull(b.dataset.r); }, 'pv-destroy': () => { close(); PREVIEW.destroy(); },
                 'pv-combine': () => { close(); PREVIEW.combine(false); }, 'pv-combine-up': () => { close(); PREVIEW.combine(true); },
