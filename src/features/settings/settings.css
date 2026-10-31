@@ -350,3 +350,8 @@
 /* Oct 31 2026 (Craft, from 1.0.6): the gold ring follows the hex (--hex-ring in global.css). */
 .stv2 .avatar { position: relative; box-shadow: none; }
 .stv2 .avatar::after { content: ""; position: absolute; inset: 0; background: var(--gold); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; pointer-events: none; }
+
+/* Oct 31 2026 (Craft): PC LOCAL has no cloud (html.pc-local, set in db.js). */
+.pc-local-note { display: none; margin: 10px 0 0; color: #9fc0ff; font-size: .82rem; line-height: 1.4; }
+html.pc-local .pc-local-note { display: block; }
+html.pc-local #cloud-sync-signed-out, html.pc-local #cloud-vs-local-compare, html.pc-local #cloud-sync-signed-in, html.pc-local .cloud-only { display: none !important; }

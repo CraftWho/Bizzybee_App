@@ -34,6 +34,8 @@
                 <div class="avatar" id="st-avatar" aria-hidden="true">🐝</div>
                 <div class="who"><b id="st-name">Beekeeper</b><small><span id="cloud-sync-email"></span><span id="st-level"></span></small></div>
             </div>
+            <!-- Oct 31 2026 (Craft): PC LOCAL has no cloud, so the cloud parts are hidden there. -->
+            <p class="pc-local-note">💻 PC LOCAL: a local test account on this computer. No cloud here, and your real save is never touched.</p>
             <div id="cloud-sync-signed-out" class="signed-out">
                 <p>Sign in to keep your progress on every device.</p>
                 <button id="cloud-sync-login-btn" class="btn solid" type="button">Sign in to Cloud</button>
@@ -48,7 +50,7 @@
         <section class="card">
             <a class="row" href="../account-info/account-info.html"><span class="hx">🧬</span><span class="mid"><b>Account Info</b><small>Photo, name, personal details, Habitica</small></span><span class="chev">›</span></a>
             <a class="row" href="../account-security/account-security.html"><span class="hx">🔐</span><span class="mid"><b>Security</b><small>PIN and app lock</small></span><span class="chev">›</span></a>
-            <details>
+            <details class="cloud-only">
                 <summary class="row"><span class="hx">🔑</span><span class="mid"><b>Reset account password</b><small>Emails you a reset link</small></span><span class="chev">›</span></summary>
                 <div class="inner">
                     <label class="lbl" for="reset-account-email">Account email</label>
