@@ -50,7 +50,8 @@ function xpToday() {
     Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) xp += Number(t.xp) || 0; });
     Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && localDayOf(t.dateCompleted) === today) xp += Number(t.xp) || 0;   /* Oct 31 2026 (Craft): local day */ }));
     (Vault.getHabits ? Vault.getHabits() : []).forEach(h => (h.history || []).forEach(x => {
-        if (x.date === today) xp += (x.direction === 'positive' ? 1 : -1) * (Number(h.xp) || 0);
+        // Oct 31 2026 (Craft): same math as the level bar (a bad tap costs half).
+        if (x.date === today) xp += x.direction === 'positive' ? completionXP(h, x.minutes) : -habitPenaltyXP(h);
     }));
     return xp;
 }
@@ -70,8 +71,10 @@ function doneToday() {
         const taps = (h.history || []).filter(x => x.date === today);
         const plus = taps.filter(x => x.direction === 'positive').length, minus = taps.length - plus;
         const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
-        if (plus) out.push({ icon: '🔁', kind: `Habit${plus > 1 ? ` ×${plus}` : ''}`, label: h.label, xp: plus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
-        if (minus) out.push({ icon: '😖', kind: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, label: h.label, xp: -minus * (Number(h.xp) || 0), t: Math.max(...taps.map(stamp)) });
+        // Oct 31 2026 (Craft): same math as the level bar (a bad tap costs half).
+        const plusXP = taps.filter(x => x.direction === 'positive').reduce((n, x) => n + completionXP(h, x.minutes), 0);
+        if (plus) out.push({ icon: '🔁', kind: `Habit${plus > 1 ? ` ×${plus}` : ''}`, label: h.label, xp: plusXP, t: Math.max(...taps.map(stamp)) });
+        if (minus) out.push({ icon: '😖', kind: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, label: h.label, xp: -minus * habitPenaltyXP(h), t: Math.max(...taps.map(stamp)) });
     });
     return out.sort((a, b) => b.t - a.t);
 }
