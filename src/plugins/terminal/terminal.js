@@ -95,7 +95,7 @@ function termStartCooldown(name) { const m = termCooldowns(); m[name] = Date.now
 // user can run it once per 10 min. confirm: asks for YES (backup first).
 const TERM_COMMANDS = [
     { name: 'help', need: 'none', help: 'List the commands you can use.', run: () => {
-        const rows = TERM_COMMANDS.filter(c => termCan(c.need) && !c.hidden && (!c.test || Vault.devTest)).map(c => `  ${(c.usage || c.name).padEnd(20)}${c.help}`);
+        const rows = TERM_COMMANDS.filter(c => termCan(c.need) && (!c.test || Vault.devTest)).map(c => `  ${(c.usage || c.name).padEnd(20)}${c.help}`);
         const out = [[termLevel === 'none' ? 'This Terminal is locked.' : `Access: ${termLevel.toUpperCase()}${termExpires ? ' until ' + new Date(termExpires).toLocaleString() : ''}`, 'head'], ...rows.map(r => [r])];
         if (termLevel === 'none') out.push(['Something broken? Type: request <what happened>', 'warn'], ['The team will unlock repair commands for you.', 'dim']);
         if (termCan('moderator') && !Vault.devTest) out.push(['Test commands appear in Test Mode: testmode on', 'dim']);
@@ -121,49 +121,6 @@ const TERM_COMMANDS = [
         ];
     } },
     { name: 'clear', need: 'none', help: 'Clear the screen.', run: () => { document.getElementById('tm-out').innerHTML = ''; return []; } },
-
-    // Oct 30 2026 (Craft): redeem code FullHeal. Any signed-in user, no grant.
-    // Heals every bee on the real save (backup first). Hidden from help.
-    { name: 'fullheal', need: 'none', hidden: true, help: 'Redeem the FullHeal code: heal all bees.', run: async () => {
-        if (!termSignedIn) return [['Sign in to your cloud account first.', 'err']];
-        const r = await termServer({ action: 'redeem', code: 'fullheal' });
-        termBackup('FullHeal');
-        const list = Vault.getColonyBees().filter(b => b.life);
-        list.forEach(b => Object.assign(b.life, { health: 100, stamina: 100, fullness: 100, happiness: 90, faintedAt: null })); Vault.save();
-        return [[`FullHeal! ${list.length} bee${list.length === 1 ? '' : 's'} cured.`, 'ok'], [`${r.left} of ${r.max} FullHeal uses left.`, 'dim']];
-    } },
-
-    // Oct 30 2026 (Craft): two royals in one hive (e.g. two hives joined into
-    // one account) become one. Keeps the one you name, or the first. The kept
-    // royal gets the best of each stat; items the others held go back to
-    // your bag. Backup first, asks for YES. Anyone can run it on their own save.
-    { name: 'royals', need: 'none', help: 'List your King / Queen bees.', run: () => {
-        const r = Vault.getColonyBees().filter(b => b.rarity === 'Royal');
-        if (!r.length) return [['No royal bee yet.', 'dim']];
-        return r.map((b, i) => [`  ${i + 1}. ${b.royal === 'king' ? '👑 King' : '👑 Queen'} ${b.name} · since ${String(b.obtainedAt || '').slice(0, 10) || '?'}${b.key ? ' · key ' + b.key : ''}${b.key && b.key === Vault.state.hiveKey ? ' (this hive)' : ''}`])
-            .concat(r.length > 1 ? [['Two or more royals. Combine them with: royal merge [name to keep]', 'warn']] : [['Just one. All good.', 'ok']]);
-    } },
-    { name: 'royal merge', usage: 'royal merge [name]', need: 'none', args: true, confirm: true, help: 'Combine your King / Queen bees into one.', run: (a) => {
-        const bees = Vault.state.colony && Vault.state.colony.bees;
-        const royals = (bees || []).filter(b => b.rarity === 'Royal');
-        if (royals.length < 2) return [['You have one royal (or none). Nothing to combine.', 'dim']];
-        const want = a.join(' ').trim().toLowerCase();
-        // The hive's key royal (HIVE KEY in db.js) stays unless you name another.
-        const keyRoyal = royals.find(b => b.key && b.key === Vault.state.hiveKey);
-        const keep = (want && royals.find(b => String(b.name).toLowerCase() === want)) || keyRoyal || royals[0];
-        if (want && String(keep.name).toLowerCase() !== want) return [[`No royal named "${a.join(' ')}". Type royals to see them.`, 'err']];
-        const extra = royals.filter(b => b !== keep);
-        keep.stats = keep.stats || {};
-        extra.forEach(b => {
-            Object.entries(b.stats || {}).forEach(([k, v]) => { if (typeof v === 'number' && v > (Number(keep.stats[k]) || 0)) keep.stats[k] = v; });
-            (b.held || []).filter(Boolean).forEach(id => Vault.giftPutIn(id, 1));   // held items back to the bag
-        });
-        Vault.state.colony.bees = bees.filter(b => !extra.includes(b));
-        if (keep.id !== 'bee-royal' && !Vault.state.colony.bees.some(b => b.id === 'bee-royal')) keep.id = 'bee-royal';   // the founder id the app expects
-        Vault.state.hiveKey = keep.key || Vault.state.hiveKey;
-        Vault.save();
-        return [[`Combined into ${keep.royal === 'king' ? 'King' : 'Queen'} ${keep.name}. ${extra.length} other royal${extra.length === 1 ? '' : 's'} removed, best stats kept.`, 'ok'], ['A backup was made first (Settings › Your data › Device recovery copies).', 'dim']];
-    } },
 
     // ---- user: repair your real save ----
     { name: 'repair', need: 'user', cooldown: true, help: 'Re-run every save fix (safe).', run: () => {
@@ -320,20 +277,6 @@ const TERM_COMMANDS = [
     { name: 'revoke', usage: 'revoke <email>', need: 'owner', args: true, help: 'Take Terminal access away.', run: async (a) => {
         await termServer({ action: 'revoke', email: a[0] });
         return [[`Access removed for ${a[0]}.`, 'ok']];
-    } },
-    // Oct 30 2026 (Craft): turn redeem codes on or off. A code gets 5 uses.
-    { name: 'activate', usage: 'activate <code>', need: 'owner', args: true, help: 'Turn a redeem code on (5 uses).', run: async (a) => {
-        const r = await termServer({ action: 'activate', code: a[0] });
-        return [[`${r.code} is on. 5 uses.`, 'ok']];
-    } },
-    { name: 'deactivate', usage: 'deactivate <code>', need: 'owner', args: true, help: 'Turn a redeem code off.', run: async (a) => {
-        const r = await termServer({ action: 'deactivate', code: a[0] });
-        return [[`${r.code} is off.`, 'ok']];
-    } },
-    { name: 'codes', need: 'owner', help: 'Redeem codes and uses left.', run: async () => {
-        const r = await termServer({ action: 'codes' });
-        if (!r.codes.length) return [['No codes yet. Type activate fullheal.', 'dim']];
-        return r.codes.map(c => [`  ${c.name} · ${c.active ? 'on' : 'off'} · ${c.uses}/${c.max} used`]);
     } },
     { name: 'grants', need: 'owner', help: 'Who has access right now.', run: async () => {
         const r = await termServer({ action: 'grants' });
