@@ -18,6 +18,7 @@ const WAGGLE_MENU = [
     ['Progress', [
         { icon: '📊', label: 'Dashboard', path: 'src/features/dashboard/dashboard.html' },
         { icon: '🗺️', label: 'Map', path: 'src/features/map/map.html' },
+        { icon: '🕘', label: 'History', path: 'src/features/history/history.html' },   // Oct 31 2026 (Craft, from 1.0.6)
         { icon: '🌳', label: 'Skills', path: 'src/features/skills/skills.html' },
         { icon: '👤', label: 'Profile', path: 'src/features/profile/profile.html' }
     ]],
