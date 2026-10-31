@@ -351,7 +351,7 @@ const APP_ICONS = {
 // screen. Hold any app to rearrange (apps wiggle), drag, then tap Done.
 // The order is kept in the save (state.homeAppOrder), so it follows you.
 const HOME_APPS = [
-    { key: 'colony', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
+    { key: 'colony', label: 'Hive Mind', dir: 'hive-mind' },   /* Oct 31 2026 (Craft): page renamed; key kept for saved Home order */ { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
     { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
     { key: 'hive-archive', label: 'Hive Archive' }, { key: 'notifications', label: 'Notifications' }, { key: 'settings', label: 'Settings' }
@@ -368,7 +368,8 @@ function installedPluginApps() {
 }
 
 function hrefFor(app) {
-    return app.base === 'plugins' ? `../../plugins/${app.key}/${app.key}.html` : `../${app.key}/${app.key}.html`;
+    const d = app.dir || app.key;
+    return app.base === 'plugins' ? `../../plugins/${d}/${d}.html` : `../${d}/${d}.html`;
 }
 
 // Saved order first, then any app the order doesn't know yet (new plugin).
