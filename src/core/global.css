@@ -1062,3 +1062,11 @@ html .btn.btn.danger { --edge: rgba(var(--bb-alt-rgb, 220, 20, 60), .75); }
 html .btn.btn.ghost { --fill: rgba(10, 7, 3, .6); }
 html .btn.btn:hover, html .bb-btn.bb-btn:hover { --edge: var(--bb-accent, #ffcc00); }
 html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; --edge: #fff; }
+
+/* Oct 31 2026 (Craft): Rank up button (same look as Level up, shakes). */
+.ah-rankup { display: none; margin-top: 8px; width: 100%; border: 0; border-radius: 12px; padding: 11px; cursor: pointer;
+    font: 700 .9rem var(--font-main) !important; letter-spacing: .08em; color: #fff3c4;
+    background: linear-gradient(180deg, #a3142f, #7a0f24 55%, #4a0a18); box-shadow: 0 0 0 2px var(--shell-honey, #ffcc00) inset; }
+.ah-rankup.show { display: block; animation: bbShake 2.8s ease-in-out infinite; }
+.app-head.compact .ah-rankup { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .ah-rankup.show { animation: none; } }

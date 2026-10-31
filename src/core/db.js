@@ -1256,12 +1256,13 @@ const characterXPToReach = (level) => {
     for (let l = _xpToReach.length; l <= level; l++) _xpToReach[l] = _xpToReach[l - 1] + levelCost(l - 1);
     return _xpToReach[level];
 };
-// "LV 23", or "✦ TIER 2" once in Prestige.
+// "LV 23". Oct 31 2026 (Craft): past level 50 the chip keeps the level
+// number (LV 53); the Tier (2 levels each) is your RANK now, see RANKS.
 function levelLabel(level) {
-    return level > LEVEL_CAP ? `✦ TIER ${level - LEVEL_CAP}` : `LV ${level}`;
+    return `LV ${level}`;
 }
 function levelName(level) {
-    return level > LEVEL_CAP ? `Prestige Tier ${level - LEVEL_CAP}` : `Level ${level}`;
+    return `Level ${level}`;
 }
 // The level bar changes colour every 10 levels; Tiers are purple-pink.
 const LEVEL_COLORS = [['#ffd84a', '#e6b52c'], ['#ffb347', '#ff7a1a'], ['#ff6b6b', '#dc143c'], ['#6fc3ff', '#2f7de1'], ['#7ef0a8', '#22a866']];
@@ -6194,6 +6195,86 @@ Object.assign(DatabaseManager.prototype, {
         p.pinned = !p.pinned;
         this.save();
     },
+});
+
+// ============================================================================
+// RANKS (Oct 31 2026, Craft, approved demo "BizzyBee Ranks & Titles").
+// A new rank every 5 levels, bee-themed, with an insignia: stripes, then
+// pips, then wings, then the crown. Past level 50: Tier 1, Tier 2... (two
+// levels each: 51-52 = T1, 53-54 = T2). Each rank up is CLAIMED (pressed)
+// and pays its reward once (state.rankClaims). Ranks reached before this
+// update count as already claimed (no back-pay).
+// ============================================================================
+const RANKS = [
+    { lvl: 1, name: 'Larva', kind: 'stripes', n: 0 }, { lvl: 5, name: 'Hatchling', kind: 'stripes', n: 1 },
+    { lvl: 10, name: 'Worker', kind: 'stripes', n: 2 }, { lvl: 15, name: 'Forager', kind: 'stripes', n: 3 },
+    { lvl: 20, name: 'Scout', kind: 'pips', n: 1 }, { lvl: 25, name: 'Builder', kind: 'pips', n: 2 },
+    { lvl: 30, name: 'Guardian', kind: 'pips', n: 3 }, { lvl: 35, name: 'Swarm Captain', kind: 'wings', n: 1 },
+    { lvl: 40, name: 'Hive Commander', kind: 'wings', n: 2 }, { lvl: 45, name: 'Elder', kind: 'wings', n: 3 },
+    { lvl: 50, name: 'Royal Keeper', kind: 'crown', n: 0 }
+];
+const RANK_REWARDS = {
+    stripes: { tickets: 2, mats: [['pollen', 3]] },
+    pips: { tickets: 3, mats: [['royal-nectar', 1]], egg: 'Rare' },
+    wings: { tickets: 4, mats: [['royal-jelly', 1]], egg: 'Epic' },
+    crown: { tickets: 5, mats: [['royal-jelly', 2]], egg: 'Legendary' },
+    tier: { tickets: 5, mats: [['royal-jelly', 1]], egg: 'Epic' }
+};
+// The rank a level is in. { id, name, kind, n, from, tier? }
+function rankForLevel(level) {
+    const L = Math.max(1, Number(level) || 1);
+    if (L > LEVEL_CAP) {
+        const t = Math.ceil((L - LEVEL_CAP) / 2);
+        return { id: `tier-${t}`, name: `Tier ${t}`, kind: 'tier', n: t, tier: t, from: LEVEL_CAP + 2 * t - 1 };
+    }
+    let r = RANKS[0];
+    for (const x of RANKS) if (L >= x.lvl) r = x;
+    return { id: `rank-${r.lvl}`, name: r.name, kind: r.kind, n: r.n, from: r.lvl };
+}
+// Every rank reached up to a level, oldest first (Larva excluded: no reward).
+function ranksUpTo(level) {
+    const L = Math.max(1, Number(level) || 1), out = [];
+    RANKS.forEach(r => { if (r.lvl > 1 && L >= r.lvl) out.push(rankForLevel(r.lvl)); });
+    for (let lv = LEVEL_CAP + 1; lv <= L; lv += 2) out.push(rankForLevel(lv));
+    return out;
+}
+function nextRank(level) {
+    const L = Math.max(1, Number(level) || 1);
+    if (L >= LEVEL_CAP) { const now = rankForLevel(L); const at = L > LEVEL_CAP ? now.from + 2 : LEVEL_CAP + 1; return { ...rankForLevel(at), at }; }
+    const r = RANKS.find(x => x.lvl > L);
+    return { ...rankForLevel(r.lvl), at: r.lvl };
+}
+Object.assign(DatabaseManager.prototype, {
+    // Your rank by your claimed level (the top bar's level).
+    getRank() {
+        if (!this.state) return null;
+        const bar = this.getCharacterLevelBar();
+        const level = bar ? bar.level : 1;
+        if (!Array.isArray(this.state.rankClaims)) {
+            // First time: ranks already reached count as claimed (no back-pay).
+            this.state.rankClaims = ranksUpTo(level).map(r => r.id);
+            this.saveQuiet();
+        }
+        const claimed = new Set(this.state.rankClaims);
+        const pending = ranksUpTo(level).filter(r => !claimed.has(r.id));
+        return { level, rank: rankForLevel(level), next: nextRank(level), pending };
+    },
+    // Claims the oldest unclaimed rank up and pays its reward once.
+    claimRankUp() {
+        const info = this.getRank();
+        if (!info || !info.pending.length) return null;
+        const rank = info.pending[0];
+        const pay = RANK_REWARDS[rank.kind] || RANK_REWARDS.stripes;
+        this.state.rankClaims.push(rank.id);
+        if (!this.state.colony) this.state.colony = { bees: [] };
+        this.state.colony.tickets = (this.state.colony.tickets || 0) + pay.tickets;
+        const awardedMaterials = [];
+        pay.mats.forEach(([id, n]) => { for (let i = 0; i < n; i++) { this._addMaterial(id, 1); awardedMaterials.push(id); } });
+        const awardedBees = [];
+        if (pay.egg) { const bee = this.awardBee('rank', pay.egg); if (bee) awardedBees.push(bee); }
+        this.save();
+        return { rank, ticketsGranted: pay.tickets, awardedMaterials, awardedBees, pendingLeft: info.pending.length - 1 };
+    }
 });
 
 // =====================================================================

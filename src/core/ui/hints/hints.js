@@ -139,6 +139,8 @@ const Hints = (() => {
         { id: 'habits', icon: '🔁', title: 'Habits', text: '+ for good habits, − for bad ones. No due dates.', v: '1.0.0', page: F + 'habits/habits.html' },
         { id: 'todos', icon: '✅', title: 'To-Dos', text: 'One-time tasks. Give them a date and time to get reminders.', v: '1.0.0', page: F + 'todos/todos.html' },
         { id: 'quests', icon: '🗺️', title: 'Quests', text: 'Big goals made of many tasks, like a course or a project.', v: '1.0.0', page: F + 'quests/quests.html' },
+        // Oct 31 2026 (Craft): ranks.
+        { id: 'ranks', icon: '🎖️', title: 'Ranks', text: 'A new rank every 5 levels: Larva, Hatchling, Worker, Forager, Scout, Builder, Guardian, Swarm Captain, Hive Commander, Elder, Royal Keeper. Past 50: Tier 1, Tier 2 (every 2 levels). Press Rank up on Home to claim each reward.', v: '1.0.5', page: F + 'home/home.html' },
         // Oct 31 2026 (Craft): Batch 1, stability.
         { id: 'one-device', icon: '📱', title: 'One device at a time', text: 'Your save is active on one device. Open BizzyBee somewhere else and that device takes over. The other shows "Continue here" and stops saving until you tap it.', v: '1.0.5', page: F + 'settings/settings.html' },
         { id: 'daily-backups', icon: '🗄️', title: 'Daily backups', text: 'The cloud keeps one backup a day for the last 4 days. Settings › Account & cloud › More sync options to restore one.', v: '1.0.5', page: F + 'settings/settings.html' },

@@ -175,3 +175,7 @@
     100% { transform: translate(var(--drift), 380px) rotate(540deg); opacity: 0; }
 }
 
+/* Oct 31 2026 (Craft): rank up card - the badge, and a name sized to fit. */
+.lvr-badge { display: flex; justify-content: center; margin: 6px 0 2px; }
+.lvr-badge svg { width: 72px; height: 82px; filter: drop-shadow(0 0 14px rgba(var(--bb-accent-rgb, 255, 204, 0), .55)); }
+.lvr-lvl.word { font-size: clamp(1.8rem, 9vw, 2.8rem); line-height: 1.1; overflow-wrap: anywhere; }

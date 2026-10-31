@@ -117,13 +117,15 @@ const Waggle = {
         try { fainted = v ? v.getColonyBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
         let mail = 0;
         try { mail = typeof Social !== 'undefined' ? Social.unread() : 0; } catch { /* not ready */ }
-        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted, mail };
+        let rankUp = 0;   // Oct 31 2026 (Craft): unclaimed rank ups
+        try { rankUp = v && v.getRank ? v.getRank().pending.length : 0; } catch { /* not ready */ }
+        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted, mail, rankUp };
     },
 
     updateDot() {
         if (!this.button) return;
         const s = this.status();
-        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0 || s.fainted > 0 || s.mail > 0);
+        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.rankUp > 0 || s.tickets > 0 || s.fainted > 0 || s.mail > 0);
     },
 
     renderMenu() {
@@ -142,6 +144,7 @@ const Waggle = {
 
         let html = `<div class="wg-head"><div class="wg-av">🐝</div><div class="wg-who"><b>${this.esc(name)}</b><small>${s.level ? `Level ${s.level}` : ''}${bees ? ` · ${bees} bee${bees === 1 ? '' : 's'}` : ''}</small></div><button type="button" class="wg-x" aria-label="Close menu">✕</button></div><div class="wg-body">`;
         if (s.levelUp) html += `<a class="wg-alert" href="${root}/src/features/home/home.html">✦ Level up ready! Tap to claim</a>`;
+        if (s.rankUp) html += `<a class="wg-alert" href="${root}/src/features/home/home.html">🎖️ Rank up ready! Tap to claim</a>`;
         if (pageActs.length) html += `<div class="wg-sec">This page</div>` + pageActs.map(({ a, i }) => row(a.icon, a.label, '', `data-action="${i}"`, false)).join('');
         WAGGLE_MENU.forEach(([sec, items]) => {
             const shown = items.filter(it => !it.plugin || pluginOn(it.plugin));
