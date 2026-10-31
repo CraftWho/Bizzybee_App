@@ -1674,6 +1674,8 @@ class DatabaseManager {
         if (this.pcLocal) {
             this.devTest = true;
             this.storageKey = 'bizzybee_user_data:pclocal';
+            // Oct 31 2026 (Craft): pages hide cloud controls on PC LOCAL (no cloud here).
+            if (typeof document !== 'undefined' && document.documentElement) document.documentElement.classList.add('pc-local');
             if (localStorage.getItem('bizzybee_session') !== 'local') localStorage.setItem('bizzybee_session', 'local');
         } else if (this.devTest) {
             this.storageKey = 'bizzybee_user_data:devtest';
