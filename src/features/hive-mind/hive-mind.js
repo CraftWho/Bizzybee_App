@@ -6,8 +6,8 @@ console.log("/// HIVE MIND (COLONY) PROTOCOLS INITIALIZED ///");
 // a bee's color/animation is identical wherever it's rendered. Pulling new
 // bees, renaming, assigning work, and unwrapping gacha tickets all live on
 // their own page now - see src/features/gacha/ - this page is purely the
-// nest/hive visualization (exterior mech hive - colony-hive.js - plus
-// the interior honeycomb, Queen and crawling bees - colony-interior.js).
+// nest/hive visualization (exterior mech hive - hive-mind-hive.js - plus
+// the interior honeycomb, Queen and crawling bees - hive-mind-interior.js).
 
 // Looks up a bee's rarity color, with a safe fallback for anything
 // unexpected (e.g. hand-edited localStorage) rather than rendering blank.
@@ -50,7 +50,8 @@ function colonyRoyal() {
 }
 
 function swarmBees() {
-    return colonyWorkerBees().slice(-SWARM_DISPLAY_CAP);
+    // Oct 31 2026 (Craft, from 1.0.6): eggs never fly or crawl (tapping a "bee" opened an egg).
+    return colonyWorkerBees().filter(b => !(typeof beeIsBrood === 'function' && beeIsBrood(b))).slice(-SWARM_DISPLAY_CAP);
 }
 
 // Exterior and interior are two disjoint HALVES of the same list, not the
@@ -74,7 +75,7 @@ const COLONY_LABEL_COLORS = { Common: '#d4d4d4', Rare: '#7fc0ff', Epic: '#c99bff
 let colonyHiveScene = null;
 let colonyHiveEntrance = null;
 
-// Outside view: the mech hive (colony-hive.js) sized by level tier, with
+// Outside view: the mech hive (hive-mind-hive.js) sized by level tier, with
 // the exterior half of your real bees orbiting it (names shown, stripes in
 // their element colour), worker bees pacing the landing deck, and random
 // foragers leaving / coming back through the entrance. All bee movement is
@@ -152,7 +153,7 @@ function renderColonyStats() {
     const user = Vault.getUser() || {};
     host.innerHTML = `<span><b>⭐ ${user.level || 1}</b><small>Level</small></span>
         <span><b>🐝 ${bees.length - eggs}</b><small>${eggs ? `+${eggs} egg${eggs === 1 ? '' : 's'}` : 'Bees'}</small></span>
-        <a href="../colony-bees/colony-bees.html?show=help" class="${help ? 'is-warn' : ''}"><b>${help ? '😢' : '😊'} ${help}</b><small>Need help</small></a>`;
+        <a href="../hive-bees/hive-bees.html?show=help" class="${help ? 'is-warn' : ''}"><b>${help ? '😢' : '😊'} ${help}</b><small>Need help</small></a>`;
 }
 
 // Hive Life faces over the bees flying outside (😊 / 😢 / 😠).
@@ -175,7 +176,7 @@ function colonyExteriorFaces(list) {
     colonyFaceTimer = setInterval(pop, 7000);
 }
 
-// The hive art fills the whole page behind the title panel (colony.css).
+// The hive art fills the whole page behind the title panel (hive-mind.css).
 // The SVG box starts just under the panel and ends above the floating
 // buttons, so the hive itself is never hidden; the sky/branch extend past
 // the box (overflow visible) to fill the rest of the screen.
@@ -193,7 +194,7 @@ function openColonyBeeCard(bee) {
     const host = document.getElementById('colony-card-host');
     if (!overlay || !host || typeof BeeCard === 'undefined') return;
     // Eggs keep their card secret until they hatch (Oct 27 2026).
-    if (typeof beeIsBrood === 'function' && beeIsBrood(bee)) { window.location.href = `../colony-bees/colony-bees.html?bee=${encodeURIComponent(bee.id)}`; return; }
+    if (typeof beeIsBrood === 'function' && beeIsBrood(bee)) { window.location.href = `../hive-bees/hive-bees.html?bee=${encodeURIComponent(bee.id)}`; return; }
     // BeeCard.render() keeps one flip listener per host (dataset guard), so
     // the same host is simply re-rendered for each bee.
     host.innerHTML = '';
@@ -239,7 +240,7 @@ function colonyShowInside() {
 }
 
 // ---------------------------------------------------------------------
-// INSIDE THE HIVE (colony-interior.js draws it; this decides what it shows)
+// INSIDE THE HIVE (hive-mind-interior.js draws it; this decides what it shows)
 //
 // Honey = lit comb cells. Level only (Oct 2026): COLONY_HONEY_BASE cells,
 //   plus COLONY_HONEY_PER_LEVEL per level (and the XP part-way into the
@@ -260,7 +261,7 @@ const COLONY_HATCHED_KEY = 'bizzybee_colony_hatched';
 const COLONY_HATCH_MAX = 3;
 const COLONY_MAX_CRAWLERS = 6;      // busy bees moving at once (keeps it smooth)
 // Queen art folder, resolved from this script's own URL so any page that
-// loads colony.js (the app page, or a test harness elsewhere) finds it.
+// loads hive-mind.js (the app page, or a test harness elsewhere) finds it.
 const COLONY_QUEEN_ASSETS = document.currentScript
     ? new URL('../../assets/bees/queen/', document.currentScript.src).href
     : '../../assets/bees/queen/';
@@ -327,7 +328,7 @@ function openColonyQueenPanel(state, royal) {
     host.innerHTML = `<div class="colony-queen-panel">
         <div class="colony-queen-panel-crown">👑</div>
         <h2>${royal && royal.name ? escapeColonyText(royal.name) : 'Queen Bee'}</h2>
-        <p class="colony-queen-panel-sub">${royal ? (royal.kind === 'king' ? 'Your King' : 'Your Queen') + ' · heart of the colony' : 'Heart of the colony'}</p>
+        <p class="colony-queen-panel-sub">${royal ? (royal.kind === 'king' ? 'Your King' : 'Your Queen') + ' · heart of the hive' : 'Heart of the hive'}</p>
         <div class="colony-queen-panel-stats">
             <div><b>${state.bees}</b><small>Bees</small></div>
             <div><b>${state.lit - state.decay}</b><small>Honey cells</small></div>
@@ -417,7 +418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.classList.add('colony-is-entering');
         scene.classList.add('is-entering');
 
-        // Zoom into the entrance (colony.css), then swap to the inside view
+        // Zoom into the entrance (hive-mind.css), then swap to the inside view
         // and pause the outside bees while they're off-screen.
         setTimeout(() => {
             if (colonyHiveScene) colonyHiveScene.stop();
@@ -447,9 +448,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         colonyShowInside();
     }));
 
-    // Colony Bees has its own page (Oct 2026).
+    // Hive Bees has its own page (Oct 2026).
     document.getElementById('colony-bees-quick-btn').addEventListener('click', () => {
-        window.location.href = '../colony-bees/colony-bees.html';
+        window.location.href = '../hive-bees/hive-bees.html';
     });
 
     Waggle.setActions(baseWaggleActions());

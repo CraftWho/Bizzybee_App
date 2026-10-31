@@ -3,7 +3,7 @@ console.log("/// HONEY STORE PROTOCOLS INITIALIZED ///");
 // Honey Store v2 (Oct 2026, same look as Settings/Inventory - page-v2.css).
 // STORE_ITEM_CATALOG lives in db.js (trait items + the Identity Card).
 // Purchases spend materials and land in state.inventory.items. Items are
-// used from a bee's card on the Colony Bees page - this page only sells.
+// used from a bee's card on the Hive Bees page - this page only sells.
 // Tap an item for its details and the Buy button.
 
 function hsMat(id) { return MATERIAL_CATALOG.find(m => m.id === id) || { icon: '', label: id }; }
@@ -67,7 +67,7 @@ function openStoreItem(id) {
         <p>${PV2.esc(item.description)}</p>
         <p>Costs ${mat.icon} <b style="color:var(--ink)">${item.price.amount} ${PV2.esc(mat.label)}</b>. You have ${have}.</p>
         <div class="btns"><button type="button" class="btn solid" data-buy${ok ? '' : ' disabled'}>Buy</button>
-            ${owned && item.kind !== 'charm' ? '<a class="btn" href="../colony-bees/colony-bees.html">🐝 Use on a bee…</a>' : ''}</div>
+            ${owned && item.kind !== 'charm' ? '<a class="btn" href="../hive-bees/hive-bees.html">🐝 Use on a bee…</a>' : ''}</div>
         ${ok ? '' : `<p>You need ${item.price.amount - have} more ${PV2.esc(mat.label)}. ${item.price.currency === 'coins' ? 'Every task you finish earns coins.' : 'Foragers bring materials back when you finish tasks.'}</p>`}`, item.label);
     const buy = box.querySelector('[data-buy]');
     if (buy) buy.addEventListener('click', () => handlePurchase(item.id));
@@ -79,7 +79,7 @@ function handlePurchase(itemId) {
         if (typeof Toast !== 'undefined') Toast.show('Not enough materials for that yet.', 'negative');
         return;
     }
-    if (typeof Toast !== 'undefined') Toast.show(result.item.kind === 'charm' ? `🎁 Bought a Streak Charm! It's used automatically on a missed streak.` : result.item.kind === 'held' ? `${result.item.icon} Made a ${result.item.label}! Give it to a Rare-or-better bee from its card.` : `${result.item.icon} Bought ${result.item.label}! Use it from a bee's card on Colony Bees.`, 'positive');
+    if (typeof Toast !== 'undefined') Toast.show(result.item.kind === 'charm' ? `🎁 Bought a Streak Charm! It's used automatically on a missed streak.` : result.item.kind === 'held' ? `${result.item.icon} Made a ${result.item.label}! Give it to a Rare-or-better bee from its card.` : `${result.item.icon} Bought ${result.item.label}! Use it from a bee's card on Hive Bees.`, 'positive');
     renderAll();
     openStoreItem(itemId);
 }

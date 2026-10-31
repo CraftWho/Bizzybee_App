@@ -1,6 +1,6 @@
 console.log("/// COLONY BEES ONLINE ///");
 
-// Colony Bees (Oct 2026, approved demo). Its own page now - it used to be
+// Hive Bees (Oct 2026, approved demo). Its own page now - it used to be
 // a pop-up on the Inventory page. A list (or the real bee cards, scaled
 // down) with search, sort and filters: All, Working, No job, Eggs and
 // Need help. Tap a bee for a sheet with its mood, vitals and job picker;

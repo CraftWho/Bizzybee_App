@@ -41,14 +41,14 @@ function showSummonResult(bee, { title } = {}) {
     if (!overlay || !resultPanel || !cardHost) return;
 
     overlay.hidden = false;
-    titleEl.textContent = title || `${bee.name} joined the colony!`;
+    titleEl.textContent = title || `${bee.name} joined the hive!`;
     BeeCard.render(cardHost, bee, { editable: false });
     // Name it now (Oct 2026): a random name is already set; 🎲 for another.
     const nameHost = document.getElementById('gacha-summon-name');
     if (nameHost && typeof BeeName !== 'undefined' && bee.rarity !== 'Royal') {
         BeeName.mount(nameHost, bee, {
             label: 'Name your new bee',
-            onSaved: (r) => { titleEl.textContent = `${r.name} joined the colony!`; BeeCard.render(cardHost, r, { editable: false }); }
+            onSaved: (r) => { titleEl.textContent = `${r.name} joined the hive!`; BeeCard.render(cardHost, r, { editable: false }); }
         });
     } else if (nameHost) nameHost.innerHTML = '';
     resultPanel.hidden = false;
@@ -62,8 +62,8 @@ function pollinateForNewBee() {
     const result = Vault.pullWithTicket();
     if (!result) { Toast.show('🎟️ You need a ticket to pollinate. Level up you or your skills to earn more.', 'negative'); renderTicketPanel(); return; }
     const { bee, guaranteed } = result;
-    Toast.show(`🐝 ${bee.name} joined the colony!${guaranteed ? ' (guaranteed Rare+)' : ''}`, 'positive');
-    showSummonReveal(bee, { title: `🌼 ${bee.name} joined the colony!` });
+    Toast.show(`🐝 ${bee.name} joined the hive!${guaranteed ? ' (guaranteed Rare+)' : ''}`, 'positive');
+    showSummonReveal(bee, { title: `🌼 ${bee.name} joined the hive!` });
     renderCollectionCounters();
     renderRefineSelects();
     renderTicketPanel();
@@ -92,7 +92,7 @@ function pollinateMany(n) {
     box.hidden = false;
     const best = results[0];
     if (best && best.bee.rarity !== 'Common') showSummonReveal(best.bee, { title: `🌼 Best pull: ${best.bee.name}!` });
-    Toast.show(`🐝 ${results.length} bees joined the colony!`, 'positive');
+    Toast.show(`🐝 ${results.length} bees joined the hive!`, 'positive');
     renderCollectionCounters();
     renderRefineSelects();
     renderTicketPanel();

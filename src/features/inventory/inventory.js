@@ -3,12 +3,12 @@ console.log("/// INVENTORY PROTOCOLS INITIALIZED ///");
 // Inventory v2 (Oct 2026, approved demo). Same look as Settings
 // (page-v2.css). Three tabs of hex tiles - Materials, Evolution and
 // Store - and a bottom sheet with each item's details. Items are still
-// used from a bee's card (Colony Bees page); this page only shows what you
-// have. The old roster modal + Cover Flow moved out: Colony Bees is its
-// own page now (../colony-bees/).
+// used from a bee's card (Hive Bees page); this page only shows what you
+// have. The old roster modal + Cover Flow moved out: Hive Bees is its
+// own page now (../hive-bees/).
 const INV_TABS = {
     materials: { label: 'Materials', hint: 'Foragers bring these back when you finish tasks and dailies. Quests give more.' },
-    evolution: { label: 'Evolution', hint: "Rare finds from quests. Use them from a bee's card on the Colony Bees page." },
+    evolution: { label: 'Evolution', hint: "Rare finds from quests. Use them from a bee's card on the Hive Bees page." },
     store: { label: 'Store', hint: "Bought at the Honey Store. Each gives a bee a trait. Faded = you have none." }
 };
 const INV_TAB_KEY = 'bizzybee_inventory_tab';
@@ -67,7 +67,7 @@ function openInventoryItem(entry) {
     const color = `var(--${entry.rarity || 'Common'})`;
     const actions = invTab === 'materials' || entry.kind === 'charm' ? ''
         : `<div class="btns">
-            <a class="btn solid" href="../colony-bees/colony-bees.html">🐝 Use on a bee…</a>
+            <a class="btn solid" href="../hive-bees/hive-bees.html">🐝 Use on a bee…</a>
             ${invTab === 'store' ? '<a class="btn" href="../honey-store/honey-store.html">🛒 Honey Store</a>' : ''}
           </div>`;
     PV2.sheet(`
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Old links (Waggle, Hive Mind) pointed at #colony-bees here.
     if (window.location.hash === '#colony-bees') {
-        window.location.replace('../colony-bees/colony-bees.html');
+        window.location.replace('../hive-bees/hive-bees.html');
         return;
     }
 

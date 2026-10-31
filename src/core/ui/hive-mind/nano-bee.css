@@ -46,7 +46,7 @@
     transform: scale(0.07);
 }
 
-/* Ambient swarm bees (colony.js exterior/interior) - the --chip variant
+/* Ambient swarm bees (hive-mind.js exterior/interior) - the --chip variant
    (0.07 scale, ~3px body) was built for a compact inline chip next to
    text and turned out to be nearly invisible when used standalone for the
    swarm. This is sized to match the Queen's own bee-body scale (0.5) so
@@ -62,7 +62,7 @@
     transform: scale(0.5);
 }
 
-/* The Queen (colony.js interior view) - bigger than --mini since she's
+/* The Queen (hive-mind.js interior view) - bigger than --mini since she's
    rendered with hideCore (no hex backdrop filling out the visual), so the
    bee itself needs to actually read as a presence next to the ~20px swarm
    emoji around her, not the ~7px sliver --mini's 0.175 scale would give. */

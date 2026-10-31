@@ -48,7 +48,7 @@ function renderRoyal() {
         tile.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2, royal: royal ? royal.royal : 'queen' });
         art = tile.outerHTML;
     }
-    el.innerHTML = `${art}<div><b>Your ${kind}${royal && royal.name ? ` · ${esc(royal.name)}` : ''}</b><small>Founder of your colony · ${Vault.getColonyBees().length} bees</small><small style="color:var(--gold);margin-top:6px">Visit the hive →</small></div>`;
+    el.innerHTML = `${art}<div><b>Your ${kind}${royal && royal.name ? ` · ${esc(royal.name)}` : ''}</b><small>Founder of your hive · ${Vault.getColonyBees().length} bees</small><small style="color:var(--gold);margin-top:6px">Visit the hive →</small></div>`;
 }
 
 function activeDays(S) {
@@ -109,7 +109,7 @@ document.addEventListener('click', e => {
     const r = Vault.levelUpCharacterBar();
     if (!r) { render(); return; }
     const lines = [];
-    (r.awardedBees || []).forEach(b => lines.push(`🐝 ${esc(b.name)} joined your colony`));
+    (r.awardedBees || []).forEach(b => lines.push(`🐝 ${esc(b.name)} joined your hive`));
     if (r.ticketsGranted) lines.push(`🎟️ +${r.ticketsGranted} ticket${r.ticketsGranted === 1 ? '' : 's'}`);
     (r.awardedMaterials || []).forEach(id => lines.push(`${esc(materialDisplay(id))} +1`));
     document.getElementById('pf-sheet-body').innerHTML = `<div class="pf-burst">${r.newLevel}</div><h3>You reached level ${r.newLevel}!</h3><ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul><button type="button" data-close>Collect</button>`;

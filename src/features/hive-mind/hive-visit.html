@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
     <link rel="stylesheet" href="../../core/ui/modal/modal.css">
     <link rel="stylesheet" href="../../core/ui/bee-name/bee-name.css">
-    <link rel="stylesheet" href="./colony.css">
+    <link rel="stylesheet" href="./hive-mind.css">
     <link rel="stylesheet" href="./hive-visit.css">
     <link rel="stylesheet" href="../../core/ui/weather-fx/weather-fx.css">
 </head>
@@ -34,7 +34,7 @@
             </div>
 
             <!-- Full-page hive art behind everything on this view (fixed,
-                 colony.css). The hive (colony-hive.js) is one SVG; your bees
+                 hive-mind.css). The hive (hive-mind-hive.js) is one SVG; your bees
                  fly inside it via MechBeeScene (src/core/ui/mech-bee/). -->
             <div class="colony-nest-scene" id="colony-nest-scene">
                 <div class="colony-hive-stage" id="colony-hive-stage"></div>
@@ -42,7 +42,7 @@
 
             <div class="colony-exterior-actions colony-exterior-actions--in-art">
                 <button class="colony-enter-btn" id="enter-hive-btn">Enter Hive →</button>
-                <button class="colony-enter-btn colony-bees-quick-btn" id="colony-bees-quick-btn" hidden>🐝 Colony Bees</button>
+                <button class="colony-enter-btn colony-bees-quick-btn" id="colony-bees-quick-btn" hidden>🐝 Hive Bees</button>
                 <a class="colony-enter-btn hv-back" href="../friends/friends.html">← Friends' hives</a>
             </div>
         </div>
@@ -65,7 +65,7 @@
             </section>
 
             <!-- Full-page honeycomb behind everything on this view (fixed,
-                 colony.css). Drawn by colony-interior.js. -->
+                 hive-mind.css). Drawn by hive-mind-interior.js. -->
             <div class="colony-interior-scene" id="colony-interior-scene">
                 <div class="colony-interior-stage" id="colony-interior-stage"></div>
             </div>
@@ -95,14 +95,14 @@
 
     <script src="../../core/ui/bee-card/bee-card.js"></script>
     <script src="../../core/ui/mech-bee/mech-bee.js"></script>
-    <script src="./colony-hive.js"></script>
-    <script src="./colony-interior.js"></script>
+    <script src="./hive-mind-hive.js"></script>
+    <script src="./hive-mind-interior.js"></script>
     <script src="../../core/ui/bee-name/bee-name.js"></script>
     <script src="../../core/ui/egg-designs/egg-designs.js"></script>
-    <script src="./colony-life.js"></script>
-    <script src="./colony.js"></script>
+    <script src="./hive-mind-life.js"></script>
+    <script src="./hive-mind.js"></script>
     <script src="./hive-visit.js"></script>
     <script src="../../core/ui/weather-fx/weather-fx.js"></script>
-    <script src="./colony-weather.js"></script>
+    <script src="./hive-mind-weather.js"></script>
 </body>
 </html>

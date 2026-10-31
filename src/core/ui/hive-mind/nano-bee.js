@@ -39,7 +39,7 @@ const NanoBee = {
     // Leaves the hex-core glow (if shown) gold regardless, since that's the
     // hive's own color, not any individual bee's.
     // options.hideCore: renders just the bee, no glowing hex backdrop -
-    // used for the Queen (colony.js) and small chip icons where the hex
+    // used for the Queen (hive-mind.js) and small chip icons where the hex
     // core would be visual noise or too large to fit.
     // options.noFlight: freezes the bee at its centered rest position
     // instead of looping the wide infinity-path flight animation (wings

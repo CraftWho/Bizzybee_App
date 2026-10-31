@@ -7,9 +7,9 @@ console.log("/// WAGGLE ONLINE ///");
 // (Chat with Eve) sits at the bottom. The page links live here.
 const WAGGLE_MENU = [
     ['Your hive', [
-        { icon: '🏰', label: 'Hive Mind', path: 'src/features/colony/colony.html', fainted: true },
+        { icon: '🏰', label: 'Hive Mind', path: 'src/features/hive-mind/hive-mind.html', fainted: true },
         { icon: '🌼', label: 'Pollination Chamber', path: 'src/features/gacha/gacha.html', tickets: true },
-        { icon: '🐝', label: 'Colony Bees', path: 'src/features/colony-bees/colony-bees.html' },
+        { icon: '🐝', label: 'Hive Bees', path: 'src/features/hive-bees/hive-bees.html' },
         { icon: '🎒', label: 'Inventory', path: 'src/features/inventory/inventory.html' },
         { icon: '🥚', label: 'Egg Incubator', path: 'src/plugins/incubator/incubator.html', plugin: 'incubator' },
         { icon: '📘', label: 'KeeperDex', path: 'src/features/keeperdex/keeperdex.html' },

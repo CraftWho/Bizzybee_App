@@ -206,3 +206,7 @@ button.home-stat { border: 0; background: none; font: inherit; cursor: pointer; 
 .home-help-bee em { font-style: normal; font-weight: 700; color: #ff8aa0; }
 .home-help-bee small { display: inline; margin: 0; color: #a69a80; font-size: .72rem; }
 .home-help-bee small.fix { display: block; margin-top: 1px; color: #c2b48f; }
+
+/* Oct 31 2026 (Craft, from 1.0.6): hex ring follows the shape; bolder icons. */
+.home-app-ic::after { box-shadow: none !important; background: var(--cr); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }
+.home-app-ic svg { stroke-width: 2.6; }

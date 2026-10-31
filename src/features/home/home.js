@@ -128,7 +128,7 @@ function renderHive() {
     const qp = quest && typeof QuestUI !== 'undefined' ? QuestUI.progress(quest).pct : null;
     const xp = xpToday();
     const stats = [
-        { key: 'bees', value: hive.bees, label: 'Bees', href: '../colony/colony.html', color: '#ffcc00' },
+        { key: 'bees', value: hive.bees, label: 'Bees', href: '../hive-mind/hive-mind.html', color: '#ffcc00' },
         { key: 'xp', value: `${xp > 0 ? '+' : ''}${xp}`, label: 'XP today', button: true, color: '#34c77b' },
         { key: 'streak', value: streak, label: 'Current streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
         { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
@@ -144,7 +144,7 @@ function renderHive() {
 
 // ---- Bees that need help (Hive Life moods) ----
 // 😢 hungry / tired / hurt, 😠 no job for 3+ days, 😵 fainted. One line,
-// tap to open Colony Bees on the "Need help" filter. Hidden when all is well.
+// tap to open Hive Bees on the "Need help" filter. Hidden when all is well.
 // Eggs ready to hatch (Oct 28 2026): tap to hatch them right here.
 function renderReadyEggs() {
     const help = document.getElementById('home-help');
@@ -351,7 +351,7 @@ const APP_ICONS = {
 // screen. Hold any app to rearrange (apps wiggle), drag, then tap Done.
 // The order is kept in the save (state.homeAppOrder), so it follows you.
 const HOME_APPS = [
-    { key: 'colony', label: 'Colony' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
+    { key: 'colony', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
     { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
     { key: 'hive-archive', label: 'Hive Archive' }, { key: 'notifications', label: 'Notifications' }, { key: 'settings', label: 'Settings' }

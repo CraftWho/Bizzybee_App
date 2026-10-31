@@ -1,4 +1,4 @@
-// Page v2 bottom sheet (Oct 2026) - shared by Inventory and Colony Bees.
+// Page v2 bottom sheet (Oct 2026) - shared by Inventory and Hive Bees.
 // PV2.sheet(html) opens (or refreshes) one sheet; [data-close] or a tap
 // outside closes it; Escape too. PV2.close() closes it from code.
 const PV2 = (() => {

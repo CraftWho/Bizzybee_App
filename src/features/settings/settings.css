@@ -346,3 +346,7 @@
 .stv2 #weather-card .row select { flex: none; width: auto; }
 .stv2 #wx-city { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: #0a0703; color: var(--ink); font: inherit; }
 .stv2 #wx-results { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+
+/* Oct 31 2026 (Craft, from 1.0.6): the gold ring follows the hex (--hex-ring in global.css). */
+.stv2 .avatar { position: relative; box-shadow: none; }
+.stv2 .avatar::after { content: ""; position: absolute; inset: 0; background: var(--gold); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; pointer-events: none; }

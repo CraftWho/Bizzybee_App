@@ -9,8 +9,8 @@
 }
 
 /* --- EXTERIOR: THE MECH HIVE ---
-   The hive is one SVG built by colony-hive.js (rings/cells/deck/crown grow
-   with level - see nestTier() in colony.js). Bees are drawn and moved by
+   The hive is one SVG built by hive-mind-hive.js (rings/cells/deck/crown grow
+   with level - see nestTier() in hive-mind.js). Bees are drawn and moved by
    MechBeeScene (src/core/ui/mech-bee/). The old CSS hexagon nest is archived
    in archive/colony-v1/. */
 .colony-nest-scene {
@@ -19,7 +19,7 @@
 
 /* Outside view: the hive art is the whole page background (behind the
    header, title panel and buttons). body.colony-outside is set by
-   colony.js while the outside view is showing. */
+   hive-mind.js while the outside view is showing. */
 body.colony-outside .colony-nest-scene {
     display: block;
     position: fixed;
@@ -52,7 +52,7 @@ body.colony-outside #colony-exterior .page-header-panel {
     inset: 0;
 }
 
-/* The SVG box: from just under the title panel (--hive-top, colony.js)
+/* The SVG box: from just under the title panel (--hive-top, hive-mind.js)
    to above the in-art buttons. Sky + branch overflow past it. */
 #colony-hive-stage .colony-hive-svg {
     position: absolute;
@@ -162,7 +162,7 @@ body.colony-is-entering .colony-exterior-actions--in-art {
     margin: 0;
 }
 
-/* Hive animations (classes come from colony-hive.js). */
+/* Hive animations (classes come from hive-mind-hive.js). */
 .colony-hive-svg .ch-sway {
     animation: ch-sway 7s ease-in-out infinite;
     transform-origin: 200px 40px;
@@ -240,8 +240,8 @@ body.colony-is-entering .colony-exterior-actions--in-art {
 }
 
 /* --- INSIDE THE HIVE ---
-   One full-page honeycomb SVG (colony-interior.js) behind the header,
-   title panel, HUD and buttons. body.colony-inside is set by colony.js
+   One full-page honeycomb SVG (hive-mind-interior.js) behind the header,
+   title panel, HUD and buttons. body.colony-inside is set by hive-mind.js
    while the inside view is showing. Theme accents: honey gold, crimson
    (royal cell, decay embers, decay chip), hive blue (bee chip, sparks)
    and element colours (brood cell rings). */
@@ -692,7 +692,7 @@ body.colony-inside #colony-interior .page-header-panel {
 }
 
 /* ==========================================================================
-   HIVE LIFE (Oct 2026, approved demo) - colony-life.js. A real comb with
+   HIVE LIFE (Oct 2026, approved demo) - hive-mind-life.js. A real comb with
    role areas; replaces the full-page Classic inside view while it's on.
    ========================================================================== */
 .hl-switch { display: inline-flex; gap: 4px; margin: 12px auto 4px; padding: 3px; border-radius: 12px; background: rgba(20, 14, 5, .9); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .2); position: relative; z-index: 2; }
@@ -860,7 +860,7 @@ body.colony-outside #colony-exterior .cm-head, body.colony-inside #colony-interi
 .hl-inc-link { display: block; margin: 8px 0 4px; padding: 10px 12px; border-radius: 12px; background: #1a0a0e; border: 1px solid rgba(var(--bb-alt-rgb, 220, 20, 60), .45); color: var(--bb-accent, #ffcc00); font: 700 .8rem var(--font-main, ui-monospace, monospace); text-decoration: none; }
 .hl-hatch { flex: none; padding: 6px 10px; border-radius: 10px; border: 0; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; font: 800 .74rem var(--font-main, ui-monospace, monospace); cursor: pointer; }
 
-/* Friends' hives in the distance (Oct 29 2026, colony-friends.js). */
+/* Friends' hives in the distance (Oct 29 2026, hive-mind-friends.js). */
 .cf-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 body.colony-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .cf-hive { position: absolute; width: min(21vw, 104px); display: grid; justify-items: center; gap: 2px; pointer-events: auto; text-decoration: none; opacity: .85; filter: saturate(.85) blur(.3px) drop-shadow(0 6px 10px rgba(0, 0, 0, .5)); animation: cfSway var(--sw, 6s) ease-in-out infinite; transform-origin: 50% 0; }
