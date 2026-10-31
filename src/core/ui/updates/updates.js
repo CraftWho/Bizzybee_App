@@ -22,7 +22,8 @@ const WHATS_NEW = [
         { icon: '🕘', title: 'History', text: 'Everything you finished, day by day. Tap one to open it.', href: 'features/history/history.html' },
         { icon: '📊', title: 'Home stats', text: 'Weather and steps (Android app) join the stat strip. XP today and Done today now always match.', href: 'features/home/home.html' },
         { icon: '⬆️', title: 'Claim on the Dashboard', text: 'Level up ready? Claim it on the Dashboard too.', href: 'features/dashboard/dashboard.html' },
-        { icon: '🃏', title: 'KeeperDex cards flip', text: 'Cards you haven\'t found are face-down. Tap a card to see it big and flip it.', href: 'features/keeperdex/keeperdex.html' },
+        { icon: '✨', title: 'Shiny cards', text: 'Rare and better cards catch the light as you tilt your phone.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '🃏', title: 'KeeperDex cards flip', text: 'Cards you haven\'t found are greyed out and face-down. Tap a found card to see it big and flip it.', href: 'features/keeperdex/keeperdex.html' },
         // Oct 31 2026 (Craft): Batch 5, Skills (from 1.0.6, with ask-first).
         { icon: '🌱', title: 'Skills honeycomb', text: 'Each skill is a cell with its own path of milestones and rewards. A red dot means a reward is waiting.', href: 'features/skills/skills.html' },
         { icon: '💡', title: 'Smart skills', text: 'Plain words count: "Go for a run" counts toward Fitness. Skills count time or times done. Time is optional.', href: 'features/skills/skills.html' },

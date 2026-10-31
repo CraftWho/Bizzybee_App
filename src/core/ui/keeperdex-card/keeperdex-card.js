@@ -41,8 +41,18 @@ const KeeperDexCard = {
                 </div>`).join('')
             : `<div class="bc-ab bc-locked"><span class="bc-ic">🔒</span><h4>Unknown moves <small>Locked</small></h4><p>Obtain a matching bee to reveal this entry.</p></div>`;
 
+        // Oct 31 2026 (Craft): a card you haven't found shows its back on
+        // both sides, so flipping it reveals nothing.
+        const backFace = (side) => `<div class="bee-card-face bee-card-${side}">
+                <i class="bc-hexbg"></i><i class="bc-trim"></i>
+                <i class="bc-rv bc-tl"></i><i class="bc-rv bc-tr"></i><i class="bc-rv bc-bl"></i><i class="bc-rv bc-br"></i>
+                <div class="bc-back-inner"><img class="bc-logo" src="${BEE_CARD_ASSETS}bizzybee-badge.webp" alt="BizzyBee" draggable="false"></div>
+            </div>`;
+        if (!obtained) { container.innerHTML = `<div class="bee-card-inner">${backFace('front')}${backFace('back')}</div>`; return; }
+        // Oct 31 2026 (Craft): found Rare-and-up cards catch the light (BeeCardGlare).
+        const glare = realRarityKey !== 'common' ? '<i class="bc-glare" aria-hidden="true"></i>' : '';
         container.innerHTML = `<div class="bee-card-inner">
-            <div class="bee-card-face bee-card-front">
+            <div class="bee-card-face bee-card-front">${glare}
                 <i class="bc-hexbg"></i><i class="bc-trim"></i>
                 <i class="bc-rv bc-tl"></i><i class="bc-rv bc-tr"></i><i class="bc-rv bc-bl"></i><i class="bc-rv bc-br"></i>
                 ${obtained && rarityKey === 'legendary' ? beeCardSparkles(8) : ''}

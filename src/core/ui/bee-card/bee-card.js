@@ -367,6 +367,7 @@ const BeeCard = {
                 <div class="bee-card-face bee-card-front${(showEvolveAction || showRebirthAction || showTraitAction || showIdentityAction) ? ' bc-has-actions' : ''}">
                     <i class="bc-hexbg"></i><i class="bc-trim"></i>${rivets}
                     ${isLegendary ? beeCardSparkles(8) : ''}
+                    ${rarityKey !== 'common' ? '<i class="bc-glare" aria-hidden="true"></i>' : ''}${/* Oct 31 2026 (Craft): glare on Rare and up */ ''}
 
                     <div class="bc-top">
                         <span class="bc-rpill">${bee.rarity.toUpperCase()}</span>
@@ -595,3 +596,56 @@ const BeeCard = {
         return `<select class="bee-card-class-select" title="Assign work${sexLabel ? ' · ' + sexLabel : ''}"><option value="">Unassigned${sexLabel ? ' · ' + sexLabel : ''}</option>${groupsHTML}</select>`;
     }
 };
+
+// ---------------------------------------------------------------------------
+// Card glare (Oct 31 2026, Craft; first built Oct 30). A light sheen slides
+// across Rare-and-up bee and KeeperDex cards (never Common) as you tilt the phone (gyroscope / device orientation). Phones that
+// need permission (iPhone) ask once, on the first tap of a card. Computers
+// follow the mouse over a card instead. Off for "reduce motion".
+// One listener for the whole page; cards read --bc-gx / --bc-gy.
+// ---------------------------------------------------------------------------
+const BeeCardGlare = (() => {
+    let started = false, asked = false, raf = null, base = null, gx = 50, gy = 30;
+    const root = document.documentElement;
+    const still = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const paint = () => { raf = null; root.style.setProperty('--bc-gx', gx.toFixed(1) + '%'); root.style.setProperty('--bc-gy', gy.toFixed(1) + '%'); };
+    const queue = () => { if (!raf) raf = requestAnimationFrame(paint); };
+    function onTilt(e) {
+        if (e.beta == null || e.gamma == null) return;
+        if (!base) base = { b: e.beta, g: e.gamma };   // how you hold it now = the middle
+        const clamp = (v) => Math.max(-1, Math.min(1, v));
+        gx = 50 + clamp((e.gamma - base.g) / 30) * 50;
+        gy = 30 + clamp((e.beta - base.b) / 30) * 40;
+        queue();
+    }
+    function listen() { window.addEventListener('deviceorientation', onTilt, { passive: true }); }
+    // iPhone: permission has to be asked inside a tap.
+    function askIfNeeded() {
+        if (asked) return; asked = true;
+        const D = window.DeviceOrientationEvent;
+        if (D && typeof D.requestPermission === 'function') D.requestPermission().then(r => { if (r === 'granted') listen(); }).catch(() => {});
+    }
+    function start() {
+        if (started || still()) return;
+        started = true;
+        const D = window.DeviceOrientationEvent;
+        if (D && typeof D.requestPermission !== 'function') listen();
+        document.addEventListener('pointerdown', (e) => { if (e.target.closest && e.target.closest('.bc-v2')) askIfNeeded(); }, { passive: true });
+        // Mouse: the sheen follows the pointer over a card.
+        document.addEventListener('pointermove', (e) => {
+            if (e.pointerType !== 'mouse') return;
+            const card = e.target.closest && e.target.closest('.bc-v2');
+            if (!card) return;
+            const r = card.getBoundingClientRect();
+            card.style.setProperty('--bc-gx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+            card.style.setProperty('--bc-gy', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+        }, { passive: true });
+        // Re-center when the phone wakes up or the page comes back.
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) base = null; });
+    }
+    return { start };
+})();
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => BeeCardGlare.start());
+    else BeeCardGlare.start();
+}

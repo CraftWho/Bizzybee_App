@@ -59,7 +59,7 @@ function openDexEntry(dexNumber) {
     ov.id = 'kd-zoom'; ov.className = 'kd-zoom';
     ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
     ov.setAttribute('aria-label', x.obtained ? x.entry.name : `Entry ${x.entry.dexNumber}, not found yet`);
-    ov.innerHTML = '<div class="kd-zoom-card" tabindex="0"></div><p class="kd-zoom-hint">Tap the card to flip it. Tap outside to close.</p>';
+    ov.innerHTML = `<div class="kd-zoom-card" tabindex="0"></div><p class="kd-zoom-hint">${x.obtained ? 'Tap the card to flip it. Tap outside to close.' : 'Not found yet. Get a matching bee to reveal it. Tap outside to close.'}</p>`;   // Oct 31 2026 (Craft)
     document.body.appendChild(ov);
     const card = ov.querySelector('.kd-zoom-card');
     KeeperDexCard.render(card, x.entry, { obtained: x.obtained, flipped: !x.obtained });
