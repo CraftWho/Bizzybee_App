@@ -695,3 +695,32 @@
 .bc-v2 .bc-abil.bc-two .bc-ab { gap: .2cqw 1.8cqw; }
 .bc-v2 .bc-abil.bc-two .bc-ab h4 { font-size: 3.3cqw; }
 .bc-v2 .bc-abil.bc-two .bc-ab p { font-size: 2.6cqw; line-height: 1.25; }
+
+/* Nov 1 2026 (Craft): titled bees: the name and title sit in the ribbon, in
+   the name row, so the card below never moves down. */
+.bc-v2 .bc-ribbon.bc-ribbon--name { flex: 1; min-width: 0; width: auto; margin: 0; padding: 1.3cqw 4.6cqw 1.1cqw; display: flex; align-items: baseline; justify-content: center; gap: 1.6cqw; letter-spacing: 0; }
+.bc-v2 .bc-ribbon--name .bee-card-name { flex: none; font: 800 4.6cqw/1 Georgia, "Times New Roman", serif; color: #2a1000; background: none; -webkit-background-clip: initial; background-clip: initial; text-shadow: 0 .2cqw 0 rgba(255, 255, 255, .45); }
+.bc-v2 .bc-ribbon--name .bee-card-name.bc-long { font-size: 3.8cqw; }
+.bc-v2 .bc-ribbon--name .bc-rt { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 2.7cqw/1 Georgia, "Times New Roman", serif; letter-spacing: .12em; color: #4a2004; }
+/* Title / ability / trait text: smaller, on its own bordered panel. */
+.bc-v2 .bc-abil { background: rgba(0, 0, 0, .35); border: .3cqw solid color-mix(in srgb, var(--m2) 50%, #222); border-radius: 1.8cqw; padding: 1.4cqw 1.8cqw; }
+.bc-v2 .bc-ab h4 { font-size: 3.1cqw; }
+.bc-v2 .bc-ab p { font-size: 2.45cqw; }
+.bc-v2 .bc-ic { width: 5.6cqw; height: 5.6cqw; font-size: 3cqw; }
+.bc-v2 .bc-ab { grid-template-columns: 5.6cqw 1fr; }
+.bc-v2 .bc-abil.bc-two .bc-ab h4 { font-size: 3cqw; }
+.bc-v2 .bc-abil.bc-two .bc-ab p { font-size: 2.35cqw; }
+.bc-v2 .bc-abil.bc-many .bc-ab h4 { font-size: 2.9cqw; }
+.bc-v2 .bc-abil.bc-many .bc-ab p { font-size: 2.3cqw; }
+/* Serial number in the card's own metal (Named = red, Rare = blue...). */
+.bc-v2 .bc-coll-l { display: flex; align-items: center; gap: 1.6cqw; min-width: 0; }
+.bc-v2 .bc-serial { color: #fff; text-shadow: 0 .2cqw 0 rgba(0, 0, 0, .55); background: linear-gradient(135deg, var(--m1) 0%, var(--m2) 40%, var(--m3) 75%, var(--m2) 100%); box-shadow: inset 0 .2cqw 0 rgba(255, 255, 255, .45), 0 0 0 .2cqw rgba(0, 0, 0, .5); }
+.bc-v2.bc-r-common .bc-serial, .bc-v2.bc-r-legendary .bc-serial, .bc-v2.bc-r-royal .bc-serial { color: #1a1205; text-shadow: none; }
+.bc-v2 .bc-lim { white-space: nowrap; }
+.bc-v2 .bc-lim b.bc-limited { font-size: 2.9cqw; color: var(--m1); }
+/* Long name + title: two lines inside the ribbon (name, then title). */
+.bc-v2 .bc-ribbon--name.bc-ribbon--two { flex-direction: column; align-items: center; gap: .5cqw; padding: .9cqw 4.6cqw .8cqw; }
+.bc-v2 .bc-ribbon--two .bee-card-name { font-size: 4cqw; }
+.bc-v2 .bc-ribbon--two .bc-rt { font-size: 2.4cqw; }
+/* Text panel: content sits in the middle when there's room. */
+.bc-v2 .bc-abil { align-content: center; }
