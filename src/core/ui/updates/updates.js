@@ -19,7 +19,7 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Oct 31 2026 (Craft): Batch 7, the card binder.
-        { icon: '💿', title: 'Hive Bees is your card binder', text: 'Cover Flow like the old iPod: drag, flick, or spin the click wheel. Sort, search, or open the list.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '💿', title: 'Hive Bees is your card binder', text: 'Cover Flow like the old iPod: drag, flick, or spin the click wheel. Sort, search, or switch to a grid of cards.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '💭', title: 'Card memories', text: 'Rare and better cards remember how they came to you and the last task you finished. Flip the big card.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '📏', title: 'New card stats', text: 'Height, Resistance and Recovery on every card. Jobs are set in the Hive Mind now.', href: 'features/hive-bees/hive-bees.html' },
         // Oct 31 2026 (Craft): Batch 6, Progress (from 1.0.6).

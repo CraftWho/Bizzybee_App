@@ -150,3 +150,19 @@
 .cf-card { top: 8px; }
 .cf-now small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .cf-scrub { margin-top: 4px; }
+
+/* Oct 31 2026 (Craft): grid view in place of the list. It takes Cover Flow's
+   spot (same height), so the search, slider and wheel stay below it. */
+.cf-grid-wrap { position: relative; height: calc(var(--cf-gh, 330px)); margin: 2px -4px 0; display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 16px; background: var(--bb-bg, #0b0805); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .18); }
+.cf-grid-wrap[hidden] { display: none; }
+.cf-grid-filters { display: flex; gap: 6px; overflow-x: auto; flex: none; scrollbar-width: none; }
+.cf-grid-filters .cf-pill { flex: none; min-height: 32px; padding: 4px 11px; }
+.cf-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-content: start; padding: 2px; overscroll-behavior: contain; }
+.cf-tile { position: relative; aspect-ratio: 5 / 7; overflow: hidden; margin: 0; padding: 0; border: 0; border-radius: 10px; background: #120d06; box-shadow: none; cursor: pointer; }
+.cf-tile.on { outline: 3px solid var(--bb-accent, #ffcc00); outline-offset: -1px; box-shadow: 0 0 14px rgba(var(--bb-accent-rgb, 255, 204, 0), .6); }
+.cf-tile-scale { position: absolute; top: 0; left: 0; width: 260px; transform: scale(var(--tile-s, .4)); transform-origin: top left; pointer-events: none; }
+.cf-tile-scale .bee-card-flip-hint { display: none; }
+.cf-tile .cb-face { position: absolute; right: 4px; top: 4px; font-size: 16px; z-index: 2; filter: drop-shadow(0 1px 2px #000); }
+.cf-grid .cb-empty { grid-column: 1 / -1; }
+.cf-w:focus, .cf-w:hover { background: none; box-shadow: none; }
+.cf-w:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; border-radius: 10px; }
