@@ -42,41 +42,23 @@ function todayData() {
     return { dailies, todos, quest, habits: pluginOn('habits') ? Vault.getHabits() : [] };
 }
 
-// XP earned today across everything (habits count + and −).
+// Oct 31 2026 (Craft, from 1.0.6): XP today, Done today and History all
+// read one list (Vault.doneOn), so they always match. Each row links to its
+// task and says when it was done.
 function xpToday() {
-    const today = todayISO();
-    let xp = 0;
-    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) xp += Number(t.xp) || 0; });
-    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) xp += Number(t.xp) || 0; });
-    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => { if (t.completed && localDayOf(t.dateCompleted) === today) xp += Number(t.xp) || 0;   /* Oct 31 2026 (Craft): local day */ }));
-    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => (h.history || []).forEach(x => {
-        // Oct 31 2026 (Craft): same math as the level bar (a bad tap costs half).
-        if (x.date === today) xp += x.direction === 'positive' ? completionXP(h, x.minutes) : -habitPenaltyXP(h);
-    }));
-    return xp;
+    return Vault.doneOn(todayISO()).reduce((n, x) => n + x.xp, 0);
 }
-
-// Everything finished today, for the XP today list (Oct 28 2026). Built
-// from today's data, so it starts fresh at midnight on its own.
-function doneToday() {
-    const today = todayISO();
-    const out = [];
-    Vault.getDailyTasks().forEach(t => { if ((t.completedDates || []).includes(today)) out.push({ icon: '☀️', kind: 'Daily', label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[today] && t._days[today].t) || 0 }); });
-    Vault.getTodos().forEach(t => { if (t.completed && t.completedDate === today) out.push({ icon: '✅', kind: 'To-Do', label: t.label, xp: Number(t.xp) || 0, t: t._mt || 0 }); });
-    Vault.getQuests().forEach(q => (q.tasks || []).forEach(t => {
-        if (t.completed && localDayOf(t.dateCompleted) === today) out.push(   // Oct 31 2026 (Craft): local day
-            { icon: '🗺️', kind: q.title, label: t.label, xp: Number(t.xp) || 0, t: Date.parse(t.dateCompleted) || 0 });
-    }));
-    (Vault.getHabits ? Vault.getHabits() : []).forEach(h => {
-        const taps = (h.history || []).filter(x => x.date === today);
-        const plus = taps.filter(x => x.direction === 'positive').length, minus = taps.length - plus;
-        const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
-        // Oct 31 2026 (Craft): same math as the level bar (a bad tap costs half).
-        const plusXP = taps.filter(x => x.direction === 'positive').reduce((n, x) => n + completionXP(h, x.minutes), 0);
-        if (plus) out.push({ icon: '🔁', kind: `Habit${plus > 1 ? ` ×${plus}` : ''}`, label: h.label, xp: plusXP, t: Math.max(...taps.map(stamp)) });
-        if (minus) out.push({ icon: '😖', kind: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, label: h.label, xp: -minus * habitPenaltyXP(h), t: Math.max(...taps.map(stamp)) });
-    });
-    return out.sort((a, b) => b.t - a.t);
+function doneToday() { return Vault.doneOn(todayISO()); }
+function doneHref(x) {
+    if (typeof BizzyNotify === 'undefined') return null;
+    try { return BizzyNotify.urlFor(x.kind, x.id, x.extra); } catch { return null; }
+}
+function doneRows(list) {
+    return list.map(x => {
+        const href = doneHref(x), when = x.t ? new Date(x.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+        const inner = `<span class="xt-ic" aria-hidden="true">${x.icon}</span><span class="xt-mid"><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.what)}${when ? ' · ' + when : ''}</small></span><span class="xt-xp${x.xp < 0 ? ' neg' : ''}">${x.xp > 0 ? '+' : ''}${x.xp} XP</span>`;
+        return href ? `<li><a class="xt-row" href="${escapeHTML(href)}">${inner}</a></li>` : `<li><span class="xt-row">${inner}</span></li>`;
+    }).join('');
 }
 
 function openDoneToday() {
@@ -88,9 +70,9 @@ function openDoneToday() {
     s.innerHTML = `<div class="xt-sheet" role="dialog" aria-modal="true" aria-label="Done today">
         <div class="xt-head"><div><h2>DONE TODAY</h2><small>${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · starts fresh at midnight</small></div>
             <b class="xt-total">${total > 0 ? '+' : ''}${total} XP</b></div>
-        ${list.length ? `<ul class="xt-list">${list.map(x => `<li><span class="xt-ic" aria-hidden="true">${x.icon}</span><span class="xt-mid"><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.kind)}</small></span><span class="xt-xp${x.xp < 0 ? ' neg' : ''}">${x.xp > 0 ? '+' : ''}${x.xp}</span></li>`).join('')}</ul>`
+        ${list.length ? `<ul class="xt-list">${doneRows(list)}</ul>`
             : '<p class="xt-empty">Nothing finished yet today. Check off a daily to get started.</p>'}
-        <div class="xt-btns"><a class="xt-btn" href="../dashboard/dashboard.html">Dashboard</a><button type="button" class="xt-btn gold" data-k="close">Close</button></div></div>`;
+        <div class="xt-btns"><a class="xt-btn" href="../history/history.html">History</a><button type="button" class="xt-btn gold" data-k="close">Close</button></div></div>`;
     const close = () => s.remove();
     s.addEventListener('click', e => { if (e.target === s || e.target.closest('[data-k="close"]')) close(); });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
@@ -98,27 +80,21 @@ function openDoneToday() {
     s.querySelector('[data-k="close"]').focus();
 }
 
-// Days in a row with every daily done (today counts once it's all done).
+// Nov 1 2026 (Craft): days in a row with 5+ tasks of any kind done
+// (Vault.taskStreak in db.js). Today joins once it reaches 5.
 function currentStreak() {
-    const list = (Vault.state && Vault.state.dailyTasks) || [];
-    if (!list.length) return 0;
-    const today = todayISO();
-    const dueOn = (day) => list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-    const allDone = (day) => dueOn(day).every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day));
-    let n = 0;
-    if (dueOn(today).length && allDone(today)) n++;
-    for (let i = 1; i <= 730; i++) {
-        const day = shiftISODate(today, -i);
-        if (!dueOn(day).length) continue;
-        if (!allDone(day)) break;
-        n++;
-    }
-    return n;
+    return typeof Vault.taskStreak === 'function' ? Vault.taskStreak() : 0;
 }
 
 // ---- hive strip: four stats, each to its own page ----
 const STRIP_ICONS = {
-    bees: '<path d="M12 6.5a3 3 0 1 1 0 .1"/><path d="M8.5 11h7l-.8 7.5a2.7 2.7 0 0 1-5.4 0z"/><path d="M8.8 14h6.4M9.2 16.8h5.6M8.5 11C5 8 3 9.5 4.2 11.8S8.2 13 8.5 11zM15.5 11c3.5-3 5.5-1.5 4.3.8S15.8 13 15.5 11z"/>',
+    // Oct 31 2026 (Craft, from 1.0.6): top-down bee: antennae, round head, torso, striped
+    // pointed tail, and big wings.
+    bees: '<path d="M10.6 4.4 9.2 2.4M13.4 4.4l1.4-2"/><circle cx="12" cy="5.9" r="1.8"/><ellipse cx="12" cy="10.1" rx="2.3" ry="2.1"/><path d="M12 12.2c-2.7 0-3.6 2.4-3.4 4.5.3 2.5 1.9 4.1 3.4 5.6 1.5-1.5 3.1-3.1 3.4-5.6.2-2.1-.7-4.5-3.4-4.5z"/><path d="M8.8 15.4h6.4M9.3 18.3h5.4"/><path d="M9.8 9.4C6.3 6.1 2.6 6.8 2.7 9.5c.1 2.4 3.9 2.6 7.1 1z"/><path d="M14.2 9.4c3.5-3.3 7.2-2.6 7.1.1-.1 2.4-3.9 2.6-7.1 1z"/><path d="M9.8 11.3c-2.9.6-4.8 2.6-3.8 4 1 1.3 3 .1 4-2.2M14.2 11.3c2.9.6 4.8 2.6 3.8 4-1 1.3-3 .1-4-2.2"/>',
+    steps: '<path d="M8 3.5c1.7 0 2.6 2 2.6 4.6S9.7 13 8 13s-2.6-2.3-2.6-4.9S6.3 3.5 8 3.5z"/><path d="M6 15.5h4v1.3a2 2 0 0 1-4 0z"/><path d="M16 7.5c1.7 0 2.6 2 2.6 4.6S17.7 17 16 17s-2.6-2.3-2.6-4.9.9-4.6 2.6-4.6z"/><path d="M14 19.5h4v1.3a2 2 0 0 1-4 0z"/>',
+    wx: '<path d="M7.2 18.5h10a3.7 3.7 0 0 0 .3-7.4 5.2 5.2 0 0 0-10-.9A3.9 3.9 0 0 0 7.2 18.5z"/>',
+    // Oct 31 2026 (Craft): the first tile is the Hive Mind (a small comb), not "Bees".
+    hive: '<path d="M8.5 3.5 12 5.5v4L8.5 11.5 5 9.5v-4z"/><path d="M15.5 3.5 19 5.5v4l-3.5 2-3.5-2v-4z"/><path d="M12 9.5l3.5 2v4L12 17.5l-3.5-2v-4z"/><path d="M8.5 15.5v4L12 21.5l3.5-2v-4"/>',
     xp: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
     streak: '<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-8.3.7 1.9 1.8 3 3 3.4-.2-2.6.8-5.3 2.9-6.9.1 3.4 3.5 6 3.5 10.4C18.5 18.2 16 21 12 21z"/><path d="M12 21c-1.7 0-2.8-1.2-2.8-2.8 0-1.8 1.6-2.7 2.2-4.2.9 1.5 3.4 2.4 3.4 4.4 0 1.5-1.2 2.6-2.8 2.6z"/>',
     quest: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2"/>'
@@ -131,19 +107,36 @@ function renderHive() {
     const qp = quest && typeof QuestUI !== 'undefined' ? QuestUI.progress(quest).pct : null;
     const xp = xpToday();
     const stats = [
-        { key: 'bees', value: hive.bees, label: 'Bees', href: '../hive-mind/hive-mind.html', color: '#ffcc00' },
+        { key: 'hive', value: hive.bees, label: 'Hive Mind', aria: `Hive Mind, ${hive.bees} bees`, href: '../hive-mind/hive-mind.html', color: '#ffcc00' },   // Oct 31 2026 (Craft)
         { key: 'xp', value: `${xp > 0 ? '+' : ''}${xp}`, label: 'XP today', button: true, color: '#34c77b' },
         { key: 'streak', value: streak, label: 'Current streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
         { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
     ];
+    // Oct 31 2026 (Craft, from 1.0.6): steps and weather: fixed slots so nothing pops in late.
+    // phone.js fills them once the data arrives (window.__homeStrip).
+    const hs = window.__homeStrip || {};
+    const app = typeof BizzyPhone !== 'undefined' && BizzyPhone.isApp;
+    // Oct 31 2026 (Craft): on PC LOCAL, a dashed placeholder shows where a
+    // tile goes when it can't work on this computer (steps = app only;
+    // weather turned on but not loading). Turned off = hidden, as before.
+    const local = typeof Vault !== 'undefined' && Vault.pcLocal;
+    let wxOn = false;
+    try { wxOn = (localStorage.getItem('bb_weather') || 'off') !== 'off'; } catch { /* storage off */ }
+    if (app && hs.steps !== null) stats.push({ key: 'steps', value: hs.steps != null ? hs.steps.toLocaleString() : '–', label: 'Steps', color: '#9be15d', still: true });
+    else if (local) stats.push({ key: 'steps', value: '—', label: 'Steps · app', title: 'Steps show in the Android app', color: '#9be15d', still: true, ph: true });
+    if (hs.wx !== null) stats.push({ key: 'wx', value: hs.wx ? `${hs.wx.temp}°` : '–', label: hs.wx ? hs.wx.text : 'Weather', color: '#7fc8ff', still: true, icon: hs.wx && hs.wx.icon, title: hs.wx && hs.wx.place });
+    else if (local && wxOn) stats.push({ key: 'wx', value: '—', label: 'Weather', title: 'Weather is on but not loading here', color: '#7fc8ff', still: true, ph: true });
     const host = document.getElementById('home-hive');
+    const tag = (s) => s.button ? 'button' : s.still ? 'div' : 'a';
+    host.classList.toggle('six', stats.length > 4);
     host.innerHTML = stats.map(s => `
-        <${s.button ? 'button type="button" data-done-today' : `a href="${s.href}"`} class="home-stat" style="--sc:${s.color}" aria-label="${escapeHTML(s.label)}: ${escapeHTML(s.value)}${s.button ? '. Show what you finished today' : ''}">
-            <svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>
+        <${s.button ? 'button type="button" data-done-today' : s.still ? `div data-stat="${s.key}"${s.title ? ` title="${escapeHTML(s.title)}"` : ''}` : `a href="${s.href}"`} class="home-stat${s.ph ? ' ph' : ''}" style="--sc:${s.color}" aria-label="${escapeHTML(s.aria || `${s.label}: ${s.value}`)}${s.button ? '. Show what you finished today' : ''}">
+            ${s.icon || `<svg viewBox="0 0 24 24" aria-hidden="true">${STRIP_ICONS[s.key]}</svg>`}
             <b>${escapeHTML(s.value)}</b><small>${escapeHTML(s.label)}</small>
-        </${s.button ? 'button' : 'a'}>`).join('');
+        </${tag(s)}>`).join('');
     host.querySelector('[data-done-today]').onclick = openDoneToday;
 }
+window.addEventListener('home-strip', () => { try { renderHive(); } catch { /* not ready yet */ } });
 
 // ---- Bees that need help (Hive Life moods) ----
 // 😢 hungry / tired / hurt, 😠 no job for 3+ days, 😵 fainted. One line,

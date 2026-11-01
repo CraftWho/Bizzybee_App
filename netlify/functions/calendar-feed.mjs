@@ -4,10 +4,11 @@
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json, readLatest, plain } from '../lib/cloud-store.mjs';
 import { feeds, newToken, validToken, cleanItems, buildIcs } from '../lib/feed.mjs';
+import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
 
 const feedUrl = (req, token) => new URL(`/.netlify/functions/calendar-feed?t=${token}`, req.url).href;
 
-export default async (req) => {
+const handler = async (req) => {
     const url = new URL(req.url);
     const token = url.searchParams.get('t');
     if (req.method === 'GET' && token !== null) {
@@ -54,3 +55,4 @@ export default async (req) => {
     }
     return json({ ok: false, error: 'Unknown action' }, 400);
 };
+export default withCors(handler);

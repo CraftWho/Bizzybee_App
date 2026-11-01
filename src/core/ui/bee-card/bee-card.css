@@ -644,3 +644,40 @@
    bee is doing that job. */
 .bc-v2 .bc-talent { position: absolute; left: 2cqw; bottom: 2cqw; z-index: 4; padding: 1cqw 2cqw; border-radius: 99px; background: rgba(0, 0, 0, .62); border: .35cqw solid rgba(var(--bb-accent-rgb, 255, 204, 0), .35); color: #e9dfc2; font: 700 2.7cqw/1 system-ui, sans-serif; white-space: nowrap; }
 .bc-v2 .bc-talent.on { background: rgba(60, 40, 0, .78); border-color: var(--bb-accent, #ffcc00); color: var(--bb-t-hi, #ffd977); box-shadow: 0 0 2.5cqw rgba(var(--bb-accent-rgb, 255, 204, 0), .45); }
+
+/* Oct 31 2026 (Craft): glare that follows the phone's tilt (BeeCardGlare), Rare and up only. */
+.bc-v2 .bc-glare {
+    position: absolute; inset: 0; z-index: 7; pointer-events: none; border-radius: inherit;
+    mix-blend-mode: screen; opacity: .55;
+    background:
+        radial-gradient(circle at var(--bc-gx, 50%) var(--bc-gy, 30%), rgba(255, 255, 255, .42), rgba(255, 255, 255, .08) 22%, transparent 45%),
+        linear-gradient(115deg, transparent 38%, rgba(255, 240, 200, .16) 47%, rgba(190, 220, 255, .14) 53%, transparent 62%);
+    background-size: 100% 100%, 250% 250%;
+    background-position: 0 0, var(--bc-gx, 50%) var(--bc-gy, 30%);
+}
+.bc-v2.is-flipped .bc-glare { display: none; }
+@media (prefers-reduced-motion: reduce) { .bc-v2 .bc-glare { opacity: .25; } }
+
+/* Oct 31 2026 (Craft): the serial number, smallest text, on a silver plate. */
+.bc-v2 .bc-serial {
+    display: inline-block;
+    padding: .35cqw 1.4cqw;
+    border-radius: .8cqw;
+    font: 800 1.9cqw/1 ui-monospace, Menlo, monospace;
+    font-style: normal;
+    letter-spacing: .08em;
+    color: #1d2024;
+    background: linear-gradient(135deg, #f4f6f8 0%, #b8bec6 35%, #eef1f4 55%, #9aa1aa 100%);
+    box-shadow: inset 0 .2cqw 0 rgba(255, 255, 255, .8), 0 0 0 .2cqw rgba(0, 0, 0, .5);
+}
+
+/* Oct 31 2026 (Craft): Weakness | Resistance | Recovery, and the memory on the back. */
+.bc-v2 .bc-bar.bc-bar3 { grid-template-columns: repeat(3, 1fr); }
+.bc-v2 .bc-dex span { white-space: nowrap; }
+.bc-v2 .bc-mem { display: grid; gap: 1.4cqw; width: 100%; text-align: left; padding: 0 4cqw; box-sizing: border-box; }
+.bc-v2 .bc-mem b { font: 700 3cqw var(--font-main, monospace); letter-spacing: .14em; color: var(--rc, #ffcc00); }
+.bc-v2 .bc-mem span { font: 400 3.4cqw/1.35 system-ui, sans-serif; color: var(--dim, #d8cfb8); }
+.bc-v2 .bc-mem .bc-mem-when { color: var(--txt, #f1ede2); }
+.bc-v2 .bc-mem-none { margin: 0; padding: 0 6cqw; font: 400 3.2cqw/1.4 system-ui, sans-serif; color: var(--dim, #b8ab8c); text-align: center; }
+.bc-v2 .bc-back-inner:has(.bc-mem, .bc-mem-none) { gap: 4cqw; width: 100%; }
+.bc-v2 .bc-back-inner:has(.bc-mem, .bc-mem-none) .bc-logo { width: 44cqw; }

@@ -1,7 +1,8 @@
 import { authenticatedUser } from '../lib/auth.mjs';
 import { encryptSave } from '../lib/save-crypto.mjs';
 import { json, saves, readLatest, validateSave, createBackup } from '../lib/cloud-store.mjs';
-export default async (req) => {
+import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
+const handler = async (req) => {
     if (req.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405);
     let user;
     try { user = await authenticatedUser(req); } catch { return json({ ok: false, error: 'Identity is unavailable. Please retry.' }, 503); }
@@ -31,3 +32,4 @@ export default async (req) => {
         return json({ ok: false, error: error.message.includes('BIZZYBEE_SAVE_KEY') ? error.message : 'Encrypted cloud save failed. Your local progress is retained.' }, 503);
     }
 };
+export default withCors(handler);

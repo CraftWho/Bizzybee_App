@@ -8,6 +8,10 @@
    changes these values, so the whole app changes with it. Each use keeps a
    fallback, e.g. var(--bb-accent, #ffcc00), so pages without this file
    still look right. */
+/* Nov 1 2026 (Craft): the app's main font. Courier Prime (SIL Open Font License, src/assets/fonts/). */
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/courier-prime-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 700 900; font-display: swap; src: url('../assets/fonts/courier-prime-latin-700-normal.woff2') format('woff2'); }
+
 :root {
     --bb-accent: #ffcc00;  --bb-accent-rgb: 255, 204, 0;
     --bb-accent-hi: #ffd84a;  --bb-accent-lo: #e6b52c;  --bb-accent-ink: #1a1000;
@@ -59,7 +63,8 @@
     --danger-red: #ff4444;
     --crimson: var(--bb-alt, #dc143c);
     /* User Specific Font Override */
-    --font-main: 'Consolas', 'Courier New', monospace;
+    /* Nov 1 2026 (Craft): Courier Prime, inside the app (works offline and in the APK), same look on every device. */
+    --font-main: 'Courier Prime', 'Consolas', 'Courier New', monospace;
     --grid-scale: 1; 
     --grid-width: calc(34.641px * var(--grid-scale));
     --grid-height: calc(60px * var(--grid-scale));
@@ -1070,3 +1075,22 @@ html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; 
 .ah-rankup.show { display: block; animation: bbShake 2.8s ease-in-out infinite; }
 .app-head.compact .ah-rankup { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .ah-rankup.show { animation: none; } }
+
+/* Oct 31 2026 (Craft, from 1.0.6): Claim level up on the Dashboard. */
+.lvl-claim { display: block; width: 100%; margin-top: 8px; padding: 8px 10px; border: 0; border-radius: 10px; background: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; font: 800 .74rem var(--font-main, monospace); letter-spacing: .04em; cursor: pointer; box-shadow: 0 0 0 2px rgba(var(--bb-alt-rgb, 220, 20, 60), .5), 0 0 12px rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
+.lvl-claim:disabled { opacity: .5; }
+
+/* Oct 31 2026 (Craft): hexagon text box. Use class="hexbox" on a <label>
+   that holds an <input> (first used by the Hive Bees search). A gold edge,
+   pointed ends, the text padded clear of the points. */
+.hexbox { --hx-edge: rgba(var(--bb-accent-rgb, 255, 204, 0), .5); --hx-fill: #17110a; position: relative; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 26px; box-sizing: border-box; background: var(--hx-edge); clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0 50%); }
+.hexbox::before { content: ""; position: absolute; inset: 1.5px; background: var(--hx-fill); clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%, 0 50%); }
+.hexbox > * { position: relative; }
+.hexbox:focus-within { --hx-edge: var(--bb-accent, #ffcc00); }
+.hexbox input { flex: 1; min-width: 0; margin: 0; padding: 10px 0; border: 0 !important; outline: none; background: none !important; box-shadow: none !important; color: var(--bb-ink, #f1ede2); font: 400 15px system-ui, sans-serif; }
+.hexbox svg { flex: none; width: 16px; height: 16px; fill: none; stroke: #b8ab8c; stroke-width: 2.4; stroke-linecap: round; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Oct 31 2026 (Craft): a full-screen view (like the Hive Bees list) pauses
+   every animation behind it. */
+html.bb-paused body *, html.bb-paused body *::before, html.bb-paused body *::after { animation-play-state: paused !important; }
