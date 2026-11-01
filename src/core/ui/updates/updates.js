@@ -19,6 +19,7 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 11.
+        { icon: '📲', title: 'Android: runs from your phone', text: 'The app keeps its own copy and downloads only what changed in each update. Faster, and less internet.' },
         // Nov 1 2026 (Craft): Batch 10.
         { icon: '🎁', title: 'Daily bonus', text: 'Open the app each day to move along a 7-day week of rewards. Day 7 gives a Gacha ticket.', href: 'features/home/home.html' },
         { icon: '🛟', title: 'Contact support', text: 'Something wrong? Settings › Contact support. You get a reply by email.', href: 'features/support/support.html' },
@@ -220,9 +221,7 @@ const BizzyUpdates = (() => {
     // Tags look like android-v1.0.9-b12. Older tags (android-v1.0.9) used the last number as the build.
     const buildOf = (tag, version) => { const b = String(tag).match(/-b(\d+)$/); return b ? Number(b[1]) : Number(String(version).split('.').pop()) || 0; };
     async function check({ quiet } = {}) {
-        // Nov 1 2026 (Craft): the BizzyBee Local study build updates its files by itself
-        // and gets new APKs by hand, so it never offers the normal app's APK.
-        if (!isApp || window.BB_APP_COPY) return { state: 'web' };
+        if (!isApp) return { state: 'web' };
         const tk = token();
         const headers = { Accept: 'application/vnd.github+json' };
         if (tk) headers.Authorization = `Bearer ${tk}`;
