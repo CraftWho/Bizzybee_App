@@ -80,22 +80,10 @@ function openDoneToday() {
     s.querySelector('[data-k="close"]').focus();
 }
 
-// Days in a row with every daily done (today counts once it's all done).
+// Nov 1 2026 (Craft): days in a row with 5+ tasks of any kind done
+// (Vault.taskStreak in db.js). Today joins once it reaches 5.
 function currentStreak() {
-    const list = (Vault.state && Vault.state.dailyTasks) || [];
-    if (!list.length) return 0;
-    const today = todayISO();
-    const dueOn = (day) => list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-    const allDone = (day) => dueOn(day).every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day));
-    let n = 0;
-    if (dueOn(today).length && allDone(today)) n++;
-    for (let i = 1; i <= 730; i++) {
-        const day = shiftISODate(today, -i);
-        if (!dueOn(day).length) continue;
-        if (!allDone(day)) break;
-        n++;
-    }
-    return n;
+    return typeof Vault.taskStreak === 'function' ? Vault.taskStreak() : 0;
 }
 
 // ---- hive strip: four stats, each to its own page ----
