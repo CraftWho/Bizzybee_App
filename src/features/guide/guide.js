@@ -5,8 +5,11 @@ const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<'
 // is grouped by topic (each entry's `cat`). Search still looks at everything.
 const CATS = ['Getting started', 'Tasks', 'XP & levels', 'Skills', 'Bees & eggs', 'Hive Mind', 'Store & items', 'Social', 'Plugins', 'App & settings', 'Account & saves'];
 const item = (g, seen) => `<div class="gd-item"><span class="gd-ic" aria-hidden="true">${g.icon}</span>
-        <span class="gd-mid"><b>${esc(g.title)}${g.intro && !seen.includes(g.id) ? '<span class="gd-new">NEW</span>' : ''}</b><small>${esc(g.text)} · v${esc(g.v)}</small></span>
+        <span class="gd-mid"><b>${esc(g.title)}${g.intro && !seen.includes(g.id) ? '<span class="gd-new">NEW</span>' : read(g) ? '<span class="gd-read" title="You\'ve seen this">✓</span>' : ''}</b><small>${esc(g.text)} · v${esc(g.v)}</small></span>
         ${g.page ? `<a class="btn" href="${location.origin}${g.page}?guide=${encodeURIComponent(g.id)}">Show me</a>` : ''}</div>`;
+// Nov 1 2026 (Craft): ✓ on features you've already been shown (Eve's intro,
+// or that page's tips marked "Don't show again").
+const read = (g) => Hints.seenGuide().includes(g.id) && (g.intro || (!!g.page && Vault.hintSeen(g.page.split('/').pop().replace('.html', ''))));
 function render() {
     const q = (document.getElementById('gd-q').value || '').toLowerCase();
     const seen = Hints.seenGuide();

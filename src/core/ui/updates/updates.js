@@ -18,6 +18,12 @@ const WHATS_NEW = [
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Nov 1 2026 (Craft): Batch 13, back from 1.0.7.
+        { icon: '🕘', title: 'Quest history', text: 'Every quest shows what you finished, day by day, with time and XP.', href: 'features/quests/quests.html' },
+        { icon: '🔤', title: 'Text presets and fonts', text: 'Settings › Look & feel: Easy read, Big & bold, Compact, and a font for reading.', href: 'features/settings/settings.html' },
+        { icon: '💡', title: "Tips: Don't show again", text: "Hide one page's tips for good. Got it now only hides them until you reopen the app." },
+        { icon: '🐝', title: 'Smoother bees', text: 'Hive Life bees walk and buzz more naturally, out of step with each other.' },
+        { icon: '📖', title: 'Dictionary links to MDN', text: 'Terms link to MDN, the free open-source web reference.' },
         // Nov 1 2026 (Craft): Batch 12.
         { icon: '🎃', title: 'Grimzy', text: 'The numbered Halloween 2026 bee. Only 50 exist, sent as gifts with a letter.', href: 'features/mailbox/mailbox.html' },
         { icon: '⚙️', title: 'Settings in groups', text: 'A short list of groups instead of one long page, with search and red dots for anything that needs you.', href: 'features/settings/settings.html' },
