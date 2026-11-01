@@ -699,9 +699,24 @@ const NAMED_TITLES = {
     champ: { label: 'The Champ', icon: '🏆', power: 'Main Event', text: '+15% power in counter-raids.', job: null, quote: '{n} has never lost a fight worth winning.' },
     bold: { label: 'The Bold', icon: '🦁', power: 'Fearless', text: 'Never hurt when a raid gets in.', job: null, quote: '{n} flies straight at the hornets.' },
     wanderer: { label: 'The Wanderer', icon: '🧭', power: 'Far Flyer', text: 'Counts as two Scouts when guiding Foragers to rare finds.', job: 'scout', quote: '{n} knows every flower for a mile.' },
-    unyielding: { label: 'The Unyielding', icon: '🧱', power: 'Iron Seal', text: '+15% raid defense while a Propolis Sealer.', job: 'barrier', quote: 'Cracks close wherever {n} goes.' }
+    unyielding: { label: 'The Unyielding', icon: '🧱', power: 'Iron Seal', text: '+15% raid defense while a Propolis Sealer.', job: 'barrier', quote: 'Cracks close wherever {n} goes.' },
+    // Limited titles (Oct 29 2026, back Nov 1) belong to one limited bee and are never rolled.
+    reaper: { label: 'The Reaper', icon: '💀', power: 'Soul Harvest', text: 'While an Undertaker, every fallen bee also leaves a Honey Drop.', job: 'undertaker', quote: 'When the moon is full, {n} comes to collect.', limited: true }
 };
-const NAMED_TITLE_IDS = Object.keys(NAMED_TITLES);
+const NAMED_TITLE_IDS = Object.keys(NAMED_TITLES).filter(id => !NAMED_TITLES[id].limited);
+
+// Limited editions (Oct 29 2026, Craft; back Nov 1 2026): numbered bees, 50
+// in the world. The number comes from the server (netlify/functions/
+// limited.mjs), which keeps the official list (number -> account); #001 is
+// the creator's. Given as a gift with a letter (Mailbox) or claimed on the
+// event day. Limited bees never die, can't be renamed, released or combined.
+const LIMITED_EDITIONS = {
+    'grimzy-2026': {
+        id: 'grimzy-2026', label: 'Halloween 2026', name: 'Grimzy', title: 'reaper', element: 'fire', of: 50,
+        art: 'grimzy', scene: 'halloween', month: 10, day: 31
+    }
+};
+const beeIsLimited = (b) => !!(b && b.limited && b.limited.serial);
 const rollNamedTitle = () => NAMED_TITLE_IDS[Math.floor(Math.random() * NAMED_TITLE_IDS.length)];
 // True when this bee's title power is switched on (its job matches).
 function beeTitlePower(bee, titleId) {
@@ -3508,6 +3523,22 @@ class DatabaseManager {
         return this.state && this.state.hive ? (this.state.hive.bees || []) : [];
     }
 
+    // Limited editions (Nov 1 2026): adds the numbered bee once the server
+    // has given it its number. One per edition; a second call keeps it.
+    addLimitedBee(editionId, serial) {
+        const ed = LIMITED_EDITIONS[editionId];
+        if (!this.state || !ed || !(Number.isInteger(serial) && serial >= 1 && serial <= ed.of)) return null;
+        const have = this.getHiveBees().find(b => b.limited && b.limited.edition === editionId);
+        if (have) { have.limited.serial = serial; this.save(); return have; }
+        return this.addHiveBee({
+            id: generateBeeId(), name: ed.name, rarity: 'Named', title: ed.title,
+            obtainedAt: new Date().toISOString(), source: 'limited', stats: rollBeeStats('Named'), weight: rollBeeWeight('Named'),
+            dexNumber: this.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1, element: ed.element,
+            customNamed: true, art: ed.art, scene: ed.scene, class: NAMED_TITLES[ed.title].job || null,
+            limited: { edition: editionId, serial, of: ed.of, label: ed.label, claimedAt: new Date().toISOString() }
+        });
+    }
+
     addHiveBee(bee) {
         if (!this.state) return null;
         if (!this.state.hive) this.state.hive = { bees: [] };
@@ -3594,6 +3625,7 @@ class DatabaseManager {
 
         const trimmed = (newName || '').trim();
         if (!trimmed) return null;
+        if (beeIsLimited(bee)) return null;   // limited bees keep their name (Nov 1 2026)
 
         bee.name = trimmed.slice(0, 40);
         // Flags this bee as user-named - the Identity Card store item
@@ -4075,6 +4107,7 @@ class DatabaseManager {
         const index = bees.findIndex(b => b.id === beeId);
         if (index === -1) return null;
         if (bees[index].rarity === 'Royal') return null;   // the founder stays
+        if (beeIsLimited(bees[index])) return null;        // limited bees stay (Nov 1 2026)
 
         const [removed] = bees.splice(index, 1);
 
@@ -4108,6 +4141,7 @@ class DatabaseManager {
         const beeB = bees.find(b => b.id === beeIdB);
         if (!beeA || !beeB) return null;
         if (beeA.rarity === 'Royal' || beeB.rarity === 'Royal') return null;
+        if (beeIsLimited(beeA) || beeIsLimited(beeB)) return null;   // Nov 1 2026
 
         const indexOf = (rarity) => {
             const idx = RARITY_ORDER.indexOf(rarity);
@@ -6162,7 +6196,8 @@ Object.assign(DatabaseManager.prototype, {
         // Faint too long, or too old -> the bee dies (only while death is on).
         if (LIFE.deathEnabled) bees.slice().forEach(b => {
             const L = b.life;
-            if (L.faintedAt && (daysBetween(L.faintedAt, day) || 0) >= LIFE.faintDays) this._beeDies(b, 'neglect', day);
+            if (beeIsLimited(b)) { /* limited bees never die (Nov 1 2026) */ }
+            else if (L.faintedAt && (daysBetween(L.faintedAt, day) || 0) >= LIFE.faintDays) this._beeDies(b, 'neglect', day);
             else if (beeAgeDays(b, day) >= beeLifespan(b)) this._beeDies(b, 'old age', day);
         });
 

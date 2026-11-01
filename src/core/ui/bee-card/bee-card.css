@@ -681,3 +681,7 @@
 .bc-v2 .bc-mem-none { margin: 0; padding: 0 6cqw; font: 400 3.2cqw/1.4 system-ui, sans-serif; color: var(--dim, #b8ab8c); text-align: center; }
 .bc-v2 .bc-back-inner:has(.bc-mem, .bc-mem-none) { gap: 4cqw; width: 100%; }
 .bc-v2 .bc-back-inner:has(.bc-mem, .bc-mem-none) .bc-logo { width: 44cqw; }
+
+/* Nov 1 2026 (Craft, from 1.0.7): limited bees' own art and number. */
+.bc-v2 .bc-beewrap--art img { filter: drop-shadow(0 1.5cqw 2cqw rgba(0, 0, 0, .7)); }
+.bc-v2 .bc-limited { color: #ffcf6b; letter-spacing: .06em; }
