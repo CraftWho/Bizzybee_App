@@ -25,6 +25,18 @@ const Toast = {
         return type === 'negative' ? Math.min(15000, 8000 + extra) : Math.min(8000, 3500 + extra);
     },
 
+    // Nov 1 2026 (Craft): a tap or click anywhere closes every message
+    // (except taps on a message's own buttons, which do their job first).
+    tapAnywhere() {
+        if (this._tapBound) return;
+        this._tapBound = true;
+        document.addEventListener('pointerdown', (e) => {
+            if (!this.stack || !this.stack.children.length) return;
+            if (e.target.closest && e.target.closest('.bizzybee-toast-btn, .bizzybee-toast-x')) return;
+            [...this.stack.children].forEach(t => { if (t._bbClose) t._bbClose(); });
+        }, true);
+    },
+
     show(message, type = 'positive', opt) {
         const o = typeof opt === 'number' ? { ms: opt } : (opt || {});
         if (!this.ICON[type]) type = 'neutral';
@@ -78,7 +90,11 @@ const Toast = {
         requestAnimationFrame(() => el.classList.add('bizzybee-toast--visible'));
         if (navigator.vibrate && type === 'negative') { try { navigator.vibrate(40); } catch {} }
 
-        let left = o.ms || this.duration(message, type) + (btns.length ? 3000 : 0), started = Date.now(), timer = null;
+        // Nov 1 2026 (Craft): plain messages go away after 2.5 s. Errors and
+        // ones with a button (Undo, Update...) keep their longer time.
+        let left = o.ms || (btns.length ? this.duration(message, type) + 3000 : 2500), started = Date.now(), timer = null;
+        el._bbClose = close;
+        this.tapAnywhere();
         const run = () => { started = Date.now(); timer = setTimeout(close, left); };
         const pause = () => { clearTimeout(timer); left = Math.max(1500, left - (Date.now() - started)); };
         if (!btns.length) el.addEventListener('click', close);
