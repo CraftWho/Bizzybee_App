@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const body = new URLSearchParams(new FormData(form)).toString();
             // The live site takes the form. From the app's own copy (APK), post to the site.
-            const site = /netlify\.app$/.test(location.hostname) ? '/' : 'https://bizzybeee.netlify.app/';
+            const site = window.BB_SITE ? window.BB_SITE + '/' : '/';
             const opts = { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body };
             if (site !== '/') opts.mode = 'no-cors';
             const r = await fetch(site, opts);
