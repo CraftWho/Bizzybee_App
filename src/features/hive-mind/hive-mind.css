@@ -911,3 +911,17 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .hl-slot-lock { position: relative; height: 58px; margin: 12px 0 4px; border-radius: 12px; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
 .hl-slot-lock::before { content: ""; position: absolute; inset: 1.5px; border-radius: 11px; background: #050403; }
 .hl-empty { color: #ff8a96; }
+
+/* Nov 1 2026 (Craft): each comb its own bright color (approved preview A).
+   Locked combs stay black with an outline. */
+.hl-cell[data-comb] { background: linear-gradient(160deg, var(--cb-hi), var(--cb-lo)); }
+.hl-cell[data-comb]:hover { background: linear-gradient(160deg, var(--cb-hi), var(--cb-lo)); }
+.hl-cell[data-comb] .hl-in { background: linear-gradient(160deg, var(--cb-lo), var(--cb-in)); }
+.hl-cell[data-comb] .hl-nm { color: #fff4d6; }
+.hl-cell[data-comb="royal"] { --cb-hi: #9b6bd6; --cb-lo: #3b1d63; --cb-in: #2a1546; }
+.hl-cell[data-comb="nursery"] { --cb-hi: #e07a9a; --cb-lo: #7a2a45; --cb-in: #3d1422; }
+.hl-cell[data-comb="honey"] { --cb-hi: #f2b632; --cb-lo: #8a5a0c; --cb-in: #3b2808; }
+.hl-cell[data-comb="workshop"] { --cb-hi: #d0783a; --cb-lo: #6a3212; --cb-in: #33180a; }
+.hl-cell[data-comb="rest"] { --cb-hi: #5f8fd6; --cb-lo: #22406e; --cb-in: #121f36; }
+.hl-cell[data-comb="entrance"] { --cb-hi: #6cbf5e; --cb-lo: #2b5e27; --cb-in: #142d12; }
+.hl-cell.alert[data-comb] .hl-in { box-shadow: inset 0 0 0 2px var(--bb-alt, #dc143c); }
