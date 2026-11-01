@@ -19,6 +19,10 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Oct 31 2026 (Craft): Batch 9.
+        { icon: '💬', title: 'Quicker messages', text: 'Messages go away after 2.5 seconds, or tap anywhere to close them.' },
+        { icon: '🔤', title: 'New font', text: 'Courier Prime, built into the app, so it looks the same on every phone and computer.' },
+        { icon: '📅', title: 'Calendar: no more dailies', text: 'The calendar feed now sends only your events and To-Do due dates.' },
+        { icon: '🔁', title: 'Habitica fix', text: 'Dailies no longer show as done at midnight when Habitica hasn\'t started its new day yet.' },
         { icon: '🏅', title: 'Titles', text: 'Earn titles and wear one next to your rank. The rest stay a secret until you earn them.', href: 'features/titles/titles.html' },
         { icon: '☑️', title: 'Tick steps while editing', text: 'Check off checklist steps on the To-Do and Daily edit screens.', href: 'features/todos/todos.html' },
         { icon: '🥚', title: 'Incubators in the Honey Store', text: 'Buy an Egg Incubator with Honey coins, no plugin needed.', href: 'features/honey-store/honey-store.html' },

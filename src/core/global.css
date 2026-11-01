@@ -8,6 +8,10 @@
    changes these values, so the whole app changes with it. Each use keeps a
    fallback, e.g. var(--bb-accent, #ffcc00), so pages without this file
    still look right. */
+/* Nov 1 2026 (Craft): the app's main font. Courier Prime (SIL Open Font License, src/assets/fonts/). */
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/courier-prime-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 700 900; font-display: swap; src: url('../assets/fonts/courier-prime-latin-700-normal.woff2') format('woff2'); }
+
 :root {
     --bb-accent: #ffcc00;  --bb-accent-rgb: 255, 204, 0;
     --bb-accent-hi: #ffd84a;  --bb-accent-lo: #e6b52c;  --bb-accent-ink: #1a1000;
@@ -59,7 +63,8 @@
     --danger-red: #ff4444;
     --crimson: var(--bb-alt, #dc143c);
     /* User Specific Font Override */
-    --font-main: 'Consolas', 'Courier New', monospace;
+    /* Nov 1 2026 (Craft): Courier Prime, inside the app (works offline and in the APK), same look on every device. */
+    --font-main: 'Courier Prime', 'Consolas', 'Courier New', monospace;
     --grid-scale: 1; 
     --grid-width: calc(34.641px * var(--grid-scale));
     --grid-height: calc(60px * var(--grid-scale));
