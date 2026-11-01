@@ -887,3 +887,19 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
     .hl-bee, .hl-flyer { transition: none; }
     .hl-b, .hl-bee .hl-b { animation: none !important; }
 }
+
+/* Nov 1 2026 (Craft): "The Hive is Buzzing" (combs with no workers) and the
+   auto-manage panel (approved demo). */
+.hl-need { position: absolute; top: 4px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #ff2d4a; box-shadow: 0 0 0 2px #120d05, 0 0 10px rgba(255, 45, 74, .8); animation: hlNeed 1.4s ease-in-out infinite; pointer-events: none; }
+@keyframes hlNeed { 50% { transform: scale(1.25); } }
+.hl-buzz { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 45, 74, .12); border: 1px solid rgba(255, 45, 74, .45); color: #ffd7dd; font-size: .82rem; }
+.hl-buzz b { color: #fff; }
+.hl-auto { display: grid; gap: 4px; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 204, 0, .06); border: 1px solid rgba(255, 204, 0, .25); color: #f1ede2; font-size: .82rem; }
+.hl-auto b { color: #ffcc00; }
+.hl-auto.on { background: rgba(127, 224, 138, .08); border-color: rgba(127, 224, 138, .45); }
+.hl-auto.on b { color: #7fe08a; }
+.hl-auto small { color: #c2b48f; font-size: .72rem; }
+.hl-chk { display: flex; flex-wrap: wrap; gap: 4px 12px; color: #c2b48f; font-size: .76rem; }
+.hl-chk .y { color: #7fe08a; }
+.hl-row .wk-lead { font-size: .7rem; }
+@media (prefers-reduced-motion: reduce) { .hl-need { animation: none; } }

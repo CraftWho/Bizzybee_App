@@ -40,6 +40,7 @@ function heroHTML(quest) {
         </div>
         ${parent ? `<a class="qd-parent" href="./quest.html?id=${encodeURIComponent(parent.id)}">↖ Part of ${esc(parent.title)}</a>` : ''}
         <h1 class="qd-title">${esc(quest.title)}</h1>
+        ${quest.deadline && !done ? `<p class="qd-deadline">📅 Finish by ${esc(new Date(quest.deadline + 'T12:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }))}${quest.deadline < todayISO() ? ' · <b>overdue</b>' : ''}</p>` : ''}
         ${quest.objective ? `<p class="qd-obj">${esc(quest.objective)}</p>` : '<p class="qd-obj qd-muted">No objective yet. Tap the pencil to say what finishing looks like.</p>'}
         ${done ? '' : `<button type="button" class="qd-focus${isActive ? ' on' : ''}" id="qd-focus" aria-pressed="${isActive}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6"/></svg>${isActive ? 'In focus' : 'Focus on this quest'}</button>`}
