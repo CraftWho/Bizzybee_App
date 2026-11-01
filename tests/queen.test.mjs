@@ -13,7 +13,7 @@ function harness(state) {
     const localStorage = { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, String(v)), removeItem: k => data.delete(k) };
     const context = vm.createContext({ localStorage, console: { log() {}, error() {} }, Event,
         window: { location: { pathname: '/' }, dispatchEvent() {} }, fetch: async () => ({ ok: false }) });
-    vm.runInContext(readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8') + '\nglobalThis.vault = Vault; Math.random = () => 0.99;', context);
+    vm.runInContext(readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8') + '\nglobalThis.vault = Vault; HIVE_JOB_RULES = false; Math.random = () => 0.99;', context);
     return { v: context.vault, g: (c) => vm.runInContext(c, context) };
 }
 const daily = (id, extra = {}) => ({ id, label: `Daily ${id}`, xp: 10, difficulty: 'Medium', repeats: { type: 'daily', every: 1, daysOfWeek: [] }, startDate: iso(-30), completedDates: [], ...extra });
