@@ -34,6 +34,7 @@ const WAGGLE_MENU = [
         { icon: '📬', label: 'Mailbox', path: 'src/features/mailbox/mailbox.html', mail: true },
         { icon: '🎨', label: 'Themes', path: 'src/features/themes/themes.html' },
         { icon: '📘', label: 'Guide (Eve)', path: 'src/features/guide/guide.html' },
+        { icon: '🛟', label: 'Contact support', path: 'src/features/support/support.html' },   // Nov 1 2026 (Craft)
         { icon: '🔔', label: 'Notifications', path: 'src/features/notifications/notifications.html' },
         { icon: '🔄', label: 'Phone Sync', path: 'src/features/sync/sync.html' },
         { icon: '🔐', label: 'Account Info', path: 'src/features/account-info/account-info.html' },
