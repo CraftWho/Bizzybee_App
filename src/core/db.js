@@ -60,11 +60,28 @@ function newBeeSerial(taken) {
     }
     return `BZ-${Date.now().toString(36).toUpperCase()}`;
 }
-function ensureBeeSerials(s) {
+// Oct 31 2026 (Craft): also fills height and Recovery, and gives a new
+// Rare-or-better bee its memory: when it came, how (its source), and the last
+// task you finished. fresh = called from save(), so a bee without a serial is
+// brand new; bees in an older save (on load) get no memory ("before memories").
+function ensureBeeSerials(s, fresh = false) {
     const bees = s && s.hive && Array.isArray(s.hive.bees) ? s.hive.bees : [];
-    if (!bees.some(b => b && !b.serial)) return false;
+    if (!bees.some(b => b && (!b.serial || b.height == null || b.recovery == null))) return false;
     const taken = new Set(bees.map(b => b && b.serial).filter(Boolean));
-    bees.forEach(b => { if (b && !b.serial) { b.serial = newBeeSerial(taken); taken.add(b.serial); } });
+    bees.forEach(b => {
+        if (!b) return;
+        if (!b.serial) {
+            if (fresh && b.rarity !== 'Common' && !b.memory) {
+                const last = s.lastTaskDone;
+                b.memory = { at: b.obtainedAt || new Date().toISOString(), how: b.source || 'gacha',
+                    level: s.characterLevelBar && s.characterLevelBar.acknowledgedLevel || null,
+                    task: last ? { kind: last.kind, label: last.label } : null };
+            }
+            b.serial = newBeeSerial(taken); taken.add(b.serial);
+        }
+        if (b.height == null) b.height = rollBeeHeight(b.rarity);
+        if (b.recovery == null) b.recovery = rollBeeRecovery(b.rarity);
+    });
     return true;
 }
 function migrateHiveStorage() {
@@ -1142,6 +1159,18 @@ const BEE_WEIGHT_RANGES = {
     Named: [3.0, 5.0]
 };
 
+// Oct 31 2026 (Craft): height (cm) and Recovery (1-100, how well a bee
+// recovers; shown on the card only for now, no game effect yet).
+const BEE_HEIGHT_RANGES = { Common: [1.0, 1.4], Rare: [1.2, 1.7], Epic: [1.4, 2.0], Legendary: [1.7, 2.4], Named: [1.8, 2.6], Royal: [2.2, 2.8] };
+const BEE_RECOVERY_RANGES = { Common: [20, 60], Rare: [30, 70], Epic: [40, 80], Legendary: [55, 90], Named: [60, 95], Royal: [70, 100] };
+function rollBeeHeight(rarity) {
+    const [min, max] = BEE_HEIGHT_RANGES[rarity] || BEE_HEIGHT_RANGES.Common;
+    return Math.round((min + Math.random() * (max - min)) * 10) / 10;
+}
+function rollBeeRecovery(rarity) {
+    const [min, max] = BEE_RECOVERY_RANGES[rarity] || BEE_RECOVERY_RANGES.Common;
+    return Math.round(min + Math.random() * (max - min));
+}
 function rollBeeWeight(rarity) {
     const [min, max] = BEE_WEIGHT_RANGES[rarity] || BEE_WEIGHT_RANGES.Common;
     return Math.round((min + Math.random() * (max - min)) * 10) / 10;
@@ -2288,7 +2317,7 @@ class DatabaseManager {
     // 3. Save current state to the browser
     save() {
         if (this.state) {
-            ensureBeeSerials(this.state);   // Oct 31 2026 (Craft): new bees get their serial
+            ensureBeeSerials(this.state, true);   // Oct 31 2026 (Craft): new bees get their serial (and memory)
             try {
                 // Stamped on every real mutation that goes through this method -
                 // NOT touched by importFullState() below, which writes straight
@@ -2611,6 +2640,7 @@ class DatabaseManager {
         // dateCompleted (below) stays date-only - this is scoped to tasks.
         task.dateCompleted = task.completed ? new Date().toISOString() : null;
         if (task.completed) this._queenHeal(`quest:${task.id}`);
+        if (task.completed) this._noteDone('Quest', task.label);   // Oct 31 2026 (Craft): card memories
 
         this._updateQuestCompletionState(quest);
 
@@ -4222,6 +4252,7 @@ class DatabaseManager {
         }
 
         if (justCompleted) this._queenHeal(`daily:${task.id}:${today}`);
+        if (justCompleted) this._noteDone('Daily', task.label);   // Oct 31 2026 (Craft): card memories
         this._checkStreakBonus(today);
         if (justCompleted && typeof this.incubatorTick === 'function') this.incubatorTick(today);   // dailies warm the Egg Incubator
         this.save();
@@ -4393,6 +4424,7 @@ class DatabaseManager {
         // same reasoning as computeSkillContributions skipping negative
         // clicks for the matrix - a lapse shouldn't drop loot.
         if (direction === 'positive') this._collectMaterialsOnCompletion(`habit:${habit.id}`);
+        if (direction === 'positive') this._noteDone('Habit', habit.label);   // Oct 31 2026 (Craft): card memories
         return habit;
     }
 
@@ -4531,6 +4563,7 @@ class DatabaseManager {
         todo.completedDate = todo.completed ? todayISO() : null;
         todo.completedAt = todo.completed ? Date.now() : null;   // Oct 31 2026 (Craft, from 1.0.6): time for History
         if (todo.completed) this._queenHeal(`todo:${todo.id}`);
+        if (todo.completed) this._noteDone('To-Do', todo.label);   // Oct 31 2026 (Craft): card memories
 
         this.save();
         this._syncLevelUpBees();
@@ -6340,6 +6373,12 @@ Object.assign(DatabaseManager.prototype, {
         return true;
     },
     // +1 health, once per task per day (so un-check/re-check can't farm it).
+    // Oct 31 2026 (Craft): the last task you finished, so a Rare-or-better
+    // card made next can remember what earned it (see ensureBeeSerials).
+    _noteDone(kind, label) {
+        if (!this.state || !label) return;
+        this.state.lastTaskDone = { kind, label: String(label).slice(0, 80), at: new Date().toISOString() };
+    },
     _queenHeal(key) {
         const q = this._ensureQueen();
         if (!q || q.healed.includes(key)) return;

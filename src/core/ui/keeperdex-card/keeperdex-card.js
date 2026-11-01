@@ -12,13 +12,15 @@ console.log("/// KEEPERDEX CARD MODULE ONLINE ///");
 //
 // Depends on bee-card.css + bee-card.js (helpers above) and the
 // KEEPERDEX_* / BEE_ELEMENTS / BEE_ELEMENT_WEAKNESS globals (db.js).
+// Oct 31 2026 (Craft): the middle of a range, e.g. [1.4, 2.0] -> "1.7".
+const kdMid = (r) => (r ? ((r[0] + r[1]) / 2).toFixed(1) : '—');
 const KeeperDexCard = {
     // container: an empty element to render into. entry: one row from
     // KEEPERDEX_ENTRIES (db.js). options.obtained: real entry vs locked.
     render(container, entry, options = {}) {
         if (!container || !entry) return;
         // Oct 31 2026 (Craft, from 1.0.6): a card back too. flipped: start face-down.
-        const { obtained = false, flipped = false } = options;
+        const { obtained = false, flipped = false, firstAt = null } = options;   // firstAt: when you first got this kind (Oct 31 2026)
 
         const elementInfo = BEE_ELEMENTS[entry.element];
         const weakInfo = BEE_ELEMENTS[BEE_ELEMENT_WEAKNESS[entry.element]];
@@ -65,21 +67,26 @@ const KeeperDexCard = {
 
                 <div class="bc-art">${beeCardArtHTML({ rarityKey, silhouette: !obtained })}</div>
 
-                <div class="bc-dex">
+                <div class="bc-dex">${/* Oct 31 2026 (Craft): No. · first found · typical height · typical weight */ ''}
                     <span><b>No.${dexNo}</b></span>
-                    <span class="bc-dex-species">${obtained ? entry.species : '???'}</span>
-                    <span>${obtained ? elementInfo.label : '—'}</span>
+                    <span>${firstAt && !isNaN(new Date(firstAt)) ? new Date(firstAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}</span>
+                    <span>H ~${kdMid(typeof BEE_HEIGHT_RANGES !== 'undefined' ? BEE_HEIGHT_RANGES[entry.rarity] : null)}cm</span>
+                    <span>W ~${kdMid(typeof BEE_WEIGHT_RANGES !== 'undefined' ? BEE_WEIGHT_RANGES[entry.rarity] : null)}g</span>
                 </div>
 
                 <div class="bc-abil${obtained ? ' bc-moves' : ''}">${movesHTML}</div>
 
-                <div class="bc-bar">
+                <div class="bc-bar">${/* Oct 31 2026 (Craft): Weakness | Resistance | Recovery.
+                    NOTE: Resistance is a placeholder (the element it resists). It needs
+                    its own unique design later, not a mirror of Weakness. */ ''}
                     <div><small>Weakness</small><span>${obtained ? `<em title="${weakInfo.label}">${weakInfo.emoji}</em> ×2` : '?'}</span></div>
-                    <div><small>Element</small><span>${obtained ? elementInfo.label : '?'}</span></div>
-                    <div><small>Rarity</small><span>${obtained ? entry.rarity : '?'}</span></div>
+                    <div><small>Resistance</small><span>${(() => { const r = obtained && typeof beeResistElement === 'function' ? beeResistElement(entry.element) : null; return r ? `<em title="${r.label}">${r.emoji}</em> ½` : '?'; })()}</span></div>
+                    <div><small>Recovery</small><span>${obtained && typeof BEE_RECOVERY_RANGES !== 'undefined' && BEE_RECOVERY_RANGES[entry.rarity] ? BEE_RECOVERY_RANGES[entry.rarity].join('–') : '?'}</span></div>
                 </div>
 
                 <p class="bee-card-flavor">${obtained ? entry.description : 'Not yet discovered - obtain a matching bee to reveal this entry.'}</p>
+                ${/* TODO (Craft, Oct 31 2026): the bottom left of the KeeperDex card needs
+                    finishing. Design not decided yet; "KeeperDex No." stays until then. */ ''}
                 <div class="bc-coll"><span>KeeperDex No.${dexNo}</span><b>${obtained ? BEE_CARD_RARITY_SYMBOLS[realRarityKey] || '' : '?'}</b></div>
             </div>
             <div class="bee-card-face bee-card-back">
