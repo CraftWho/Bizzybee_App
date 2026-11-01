@@ -41,6 +41,9 @@ jobs:
         run: |
           node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
           echo "BB_TAG_SUFFIX=-tester" >> "$GITHUB_ENV"
+      # Nov 1 2026 (Craft): the app's own copy of the app files goes inside the APK.
+      - name: Build the app copy
+        run: node ../tools/make-app-copy.mjs www
       - run: npx cap sync android
       - name: Build signed APK
         env:

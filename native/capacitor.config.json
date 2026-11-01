@@ -1,12 +1,7 @@
 {
   "appId": "com.craftwho.bizzybee",
   "appName": "BizzyBee",
-  "webDir": "shell",
-  "server": {
-    "url": "https://bizzybeee.netlify.app/",
-    "androidScheme": "https",
-    "errorPath": "offline.html"
-  },
+  "webDir": "www",
   "android": {
     "backgroundColor": "#050402"
   },
@@ -25,5 +20,8 @@
       "smallIcon": "ic_stat_bee",
       "iconColor": "#FFCC00"
     }
+  },
+  "server": {
+    "androidScheme": "https"
   }
 }
