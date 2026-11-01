@@ -32,7 +32,25 @@ function renderDict() {
 // Links (Oct 28 2026). MDN text is CC-BY-SA, so a filled term keeps a
 // credit line. W3Schools doesn't allow copying, so it's a link only.
 const mdnSearch = (q) => `https://developer.mozilla.org/en-US/search?q=${encodeURIComponent(q)}`;
-const w3Search = (q) => `https://www.google.com/search?q=${encodeURIComponent(`site:w3schools.com ${q}`)}`;
+// Nov 1 2026 (Craft): MDN (open source) is the link for everyone. The
+// W3Schools link is only for the owner, only in the Android app (not the
+// website, not PC LOCAL). It opens the W3Schools page itself: DuckDuckGo's
+// "\\" search jumps to the top result on that site, with the category added.
+const w3Search = (q, cat) => `https://duckduckgo.com/?q=${encodeURIComponent(`\\ site:w3schools.com ${cat && !/general|other/i.test(cat) ? cat + ' ' : ''}${q}`)}`;
+let w3On = false;
+(async () => {
+    try {
+        const C = window.Capacitor;
+        if (!(C && typeof C.isNativePlatform === 'function' && C.isNativePlatform())) return;
+        if (typeof Vault !== 'undefined' && Vault.pcLocal) return;
+        if (localStorage.getItem('bizzybee_session') !== 'identity' || !window.crypto || !crypto.subtle) return;
+        const user = JSON.parse(localStorage.getItem('gotrue.user') || 'null');
+        const email = user && user.email && String(user.email).trim().toLowerCase();
+        if (!email || typeof DEV_OWNER_HASHES === 'undefined') return;
+        const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+        w3On = DEV_OWNER_HASHES.includes(Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2, '0')).join(''));
+    } catch { w3On = false; }
+})();
 const safeUrl = (u) => (/^https:\/\//i.test(String(u || '')) ? String(u) : '');
 
 // Best effort: MDN's public search API, from your own browser. If it can't
@@ -63,7 +81,7 @@ function termView(t) {
         ${t.code ? `<label>CODE</label><div class="tv-code"><button type="button" class="tv-copy">Copy</button><pre><code>${esc(t.code)}</code></pre></div>` : ''}
         ${t.examples?.length ? `<label>EXAMPLES</label><ul class="tv-ex">${t.examples.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         <label>LEARN MORE</label>
-        <div class="tv-links"><a href="${esc(mdn || mdnSearch(t.name))}" target="_blank" rel="noopener">MDN ↗</a><a href="${esc(w3 || w3Search(t.name))}" target="_blank" rel="noopener">W3Schools ↗</a></div>
+        <div class="tv-links"><a href="${esc(mdn || mdnSearch(t.name))}" target="_blank" rel="noopener">MDN ↗</a>${w3On ? `<a href="${esc(w3 || w3Search(t.name, t.category))}" target="_blank" rel="noopener">W3Schools ↗</a>` : ''}</div>
         ${t.source === 'mdn' && mdn ? `<p class="tv-credit">Meaning${t.code ? ' and code' : ''} from <a href="${esc(mdn)}" target="_blank" rel="noopener">"${esc(t.name)}"</a> by Mozilla Contributors, <a href="https://creativecommons.org/licenses/by-sa/2.5/" target="_blank" rel="noopener">CC-BY-SA 2.5</a>.</p>` : ''}
         <div class="btns"><button type="button" class="del" id="tv-close">Close</button><button type="button" class="save" id="tv-edit">Edit</button></div>`;
     sheet.hidden = false;
@@ -87,7 +105,7 @@ function termForm(t) {
         <label for="f-ex">EXAMPLES <small>one per line</small></label><textarea id="f-ex" placeholder="Center a button in a card" maxlength="1200">${esc((t?.examples || []).join('\n'))}</textarea>
         <label for="f-img">PICTURE LINK <small>optional</small></label><input id="f-img" value="${esc(t?.image || '')}" placeholder="https://..." inputmode="url">
         <label for="f-mdnurl">MDN LINK</label><input id="f-mdnurl" value="${esc(t?.mdnUrl || '')}" placeholder="Blank = MDN search" inputmode="url">
-        <label for="f-w3">W3SCHOOLS LINK</label><input id="f-w3" value="${esc(t?.w3Url || '')}" placeholder="Blank = W3Schools search" inputmode="url">
+        ${w3On ? `<label for="f-w3">W3SCHOOLS LINK</label><input id="f-w3" value="${esc(t?.w3Url || '')}" placeholder="Blank = W3Schools search" inputmode="url">` : ''}
         <div class="btns">${t ? '<button type="button" class="del" id="f-del">Delete</button>' : ''}<button type="button" class="save" id="f-save">Save</button></div>`;
     sheet.hidden = false;
     const $f = (id) => document.getElementById(id);
@@ -114,7 +132,7 @@ function termForm(t) {
     $f('f-save').onclick = () => {
         const name = $f('f-name').value.trim();
         if (!name) { Toast.show('Give the term a name first.', 'negative'); return; }
-        const links = ['f-img', 'f-mdnurl', 'f-w3'].map(id => $f(id).value.trim());
+        const links = ['f-img', 'f-mdnurl', 'f-w3'].map(id => ($f(id) ? $f(id).value.trim() : (id === 'f-w3' ? (t?.w3Url || '') : '')));   // Nov 1 2026 (Craft): the W3 box is hidden for most; keep a saved link
         if (links.some(u => u && !safeUrl(u))) { Toast.show('Links must start with https://', 'negative'); return; }
         const data = {
             name, category: $f('f-cat').value.trim() || 'General', definition: $f('f-def').value.trim(),

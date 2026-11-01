@@ -378,3 +378,10 @@ body.st-in-group .stv2 > .st-list, body.st-in-group #dev-section, body.st-in-gro
 .stv2 .st-why { display: block; margin-top: 3px; color: #ff8a8a; font-size: .72rem; }
 .stv2 .st-attn { box-shadow: inset 3px 0 0 #ff3b3b; padding-left: 10px !important; }
 @media (prefers-reduced-motion: reduce) { .stv2 .st-group { animation: none; } }
+
+/* Nov 1 2026 (Craft): text presets + font picker (from 1.0.7) */
+.stv2 .look-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 0 12px; }
+.stv2 .look-preset { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0; padding: 10px 4px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .22); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .05); box-shadow: none; color: var(--ink); font-size: .74rem; font-weight: 600; cursor: pointer; }
+.stv2 .look-preset span { font-size: 1.2rem; }
+.stv2 .look-preset[aria-pressed="true"] { border-color: var(--bb-accent, #ffcc00); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .18); }
+.stv2 .look-fonts .look-preset { font-size: .82rem; padding: 12px 4px; }

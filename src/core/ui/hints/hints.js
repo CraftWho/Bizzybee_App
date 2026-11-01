@@ -56,27 +56,33 @@ const Hints = (() => {
     };
 
     let page = null, step = 0, el = null;
+    // Nov 1 2026 (Craft): "Got it" = not again until the app is reopened.
+    const SNOOZE = 'bizzybee_tips_snoozed';
+    const snoozedList = () => { try { return JSON.parse(sessionStorage.getItem(SNOOZE) || '[]'); } catch { return []; } };
+    const snoozed = (p) => snoozedList().includes(p);
+    const snoozeForNow = (p) => { try { sessionStorage.setItem(SNOOZE, JSON.stringify([...new Set([...snoozedList(), p])])); } catch { /* storage off */ } };
 
     function close() { if (el) el.remove(); el = null; }
     function show(force) {
         close();
         const tips = TIPS[page];
-        if (!tips || (!force && (!Vault.hintsOn() || Vault.hintSeen(page)))) return;
+        if (!tips || (!force && (!Vault.hintsOn() || Vault.hintSeen(page) || snoozed(page)))) return;
         el = document.createElement('div');
         el.className = 'hn-tip';
         el.setAttribute('role', 'status');
         const last = step >= tips.length - 1;
         el.innerHTML = `<span class="bee" aria-hidden="true">👑</span><b class="hn-eve">EVE</b> ${tips[step]}
             <div class="hn-ft"><span>${tips.length > 1 ? `Tip ${step + 1} of ${tips.length}` : 'Tip'}</span>
-            <button type="button" class="hn-off">Turn off hints</button>
+            <button type="button" class="hn-off">Don't show again</button>
             <button type="button" class="hn-btn">${last ? 'Got it' : 'Next'}</button></div>`;
         el.querySelector('.hn-btn').onclick = () => {
             if (!last) { step++; show(true); return; }
-            Vault.markHintSeen(page); close();
+            snoozeForNow(page); close();   // Nov 1 2026 (Craft): until the app is reopened
         };
         el.querySelector('.hn-off').onclick = () => {
-            Vault.setHintsOn(false); close(); removeCoach(); removeAsk();
-            if (typeof Toast !== 'undefined') Toast.show('💡 Hints off. Turn them back on in Settings.', 'positive');
+            // Nov 1 2026 (Craft): "Don't show again" hides this page's tips for good.
+            Vault.markHintSeen(page); close();
+            if (typeof Toast !== 'undefined') Toast.show('👍 Got it. These tips are in the Guide if you need them.', 'positive');
         };
         document.body.appendChild(el);
     }
@@ -177,6 +183,11 @@ const Hints = (() => {
         { id: "daily-bonus", icon: "🎁", title: "Daily bonus", cat: "XP & levels", text: "Open the app each day for a bonus, right after Start My Day. Each day moves you along a 7-day week: coins, Pollen, Royal Nectar, and a Gacha ticket on day 7. Miss a day and it starts again at day 1.", v: "1.0.5", intro: true, page: F + 'home/home.html' },
         { id: "app-copy", icon: "📲", title: "The app runs from your phone", cat: "App & settings", text: "The Android app keeps its own copy of BizzyBee, so pages open from your phone, not the internet. After each update it downloads only the files that changed. A new version opens the next time you start the app (or tap Restart now). If one ever fails to start, the app goes back to the last good one by itself. Sign-in and cloud sync still use the internet.", v: "1.0.5" },
         { id: "settings-groups", icon: "⚙️", title: "Settings groups", cat: "App & settings", text: "Settings is a short list of groups: Account & cloud, Notifications & phone, Look & feel, Eve & help, Tracking, Your data and About. Tap one to open it, ← to go back. Search finds any setting. A red dot means something there needs you.", v: "1.0.5", page: F + 'settings/settings.html' },
+        // Nov 1 2026 (Craft): Batch 13 (brought back from 1.0.7).
+        { id: "quest-history", icon: "🕘", title: "Quest history", cat: "Tasks", text: "Each quest has a History section: every task you finished, day by day, with the time and XP, plus totals. Tap it to open.", v: "1.0.5", intro: true, page: F + 'quests/quests.html' },
+        { id: "text-look", icon: "🔤", title: "Text presets and fonts", cat: "App & settings", text: "Settings › Look & feel: one-tap presets (Default, Easy read, Big & bold, Compact) and a font for reading text. Fine-tune colors and sizes below them.", v: "1.0.5", intro: true, page: F + 'settings/settings.html' },
+        { id: "tips-hide", icon: "💡", title: "Hide a page's tips", cat: "Getting started", text: "On one of Eve's tips, Got it hides them until you reopen the app. Don't show again hides that page's tips for good. Settings › Eve & help › Show tips again brings them all back. The Guide puts a ✓ on features you've seen.", v: "1.0.5", page: F + 'guide/guide.html' },
+        { id: "dictionary-links", icon: "📖", title: "Dictionary links", cat: "Plugins", text: "Each term links to MDN, the free open-source web reference. Fill from MDN copies the meaning and code, with a credit line.", v: "1.0.5", page: PL + 'dictionary/dictionary.html' },
         { id: "limited-gifts", icon: "🎁", title: "Gifts and limited bees", cat: "Bees & eggs", text: "Limited bees like Grimzy (Halloween 2026) are numbered: only 50 exist. The creator can send one as a gift with a letter. It pops up the next time you open BizzyBee, and waits in your Mailbox until you add it. Limited bees never die and keep their name.", v: "1.0.5", page: F + 'mailbox/mailbox.html' },
         { id: "titles", icon: "🏅", title: "Titles", cat: "XP & levels", text: "Earn titles by doing things, like finishing quests or keeping a streak. Equip one and it shows next to your rank. Titles you haven't earned stay a secret (???).", v: "1.0.5", intro: true, page: F + 'titles/titles.html' },
         { id: "checklist-edit", icon: "☑️", title: "Tick steps while editing", cat: "Tasks", text: "On a To-Do or Daily edit screen, tick checklist steps off right there.", v: "1.0.5", page: F + 'todos/todos.html' },
@@ -333,7 +344,7 @@ const Hints = (() => {
         Vault.setHintsOn(on);
         if (on) { addAsk(); coach(); } else { close(); removeCoach(); removeAsk(); }
     }
-    function resetAll() { Vault.resetHints(); step = 0; addAsk(); show(false); }
+    function resetAll() { Vault.resetHints(); try { sessionStorage.removeItem(SNOOZE); } catch { /* storage off */ } step = 0; addAsk(); show(false); }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();
