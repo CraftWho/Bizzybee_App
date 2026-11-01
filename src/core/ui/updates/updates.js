@@ -18,6 +18,8 @@ const WHATS_NEW = [
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Nov 1 2026 (Craft): Batch 10.
+        { icon: '🔥', title: 'Streaks: 5 of anything', text: 'A day counts toward your streak once you finish 5 tasks: any mix of dailies, To-Dos and quest tasks. You don\'t have to finish everything.', href: 'features/home/home.html' },
         // Oct 31 2026 (Craft): Batch 9.
         { icon: '💬', title: 'Quicker messages', text: 'Messages go away after 2.5 seconds, or tap anywhere to close them.' },
         { icon: '🔤', title: 'New font', text: 'Courier Prime, built into the app, so it looks the same on every phone and computer.' },

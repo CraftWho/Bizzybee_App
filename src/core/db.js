@@ -1496,6 +1496,7 @@ function expectedLevelTickets(level) {
 // old age, Honey Makers, Drones and a random raid (more likely on a bad
 // streak). Finishing a task/daily feeds every bee (_feedHive).
 // ============================================================================
+const STREAK_GOAL = 5;   // Nov 1 2026 (Craft): tasks a day needs to count toward your streak
 const STREAK_BONUS = { allDailies: 20, milestones: [[3, 30], [7, 75], [30, 300], [100, 1000]] };
 
 const LIFE = {
@@ -2318,6 +2319,7 @@ class DatabaseManager {
     save() {
         if (this.state) {
             ensureBeeSerials(this.state, true);   // Oct 31 2026 (Craft): new bees get their serial (and memory)
+            try { this._checkTaskStreak(); } catch (e) { /* never blocks a save */ }   // Nov 1 2026 (Craft)
             try {
                 // Stamped on every real mutation that goes through this method -
                 // NOT touched by importFullState() below, which writes straight
@@ -4264,28 +4266,54 @@ class DatabaseManager {
     // Streak bonus XP (Oct 27 2026): +20 when every daily due today is done,
     // plus a one-time bonus when the hive streak reaches 3 / 7 / 30 / 100
     // days. Un-checking a daily takes today's bonuses back.
+    // STREAK (Nov 1 2026, Craft): a day counts once you finish STREAK_GOAL (5)
+    // tasks of any kind: dailies, To-Dos and quest tasks (not habits, Craft).
+    // Not everything has to be done. The streak = days in a row that counted;
+    // today joins once it reaches 5.
+    tasksDoneOn(day = todayISO()) {
+        return this.doneOn(day).filter(x => x.kind !== 'habit').length;
+    }
+    taskStreak(today = todayISO()) {
+        if (!this.state) return 0;
+        let n = this.tasksDoneOn(today) >= STREAK_GOAL ? 1 : 0;
+        for (let i = 1; i <= 730; i++) {
+            if (this.tasksDoneOn(shiftISODate(today, -i)) < STREAK_GOAL) break;
+            n++;
+        }
+        return n;
+    }
+    // The 3 / 7 / 30 / 100-day bonuses, paid once on the day you reach them.
+    // Dropping under 5 today takes today's bonus back.
+    _checkTaskStreak(today = todayISO()) {
+        if (!this.state) return;
+        if (!this.state.bonusXP) this.state.bonusXP = [];
+        const mine = this.state.bonusXP.filter(b => b.date === today && /^streak-\d+:/.test(b.key));
+        if (this.tasksDoneOn(today) < STREAK_GOAL) {
+            if (mine.length) this.state.bonusXP = this.state.bonusXP.filter(b => !mine.includes(b));
+            return;
+        }
+        if (mine.length) return;
+        const streak = this.taskStreak(today);
+        const add = [];
+        STREAK_BONUS.milestones.forEach(([days, xp]) => { if (streak === days) add.push({ key: `streak-${days}:${today}`, date: today, xp, why: `${days}-day streak` }); });
+        if (!add.length) return;
+        this.state.bonusXP.push(...add);
+        if (typeof Toast !== 'undefined') Toast.show(add.map(b => `🔥 +${b.xp} XP · ${b.why}`).join('  '), 'positive');
+    }
+
     _checkStreakBonus(today = todayISO()) {
         if (!this.state.bonusXP) this.state.bonusXP = [];
         const due = (this.state.dailyTasks || []).filter(d => (!d.startDate || d.startDate <= today) && isDailyDueOn(d, today));
         const allDone = due.length > 0 && due.every(d => (d.completedDates || []).includes(today));
         const mine = this.state.bonusXP.filter(b => b.date === today);
         if (!allDone) {
-            if (mine.length) this.state.bonusXP = this.state.bonusXP.filter(b => b.date !== today);
+            if (mine.some(b => b.key.startsWith('all-dailies:'))) this.state.bonusXP = this.state.bonusXP.filter(b => b.key !== `all-dailies:${today}`);
             return;
         }
-        if (mine.length) return;
-        // Days in a row (today included) with every due daily done or saved.
-        const list = this.state.dailyTasks || [];
-        let streak = 1;
-        for (let i = 1; i <= 120; i++) {
-            const day = shiftISODate(today, -i);
-            const dueDay = list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-            if (!dueDay.length) continue;
-            if (!dueDay.every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day))) break;
-            streak++;
-        }
+        // Nov 1 2026 (Craft): the 3 / 7 / 30 / 100-day bonuses moved to the
+        // task streak (_checkTaskStreak); this one is just "all dailies done".
+        if (mine.some(b => b.key.startsWith('all-dailies:'))) return;
         const add = [{ key: `all-dailies:${today}`, date: today, xp: STREAK_BONUS.allDailies, why: 'All dailies done' }];
-        STREAK_BONUS.milestones.forEach(([days, xp]) => { if (streak === days) add.push({ key: `streak-${days}:${today}`, date: today, xp, why: `${days}-day streak` }); });
         this.state.bonusXP.push(...add);
         if (typeof Toast !== 'undefined') Toast.show(add.map(b => `🔥 +${b.xp} XP · ${b.why}`).join('  '), 'positive');
     }
@@ -6721,7 +6749,7 @@ Object.assign(DatabaseManager.prototype, {
 // state.titleWorn = the id you wear, or null for rank only.
 // ============================================================================
 const SPECIAL_TITLES = [
-    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'All dailies done 7 days in a row', need: 1,
+    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'Reach a 7-day streak', need: 1,
         have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100):/.test(b.key)) ? 1 : 0 },
     { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7,
         have: (S) => {

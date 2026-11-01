@@ -16,7 +16,7 @@ const Hints = (() => {
             'The bar at the top is your level. Every task gives XP. Fill the bar, then tap the level chip to claim rewards.',
             'Missed tasks hurt the whole hive. Bees can get sick, hurt or worn out. Keep your streak going to keep them happy.'],
         dailies: ['Tap the circle when you finish a daily. Your bees eat, and your streak grows.',
-            "Finish <b>all</b> of today's dailies for <b>+20 bonus XP</b>. Streaks of 3, 7, 30 and 100 days give more.",
+            "Finish <b>all</b> of today's dailies for <b>+20 bonus XP</b>. Finish <b>5 tasks</b> of any kind in a day to grow your streak.",
             'Missed dailies hurt the whole hive. Guard Bees and Streak Charms can save a streak.'],
         habits: ['Tap <b>+</b> for a good habit and <b>−</b> for a bad one. Good habits give XP. Bad ones cost the Queen health.',
             'Habits have no due date. Use them for things you want to do more (or less) often.'],
@@ -153,7 +153,7 @@ const Hints = (() => {
         { id: "guide", icon: "📘", title: "Guide", cat: "Getting started", text: "Every feature, searchable. Show me opens the page and Eve points at it. Eve also introduces each new feature once on Home.", v: "1.0.4", page: F + 'guide/guide.html' },
         { id: "dailies", icon: "☀️", title: "Dailies", cat: "Tasks", text: "Tasks that repeat: every day, every few days, on chosen weekdays, or monthly. Days a daily isn't due go under Not due today. Tap the hexagon to check it off.", v: "1.0.0", page: F + 'dailies/dailies.html', steps: [{ page: 'dailies', sel: '.dk-add', text: 'Tap the gold + to make a daily.' }] },
         { id: "daily-streak", icon: "🔥", title: "Daily streaks", cat: "Tasks", text: "Each daily counts the due days in a row you did it. Days it isn't due don't break it. Adjust Streak on the edit screen sets it by hand.", v: "1.0.0", page: F + 'dailies/dailies.html' },
-        { id: "streak-bonus", icon: "🏅", title: "Streak bonus XP", cat: "Tasks", text: "Finish every daily due today for +20 XP. All-dailies streaks of 3, 7, 30 and 100 days give +30, +75, +300 and +1000 XP once. Unchecking a daily takes today's bonus back.", v: "1.0.0", page: F + 'dailies/dailies.html' },
+        { id: "streak-bonus", icon: "🏅", title: "Your streak", cat: "Tasks", text: "A day counts toward your streak once you finish 5 tasks: any mix of dailies, To-Dos and quest tasks (habits don't count). You don't have to finish everything. Streaks of 3, 7, 30 and 100 days give +30, +75, +300 and +1000 XP once. Finishing every daily due today still gives +20 XP.", v: "1.0.0", page: F + 'home/home.html' },   // Nov 1 2026 (Craft): 5 tasks of any kind
         { id: "habits", icon: "🔁", title: "Habits", cat: "Tasks", text: "Tap + for a good habit and − for a bad one. No due dates. Reset Counter only resets the count you see. Adjust Counter changes taps and XP.", v: "1.0.0", page: F + 'habits/habits.html' },
         { id: "starter-habits", icon: "🌱", title: "Starter habits", cat: "Tasks", text: "Hatching your egg adds 3 habits: read a quote, walk 1,000 feet, and stretch for 3 minutes. The quote habit shows a Quote of the Week.", v: "1.0.0", page: F + 'habits/habits.html' },
         { id: "todos", icon: "✅", title: "To-Dos", cat: "Tasks", text: "One-time tasks with an optional due date and time, a checklist and tags. Tabs: Active, Scheduled and Done. Tap a done one to bring it back.", v: "1.0.0", page: F + 'todos/todos.html' },
