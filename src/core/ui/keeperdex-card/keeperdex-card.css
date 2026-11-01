@@ -43,3 +43,12 @@
 .keeperdex-card.is-locked .bc-dex b {
     color: #888;
 }
+
+/* Oct 31 2026 (Craft): a short line under each skill, small and not bold. */
+.keeperdex-card .bc-mtx { display: grid; gap: .3cqw; min-width: 0; }
+.keeperdex-card .bc-mdesc { font: 400 2.4cqw/1.25 system-ui, sans-serif; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Oct 31 2026 (Craft): three skills with their lines fit without cutting. */
+.keeperdex-card .bc-abil.bc-moves { gap: .7cqw; }
+.keeperdex-card .bc-move h4 { font-size: 3.3cqw; }
+.keeperdex-card .bc-move .bc-ic { width: 5.6cqw; height: 5.6cqw; font-size: 3.1cqw; }
+.keeperdex-card .bc-move { grid-template-columns: 5.6cqw 1fr auto; }

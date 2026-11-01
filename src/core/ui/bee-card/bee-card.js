@@ -428,7 +428,7 @@ const BeeCard = {
                     </div>
 
                     <p class="bee-card-flavor">${title ? `\u201c${title.quote.replace('{n}', bee.name)}\u201d` : archetype.description}</p>
-                    <div class="bc-coll"><span>No.${dexNo} · BizzyBee Base Set</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>
+                    <div class="bc-coll"><span>${bee.serial ? `<i class="bc-serial" title="Serial number">${String(bee.serial).replace(/[^A-Za-z0-9-]/g, "")}</i>` : `No.${dexNo} · BizzyBee Base Set`}</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>${/* Oct 31 2026 (Craft): serial number */ ''}
                 </div>
 
                 <div class="bee-card-face bee-card-back">

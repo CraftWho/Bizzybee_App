@@ -36,7 +36,7 @@ const KeeperDexCard = {
             ? entry.skills.map(skill => `
                 <div class="bc-ab bc-move">
                     <span class="bc-ic">${elementInfo.emoji}</span>
-                    <h4>${skill.name}</h4>
+                    <span class="bc-mtx"><h4>${skill.name}</h4>${skill.text ? `<span class="bc-mdesc">${skill.text}</span>` : ''}</span>${/* Oct 31 2026 (Craft): short line under each skill */ ''}
                     <b class="bc-pow">${skill.power}</b>
                 </div>`).join('')
             : `<div class="bc-ab bc-locked"><span class="bc-ic">🔒</span><h4>Unknown moves <small>Locked</small></h4><p>Obtain a matching bee to reveal this entry.</p></div>`;

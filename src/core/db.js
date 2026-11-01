@@ -46,6 +46,27 @@ function migrateHiveKey(s) {
     return changed;
 }
 // Device-only settings that used the old name (bee hatch memory, list view).
+// Oct 31 2026 (Craft): every bee gets a serial number when it's made (or the
+// first time an older save loads), so each card can be tracked later. It never
+// changes. Format BZ-XXXX-XXXX (no 0/O/1/I/L, so it reads clearly).
+const SERIAL_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+function newBeeSerial(taken) {
+    for (let tries = 0; tries < 20; tries++) {
+        const n = new Uint8Array(8);
+        try { crypto.getRandomValues(n); } catch { for (let i = 0; i < 8; i++) n[i] = Math.floor(Math.random() * 256); }
+        const c = [...n].map(x => SERIAL_CHARS[x % SERIAL_CHARS.length]).join('');
+        const serial = `BZ-${c.slice(0, 4)}-${c.slice(4)}`;
+        if (!taken || !taken.has(serial)) return serial;
+    }
+    return `BZ-${Date.now().toString(36).toUpperCase()}`;
+}
+function ensureBeeSerials(s) {
+    const bees = s && s.hive && Array.isArray(s.hive.bees) ? s.hive.bees : [];
+    if (!bees.some(b => b && !b.serial)) return false;
+    const taken = new Set(bees.map(b => b && b.serial).filter(Boolean));
+    bees.forEach(b => { if (b && !b.serial) { b.serial = newBeeSerial(taken); taken.add(b.serial); } });
+    return true;
+}
 function migrateHiveStorage() {
     if (typeof localStorage === 'undefined') return;
     [['bizzybee_colony_hatched', 'bizzybee_hive_hatched'], ['bizzybee_colony_bees_view', 'bizzybee_hive_bees_view']].forEach(([from, to]) => {
@@ -1171,16 +1192,17 @@ const BEE_ELEMENT_WEAKNESS = {
 // on Epic/Legendary/Named so the higher tiers read as a genuine step up
 // on the card itself, not just a different border color.
 const KEEPERDEX_ELEMENT_SKILLS = {
-    fire: [{ name: 'Ember Sting', power: 10 }, { name: 'Wax Melt', power: 20 }],
-    water: [{ name: 'Dew Drop', power: 10 }, { name: 'Cool Mist', power: 20 }],
-    earth: [{ name: 'Root Bind', power: 10 }, { name: 'Pollen Dust', power: 20 }],
-    wind: [{ name: 'Gale Buzz', power: 10 }, { name: 'Tailwind', power: 20 }]
+    // Oct 31 2026 (Craft): each skill has a short line shown on the card.
+    fire: [{ name: 'Ember Sting', power: 10, text: 'A hot jab that leaves a burn.' }, { name: 'Wax Melt', power: 20, text: 'Softens the foe\'s armor.' }],
+    water: [{ name: 'Dew Drop', power: 10, text: 'A cool splash that refreshes.' }, { name: 'Cool Mist', power: 20, text: 'A haze that slows the foe.' }],
+    earth: [{ name: 'Root Bind', power: 10, text: 'Roots hold the foe in place.' }, { name: 'Pollen Dust', power: 20, text: 'A cloud that makes foes sneeze.' }],
+    wind: [{ name: 'Gale Buzz', power: 10, text: 'A gust from fast wings.' }, { name: 'Tailwind', power: 20, text: 'Speeds up the whole swarm.' }]
 };
 
 const KEEPERDEX_RARITY_SIGNATURE_SKILL = {
-    Epic: { name: 'Overdrive Buzz', power: 35 },
-    Legendary: { name: 'Radiant Sting', power: 50 },
-    Named: { name: 'Unbound Fury', power: 65 }
+    Epic: { name: 'Overdrive Buzz', power: 35, text: 'Wings at full power for one big hit.' },
+    Legendary: { name: 'Radiant Sting', power: 50, text: 'A blinding, glowing strike.' },
+    Named: { name: 'Unbound Fury', power: 65, text: 'All its strength at once.' }
 };
 
 // Reused verbatim from BEE_ARCHETYPES' element-based entries (bee-card.js)
@@ -2266,6 +2288,7 @@ class DatabaseManager {
     // 3. Save current state to the browser
     save() {
         if (this.state) {
+            ensureBeeSerials(this.state);   // Oct 31 2026 (Craft): new bees get their serial
             try {
                 // Stamped on every real mutation that goes through this method -
                 // NOT touched by importFullState() below, which writes straight
@@ -2314,6 +2337,7 @@ class DatabaseManager {
     validateFullState(parsed) {
         const object = value => value && typeof value === 'object' && !Array.isArray(value);
         migrateHiveKey(parsed);   // Oct 31 2026 (Craft): colony -> hive
+        ensureBeeSerials(parsed);   // Oct 31 2026 (Craft): serial numbers
         // Old saves (schema 7 and older) still say "dp" - rename to "xp" first.
         if (object(parsed) && (parsed.schemaVersion == null || parsed.schemaVersion < 8)) upgradeLegacyPoints(parsed);
         if (!object(parsed) || !object(parsed.user) || !Array.isArray(parsed.quests)) throw new Error('That is not a Bizzybee save file.');

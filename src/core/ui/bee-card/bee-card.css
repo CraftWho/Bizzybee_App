@@ -657,3 +657,16 @@
 }
 .bc-v2.is-flipped .bc-glare { display: none; }
 @media (prefers-reduced-motion: reduce) { .bc-v2 .bc-glare { opacity: .25; } }
+
+/* Oct 31 2026 (Craft): the serial number, smallest text, on a silver plate. */
+.bc-v2 .bc-serial {
+    display: inline-block;
+    padding: .35cqw 1.4cqw;
+    border-radius: .8cqw;
+    font: 800 1.9cqw/1 ui-monospace, Menlo, monospace;
+    font-style: normal;
+    letter-spacing: .08em;
+    color: #1d2024;
+    background: linear-gradient(135deg, #f4f6f8 0%, #b8bec6 35%, #eef1f4 55%, #9aa1aa 100%);
+    box-shadow: inset 0 .2cqw 0 rgba(255, 255, 255, .8), 0 0 0 .2cqw rgba(0, 0, 0, .5);
+}
