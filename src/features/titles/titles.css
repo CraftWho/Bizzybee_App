@@ -36,3 +36,6 @@
 .tt-hxw.on { filter: drop-shadow(0 0 6px rgba(255, 216, 74, .45)); }
 .tt-hxw.on .tt-hx { background: transparent; padding: 0; }
 .tt-hxw.on .tt-hx > span { background: linear-gradient(var(--bb-t-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; cursor: default; padding: 9px calc(var(--pt) + 10px); }
+
+/* Nov 1 2026 (Craft): title perk line */
+.tt-perk { color: #7fe08a !important; font-weight: 700; }

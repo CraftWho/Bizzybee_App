@@ -32,7 +32,7 @@ const DailyBonus = (() => {
             const got = Vault.claimDailyBonus();
             if (!got) { close(); return; }
             scrim.querySelector('.dbn-week').innerHTML = week(info, true);
-            scrim.querySelector('.dbn-got').textContent = `+${got.qty} ${got.icon} ${got.name}`;
+            scrim.querySelector('.dbn-got').textContent = `+${got.qty} ${got.icon} ${got.name}${got.perk ? ` · +${got.perk.qty} ${got.perk.icon} (${got.perk.title})` : ''}`;   // Nov 1 2026 (Craft): title perk
             go.textContent = got.day === 6 ? 'Week done! Close' : `Close · day ${got.day + 2} tomorrow`;
             go.dataset.done = '1';
             if (typeof AppShell !== 'undefined' && AppShell.refresh) AppShell.refresh();
