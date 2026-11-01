@@ -38,13 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // honeypot bot-field, and name/email/reason - so this stays
             // correct if fields are ever added without touching this file.
             const body = new URLSearchParams(new FormData(form)).toString();
-            const response = await fetch('/', {
+            // Nov 1 2026 (Craft): from the Android app's own copy, post to the site.
+            const site = window.BB_SITE || '';
+            const response = await fetch(site + '/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body,
+                ...(site ? { mode: 'no-cors' } : {}),
             });
 
-            if (!response.ok) {
+            if (!site && !response.ok) {
                 // A non-network failure - the request reached Netlify but
                 // got rejected (404 most likely means form detection
                 // hasn't run yet for this deploy, or ran against an older

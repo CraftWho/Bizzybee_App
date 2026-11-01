@@ -89,12 +89,20 @@ test('legacy save upgrade preserves an encrypted recovery backup', async () => {
     assert.equal((await recovery.json()).data, sample());
     assert.equal((await backup(req('backups?id=' + items[0].id, null, 'bob'))).status, 404);
 });
-test('backup schedule accepts exactly 4, 8, 12 and 24 hours', async () => {
-    for (const hours of [4, 8, 12, 24]) {
-        assert.equal((await backup(req('backups', { action: 'schedule', hours }))).status, 200);
-        assert.equal((await store('bizzybee-backup-schedules').get('alice')).hours, hours);
-    }
-    assert.equal((await backup(req('backups', { action: 'schedule', hours: 3 }))).status, 400);
+// Oct 31 2026 (Craft): backups are daily only; the old picker is ignored.
+test('backups are daily: the old interval picker is accepted and ignored', async () => {
+    const res = await backup(req('backups', { action: 'schedule', hours: 4 }));
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).keepDaily, 4);
+});
+test('one active device: another device cannot save until it takes over', async () => {
+    const first = await (await save(req('save-state', { data: sample(), revision: null, device: 'phone' }))).json();
+    const blocked = await save(req('save-state', { data: sample(), revision: first.revision, device: 'pc' }));
+    assert.equal(blocked.status, 423);
+    const taken = await (await save(req('save-state', { data: sample(), revision: first.revision, device: 'pc', takeover: true }))).json();
+    assert.equal(taken.ok, true);
+    assert.equal((await save(req('save-state', { data: sample(), revision: taken.revision, device: 'phone' }))).status, 423);
+    assert.equal((await cloud.listBackups('alice')).length, 0);   // switching devices makes no backups
 });
 test('server scheduler backs up without an open client and is idempotent', async () => {
     await save(req('save-state', { data: sample(), revision: null }));
@@ -102,12 +110,14 @@ test('server scheduler backs up without an open client and is idempotent', async
     await scheduled(); await scheduled();
     assert.equal((await cloud.listBackups('alice')).length, 1);
 });
-test('backup retention keeps the latest 30 snapshots', async () => {
+test('backup retention keeps 4 daily copies and 3 others', async () => {
     const entry = { data: sample(), updatedAt: new Date().toISOString() };
-    for (let i = 0; i < 33; i++) await cloud.createBackup('alice', entry, 'manual', `${1700000000000 + i}-test`);
+    for (let i = 0; i < 6; i++) await cloud.createBackup('alice', entry, 'scheduled', `${1700000000000 + i * 86400000}-scheduled`);
+    for (let i = 0; i < 5; i++) await cloud.createBackup('alice', entry, 'manual', `${1700000000000 + i}-test`);
     const entries = await cloud.listBackups('alice');
-    assert.equal(entries.length, 30);
-    assert.equal(entries[0].id, '1700000000032-test');
+    assert.equal(entries.filter(e => e.kind === 'daily').length, 4);
+    assert.equal(entries.filter(e => e.kind !== 'daily').length, 3);
+    assert.equal(entries[0].id, `${1700000000000 + 5 * 86400000}-scheduled`);
 });
 
 function vaultHarness(raw = sample()) {
@@ -227,7 +237,7 @@ test('time XP: minutes from titles, effort and the gentle level curve with Tiers
     assert.equal(g('computeLevelProgress(1200).level'), 6);          // 20 h -> level 6 (gentle curve)
     assert.equal(g('computeLevelProgress(41340).level'), 50);        // level 50 cap
     assert.equal(g('computeLevelProgress(41340 + 12000).level'), 52); // then a Tier every 6,000 XP
-    assert.equal(g('levelLabel(52)'), '✦ TIER 2');
+    assert.equal(g('levelLabel(52)'), 'LV 52');   // Oct 31 2026: past 50 the chip keeps the level; Tiers are ranks now
 });
 test('time XP: logged minutes change a completion, history counts, level never jumps on its own', async () => {
     const old = JSON.parse(sample());
@@ -246,11 +256,11 @@ test('time XP: logged minutes change a completion, history counts, level never j
 test('gacha: the 6th pull without a Rare is a guaranteed Rare or better; Named Beast costs 10 tickets', async () => {
     const h = vaultHarness(); await h.vault.init();
     vm.runInContext('Math.random = () => 0.01', h.context);   // always Common
-    h.vault.state.colony = { bees: [], tickets: 12, pity: 0 };
+    h.vault.state.hive = { bees: [], tickets: 12, pity: 0 };
     const pulls = Array.from({ length: 6 }, () => h.vault.pullWithTicket());
     assert.deepEqual(pulls.map(p => p.bee.rarity !== 'Common'), [false, false, false, false, false, true]);
     assert.equal(h.vault.unwrapTicket(), null);   // 6 left, not enough
-    h.vault.state.colony.tickets = 10;
+    h.vault.state.hive.tickets = 10;
     assert.equal(h.vault.unwrapTicket().rarity, 'Named');
     assert.equal(h.vault.getTicketCount(), 0);
 });

@@ -2,14 +2,18 @@ console.log("/// KEEPERDEX PROTOCOLS INITIALIZED ///");
 
 // KeeperDex v2 (Oct 2026, same look as Settings/Inventory - page-v2.css).
 // Every KEEPERDEX_ENTRIES row (db.js) as a KeeperDexCard (keeperdex-card.js),
-// shown small in a grid (the real card, scaled down - same trick as Colony
+// shown small in a grid (the real card, scaled down - same trick as Hive Mind
 // Bees). Tap one to see it full size. Filters: All, Found, Missing, and
 // one chip per rarity. The memorial lists bees that died (Hive Life).
 let kdTab = 'all';
 
 function kdEntries() {
-    const bees = Vault.getColonyBees();
-    return KEEPERDEX_ENTRIES.map(entry => ({ entry, obtained: isKeeperDexEntryObtained(entry, bees) }));
+    const bees = Vault.getHiveBees();
+    // Oct 31 2026 (Craft): firstAt = when you first got a bee of this kind (oldest still in your hive).
+    return KEEPERDEX_ENTRIES.map(entry => {
+        const mine = bees.filter(b => b.rarity === entry.rarity && b.element === entry.element).map(b => b.obtainedAt).filter(Boolean).sort();
+        return { entry, obtained: isKeeperDexEntryObtained(entry, bees), firstAt: mine[0] || null };
+    });
 }
 
 function kdScale() {
@@ -35,28 +39,39 @@ function renderKeeperDex() {
         `<button type="button" class="chip" data-tab="${PV2.esc(k)}" aria-pressed="${kdTab === k}">${PV2.esc(label)}<small>${all.filter(x => match(x, k)).length}</small></button>`).join('');
 
     grid.innerHTML = '';
-    all.filter(x => match(x, kdTab)).forEach(({ entry, obtained }) => {
+    all.filter(x => match(x, kdTab)).forEach(({ entry, obtained, firstAt }) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'kd-tile' + (obtained ? '' : ' is-locked');
         btn.dataset.dex = entry.dexNumber;
         btn.setAttribute('aria-label', obtained ? `${entry.name}, found` : `Entry ${entry.dexNumber}, not found yet`);
         btn.innerHTML = '<div class="kd-scale"><div></div></div>';
-        KeeperDexCard.render(btn.querySelector('.kd-scale > div'), entry, { obtained });
+        // Oct 31 2026 (Craft, from 1.0.6): not found yet = face-down, so the grid gives no hints.
+        KeeperDexCard.render(btn.querySelector('.kd-scale > div'), entry, { obtained, flipped: !obtained, firstAt });
         grid.appendChild(btn);
     });
     requestAnimationFrame(kdScale);
 }
 
+// Oct 31 2026 (Craft, from 1.0.6): tap a card for just the card, bigger. Tap it to flip.
 function openDexEntry(dexNumber) {
     const x = kdEntries().find(e => String(e.entry.dexNumber) === String(dexNumber));
     if (!x) return;
-    const box = PV2.sheet(`
-        <div class="head"><div><h2>${x.obtained ? PV2.esc(x.entry.name) : `No. ${String(x.entry.dexNumber).padStart(3, '0')}`}</h2>
-            <small>${x.obtained ? 'Found' : 'Not found yet. Get a matching bee to reveal it.'}</small></div>
-            <button type="button" class="x" data-close aria-label="Close">×</button></div>
-        <div class="kd-full"></div>`, x.entry.name);
-    KeeperDexCard.render(box.querySelector('.kd-full'), x.entry, { obtained: x.obtained });
+    let ov = document.getElementById('kd-zoom');
+    if (ov) ov.remove();
+    ov = document.createElement('div');
+    ov.id = 'kd-zoom'; ov.className = 'kd-zoom';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', x.obtained ? x.entry.name : `Entry ${x.entry.dexNumber}, not found yet`);
+    ov.innerHTML = `<div class="kd-zoom-card" tabindex="0"></div><p class="kd-zoom-hint">${x.obtained ? 'Tap the card to flip it. Tap outside to close.' : 'Not found yet. Get a matching bee to reveal it. Tap outside to close.'}</p>`;   // Oct 31 2026 (Craft)
+    document.body.appendChild(ov);
+    const card = ov.querySelector('.kd-zoom-card');
+    KeeperDexCard.render(card, x.entry, { obtained: x.obtained, flipped: !x.obtained, firstAt: x.firstAt });
+    const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); else if ((e.key === 'Enter' || e.key === ' ') && document.activeElement === card) { e.preventDefault(); KeeperDexCard.flip(card); } };
+    document.addEventListener('keydown', onKey);
+    ov.addEventListener('click', (e) => { if (e.target.closest('.kd-zoom-card')) KeeperDexCard.flip(card); else close(); });
+    card.focus({ preventScroll: true });
 }
 
 // Fallen bees (Hive Life, Oct 2026): name, job, how long they lived.

@@ -90,3 +90,6 @@
 .pfv2 .link-row i { color: var(--muted); font-style: normal; }
 .pfv2 [hidden] { display: none !important; }
 .pfv2 details.more summary { margin-top: 8px; color: var(--gold); font-size: .8rem; cursor: pointer; }
+
+/* Oct 31 2026 (Craft, from 1.0.6): hex ring follows the shape. */
+.pfv2 .hx::after { box-shadow: none !important; background: rgba(var(--bb-alt-rgb, 220, 20, 60), .85); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }

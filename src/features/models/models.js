@@ -23,8 +23,9 @@ function bmSections() {
         { id: 'rarities', tab: '🐝 Rarities', title: 'Rarities', sub: 'the card bee', items: [
             { key: 'rar:Common', name: 'Common', small: 'grey frame', art: 'card', arg: ['Common', null], how: 'Pull any bee.' },
             { key: 'rar:Rare', name: 'Rare', small: 'blue frame', art: 'card', arg: ['Rare', 'water'], how: 'Pull a Rare. Every 6th pull without one is a sure Rare.' },
-            { key: 'rar:Epic', name: 'Epic', small: 'purple frame', art: 'card', arg: ['Epic', 'water'], how: 'Pull an Epic, or combine two Rares.' },
-            { key: 'rar:Legendary', name: 'Legendary', small: 'gold frame', art: 'card', arg: ['Legendary', 'water'], how: 'Pull a Legendary (1 in 1,000), or combine two Epics.' },
+            // Oct 31 2026 (Craft): Epic/Legendary hints match the real combine odds (small chance).
+            { key: 'rar:Epic', name: 'Epic', small: 'purple frame', art: 'card', arg: ['Epic', 'water'], how: 'Pull an Epic. Combining two Rares has a small chance too.' },
+            { key: 'rar:Legendary', name: 'Legendary', small: 'gold frame', art: 'card', arg: ['Legendary', 'water'], how: 'Pull a Legendary (1 in 1,000). Combining two Epics has a tiny chance too.' },
             { key: 'rar:Named', name: 'Named Beast', small: 'pink frame + title', art: 'card', arg: ['Named', 'fire'], how: `Unwrap one with ${NAMED_BEAST_TICKETS} tickets in the Pollination Chamber.` },
             { key: 'rar:Royal', name: 'Royal card', small: 'your Queen or King', art: 'card', arg: ['Royal', null], how: 'Hatch your egg.' }] },
         { id: 'elements', tab: '🔥 Elements', title: 'Elements', sub: 'the card backgrounds', items: BEE_ELEMENT_KEYS.map(el => ({

@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const fixture = () => ({ schemaVersion: 8, user: { name: 'Bee' }, quests: [], profilePhoto: 'photo-data' });
-async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', remote = fixture(), auto = true, failLoad = false, merge = false } = {}) {
+async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', remote = fixture(), auto = true, failLoad = false, merge = false, remoteDevice = null } = {}) {
     const key = 'bizzybee_user_data:alice';
     const state = fixture();
     const data = new Map([['bizzybee_session', 'identity'], ['bizzybee_cloud_owner', 'alice'], [key, JSON.stringify(state)],
@@ -27,11 +27,11 @@ async function harness({ dirty = false, revision = 'r1', remoteRevision = 'r1', 
         fetch: async (url, options) => {
             if (options.method === 'GET') {
                 if (failLoad) throw new Error('offline');
-                return { ok: true, json: async () => ({ ok: true, data: remote ? JSON.stringify(remote) : null, revision: remoteRevision, encrypted: true }) };
+                return { ok: true, json: async () => ({ ok: true, data: remote ? JSON.stringify(remote) : null, revision: remoteRevision, encrypted: true, device: remoteDevice }) };
             }
             h.posts.push(JSON.parse(options.body));
             const result = await h.respond();
-            return { ok: result.ok, status: result.ok ? 200 : 409, json: async () => result };
+            return { ok: result.ok, status: result.ok ? 200 : (result.status || 409), json: async () => result };
         } });
     if (merge) { const db = readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8'); vm.runInContext(db.slice(db.indexOf('const MERGE_LISTS'), db.indexOf('const Vault = new DatabaseManager()')) + '\nglobalThis.mergeSaves = mergeSaves;', context); }
     vm.runInContext(readFileSync(new URL('../src/core/services/cloud-sync/cloud-sync.js', import.meta.url), 'utf8') + '\nglobalThis.engine = CloudSyncAuto;', context);
@@ -65,32 +65,38 @@ test('automatic uploads stay off even if a timer was already scheduled', async (
     assert.equal(h.posts.length, 0);
     assert.equal(h.data.get(h.key + ':dirty'), 'true');
 });
-test('new device loads cloud progress instead of overwriting it', async () => {
+// Oct 31 2026 (Craft): one active device at a time replaced save merge.
+test('new device loads cloud progress instead of overwriting it, then takes over', async () => {
     const remote = fixture(); remote.user.name = 'Cloud Bee';
     const h = await harness({ revision: null, dirty: true, remote });
-    assert.equal(h.imports, 1); assert.equal(h.reloaded, 1); assert.equal(h.posts.length, 0);
+    assert.equal(h.imports, 1); assert.equal(h.reloaded, 1);
+    assert.equal(h.posts.length, 1); assert.equal(h.posts[0].takeover, true);
+    assert.equal(JSON.parse(h.posts[0].data).user.name, 'Cloud Bee');
     assert.equal(h.Vault.state.user.name, 'Cloud Bee');
 });
-test('without the merge code, both copies changed means pause (never overwrite)', async () => {
-    const h = await harness({ dirty: true, remoteRevision: 'r9' });
-    assert.equal(h.imports, 0); assert.equal(await h.engine.pushNow(), false); assert.equal(h.posts.length, 0);
-});
-test('with the merge code, both copies are combined and saved once', async () => {
+test('opening on this device after another device saved: cloud copy wins, never merged', async () => {
     const remote = fixture(); remote.quests = [{ id: 'q1', name: 'Cloud quest' }];
-    const h = await harness({ dirty: true, remoteRevision: 'r9', remote, merge: true });
-    await tick(); await tick();
-    assert.equal(h.posts.length, 1); assert.equal(h.posts[0].revision, 'r9'); assert.equal(h.posts[0].preservePrevious, true);
-    const sent = JSON.parse(h.posts[0].data);
-    assert.equal(sent.quests[0].name, 'Cloud quest'); assert.equal(sent.profilePhoto, 'photo-data');
+    const h = await harness({ dirty: true, remoteRevision: 'r9', remote, remoteDevice: 'phone' });
+    assert.equal(h.imports, 1); assert.equal(h.posts.length, 1);
+    assert.equal(h.posts[0].revision, 'r9'); assert.equal(h.posts[0].takeover, true); assert.notEqual(h.posts[0].preservePrevious, true);
+    assert.equal(JSON.parse(h.posts[0].data).quests[0].name, 'Cloud quest');
     assert.equal(h.data.get(h.key + ':dirty'), 'false');
+});
+test('another device took over: saves stop here and nothing is overwritten', async () => {
+    const h = await harness({ dirty: true });
+    h.respond = async () => ({ ok: false, status: 423, code: 'other-device', error: 'Active on another device.' });
+    assert.equal(await h.engine.pushNow(), false);
+    assert.equal(h.engine.isInactive(), true);
+    assert.equal(await h.engine.pushNow(), false);
+    assert.equal(h.posts.length, 1);
+    assert.equal(h.data.get(h.key + ':dirty'), 'true');
 });
 test('server conflict leaves pending changes intact', async () => {
     const h = await harness({ dirty: true });
     h.respond = async () => ({ ok: false, error: 'Cloud changed' });
     assert.equal(await h.engine.pushNow(), false);
     assert.equal(h.data.get(h.key + ':dirty'), 'true');
-    assert.equal(await h.engine.pushNow(), false);
-    assert.equal(h.posts.length, 1);
+    assert.equal(h.posts.length, 2);   // one retry with the fresh revision, then stop
 });
 test('failed startup never pushes a device copy before checking cloud', async () => {
     const h = await harness({ dirty: true, failLoad: true });

@@ -178,8 +178,8 @@
     letter-spacing: 0.5px;
 }
 
-/* Points back to the Hive Mind page (src/features/colony/). */
-.gacha-colony-link-btn {
+/* Points back to the Hive Mind page (src/features/hive-mind/). */
+.gacha-hive-mind-link-btn {
     display: block;
     text-align: center;
     text-decoration: none;
@@ -192,7 +192,7 @@
     transition: border-color 0.2s, color 0.2s;
 }
 
-.gacha-colony-link-btn:hover {
+.gacha-hive-mind-link-btn:hover {
     border-color: var(--gold-start);
     color: var(--gold-start);
 }

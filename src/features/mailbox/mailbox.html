@@ -17,6 +17,13 @@
         <h1 class="bb-title">📬 MAILBOX</h1>
         <p class="bb-text">Letters from the creator of BizzyBee. Tap 👍 or 👎 to let him know what you think.</p>
     </section>
+    <!-- Oct 29 2026 (Craft): Letters and Updates (the changelog) tabs. -->
+    <div class="mb-tabs" role="tablist">
+        <button type="button" role="tab" id="mb-tab-letters" data-tab="letters" aria-selected="true">✉️ Letters</button>
+        <button type="button" role="tab" id="mb-tab-updates" data-tab="updates" aria-selected="false">🆕 Updates</button>
+    </div>
+    <section id="mb-updates" class="mb-updates" hidden></section>
+    <div id="mb-letters" class="mb-letters">
     <p class="bb-box bb-box--alert mb-signin" id="mb-signin" hidden></p>
 
     <section class="bb-box bb-box--glow mb-write" id="mb-write" hidden>
@@ -31,6 +38,7 @@
     <div class="mb-head"><h2 class="mb-sec">Letters</h2><button type="button" class="mb-refresh" id="mb-refresh" aria-label="Check for new mail">↻</button></div>
     <div id="mb-list"><p class="mb-empty">Loading…</p></div>
     <p class="mb-note" id="mb-updated"></p>
+    </div>
 </main>
 <script src="../../core/boot.js"></script>
 <script src="./mailbox.js"></script>

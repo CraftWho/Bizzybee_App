@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>👀 Visiting a hive</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/mech-bee/mech-bee.css">
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
+    <link rel="stylesheet" href="../../core/ui/bee-name/bee-name.css">
+    <link rel="stylesheet" href="./hive-mind.css">
+    <link rel="stylesheet" href="./hive-visit.css">
+    <link rel="stylesheet" href="../../core/ui/weather-fx/weather-fx.css">
+</head>
+<body>
+
+    <main class="hive-mind-container">
+
+        <div class="hive-mind-view" id="hive-mind-exterior">
+            <!-- v2 header (Oct 2026): same look as Settings. -->
+            <div class="page-header-panel cm-head">
+                <h1 class="cm-title" id="hv-title">👀 VISITING</h1>
+                <p class="cm-lead">Just looking. Nothing here can change.</p>
+                <div class="cm-stats" id="cm-stats"></div>
+            </div>
+
+            <!-- Full-page hive art behind everything on this view (fixed,
+                 hive-mind.css). The hive (hive-mind-hive.js) is one SVG; your bees
+                 fly inside it via MechBeeScene (src/core/ui/mech-bee/). -->
+            <div class="hive-mind-nest-scene" id="hive-mind-nest-scene">
+                <div class="hive-mind-hive-stage" id="hive-mind-hive-stage"></div>
+            </div>
+
+            <div class="hive-mind-exterior-actions hive-mind-exterior-actions--in-art">
+                <button class="hive-mind-enter-btn" id="enter-hive-btn">Enter Hive →</button>
+                <button class="hive-mind-enter-btn hive-bees-quick-btn" id="hive-bees-quick-btn" hidden>🐝 Hive Bees</button>
+                <a class="hive-mind-enter-btn hv-back" href="../friends/friends.html">← Friends' hives</a>
+            </div>
+        </div>
+
+        <div class="hive-mind-view" id="hive-mind-interior" style="display: none;">
+            <div class="page-header-panel cm-head">
+                <h1 class="cm-title" id="hv-title-in">🍯 INSIDE</h1>
+                <p class="cm-lead">Their bees at home. Just looking.</p>
+            </div>
+            <!-- Hive Life (Oct 2026) or the Classic inside view. -->
+            <div class="hl-switch" role="group" aria-label="Hive view">
+                <button type="button" data-hive-view="life">🐝 Hive Life</button>
+                <button type="button" data-hive-view="classic">🍯 Classic</button>
+            </div>
+            <section id="hive-mind-life" class="hl-wrap" hidden>
+                <div id="hl-comb-host"></div>
+                <div class="hl-info" id="hl-info"><b>Tap a comb</b> to manage it: change jobs, add resting bees, and pick jobs for eggs. 😊 happy · 😢 hungry, tired or hurt · 😠 no job for 3+ days.</div>
+                <h3 class="hl-sec">Hive news</h3>
+                <div id="hl-news-host"></div>
+            </section>
+
+            <!-- Full-page honeycomb behind everything on this view (fixed,
+                 hive-mind.css). Drawn by hive-mind-interior.js. -->
+            <div class="hive-mind-interior-scene" id="hive-mind-interior-scene">
+                <div class="hive-mind-interior-stage" id="hive-mind-interior-stage"></div>
+            </div>
+
+            <div class="hive-mind-interior-bottom">
+                <div class="hive-mind-hud" id="hive-mind-hud"></div>
+                <!-- Pulling new bees, renaming, assigning work, and unwrapping
+                     gacha tickets live on their own page (Pollination Chamber,
+                     src/features/gacha/). -->
+                <div class="hive-mind-interior-actions">
+                    <button class="hive-mind-enter-btn hive-mind-leave-btn" id="leave-hive-btn">← Leave Hive</button>
+                    
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Tap a bee (inside or outside the hive) to see its card. -->
+    <div class="hive-mind-card-overlay" id="hive-mind-card-overlay" hidden>
+        <div class="hive-mind-card-host" id="hive-mind-card-host"></div>
+        <div class="hive-mind-life-panel" id="hive-mind-life-panel"></div>
+        <p class="hive-mind-card-hint">Tap the card to flip it. Tap outside to close.</p>
+    </div>
+
+    <script src="../../core/boot.js"></script>
+
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
+    <script src="../../core/ui/mech-bee/mech-bee.js"></script>
+    <script src="./hive-mind-hive.js"></script>
+    <script src="./hive-mind-interior.js"></script>
+    <script src="../../core/ui/bee-name/bee-name.js"></script>
+    <script src="../../core/ui/egg-designs/egg-designs.js"></script>
+    <script src="./hive-mind-life.js"></script>
+    <script src="./hive-mind.js"></script>
+    <script src="./hive-visit.js"></script>
+    <script src="../../core/ui/weather-fx/weather-fx.js"></script>
+    <script src="./hive-mind-weather.js"></script>
+</body>
+</html>

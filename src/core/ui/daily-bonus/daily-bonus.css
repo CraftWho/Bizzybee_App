@@ -1,0 +1,14 @@
+/* Daily bonus (Nov 1 2026, Craft, approved demo option A "7-day comb"). */
+.dbn-scrim { position: fixed; inset: 0; z-index: 9000; background: rgba(0, 0, 0, .72); display: grid; place-items: center; padding: 16px; }
+.dbn-pop { width: min(420px, 100%); background: #16120a; border: 1px solid #3a2a0a; border-radius: 18px; padding: 20px 16px 16px; display: grid; gap: 14px; text-align: center; color: #f1ede2; }
+.dbn-pop h2 { margin: 0; font: 800 1rem var(--font-main, monospace); letter-spacing: .14em; color: var(--bb-accent, #ffcc00); }
+.dbn-pop p { margin: 0; font-size: .85rem; color: #a8987a; }
+.dbn-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.dbn-day { display: grid; justify-items: center; gap: 3px; padding: 8px 1px; border-radius: 11px; background: #0f0b05; border: 1px solid #3a2a0a; font: 700 .62rem var(--font-main, monospace); color: #a8987a; }
+.dbn-day i { font-style: normal; font-size: 1.15rem; line-height: 1.2; }
+.dbn-day.got { opacity: .45; }
+.dbn-day.today { border-color: var(--bb-accent, #ffcc00); color: var(--bb-accent, #ffcc00); box-shadow: 0 0 12px rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
+.dbn-day.big { background: linear-gradient(#2a1d06, #120c02); }
+.dbn-go { border: 0; border-radius: 12px; padding: 13px; font: 700 .85rem var(--font-main, monospace); letter-spacing: .06em; cursor: pointer; background: linear-gradient(var(--bb-t-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; }
+.dbn-go:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.dbn-got { font: 700 .95rem var(--font-main, monospace); color: #57d18a; min-height: 1.2em; }

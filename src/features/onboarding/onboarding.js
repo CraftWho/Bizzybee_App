@@ -34,11 +34,13 @@ const canBuzz = typeof navigator.vibrate === 'function';
 const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Local calendar dates (the To-Dos page uses local dates for due dates).
-function localISO(offsetDays = 0) {
+// Oct 31 2026 (Craft): renamed from localISO - that name replaced db.js's
+// localISO(date) on this page and broke habit tallies.
+function obDayISO(offsetDays = 0) {
     const d = new Date(); d.setDate(d.getDate() + offsetDays);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-const dayKey = () => (typeof todayISO === 'function' ? todayISO() : localISO());
+const dayKey = () => (typeof todayISO === 'function' ? todayISO() : obDayISO());
 
 // ---------------------------------------------------------------------------
 // Numbers (all from the spec's decision log)
@@ -341,7 +343,7 @@ function todosHTML() {
     const list = S.todos().filter(t => !t.completed || t.completedDate === today);
     let h = `<div class="sec">Your To-Dos</div>`;
     if (!list.length) h += `<p class="why" style="margin:0 2px 8px">Nothing to do yet.</p>`;
-    const dueLabel = d => d === localISO(0) ? 'Today' : d === localISO(1) ? 'Tomorrow' : d;
+    const dueLabel = d => d === obDayISO(0) ? 'Today' : d === obDayISO(1) ? 'Tomorrow' : d;
     h += [...list].sort((a, b) => a.completed - b.completed).map(t => {
         const steps = t.checklist || [];
         return `<div class="todo${t.completed ? ' done' : ''}"><div class="todo-top">
@@ -720,7 +722,7 @@ $('todoSave').onclick = () => {
     const label = $('todoName').value.trim(); if (!label) { $('todoName').focus(); return; }
     const checklist = $('todoSteps').value.split('\n').map(t => t.trim()).filter(Boolean).slice(0, 8)
         .map((text, i) => ({ id: `chk-${Date.now()}-${i}`, text, done: false }));
-    const dueDate = dueSel === 'today' ? localISO(0) : dueSel === 'tomorrow' ? localISO(1) : null;
+    const dueDate = dueSel === 'today' ? obDayISO(0) : dueSel === 'tomorrow' ? obDayISO(1) : null;
     S.addTodo({ label, dueDate, checklist });
     $('todoSheet').hidden = true;
     if (F.stage === 'larva') { finishL('add'); if (dueDate) finishL('due'); if (checklist.length) finishL('steps'); }
@@ -849,7 +851,7 @@ function showCard() {
           <div class="scard-art">${royalStack(F.royal)}</div>
           <div class="scard-dex"><span>No.000</span><span>FOUNDER</span><span>${A.label.toUpperCase()}</span></div>
           <p class="scard-flavor">The heart of a new hive, hatched from a gift. Every bee to come answers to ${A.her}.</p></div>
-        <div class="row2" style="justify-content:center"><button class="btn" data-s="done">${PRACTICE ? 'Finish practice' : 'Add to my colony'}</button></div>`, true);
+        <div class="row2" style="justify-content:center"><button class="btn" data-s="done">${PRACTICE ? 'Finish practice' : 'Add to my hive'}</button></div>`, true);
 }
 function finish() {
     clearInterval(T.pupaT); clearInterval(T.stretchT);

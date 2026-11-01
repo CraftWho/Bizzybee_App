@@ -67,7 +67,7 @@ function buildEventIndex() {
     Vault.getQuests().forEach(quest => {
         (quest.tasks || []).forEach(task => {
             if (task.completed && task.dateCompleted) {
-                const key = task.dateCompleted.slice(0, 10);
+                const key = localDayOf(task.dateCompleted);   // Oct 31 2026 (Craft): local day
                 ensure(key).quests.push({ label: task.label, xp: task.xp, questTitle: quest.title });
             }
         });

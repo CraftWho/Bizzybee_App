@@ -38,11 +38,20 @@ _local_backup_before_history_scrub_2026-08-26/
 .npm-cache/
 node_modules/
 
-# Local dev login (src/local/admin.local.js) is now committed (Oct 2026) so
-# collaborators get the Hacker login on their own machine. It only works on
-# localhost / a local network address - app.js never loads it on the live site.
+# Oct 31 2026 (Craft): the Hacker login (src/local/admin.local.js) is gone.
+# On localhost the app opens PC LOCAL, a fake test account (see db.js).
 
 # Your local save files (last 3 saves, full progress + photo) - never commit.
 save-files/
 # Codebase dump tool output.
 repomix-output.xml
+
+# Oct 30 2026 (Craft): local test server (`npm run dev` = netlify dev).
+# .netlify/ holds the local sandbox saves and the site link; .env holds local keys.
+.netlify/
+.env
+
+# Oct 31 2026 (Craft): written at deploy by tools/stamp-version.mjs.
+version.json
+# Nov 1 2026 (Craft): written by the deploy (tools/stamp-version.mjs)
+app-files.json

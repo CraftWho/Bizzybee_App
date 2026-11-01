@@ -31,13 +31,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const body = new URLSearchParams(new FormData(form)).toString();
-            const response = await fetch('/', {
+            // Nov 1 2026 (Craft): from the Android app's own copy, post to the site.
+            const site = window.BB_SITE || '';
+            const response = await fetch(site + '/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body,
+                ...(site ? { mode: 'no-cors' } : {}),
             });
 
-            if (!response.ok) {
+            if (!site && !response.ok) {
                 throw new Error('http-' + response.status);
             }
 

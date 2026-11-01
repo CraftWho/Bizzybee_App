@@ -12,6 +12,7 @@ import { getStore } from '@netlify/blobs';
 import { randomInt } from 'node:crypto';
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json } from '../lib/cloud-store.mjs';
+import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
 
 const hives = () => getStore({ name: 'bizzybee-hives', consistency: 'strong' });
 const ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // no 0/O or 1/I/L mix-ups
@@ -51,7 +52,7 @@ async function ensure(store, id) {
     throw new Error('Could not make a hive code. Try again.');
 }
 
-export default async (req) => {
+const handler = async (req) => {
     if (req.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405);
     let user;
     try { user = await authenticatedUser(req); } catch { return json({ ok: false, error: 'Sign-in is unavailable. Try again.' }, 503); }
@@ -113,3 +114,4 @@ export default async (req) => {
         return json({ ok: false, error: error.message || 'Hive service failed.' }, 503);
     }
 };
+export default withCors(handler);

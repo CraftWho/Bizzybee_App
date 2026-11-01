@@ -25,7 +25,7 @@ const Social = (() => {
     // Your hive card: only what a visitor sees. No quests, tasks, jobs,
     // vitals or when you last played.
     function card() {
-        const v = Vault, all = v.getColonyBees ? v.getColonyBees() : [];
+        const v = Vault, all = v.getHiveBees ? v.getHiveBees() : [];
         const royal = all.find(b => b.rarity === 'Royal');
         const owner = (v.state.displayName || (royal && royal.name) || (v.getUser() || {}).name || 'A beekeeper').replace(/^worker bee$/i, 'A beekeeper');
         return {

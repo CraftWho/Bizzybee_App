@@ -32,16 +32,20 @@
         <h2 class="sec">Special items</h2>
         <section class="card" id="store-identity-row"></section>
 
-        <a class="card hs-inc-link" href="../../plugins/incubator/incubator.html#store" id="store-incubator-link" hidden><span>🥚</span><span><b>Egg Incubators</b><small>Hatch eggs faster with your steps. Four tiers.</small></span><span class="chev">›</span></a>
-        <script>document.addEventListener('DOMContentLoaded', () => { if (typeof Plugins === 'undefined' || Plugins.isEnabled('incubator')) document.getElementById('store-incubator-link').hidden = false; });</script>
+        <!-- Oct 31 2026 (Craft, from 1.0.7): Egg Incubators are sold here with
+             Honey coins (no need to turn on the plugin first). Buying one turns
+             the Egg Incubator page on, so it shows in your menu and Home. -->
+        <h2 class="sec">Egg Incubators</h2>
+        <div class="hs-inc" id="store-incubators"></div>
+        <p class="note">Paid with Honey coins. Eggs inside hatch faster as you walk or finish dailies. One works at a time, and a better one takes over. <a href="../../plugins/incubator/incubator.html">Open your incubator</a></p>
 
         <h2 class="sec">Items bees hold</h2>
         <div class="tiles" id="store-held-grid"></div>
-        <p class="note">Rare and Epic bees hold 1 item, Legendary and Named hold 2. Use-up items fire on their own when needed. Gear stays on. Give one from a bee's card on <a href="../colony-bees/colony-bees.html">Colony Bees</a>.</p>
+        <p class="note">Rare and Epic bees hold 1 item, Legendary and Named hold 2. Use-up items fire on their own when needed. Gear stays on. Give one from a bee's card on <a href="../hive-bees/hive-bees.html">Hive Bees</a>.</p>
 
         <h2 class="sec">Trait gear</h2>
         <div class="tiles" id="store-item-grid"></div>
-        <p class="note">Each item gives a bee a trait, and a Common or Rare bee a shot at Epic. Use them from a bee's card on the <a href="../colony-bees/colony-bees.html">Colony Bees</a> page.</p>
+        <p class="note">Each item gives a bee a trait, and a Common or Rare bee a shot at Epic. Use them from a bee's card on the <a href="../hive-bees/hive-bees.html">Hive Bees</a> page.</p>
 
         <section class="card hs-links">
             <a class="row" href="../inventory/inventory.html"><span class="hx">🎒</span><span class="mid"><b>Inventory</b><small>Everything you own</small></span><span class="chev">›</span></a>
@@ -52,6 +56,7 @@
     <script src="../../core/ui/item-card/item-card.js"></script>
 
     <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="../../plugins/incubator/incubator-art.js"></script>
     <script src="./honey-store.js"></script>
 </body>
 </html>

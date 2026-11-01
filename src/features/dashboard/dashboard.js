@@ -7,7 +7,7 @@ console.log("/// DASHBOARD ONLINE ///");
 // Everything is computed live from your save (db.js), XP = time.
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const dayKey = (v) => String(v || '').slice(0, 10);
+const dayKey = (v) => localDayOf(v);   // Oct 31 2026 (Craft): local day, not UTC
 const fmtH = (h) => h < 10 ? (+h.toFixed(1)).toString() : Math.round(h).toLocaleString();
 const GOAL_H = 10000;
 const SOURCE_NAMES = { daily: 'Dailies', habit: 'Habits', todo: 'To-Dos', quest: 'Quests', history: 'Codex history' };
@@ -31,14 +31,14 @@ function renderTiles(S) {
     const hoursLeft = Math.max(0, (bar.cap - bar.xpIntoLevel) / 60);
     document.getElementById('db-tiles').innerHTML = `
         <div class="tile hero"><small>Total XP</small><b>${user.totalXP.toLocaleString()}</b><span>≈ ${fmtH(user.totalXP / 60)} h of work</span></div>
-        <div class="tile"><small>${bar.level > LEVEL_CAP ? 'Prestige Tier' : 'Level'}</small><b>${bar.level > LEVEL_CAP ? bar.level - LEVEL_CAP : bar.level}</b><div class="bar"><i style="width:${bar.percentage}%"></i></div><span>${bar.maxed ? 'Ready - claim it on Home' : `~${fmtH(hoursLeft)} h to ${levelName(bar.level + 1)}`}</span></div>
+        <div class="tile"><small>Level</small><b>${bar.level}</b><div class="bar"><i style="width:${bar.percentage}%"></i></div>${bar.maxed ? '<button type="button" class="lvl-claim" id="db-claim">⬆ Claim level up</button>' : `<span>~${fmtH(hoursLeft)} h to ${levelName(bar.level + 1)}</span>`}</div>
         <div class="tile"><small>Best streak</small><b>${best}</b><span>days in a row</span></div>
         <div class="tile"><small>Quests done</small><b>${questsDone}</b><span>${(S.quests || []).length - questsDone} in progress</span></div>`;
 }
 
 function renderChart(m) {
     const daysList = [];
-    for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); daysList.push({ d, xp: Math.max(0, m[isoLocal(d)] || m[d.toISOString().slice(0, 10)] || 0) }); }
+    for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); daysList.push({ d, xp: Math.max(0, m[isoLocal(d)] || 0) }); }
     const total = daysList.reduce((a, x) => a + x.xp, 0), max = Math.max(...daysList.map(x => x.xp), 1);
     document.getElementById('db-total').textContent = `${total.toLocaleString()} XP`;
     document.getElementById('db-avg').textContent = `${Math.round(total / 14)} a day on average`;
@@ -110,10 +110,10 @@ function renderMastery(S) {
         const ticks = [10, 100, 1000].map(t => `<span class="tick${s.hours >= t ? ' on' : ''}" style="left:${roadPos(t)}%"></span>`).join('');
         const src = Object.entries(s.bySource || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${SOURCE_NAMES[k] || k} ${fmtH(v / 60)} h`).join(' · ');
         const stagePct = s.nextStage ? Math.min(100, 100 - s.hoursToNextStage / (s.hours + s.hoursToNextStage - SKILL_STAGES.find(x => x.name === s.stage).from) * 100) : 100;
-        return `<div class="sk">
+        return `<div class="sk" style="--skc:${s.color}">
             <div class="sk-top"><span class="hx" style="--c:${s.stageColor}">${s.level}</span>
-                <div class="mid"><b>${esc(s.category)}</b><span class="stage" style="--sc:${s.stageColor}">${s.stage}</span></div>
-                <div class="hrs"><b>${fmtH(s.hours)} h</b><small>${(s.hours / GOAL_H * 100).toFixed(s.hours < 100 ? 2 : 1)}% of 10,000</small></div></div>
+                <div class="mid"><b>${s.icon} ${esc(s.category)}</b><span class="stage" style="--sc:${s.stageColor}">${s.stage}</span></div>
+                <div class="hrs"><b>${s.measure === 'times' ? `✔ ${s.count}` : `${fmtH(s.realHours)} h`}</b><small>${(s.hours / GOAL_H * 100).toFixed(s.hours < 100 ? 2 : 1)}% of 10,000</small></div></div>
             <div class="bar" role="img" aria-label="${s.stage}: ${Math.round(stagePct)}% to ${s.nextStage || 'done'}"><i style="width:${stagePct}%"></i></div>
             <div class="cap"><span>${s.nextStage ? `${fmtH(s.hoursToNextStage)} h to <b>${s.nextStage}</b>` : 'Top stage'}</span><span>Level ${s.level}</span></div>
             ${s.maxed ? `<button type="button" class="sk-up" data-cat="${esc(s.category)}"><span>⬆ Level up</span><small>Level ${s.level + 1} is ready · tap for rewards</small></button>` : ''}
@@ -164,6 +164,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         Vault.save();
         setTimeout(async () => { await StarterSkills.open(); render(); }, 600);
     }
+    // Oct 31 2026 (Craft, from 1.0.6): claim the level up right here too (same reward screen as Home).
+    // The Level tile shows the plain number past 50 (Tiers are ranks now).
+    document.getElementById('db-tiles').addEventListener('click', async (e) => {
+        const b = e.target.closest('#db-claim');
+        if (!b || b.disabled) return;
+        b.disabled = true;
+        await AppShell.levelUp();
+        render();
+    });
     // Skill level-up right here (Oct 2026), same reward screen as the Skills page.
     document.getElementById('db-mastery').addEventListener('click', async (e) => {
         const b = e.target.closest('.sk-up');

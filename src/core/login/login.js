@@ -134,7 +134,7 @@ function setupAuthForms() {
         showPanel(btn.dataset.show);
     }));
 
-    // Sign in. (On this computer the Hacker login answers first.)
+    // Sign in. (On this computer, PC LOCAL skips the login entirely.)
     document.getElementById('login-form').addEventListener('submit', async (event) => {
         event.preventDefault();
         clearError();

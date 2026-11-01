@@ -1,6 +1,6 @@
 console.log("/// MECH BEE MODULE ONLINE ///");
 
-// MechBee - the small mech bee used around the hive (colony exterior), plus
+// MechBee - the small mech bee used around the hive (hive exterior), plus
 // an action engine that moves bees around an SVG scene. Bees always face the
 // way they are moving. Approved by the user on the hive-exterior concept
 // page (Oct 2026). Any page can use it: load mech-bee.css + mech-bee.js.

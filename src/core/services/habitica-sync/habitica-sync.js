@@ -64,6 +64,11 @@ const HabiticaSync = (() => {
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
     let running = false;
+    // Nov 1 2026 (Craft): true while Habitica is still on yesterday. Habitica
+    // starts its day at your Habitica "day start" hour, which can be later
+    // than BizzyBee's midnight. In that gap its dailies still show yesterday's
+    // ticks, and the sync copied them in as "done today". Dailies wait now.
+    let habiticaBehind = false;
     let changeTimer = null;
     let everyTimer = null;
     let started = false;
@@ -246,8 +251,10 @@ const HabiticaSync = (() => {
 
             // Start Habitica's new day first, like its own apps do.
             try {
+                habiticaBehind = false;
                 const cron = await api('getCronState');
                 if (cron && cron.needsCron) await write('runCron');
+                else if (cron && cron.lastCron && localDayOf(cron.lastCron) < today()) habiticaBehind = true;
             } catch (e) { if (e.status === 401) throw e; }
 
             const [open, done] = await Promise.all([api('getTasks'), api('getCompletedTodos')]);
@@ -397,7 +404,7 @@ const HabiticaSync = (() => {
             counts.pushed++;
             if (type === 'daily' && updated && typeof updated === 'object') noteDue(local, updated);
         }
-        if (type === 'daily' && !push.sched) noteDue(local, task);
+        if (type === 'daily' && !push.sched && !habiticaBehind) noteDue(local, task);   // its "due" is for yesterday while behind
 
         if (type === 'habit') {
             const c = habitCounts(local);
@@ -421,6 +428,8 @@ const HabiticaSync = (() => {
         }
 
         // Dailies and To-Dos: done / not done.
+        // Habitica still on yesterday: leave dailies alone until its day starts.
+        if (type === 'daily' && habiticaBehind) { link.snap = { ...snap, f: { ...rf, ...push } }; return; }
         const base = type === 'daily' && snap.day !== today() ? false : !!snap.done;
         const here = localDone(type, local), there = !!task.completed;
         let finalDone = there;

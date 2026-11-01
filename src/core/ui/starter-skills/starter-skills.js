@@ -1,5 +1,5 @@
 // Starter skills (Oct 28 2026, approved demo). "What are you working on?"
-// Shows once after "Add to my colony" for new players, and once on the
+// Shows once after "Add to my hive" for new players, and once on the
 // Dashboard for players with no skills yet. Each skill brings a word pack:
 // those words go into the Dictionary under that skill, so normal task names
 // ("Morning run") count toward it. No #hashtags needed.

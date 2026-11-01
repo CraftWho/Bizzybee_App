@@ -3,7 +3,7 @@ console.log("/// HONEY STORE PROTOCOLS INITIALIZED ///");
 // Honey Store v2 (Oct 2026, same look as Settings/Inventory - page-v2.css).
 // STORE_ITEM_CATALOG lives in db.js (trait items + the Identity Card).
 // Purchases spend materials and land in state.inventory.items. Items are
-// used from a bee's card on the Colony Bees page - this page only sells.
+// used from a bee's card on the Hive Bees page - this page only sells.
 // Tap an item for its details and the Buy button.
 
 function hsMat(id) { return MATERIAL_CATALOG.find(m => m.id === id) || { icon: '', label: id }; }
@@ -67,7 +67,7 @@ function openStoreItem(id) {
         <p>${PV2.esc(item.description)}</p>
         <p>Costs ${mat.icon} <b style="color:var(--ink)">${item.price.amount} ${PV2.esc(mat.label)}</b>. You have ${have}.</p>
         <div class="btns"><button type="button" class="btn solid" data-buy${ok ? '' : ' disabled'}>Buy</button>
-            ${owned && item.kind !== 'charm' ? '<a class="btn" href="../colony-bees/colony-bees.html">🐝 Use on a bee…</a>' : ''}</div>
+            ${owned && item.kind !== 'charm' ? '<a class="btn" href="../hive-bees/hive-bees.html">🐝 Use on a bee…</a>' : ''}</div>
         ${ok ? '' : `<p>You need ${item.price.amount - have} more ${PV2.esc(mat.label)}. ${item.price.currency === 'coins' ? 'Every task you finish earns coins.' : 'Foragers bring materials back when you finish tasks.'}</p>`}`, item.label);
     const buy = box.querySelector('[data-buy]');
     if (buy) buy.addEventListener('click', () => handlePurchase(item.id));
@@ -79,12 +79,40 @@ function handlePurchase(itemId) {
         if (typeof Toast !== 'undefined') Toast.show('Not enough materials for that yet.', 'negative');
         return;
     }
-    if (typeof Toast !== 'undefined') Toast.show(result.item.kind === 'charm' ? `🎁 Bought a Streak Charm! It's used automatically on a missed streak.` : result.item.kind === 'held' ? `${result.item.icon} Made a ${result.item.label}! Give it to a Rare-or-better bee from its card.` : `${result.item.icon} Bought ${result.item.label}! Use it from a bee's card on Colony Bees.`, 'positive');
+    if (typeof Toast !== 'undefined') Toast.show(result.item.kind === 'charm' ? `🎁 Bought a Streak Charm! It's used automatically on a missed streak.` : result.item.kind === 'held' ? `${result.item.icon} Made a ${result.item.label}! Give it to a Rare-or-better bee from its card.` : `${result.item.icon} Bought ${result.item.label}! Use it from a bee's card on Hive Bees.`, 'positive');
     renderAll();
     openStoreItem(itemId);
 }
 
+// Oct 31 2026 (Craft, from 1.0.7): Egg incubators, bought here with Honey coins.
+// Buying one also turns the Egg Incubator page on (menu and Home).
+function renderIncubators() {
+    const host = document.getElementById('store-incubators');
+    if (!host || typeof INCUBATORS === 'undefined' || typeof Vault.getIncubator !== 'function') return;
+    const I = Vault.getIncubator();
+    host.innerHTML = INCUBATOR_ORDER.map(id => {
+        const t = INCUBATORS[id], own = I.owned.includes(id), use = I.tier === id, can = I.coins >= t.price;
+        const perks = [`${t.slots} egg slot${t.slots > 1 ? 's' : ''}`, `1 day off per ${t.goal.toLocaleString()} steps`, `Up to ${t.cap} days off a day`,
+            t.full && t.happy ? 'Hatchlings start happy and full' : t.full ? 'Hatchlings start full' : null, t.trait ? `+${Math.round(t.trait * 100)}% birth trait chance` : null].filter(Boolean);
+        const btn = use ? '<a class="hs-inc-btn" href="../../plugins/incubator/incubator.html">In use · Open</a>'
+            : own ? '<a class="hs-inc-btn" href="../../plugins/incubator/incubator.html">Owned · Open</a>'
+            : `<button type="button" class="hs-inc-btn gold" data-inc="${id}" ${can ? '' : 'disabled'}>${can ? `Buy · 🪙 ${t.price.toLocaleString()}` : `🪙 ${t.price.toLocaleString()}`}</button>`;
+        return `<div class="hs-inc-card${own ? ' owned' : ''}">${typeof IncubatorArt !== 'undefined' ? IncubatorArt.svg({ tier: id, mini: true, eggs: [] }) : '🥚'}
+            <div class="mid"><b>${t.icon} ${t.label}</b><ul>${perks.map(x => `<li>${x}</li>`).join('')}</ul>${btn}</div></div>`;
+    }).join('');
+    host.onclick = (e) => {
+        const b = e.target.closest('[data-inc]'); if (!b) return;
+        const t = INCUBATORS[b.dataset.inc];
+        if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = `Tap again to buy`; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ''; renderIncubators(); } }, 3000); return; }
+        const r = Vault.buyIncubator(b.dataset.inc);
+        if (r.ok && typeof Vault.setPluginEnabled === 'function' && !Vault.isPluginEnabled('incubator')) Vault.setPluginEnabled('incubator', true);
+        Toast.show(r.ok ? `${t.icon} ${t.label} bought! Open it to put eggs inside.` : r.error, r.ok ? 'positive' : 'negative');
+        renderAll();
+    };
+}
+
 function renderAll() {
+    renderIncubators();   // Oct 31 2026 (Craft)
     renderWallet();
     renderIdentityCard();
     renderItemGrid();

@@ -15,7 +15,7 @@ const TERM_RANK = { none: 0, user: 1, moderator: 2, owner: 3 };
 const TERM_TEST_KEY = 'bizzybee_dev_test';
 const TERM_LOG_KEY = 'bizzybee_terminal_log';
 const termHost = location.hostname;
-const termIsLocal = termHost === '' || termHost === 'localhost' || termHost === '127.0.0.1' || termHost === '[::1]' || /^(10|192\.168)\./.test(termHost) || termHost.endsWith('.local');
+const termIsLocal = !window.BB_APP_COPY && (termHost === '' || termHost === 'localhost' || termHost === '127.0.0.1' || termHost === '[::1]' || /^(10|192\.168)\./.test(termHost) || termHost.endsWith('.local'));   // Nov 1 2026 (Craft): the app's own copy isn't PC LOCAL
 let termLevel = 'none';
 let termExpires = null;
 let termSignedIn = false;
@@ -63,7 +63,7 @@ async function termServer(body) {
 function findBee(name) {
     const q = String(name || '').trim().toLowerCase();
     if (!q) return null;
-    const bees = Vault.getColonyBees().filter(b => b.rarity !== 'Royal');
+    const bees = Vault.getHiveBees().filter(b => b.rarity !== 'Royal');
     return bees.find(b => b.name.toLowerCase() === q) || bees.find(b => b.name.toLowerCase().includes(q)) || null;
 }
 function materialId(word) {
@@ -108,7 +108,7 @@ const TERM_COMMANDS = [
     } },
     { name: 'status', need: 'none', help: 'Your save, level, bees and sync.', run: () => {
         const s = Vault.state, user = Vault.getUser() || {};
-        const bees = Vault.getColonyBees().filter(b => b.rarity !== 'Royal');
+        const bees = Vault.getHiveBees().filter(b => b.rarity !== 'Royal');
         const size = (localStorage.getItem(Vault.storageKey) || '').length;
         return [
             [`Save      ${(size / 1024).toFixed(0)} KB · schema ${s.schemaVersion}${Vault.devTest ? ' · TEST MODE' : ''}`],
@@ -143,7 +143,7 @@ const TERM_COMMANDS = [
     { name: 'fix bees', need: 'user', cooldown: true, help: 'Repair missing bee data.', run: () => {
         termBackup('fix bees');
         Vault._ensureBeeCardData(); if (Vault._ensureBeeLife) Vault._ensureBeeLife(); Vault.save();
-        return [[`Checked ${Vault.getColonyBees().length} bees. Missing data filled in.`, 'ok']];
+        return [[`Checked ${Vault.getHiveBees().length} bees. Missing data filled in.`, 'ok']];
     } },
     { name: 'sync', need: 'user', help: 'Compare this device with the cloud.', run: async () => {
         const cloud = await termWaitForCloud();
@@ -273,7 +273,7 @@ const TERM_COMMANDS = [
     } },
     { name: 'add tickets', usage: 'add tickets <n>', need: 'moderator', test: true, args: true, help: 'Give gacha tickets.', run: (a) => {
         const n = Math.max(1, Math.min(100, parseInt(a[0], 10) || 1));
-        Vault.state.colony.tickets = (Vault.state.colony.tickets || 0) + n; Vault.save();
+        Vault.state.hive.tickets = (Vault.state.hive.tickets || 0) + n; Vault.save();
         return [[`+${n} tickets (now ${Vault.getTicketCount()}).`, 'ok']];
     } },
     { name: 'add', usage: 'add <item> <n>', need: 'moderator', test: true, args: true, help: 'pollen, nectar, honey, jelly.', run: (a) => {
@@ -285,7 +285,7 @@ const TERM_COMMANDS = [
     } },
     { name: 'tick', usage: 'tick <days>', need: 'moderator', test: true, args: true, help: 'Run hive life for N days.', run: (a) => {
         const n = Math.max(1, Math.min(14, parseInt(a[0], 10) || 1));
-        Vault.state.colony.lifeTick = shiftISODate(todayISO(), -n);
+        Vault.state.hive.lifeTick = shiftISODate(todayISO(), -n);
         const events = Vault.hiveDailyTick();
         return [[`Ran ${n} day${n === 1 ? '' : 's'} of hive life.`, 'ok'], ...(events.length ? events.map(e => [`  ${e.text}`]) : [['  Nothing notable happened.', 'dim']])];
     } },
@@ -295,7 +295,7 @@ const TERM_COMMANDS = [
         return [[`${b.name} fainted.`, 'ok']];
     } },
     { name: 'heal', usage: 'heal <bee|all>', need: 'moderator', test: true, args: true, help: 'Wake and fully heal.', run: (a) => {
-        const list = a[0] === 'all' ? Vault.getColonyBees().filter(b => b.life) : [findBee(a.join(' '))].filter(Boolean);
+        const list = a[0] === 'all' ? Vault.getHiveBees().filter(b => b.life) : [findBee(a.join(' '))].filter(Boolean);
         if (!list.length) return [['No bee by that name.', 'err']];
         list.forEach(b => Object.assign(b.life, { health: 100, stamina: 100, fullness: 100, happiness: 90, faintedAt: null })); Vault.save();
         return [[`Healed ${list.length} bee${list.length === 1 ? '' : 's'}.`, 'ok']];
@@ -398,8 +398,7 @@ async function termExec(cmd, args, raw) {
 }
 
 async function termLoadAccess() {
-    // This computer with the Hacker login = owner, offline.
-    if (termIsLocal && localStorage.getItem('bizzybee_dev') === '1') { termLevel = 'owner'; return; }
+    if (typeof Vault !== 'undefined' && Vault.pcLocal) { termLevel = 'owner'; return; }   // Oct 31 2026 (Craft): PC LOCAL = owner, offline
     termSignedIn = localStorage.getItem('bizzybee_session') === 'identity';
     if (!termSignedIn) return;
     try {
