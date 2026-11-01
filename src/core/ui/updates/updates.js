@@ -18,6 +18,9 @@ const WHATS_NEW = [
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Nov 1 2026 (Craft): Batch 12.
+        { icon: '⚙️', title: 'Settings in groups', text: 'A short list of groups instead of one long page, with search and red dots for anything that needs you.', href: 'features/settings/settings.html' },
+        { icon: '🎃', title: 'Halloween is for Oct 31', text: 'The Halloween look turns on by itself on Halloween. The rest of the year it is BizzyBee.' },
         // Nov 1 2026 (Craft): Batch 11.
         { icon: '📲', title: 'Android: runs from your phone', text: 'The app keeps its own copy and downloads only what changed in each update. Faster, and less internet.' },
         // Nov 1 2026 (Craft): Batch 10.
