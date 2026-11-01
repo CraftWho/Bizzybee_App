@@ -1497,7 +1497,9 @@ function expectedLevelTickets(level) {
 // streak). Finishing a task/daily feeds every bee (_feedHive).
 // ============================================================================
 const STREAK_GOAL = 5;   // Nov 1 2026 (Craft): tasks a day needs to count toward your streak
-const STREAK_BONUS = { allDailies: 20, milestones: [[3, 30], [7, 75], [30, 300], [100, 1000]] };
+// Nov 1 2026 (Craft): + a weekly bonus every Sunday while your streak is 7+
+// days, so there's always one coming (7 to 30 days was a long wait).
+const STREAK_BONUS = { allDailies: 20, weekly: 75, milestones: [[3, 30], [30, 300], [100, 1000]] };
 
 const LIFE = {
     // Death is paused (Craft, Oct 2026): bees still faint and can be
@@ -4287,7 +4289,7 @@ class DatabaseManager {
     _checkTaskStreak(today = todayISO()) {
         if (!this.state) return;
         if (!this.state.bonusXP) this.state.bonusXP = [];
-        const mine = this.state.bonusXP.filter(b => b.date === today && /^streak-\d+:/.test(b.key));
+        const mine = this.state.bonusXP.filter(b => b.date === today && /^streak-(\d+|week):/.test(b.key));
         if (this.tasksDoneOn(today) < STREAK_GOAL) {
             if (mine.length) this.state.bonusXP = this.state.bonusXP.filter(b => !mine.includes(b));
             return;
@@ -4296,6 +4298,8 @@ class DatabaseManager {
         const streak = this.taskStreak(today);
         const add = [];
         STREAK_BONUS.milestones.forEach(([days, xp]) => { if (streak === days) add.push({ key: `streak-${days}:${today}`, date: today, xp, why: `${days}-day streak` }); });
+        const [y, mo, d] = today.split('-').map(Number);
+        if (streak >= 7 && new Date(y, mo - 1, d).getDay() === 0) add.push({ key: `streak-week:${today}`, date: today, xp: STREAK_BONUS.weekly, why: `Weekly streak (${streak} days)` });
         if (!add.length) return;
         this.state.bonusXP.push(...add);
         if (typeof Toast !== 'undefined') Toast.show(add.map(b => `🔥 +${b.xp} XP · ${b.why}`).join('  '), 'positive');
@@ -6750,7 +6754,7 @@ Object.assign(DatabaseManager.prototype, {
 // ============================================================================
 const SPECIAL_TITLES = [
     { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'Reach a 7-day streak', need: 1,
-        have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100):/.test(b.key)) ? 1 : 0 },
+        have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100|week):/.test(b.key)) ? 1 : 0 },
     { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7,
         have: (S) => {
             const days = new Set();
