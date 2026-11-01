@@ -1639,6 +1639,14 @@ const REST_RATES = {
 };
 // Nov 1 2026 (Craft): Hive Life combs and the jobs done in each (same as
 // HiveLife.COMBS). Used by the comb strength and by auto-manage.
+// Nov 1 2026 (Craft): the hive grows with your level. One new job slot
+// every 1-2 levels (the Lv 1 job becomes your first bee's talent).
+let HIVE_JOB_RULES = true;   // tests of the older job mechanics turn this off
+const HIVE_JOB_LADDER = [
+    { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 4, job: 'collector' }, { lv: 5, job: 'guardian' },
+    { lv: 7, job: 'watercarrier' }, { lv: 8, job: 'architect' }, { lv: 10, job: 'attendant' }, { lv: 11, job: 'cleaner' },
+    { lv: 13, job: 'scout' }, { lv: 14, job: 'drone' }, { lv: 16, job: 'barrier' }, { lv: 17, job: 'undertaker' }
+];
 const HIVE_COMB_JOBS = {
     royal: { name: 'Royal Chamber', jobs: ['attendant', 'drone'] },
     nursery: { name: 'Nursery', jobs: ['nurse'] },
@@ -3690,6 +3698,9 @@ class DatabaseManager {
         // Named Beasts: the title fixes the job.
         const locked = beeLockedJob(bee);
         if (locked && className !== locked) return null;
+        // Nov 1 2026 (Craft): open jobs only, talent only, one bee per job.
+        this.lastJobError = className ? this.jobBlock(bee, className) : '';
+        if (this.lastJobError) return null;
         // Hive Life: only male bees can be Drones, and Drones do nothing else.
         if (className && bee.sex) {
             const maleOnly = !!BEE_CLASSES[className].maleOnly;
@@ -6069,66 +6080,119 @@ Object.assign(DatabaseManager.prototype, {
         return fresh;
     },
 
-    // ---- Auto-manage (Nov 1 2026, Craft; approved demo) ----
-    // Unlocks when every comb with jobs has at least 1 bee, and one of them
-    // is Rare or better: that bee is the Leader. Then, once an hour, an empty
-    // comb gets the best free bee. Never takes resting, recuperating, sick,
-    // hurt or tired bees, eggs, or the Queen. With no free bee, the weakest
-    // bee moves from a comb with 2+ workers (never the Leader). Pauses while
-    // no Leader is working.
+    // ---- Hive levels + auto-manage (Nov 1 2026, Craft; approved demos) ----
+    // The hive grows with your level: HIVE_JOB_LADDER opens one job slot
+    // every 1-2 levels. Your first bee's talent is the job that opens at
+    // Lv 1, so every hive starts differently. One bee per job slot, and a
+    // bee can only take the job that matches its talent (Named bees: the
+    // job their title sets). Auto-manage unlocks when every open job is
+    // filled and one worker is Rare or better (the Leader); then every hour
+    // an empty open job gets a free bee with that talent. It pauses while a
+    // working bee is tired and no other bee with that talent is free, or
+    // while no Leader is working, and comes back by itself.
+    hiveJobLadder() {
+        const c = this.state && this.state.hive;
+        if (!c) return HIVE_JOB_LADDER.slice();
+        if (!c.firstJob) {
+            const first = this._lifeBees().filter(b => b.rarity !== 'Named' && b.talent).sort((a, b) => String(a.obtainedAt || '').localeCompare(String(b.obtainedAt || '')))[0];
+            if (first) c.firstJob = first.talent;
+        }
+        const f = c.firstJob;
+        if (!f || f === HIVE_JOB_LADDER[0].job) return HIVE_JOB_LADDER.slice();
+        const lv1 = HIVE_JOB_LADDER[0], other = HIVE_JOB_LADDER.find(x => x.job === f);
+        if (!other) return HIVE_JOB_LADDER.slice();
+        return HIVE_JOB_LADDER.map(x => x.job === f ? { lv: lv1.lv, job: f } : x === lv1 ? { lv: other.lv, job: lv1.job } : x).sort((a, b) => a.lv - b.lv);
+    },
+    hiveOpenJobs() {
+        const lv = (this.getUser() || {}).level || 1;
+        return this.hiveJobLadder().filter(x => x.lv <= lv).map(x => x.job);
+    },
+    // The bee in a job slot (alive, not an egg), or null.
+    jobHolder(job) {
+        return this._lifeBees().find(b => b.class === job && !beeIsBrood(b) && !b.life.faintedAt) || null;
+    },
+    beeFitsJob(bee, job) {
+        const locked = beeLockedJob(bee);
+        return locked ? locked === job : bee.talent === job;
+    },
+    // Why a bee can't take a job right now, or '' if it can.
+    jobBlock(bee, job) {
+        if (!job || job === 'recuperate' || !HIVE_JOB_RULES) return '';
+        if (!this.hiveOpenJobs().includes(job)) return 'That job isn\'t open yet.';
+        if (!this.beeFitsJob(bee, job)) return 'Only a bee with that talent can do this job.';
+        const h = this.jobHolder(job);
+        if (h && h.id !== bee.id) return `${h.name} already has this job.`;
+        return '';
+    },
+    // Every worker in this comb is Rare or better: they tire and get hungry 50% slower.
+    combIsRare(id) {
+        const w = this._combWorkers(id);
+        return w.length > 0 && w.every(b => ['Rare', 'Epic', 'Legendary', 'Named'].includes(b.rarity));
+    },
+    _rareCombOf(bee) {
+        const id = Object.keys(HIVE_COMB_JOBS).find(k => HIVE_COMB_JOBS[k].jobs.includes(bee.class));
+        return !!id && this.combIsRare(id);
+    },
+    // Once (Nov 1 2026): bees working off-talent, in a job that isn't open,
+    // or doubled up on a job go to rest.
+    _talentJobsMigrate() {
+        const c = this.state && this.state.hive;
+        if (!c || c.talentJobsV1 || !HIVE_JOB_RULES) return;
+        c.talentJobsV1 = true;
+        const open = this.hiveOpenJobs();
+        let moved = 0;
+        const keep = {};
+        this._lifeBees().filter(b => b.class && !beeIsBrood(b)).sort((a, b) => beeJobScore(b, b.class) - beeJobScore(a, a.class)).forEach(b => {
+            if (open.includes(b.class) && this.beeFitsJob(b, b.class) && !keep[b.class]) { keep[b.class] = b.id; return; }
+            b.class = null; b.jobSince = todayISO(); b.life.idleSince = todayISO(); moved++;
+        });
+        if (moved) this._lifeEvent('auto', `🐝 The hive reorganized. ${moved} bee${moved === 1 ? '' : 's'} went to rest.`);
+        this.save();
+    },
     _combWorkers(id) {
         const jobs = HIVE_COMB_JOBS[id].jobs;
         return this._lifeBees().filter(b => jobs.includes(b.class) && !beeIsBrood(b) && !b.life.faintedAt);
     },
     hiveLeader() {
         const RANK = { Rare: 1, Epic: 2, Legendary: 3, Named: 4 };
-        return Object.keys(HIVE_COMB_JOBS).flatMap(id => this._combWorkers(id))
-            .filter(b => RANK[b.rarity] && beeCanWork(b))
+        const open = this.hiveOpenJobs();
+        return this._lifeBees().filter(b => open.includes(b.class) && RANK[b.rarity] && !beeIsBrood(b) && beeCanWork(b))
             .sort((a, b) => RANK[b.rarity] - RANK[a.rarity] || beeJobScore(b, b.class) - beeJobScore(a, a.class))[0] || null;
+    },
+    _autoReady(b) {
+        return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery;
     },
     hiveAutoStatus() {
         if (!this.state || !this.state.hive) return null;
-        const combs = Object.keys(HIVE_COMB_JOBS).map(id => ({ id, name: HIVE_COMB_JOBS[id].name, staffed: this._combWorkers(id).length > 0 }));
+        const open = this.hiveOpenJobs();
+        const filled = open.filter(j => this.jobHolder(j)).length;
         const leader = this.hiveLeader();
-        return { on: !!(this.state.hive.autoManage && this.state.hive.autoManage.on), leader, combs, staffed: combs.filter(c => c.staffed).length, total: combs.length };
+        // A tired worker with nobody free to take its place pauses it.
+        const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b));
+        const stuck = open.map(j => this.jobHolder(j)).find(b => b && b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
+        const on = !!(this.state.hive.autoManage && this.state.hive.autoManage.on);
+        return { on, running: on && !!leader && !stuck, leader, stuck, open: open.length, filled };
     },
     // Called after a job change and every hour. Returns true when it just unlocked.
     _autoUnlockCheck() {
         const st = this.hiveAutoStatus();
-        if (!st || st.on || st.staffed < st.total || !st.leader) return false;
+        if (!st || st.on || st.filled < st.open || !st.leader) return false;
         this.state.hive.autoManage = { on: true, since: new Date().toISOString() };
-        this._lifeEvent('auto', `🤖 Auto-manage unlocked! ${st.leader.name} leads the hive.`, { beeId: st.leader.id });
+        this._lifeEvent('auto', `🤖 Auto-manage unlocked. ${st.leader.name} leads the hive.`, { beeId: st.leader.id });
         return true;
     },
-    // One auto-manage pass. Returns the notes it made (also in Hive news).
+    // One auto-manage pass: an empty open job gets the best free bee with that talent.
     _autoManageHour() {
         const st = this.hiveAutoStatus();
-        if (!st || !st.on || !st.leader) return [];
-        const leader = st.leader;
+        if (!st || !st.running) return [];
         const notes = [];
-        const ready = (b) => beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery && !beeLockedJob(b);
-        const canDo = (b, jobs) => jobs.filter(j => !!BEE_CLASSES[j].maleOnly === (b.sex === 'm'));
-        st.combs.filter(c => !c.staffed).forEach(c => {
-            const jobs = HIVE_COMB_JOBS[c.id].jobs;
-            const best = (list) => list.map(b => ({ b, j: canDo(b, jobs).sort((x, y) => beeJobScore(b, y) - beeJobScore(b, x))[0] }))
-                .filter(x => x.j).sort((x, y) => beeJobScore(y.b, y.j) - beeJobScore(x.b, x.j))[0];
-            let pick = best(this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ready(b)));
-            let from = null;
-            if (!pick) {
-                const big = Object.keys(HIVE_COMB_JOBS).filter(id => id !== c.id && this._combWorkers(id).length >= 2)
-                    .sort((x, y) => this._combWorkers(y).length - this._combWorkers(x).length);
-                for (const id of big) {
-                    const movable = this._combWorkers(id).filter(b => b.id !== leader.id && ready(b) && canDo(b, jobs).length)
-                        .sort((x, y) => beeJobScore(x, x.class) - beeJobScore(y, y.class));
-                    if (movable.length) { const b = movable[0]; pick = { b, j: canDo(b, jobs).sort((x, y) => beeJobScore(b, y) - beeJobScore(b, x))[0] }; from = HIVE_COMB_JOBS[id].name; break; }
-                }
-            }
+        this.hiveOpenJobs().filter(j => !this.jobHolder(j)).forEach(j => {
+            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && this.beeFitsJob(b, j))
+                .sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
-            pick.b.jobSince = todayISO();
-            pick.b.class = pick.j;
-            delete pick.b.life.idleSince;
-            const text = from ? `🐝 ${pick.b.name} moved from the ${from} to the ${c.name}.` : `🐝 ${pick.b.name} took over the ${c.name} as a ${BEE_CLASSES[pick.j].label}.`;
-            this._lifeEvent('auto', text, { beeId: pick.b.id });
+            pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
+            const text = `🐝 ${pick.name} took the ${BEE_CLASSES[j].label} job.`;
+            this._lifeEvent('auto', text, { beeId: pick.id });
             notes.push(text);
         });
         return notes;
@@ -6140,6 +6204,7 @@ Object.assign(DatabaseManager.prototype, {
         if (!this.state || !this.state.hive) return 0;
         const c = this.state.hive;
         const HOUR = 3600000;
+        this._talentJobsMigrate();   // Nov 1 2026 (Craft): once
         if (!c.vitalsAt) { c.vitalsAt = now; return 0; }
         const hours = Math.min(14 * 24, Math.floor((now - c.vitalsAt) / HOUR));
         if (hours <= 0) return 0;
@@ -6170,8 +6235,9 @@ Object.assign(DatabaseManager.prototype, {
             const hungerX = L.birthTrait === 'deep-stomach' ? 0.75 : 1;
             if (working) {
                 const r = JOB_RATES[b.class] || [-4, -3, -1, 2.5];
-                L.stamina = clampVital(L.stamina + r[0] * (relentless ? 0.75 : 1), true);
-                L.fullness = clampVital(L.fullness + r[1] * hungerX, true);
+                const rareX = HIVE_JOB_RULES && this._rareCombOf(b) ? 0.5 : 1;   // Nov 1 2026 (Craft): all Rare+ comb
+                L.stamina = clampVital(L.stamina + r[0] * (relentless ? 0.75 : 1) * rareX, true);
+                L.fullness = clampVital(L.fullness + r[1] * hungerX * rareX, true);
                 L.happiness = clampVital(L.happiness + r[2], true);
                 L.fatigue = clampVital(L.fatigue + r[3] * beeFatigueFactor(b) * (water ? 0.75 : 1) * (relentless ? 0.6 : 1), true);
                 if (L.fullness >= 50) L.health = clampVital(L.health + 0.2, true);

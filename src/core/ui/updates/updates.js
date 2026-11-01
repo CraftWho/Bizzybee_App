@@ -19,7 +19,7 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
-        { icon: '🤖', title: 'Hive auto-manage', text: 'Staff every comb with one Rare+ Leader and the hive fills empty combs by itself, every hour. Red dots show combs with no workers.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '🐝', title: 'A growing hive', text: 'New parts of your hive open as you level up. Each job needs a bee with the right talent.', href: 'features/hive-mind/hive-mind.html' },
         { icon: '💎', title: 'Thumb pad', text: 'Hold the gold ＋ to pull out a pad you can put anywhere: Back, Home, Dailies, New, To-Dos, Habits.' },
         { icon: '📅', title: 'Add to calendar, set alarm', text: 'On To-Dos with a due date and Quests with a deadline. Quests can have a deadline now.', href: 'features/todos/todos.html' },
         { icon: '💻', title: 'Terminal commands', text: 'ls, cd, find, grep, pipes and Tab. Revert puts your save back.', href: 'plugins/terminal/terminal.html' },
