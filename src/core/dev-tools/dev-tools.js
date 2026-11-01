@@ -22,8 +22,8 @@
     const TEST_KEY = 'bizzybee_dev_test';
 
     const host = location.hostname;
-    const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
-        || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
+    const isLocal = !window.BB_APP_COPY && (host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'   // Nov 1 2026 (Craft): the app's own copy isn't PC LOCAL
+        || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local'));
     const path = location.pathname;
     const nested = path.includes('/features/') || path.includes('/plugins/');
     if (!nested) return;

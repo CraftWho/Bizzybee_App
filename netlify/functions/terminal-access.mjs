@@ -4,8 +4,9 @@
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json } from '../lib/cloud-store.mjs';
 import { termStore, isOwnerEmail, activeLevel, makeGrant, addRequest, addLog, cleanEmail, validEmail } from '../lib/terminal-access.mjs';
+import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
 
-export default async (req) => {
+const handler = async (req) => {
     if (!['GET', 'POST'].includes(req.method)) return json({ ok: false, error: 'Method not allowed' }, 405);
     let user;
     try { user = await authenticatedUser(req); } catch { return json({ ok: false, error: 'Identity is unavailable. Please retry.' }, 503); }
@@ -64,3 +65,4 @@ export default async (req) => {
         return json({ ok: false, error: error.message && /request|already|Tell us|Level/.test(error.message) ? error.message : 'Terminal access is unavailable right now.' }, error.message && /request|already|Tell us/.test(error.message) ? 400 : 503);
     }
 };
+export default withCors(handler);

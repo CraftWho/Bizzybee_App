@@ -1082,6 +1082,12 @@ class CodexSystem {
         const script = document.createElement('script');
         script.src = nested ? '../../../src/core/services/native/native.js' : 'src/core/services/native/native.js';
         document.body.appendChild(script);
+        // Nov 1 2026 (Craft): the app's own copy keeps itself up to date.
+        if (window.BB_APP_COPY && !document.querySelector('script[src*="web-update/web-update.js"]')) {
+            const up = document.createElement('script');
+            up.src = '/src/core/services/web-update/web-update.js';
+            document.body.appendChild(up);
+        }
     }
 
     // Pull down at the top to sync and reload (src/core/ui/pull-refresh/).
@@ -1162,15 +1168,16 @@ class CodexSystem {
     // deploy on the device, so tab switches load from the phone and the app
     // opens offline. Not on this computer (PC LOCAL always loads fresh).
     registerAppCache() {
-        if (!('serviceWorker' in navigator) || (typeof Vault !== 'undefined' && Vault.pcLocal)) return;
+        // Nov 1 2026 (Craft): the Android app's own copy is already on the phone; no worker needed.
+        if (!('serviceWorker' in navigator) || window.BB_APP_COPY || (typeof Vault !== 'undefined' && Vault.pcLocal)) return;
         const go = () => navigator.serviceWorker.register('/sw.js').catch(() => {});
         if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
     }
 
     loadLocalDevTools() {
         const host = window.location.hostname;
-        const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
-            || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
+        const isLocal = !window.BB_APP_COPY && (host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'   // Nov 1 2026 (Craft): the app's own copy isn't PC LOCAL
+            || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local'));
         const path = window.location.pathname;
         const nested = path.includes('features') || path.includes('plugins');
         const root = nested ? '../../..' : '.';

@@ -1844,6 +1844,8 @@ function isPcLocalHost() {
     if (typeof location === 'undefined') return false;
     const host = location.hostname || '';
     if (location.protocol === 'file:') return true;
+    // Nov 1 2026 (Craft): https://localhost with no port is the Android app's own copy, not PC LOCAL.
+    if (location.protocol === 'https:' && host === 'localhost' && !location.port) return false;
     return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')
         || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 }
@@ -1915,7 +1917,7 @@ class DatabaseManager {
             const user = netlifyIdentity.currentUser();
             if (!user) return false;
             const token = await user.jwt();
-            const response = await fetch('/.netlify/functions/load-state', {
+            const response = await fetch((typeof window !== 'undefined' && window.BB_SITE || '') + '/.netlify/functions/load-state', {   // Nov 1 2026 (Craft)
                 method: 'GET', cache: 'no-store',
                 headers: { Authorization: `Bearer ${token}` },
                 signal: AbortSignal.timeout(15000)
@@ -2054,7 +2056,7 @@ class DatabaseManager {
     // A downloaded full save is applied once on localhost, before normal
     // blueprint/backfill logic. Subsequent local edits survive every reload.
     async refreshLocalCloudDownload() {
-        if (!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+        if (!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) || window.BB_APP_COPY   // Nov 1 2026 (Craft): not in the app's own copy
             || localStorage.getItem('bizzybee_session') === 'identity' || this.devTest) return;
         const nested = /\/(features|plugins)\//.test(window.location.pathname);
         let response;

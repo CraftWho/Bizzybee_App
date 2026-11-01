@@ -44,7 +44,7 @@ const CloudSyncAuto = (() => {
         const user = netlifyIdentity.currentUser();
         const token = await user.jwt();
         if (!sameAccount()) throw new Error('Account changed. Reload before syncing.');
-        const response = await fetch('/.netlify/functions/' + path, {
+        const response = await fetch((window.BB_SITE || '') + '/.netlify/functions/' + path, {   // Nov 1 2026 (Craft): app copy -> site
             method: body ? 'POST' : 'GET', cache: 'no-store',
             headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
             ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(20000)
