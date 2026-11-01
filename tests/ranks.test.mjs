@@ -1,4 +1,4 @@
-// Ranks (Oct 31 2026, Craft): a rank every 5 levels, Tiers every 2 levels
+// Ranks (Oct 31 2026, Craft): a rank every 5 levels, Tiers every 5 levels
 // past 50; each rank up is claimed once; ranks reached before the update
 // count as claimed (no back-pay).
 import { test } from 'node:test';
@@ -16,14 +16,15 @@ function harness(level) {
     return { v: context.vault, rankForLevel: context.rankForLevel };
 }
 
-test('ranks: names by level, Tiers every 2 levels past 50', () => {
+test('ranks: names by level, Tiers every 5 levels past 50 (Nov 1 2026)', () => {
     const { rankForLevel } = harness(1);
     assert.equal(rankForLevel(4).name, 'Larva');
     assert.equal(rankForLevel(15).name, 'Forager');
     assert.equal(rankForLevel(50).name, 'Royal Keeper');
-    assert.equal(rankForLevel(51).name, 'Tier 1');
-    assert.equal(rankForLevel(52).name, 'Tier 1');
-    assert.equal(rankForLevel(53).name, 'Tier 2');
+    assert.equal(rankForLevel(54).name, 'Royal Keeper');
+    assert.equal(rankForLevel(55).name, 'Tier 1');
+    assert.equal(rankForLevel(59).name, 'Tier 1');
+    assert.equal(rankForLevel(60).name, 'Tier 2');
 });
 
 test('ranks: old ranks count as claimed; a new rank pays once', async () => {

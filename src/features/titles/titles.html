@@ -8,7 +8,7 @@
     <link rel="manifest" href="../../../manifest.json">
     <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🏅 Titles</title>
+    <title>🏅 Ranks &amp; Titles</title>
     <!-- Oct 31 2026 (Craft, approved demo): Titles. Logic: Vault.getTitles / wearTitle (db.js). -->
     <script src="../../core/boot.js" data-load="styles"></script>
     <link rel="stylesheet" href="../settings/settings.css">
@@ -16,9 +16,15 @@
 </head>
 <body>
     <main class="stv2 ttv">
+        <!-- Nov 1 2026 (Craft, approved demo "BizzyBee Titles v2"): Ranks and Titles
+             as ladders you climb from the bottom; each opens at your spot. -->
         <section class="card top tt-now" id="tt-now"></section>
+        <div class="tt-tabs" role="tablist" aria-label="Ranks or titles">
+            <button type="button" role="tab" id="tt-tab-ranks" data-tab="ranks" aria-selected="true">🎖️ Ranks</button>
+            <button type="button" role="tab" id="tt-tab-titles" data-tab="titles" aria-selected="false">🏅 Titles</button>
+        </div>
         <p class="tt-lead" id="tt-lead"></p>
-        <section class="card" id="tt-list"></section>
+        <section class="card tt-ladder" id="tt-list" role="tabpanel"></section>
     </main>
     <script src="../../core/boot.js"></script>
     <script src="./titles.js"></script>

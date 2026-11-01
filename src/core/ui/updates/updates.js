@@ -23,7 +23,7 @@ const WHATS_NEW = [
         { icon: '🔤', title: 'New font', text: 'Courier Prime, built into the app, so it looks the same on every phone and computer.' },
         { icon: '📅', title: 'Calendar: no more dailies', text: 'The calendar feed now sends only your events and To-Do due dates.' },
         { icon: '🔁', title: 'Habitica fix', text: 'Dailies no longer show as done at midnight when Habitica hasn\'t started its new day yet.' },
-        { icon: '🏅', title: 'Titles', text: 'Earn titles and wear one next to your rank. The rest stay a secret until you earn them.', href: 'features/titles/titles.html' },
+        { icon: '🏅', title: 'Ranks & Titles', text: 'A ladder of every level, each with its own badge, opening at yours. Earn titles and equip one next to your rank. Past 50, a Tier every 5 levels.', href: 'features/titles/titles.html' },
         { icon: '☑️', title: 'Tick steps while editing', text: 'Check off checklist steps on the To-Do and Daily edit screens.', href: 'features/todos/todos.html' },
         { icon: '🥚', title: 'Incubators in the Honey Store', text: 'Buy an Egg Incubator with Honey coins, no plugin needed.', href: 'features/honey-store/honey-store.html' },
         { icon: '🆕', title: 'Mailbox updates', text: 'A new Updates tab lists every What\'s New.', href: 'features/mailbox/mailbox.html' },
