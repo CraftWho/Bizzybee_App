@@ -724,3 +724,8 @@
 .bc-v2 .bc-ribbon--two .bc-rt { font-size: 2.4cqw; }
 /* Text panel: content sits in the middle when there's room. */
 .bc-v2 .bc-abil { align-content: center; }
+/* Nov 1 2026 (Craft): ♀F / ♂M close together; a limited bee's "1 of 50" is smaller than its edition name. */
+.bc-v2 .bc-sex span { margin-left: .15cqw; }
+.bc-v2 .bc-lim { color: #b9b3a6; font-size: 2.6cqw; }
+.bc-v2 .bc-lim small.bc-limited { margin-left: .8cqw; font: 700 1.9cqw/1 ui-monospace, monospace; letter-spacing: .06em; color: var(--m1); opacity: .9; }
+.bc-v2 .bc-abil:empty { background: none; border: 0; }   /* Nov 1 2026: nothing known yet */

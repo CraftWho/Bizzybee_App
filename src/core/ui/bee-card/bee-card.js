@@ -457,7 +457,7 @@ const BeeCard = {
             : '';
         const abilitiesHTML = titleHTML + (ability
             ? `<div class="bc-ab"><span class="bc-ic">${classInfo.icon}</span><h4>${ability.name} <small>Ability</small></h4><p>${ability.text}</p></div>`
-            : `<div class="bc-ab bc-locked"><span class="bc-ic">🔒</span><h4>No ability <small>Ability</small></h4><p>Assign this bee a job to unlock its ability.</p></div>`)
+            : '')   // Nov 1 2026 (Craft): no job = no ability row (unknown things stay hidden)
             + traits.map(trait => `<div class="bc-ab" title="${trait.description}"><span class="bc-ic">${trait.icon}</span><h4>${trait.label} <small>Trait</small></h4><p>${trait.description}</p></div>`).join('');
 
         container.innerHTML = `
@@ -474,16 +474,16 @@ const BeeCard = {
                         ${elementInfo ? `<span class="bc-elhex" title="${elementInfo.label}"><span>${elementInfo.emoji}</span></span>` : ''}
                     </div>
 
-                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${title && !(bee.limited && bee.limited.serial) ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${/* Nov 1 2026 (Craft): no crown on limited bees */ ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
+                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${/* Nov 1 2026 (Craft): no crown on Named bees; only the King or Queen wears one (their own art) */ ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
 
                     <div class="bc-dex">${/* Oct 31 2026 (Craft): No. · obtained · height · weight */ ''}
-                        <span><b>No.${dexNo}</b>${bee.rarity !== 'Royal' && (bee.sex === 'f' || bee.sex === 'm') ? ` <i class="bc-sex bc-sex--${bee.sex}" title="${bee.sex === 'f' ? 'Female' : 'Male'}">${bee.sex === 'f' ? '♀ F' : '♂ M'}</i>` : ''}</span>${/* Nov 1 2026 (Craft): sex next to the No. */ ''}
+                        <span><b>No.${dexNo}</b>${bee.rarity !== 'Royal' && (bee.sex === 'f' || bee.sex === 'm') ? ` <i class="bc-sex bc-sex--${bee.sex}" title="${bee.sex === 'f' ? 'Female' : 'Male'}">${bee.sex === 'f' ? '♀<span>F</span>' : '♂<span>M</span>'}</i>` : ''}</span>${/* Nov 1 2026 (Craft): sex next to the No. */ ''}
                         <span>${isNaN(new Date(bee.obtainedAt)) ? '—' : new Date(bee.obtainedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                         <span>H ${bee.height != null ? Number(bee.height).toFixed(1) : '—'}cm</span>
                         <span>W ${weight}g</span>
                     </div>
 
-                    <div class="bc-abil${traits.length + (title ? 1 : 0) + 1 >= 3 ? ' bc-many' : traits.length + (title ? 1 : 0) + 1 === 2 ? ' bc-two' : ''}">${/* Nov 1 2026 (Craft): the job ability counts too; 2 rows = 2 smaller lines each, 3+ = 1 line */ ''}${abilitiesHTML}</div>
+                    <div class="bc-abil${traits.length + (title ? 1 : 0) + (ability ? 1 : 0) >= 3 ? ' bc-many' : traits.length + (title ? 1 : 0) + (ability ? 1 : 0) === 2 ? ' bc-two' : ''}">${/* Nov 1 2026 (Craft): the job ability counts too; 2 rows = 2 smaller lines each, 3+ = 1 line */ ''}${abilitiesHTML}</div>
 
                     ${showEvolveAction ? `
                     <div class="bee-card-item-action">
@@ -524,7 +524,7 @@ const BeeCard = {
                     </div>
 
                     <p class="bee-card-flavor">${title ? `\u201c${title.quote.replace('{n}', bee.name)}\u201d` : archetype.description}</p>
-                    <div class="bc-coll">${/* Nov 1 2026 (Craft): serial bottom-left in the card's own metal; a limited bee's number beside it */ ''}<span class="bc-coll-l">${bee.serial ? `<i class="bc-serial" title="Serial number">${String(bee.serial).replace(/[^A-Za-z0-9-]/g, "")}</i>` : `<span>No.${dexNo} · BizzyBee Base Set</span>`}${bee.limited && bee.limited.serial ? `<span class="bc-lim">${String(bee.limited.label || 'Limited').replace(/[<>&"]/g, '')} · <b class="bc-limited">#${String(bee.limited.serial).padStart(3, '0')}/${String(bee.limited.of || 50).padStart(3, '0')}</b></span>` : ''}</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>
+                    <div class="bc-coll">${/* Nov 1 2026 (Craft): serial bottom-left in the card's own metal; a limited bee's number beside it */ ''}<span class="bc-coll-l">${bee.serial ? `<i class="bc-serial" title="Serial number">${String(bee.serial).replace(/[^A-Za-z0-9-]/g, "")}</i>` : `<span>No.${dexNo} · BizzyBee Base Set</span>`}${bee.limited && bee.limited.serial ? `<span class="bc-lim">${String(bee.limited.label || 'Limited').replace(/[<>&"]/g, '')} <small class="bc-limited" title="Card ${bee.limited.serial} of ${bee.limited.of || 50}">${bee.limited.serial} of ${bee.limited.of || 50}</small></span>` : ''}</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>
                 </div>
 
                 <div class="bee-card-face bee-card-back">
