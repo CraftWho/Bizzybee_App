@@ -1039,29 +1039,8 @@ body.ob-nodock .app-dock { display: none; }
 .ah-levelup.show, .lvl-claim, .sk-up, .sk-lvl, .sk-claim { animation: bbShake 2.8s ease-in-out infinite !important; }
 @media (prefers-reduced-motion: reduce) { .ah-levelup.show, .lvl-claim, .sk-up, .sk-lvl, .sk-claim { animation: none !important; } }
 
-/* Comb buttons: .btn and .bb-btn get sharp points left and right. The edge is
-   a gold layer behind a slightly smaller fill layer, both cut to the same comb
-   shape. Variants: .solid / .bb-btn--main (gold fill), .danger (red edge),
-   .ghost (no fill). */
-html .btn.btn, html .bb-btn.bb-btn {
-    --tip: 10px;
-    --edge: rgba(var(--bb-accent-rgb, 255, 204, 0), .55);
-    --fill: #1a1205;
-    position: relative; isolation: isolate;
-    border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important;
-    padding-left: calc(var(--tip) + 12px) !important; padding-right: calc(var(--tip) + 12px) !important;
-    clip-path: polygon(var(--tip) 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, var(--tip) 100%, 0 50%);
-}
-html .btn.btn::before, html .bb-btn.bb-btn::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--edge); clip-path: inherit; }
-html .btn.btn::after, html .bb-btn.bb-btn::after {
-    content: ""; position: absolute; inset: 1.5px; z-index: -1; background: var(--fill);
-    clip-path: polygon(calc(var(--tip) - 1px) 0, calc(100% - var(--tip) + 1px) 0, 100% 50%, calc(100% - var(--tip) + 1px) 100%, calc(var(--tip) - 1px) 100%, 0 50%);
-}
-html .btn.btn.solid, html .bb-btn.bb-btn--main { --edge: var(--bb-accent-hi, #ffd84a); --fill: var(--bb-accent, #ffcc00); }
-html .btn.btn.danger { --edge: rgba(var(--bb-alt-rgb, 220, 20, 60), .75); }
-html .btn.btn.ghost { --fill: rgba(10, 7, 3, .6); }
-html .btn.btn:hover, html .bb-btn.bb-btn:hover { --edge: var(--bb-accent, #ffcc00); }
-html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; --edge: #fff; }
+/* Comb buttons (.btn / .bb-btn): moved into the Batch 8 hexagon look at the
+   bottom of this file (Oct 31 2026, Craft). */
 
 /* Oct 31 2026 (Craft): Rank up button (same look as Level up, shakes). */
 .ah-rankup { display: none; margin-top: 8px; width: 100%; border: 0; border-radius: 12px; padding: 11px; cursor: pointer;
@@ -1078,10 +1057,9 @@ html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; 
 /* Oct 31 2026 (Craft): hexagon text box. Use class="hexbox" on a <label>
    that holds an <input> (first used by the Hive Bees search). A gold edge,
    pointed ends, the text padded clear of the points. */
-.hexbox { --hx-edge: rgba(var(--bb-accent-rgb, 255, 204, 0), .5); --hx-fill: #17110a; position: relative; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 26px; box-sizing: border-box; background: var(--hx-edge); clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0 50%); }
-.hexbox::before { content: ""; position: absolute; inset: 1.5px; background: var(--hx-fill); clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%, 0 50%); }
+/* Batch 8: the shape and edge now come from the shared HEX list below. */
+.hexbox { position: relative; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 26px; box-sizing: border-box; background-color: #17110a; }
 .hexbox > * { position: relative; }
-.hexbox:focus-within { --hx-edge: var(--bb-accent, #ffcc00); }
 .hexbox input { flex: 1; min-width: 0; margin: 0; padding: 10px 0; border: 0 !important; outline: none; background: none !important; box-shadow: none !important; color: var(--bb-ink, #f1ede2); font: 400 15px system-ui, sans-serif; }
 .hexbox svg { flex: none; width: 16px; height: 16px; fill: none; stroke: #b8ab8c; stroke-width: 2.4; stroke-linecap: round; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -1089,3 +1067,320 @@ html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; 
 /* Oct 31 2026 (Craft): a full-screen view (like the Hive Bees list) pauses
    every animation behind it. */
 html.bb-paused body *, html.bb-paused body *::before, html.bb-paused body *::after { animation-play-state: paused !important; }
+
+/* ==========================================================================
+   Oct 31 2026 (Craft): Batch 8 hexagon look (approved demo).
+   Every box in the app is cut from the honeycomb:
+   - HEX  = one-line things (text boxes, selects, buttons, chips, pills,
+            toggle groups): pointed left and right ends.
+            --hx-pt = the point size (14px normal, 10px small chips).
+   - CUT  = big things (cards, panels, rows, sheets, pop-ups, text areas,
+            toasts): an octagon with cut corners. --cut = 16px, 12px small.
+   How the edge follows the slant: a CSS border can't follow a clip-path,
+   so the edge is painted as background layers (a thin strip for each flat
+   side and a hard-stop diagonal gradient for each slanted corner), then
+   the whole element is clipped to the shape. Works on inputs and selects
+   (no ::before needed) and leaves ::before/::after free for the parts.
+   The element keeps its own background-color as the fill. A gradient fill
+   goes in --hx-fill. Edge colour = --hx-edge (follows the theme by
+   default). Points and corners are px, so they never stretch.
+   To add a box: put its selector in the right list below.
+   ========================================================================== */
+@property --hx-pt { syntax: "*"; inherits: false; }
+@property --cut { syntax: "*"; inherits: false; }
+@property --hx-edge { syntax: "*"; inherits: false; }
+@property --hx-fill { syntax: "*"; inherits: false; }
+@property --hx-on { syntax: "*"; inherits: false; }
+@property --hx-w { syntax: "*"; inherits: false; }
+
+/* Focus: the edge turns full accent and a little thicker (an outline would
+   be clipped away by the shape). Only shaped boxes read these. */
+:focus-visible, :is(input, select, textarea):focus,
+:is(.hexbox, .hf-field, .hf-box, .hf-adj label, .dcv2 .search, .df-cl-row, .df-rem-row):focus-within { --hx-on: var(--bb-accent, #ffcc00); --hx-w: 2px; }
+
+/* ---------- HEX: pointed ends ---------- */
+:is(
+    /* text boxes + selects, everywhere (bare inputs inside a shaped wrapper are skipped) */
+    input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="date"], [type="time"], [type="url"], [type="tel"], [type="datetime-local"], [type="month"], :not([type])):not(:is(.hexbox, .hf-field, .hf-box, .hf-adj, .df-cl-row, .df-rem-row, .tm-in, .dcv2 .search, .pin-wrap) *),
+    select:not([multiple]):not([size]):not(:is(.hf-box) *),
+    /* field wrappers on the task forms */
+    .hexbox, .hf-field:not(.hf-notes), .hf-box:not(.cq-tag-box), .hf-adj label, .dcv2 .search,
+    /* buttons */
+    .btn, .bb-btn, .context-action button, .app-lock-bio, .lvl-claim, .ob-back,
+    #auth-submit-btn, .btn-cloud-sync, #invite-submit-btn, #forgot-submit-btn, #welcome-go-btn, .login-card button[type="submit"], .btn-link,
+    .pm-btn, .bn .bn-dice, .bn .bn-save, .ds-go, .ds-save, .eh-btn, .hn-btn, .hn-eve-btns button,
+    .waggle-menu .wg-foot button, .item-card-buy-btn, .lvr-btn, .ss-btn, .tag-skillcard button,
+    .df-add, .hf .tf-addtime, .hf button.tf-due-clear, .hf button.df-step, .hf-seg button, .tl-btns button, .wn-btn, .up-btn,
+    .sk-up, .sk-lvl, .sk-go, .sk-measure button, .sk-claim, .gacha-hive-mind-link-btn, .gfx-go,
+    .hl-btn, .hl-revive, .hive-mind-enter-btn, .hl-inc-link, .hl-hatch, .hive-mind-gacha-link-btn,
+    .xt-btn, .pfv2 .lvup, .pf-sheet button, button.qa-open, .qd button.qd-add, .qd button.qd-btn,
+    .stv2 .list button, .dcv2 .new, .dc-sheet-bg .btns button, .dcv2 .sheet .go, .dc-sheet-bg .fill,
+    .ic-btn, .pj-sheet-bg .btns button, .tm-btn, .smg button, .aiv2 .keys button,
+    .onboarding-page .gender button, .onboarding-page .seg button, .hi-nav,
+    /* toggle groups (the box around the tabs) */
+    .home-tabs, .td-tabs, .q-tabs, .calv2 .seg, .hl-switch, .stv2 .look-seg,
+    /* small: chips, pills, tabs, tags, switch tracks */
+    .bb-chip, .ph-chip, .ds-stock span, .lvr-perks span, .pv2 .chip, .ptr small, .ss-chip, .ss-ex button,
+    .tag-chip, .tag-sug, .hf-eevee, .hf .tf-chip, .hf .tf-skill, button.dr-cl-badge, .tl-chips button,
+    .bizzybee-toast-btn, .wn-try, .wip-badge, .aiv2 .pill, .aiv2 .pin-boxes i, .dl-off .dr-next,
+    .dbv2 .lv .chip, .dbv2 .schip, .pfv2 .lv .chip, .pfv2 .schip, .hf-refresh, .habits-quote-tag,
+    .habit-item-difficulty, .habit-item-tag, .cb2 .cb-view button, .pv2-sheet .cb-chip, .cf-pill, .hl-job,
+    .mb-refresh, .mb-react, .bm-tabs a, .bm-chip, .ntv .nt-chip,
+    .onboarding-page .tag, .onboarding-page .due, .phv2 .soon .tag, .hf button.cq-diff, .hf button.cq-time,
+    .cq-tag, .qa-tag, .qd-chip, .qd button.qd-focus, .qd button.qd-seg, .qd-terms a, .qd-ghost-states button,
+    .qd-dev, .stv2 .pf-soon, .sk-mini, .sk-pill, .syv2 .tag, .syv2 .chips label, .hf .tf-quick button,
+    .calv2 .cal-head .nav, .dc-sheet-bg .picks button, .dcv2 .chip, .dcv2 .term .cat, .dc-sheet-bg .cat,
+    .dc-sheet-bg .tv-copy, .dc-sheet-bg .tv-links a, .pjv2 .stats span, .pjv2 .chips button,
+    .pjv2 .acts a, .pjv2 .acts button, .tm-run, .tm-chip,
+    .home-tab-pill, .td-tabs button, .q-tabs button, .calv2 .seg button, .hl-switch button, .stv2 .look-seg button,
+    .toggle-switch-track, .syv2 .sw, .phv2 .sw, .cq-switch-ui
+) {
+    --_p: var(--hx-pt, 14px);
+    --_w: var(--hx-w, 1.5px);
+    --_e: var(--hx-on, var(--hx-edge, rgba(var(--bb-accent-rgb, 255, 204, 0), .45)));
+    border-color: transparent !important;
+    border-image: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    clip-path: polygon(var(--_p) 0, calc(100% - var(--_p)) 0, 100% 50%, calc(100% - var(--_p)) 100%, var(--_p) 100%, 0 50%) !important;
+    background-image:
+        linear-gradient(var(--_e), var(--_e)), linear-gradient(var(--_e), var(--_e)),
+        linear-gradient(to bottom right, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to bottom left, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to top right, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to top left, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        var(--hx-fill, none) !important;
+    background-size:
+        calc(100% - 2 * var(--_p)) var(--_w), calc(100% - 2 * var(--_p)) var(--_w),
+        var(--_p) 50%, var(--_p) 50%, var(--_p) 50%, var(--_p) 50%, 100% 100% !important;
+    background-position: var(--_p) 0, var(--_p) 100%, 0 0, 100% 0, 0 100%, 100% 100%, 0 0 !important;
+    background-repeat: no-repeat !important;
+    background-origin: border-box !important;
+}
+/* Small: chips, pills, tags, tabs and switch tracks get 10px points. */
+:is(
+    .bb-chip, .ph-chip, .ds-stock span, .lvr-perks span, .pv2 .chip, .ptr small, .ss-chip, .ss-ex button,
+    .tag-chip, .tag-sug, .hf-eevee, .hf .tf-chip, .hf .tf-skill, button.dr-cl-badge, .tl-chips button,
+    .bizzybee-toast-btn, .wn-try, .wip-badge, .aiv2 .pill, .aiv2 .pin-boxes i, .dl-off .dr-next,
+    .dbv2 .lv .chip, .dbv2 .schip, .pfv2 .lv .chip, .pfv2 .schip, .hf-refresh, .habits-quote-tag,
+    .habit-item-difficulty, .habit-item-tag, .cb2 .cb-view button, .pv2-sheet .cb-chip, .cf-pill, .hl-job,
+    .mb-refresh, .mb-react, .bm-tabs a, .bm-chip, .ntv .nt-chip,
+    .onboarding-page .tag, .onboarding-page .due, .phv2 .soon .tag, .hf button.cq-diff, .hf button.cq-time,
+    .cq-tag, .qa-tag, .qd-chip, .qd button.qd-focus, .qd button.qd-seg, .qd-terms a, .qd-ghost-states button,
+    .qd-dev, .stv2 .pf-soon, .sk-mini, .sk-pill, .syv2 .tag, .syv2 .chips label, .hf .tf-quick button,
+    .calv2 .cal-head .nav, .dc-sheet-bg .picks button, .dcv2 .chip, .dcv2 .term .cat, .dc-sheet-bg .cat,
+    .dc-sheet-bg .tv-copy, .dc-sheet-bg .tv-links a, .pjv2 .stats span, .pjv2 .chips button,
+    .pjv2 .acts a, .pjv2 .acts button, .tm-run, .tm-chip,
+    .home-tab-pill, .td-tabs button, .q-tabs button, .calv2 .seg button, .hl-switch button, .stv2 .look-seg button,
+    .toggle-switch-track, .syv2 .sw, .phv2 .sw, .cq-switch-ui
+) { --hx-pt: 10px; }
+/* Text padded clear of the points (point + 10px). Boxes with one centred
+   glyph, tab groups and switches keep their own padding. */
+:is(
+    input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="date"], [type="time"], [type="url"], [type="tel"], [type="datetime-local"], [type="month"], :not([type])):not(:is(.hexbox, .hf-field, .hf-box, .hf-adj, .df-cl-row, .df-rem-row, .tm-in, .dcv2 .search, .pin-wrap) *),
+    select:not([multiple]):not([size]):not(:is(.hf-box) *),
+    .hf-field:not(.hf-notes), .hf-box:not(.cq-tag-box), .hf-adj label, .dcv2 .search
+) { padding-left: 24px !important; padding-right: 24px !important; }
+:is(
+    .btn, .bb-btn, .context-action button, .app-lock-bio, .lvl-claim, .ob-back,
+    #auth-submit-btn, .btn-cloud-sync, #invite-submit-btn, #forgot-submit-btn, #welcome-go-btn, .login-card button[type="submit"], .btn-link,
+    .pm-btn, .bn .bn-dice, .bn .bn-save, .ds-go, .ds-save, .eh-btn, .hn-btn, .hn-eve-btns button,
+    .waggle-menu .wg-foot button, .item-card-buy-btn, .lvr-btn, .ss-btn, .tag-skillcard button,
+    .df-add, .hf .tf-addtime, .hf button.tf-due-clear, .tl-btns button, .wn-btn, .up-btn,
+    .sk-up, .sk-lvl, .sk-go, .sk-measure button, .sk-claim, .gacha-hive-mind-link-btn, .gfx-go,
+    .hl-btn, .hl-revive, .hive-mind-enter-btn, .hl-inc-link, .hl-hatch, .hive-mind-gacha-link-btn,
+    .xt-btn, .pfv2 .lvup, .pf-sheet button, button.qa-open, .qd button.qd-add, .qd button.qd-btn,
+    .stv2 .list button, .dcv2 .new, .dc-sheet-bg .btns button, .dcv2 .sheet .go, .dc-sheet-bg .fill,
+    .ic-btn, .pj-sheet-bg .btns button, .tm-btn, .smg button,
+    .onboarding-page .gender button, .onboarding-page .seg button, .hi-nav
+) { padding-left: 24px !important; padding-right: 24px !important; }
+:is(
+    .bb-chip, .ph-chip, .ds-stock span, .lvr-perks span, .pv2 .chip, .ptr small, .ss-chip, .ss-ex button,
+    .tag-chip, .tag-sug, .hf-eevee, .hf .tf-chip, .hf .tf-skill, button.dr-cl-badge, .tl-chips button,
+    .bizzybee-toast-btn, .wn-try, .wip-badge, .aiv2 .pill, .dl-off .dr-next,
+    .dbv2 .lv .chip, .dbv2 .schip, .pfv2 .lv .chip, .pfv2 .schip, .hf-refresh, .habits-quote-tag,
+    .habit-item-difficulty, .habit-item-tag, .cb2 .cb-view button, .pv2-sheet .cb-chip, .cf-pill, .hl-job,
+    .mb-refresh, .mb-react, .bm-tabs a, .bm-chip, .ntv .nt-chip,
+    .onboarding-page .tag, .onboarding-page .due, .phv2 .soon .tag, .hf button.cq-diff, .hf button.cq-time,
+    .cq-tag, .qa-tag, .qd-chip, .qd button.qd-focus, .qd button.qd-seg, .qd-terms a, .qd-ghost-states button,
+    .qd-dev, .stv2 .pf-soon, .sk-mini, .sk-pill, .syv2 .tag, .syv2 .chips label, .hf .tf-quick button,
+    .dc-sheet-bg .picks button, .dcv2 .chip, .dcv2 .term .cat, .dc-sheet-bg .cat,
+    .dc-sheet-bg .tv-copy, .dc-sheet-bg .tv-links a, .pjv2 .stats span, .pjv2 .chips button,
+    .pjv2 .acts a, .pjv2 .acts button, .tm-run, .tm-chip
+) { padding-left: 20px !important; padding-right: 20px !important; }
+
+/* ---------- CUT: octagon with cut corners ---------- */
+:is(
+    textarea:not(:is(.hf-field) *),
+    .bb-box, .panel, .app-lock-card, .acs-card, .login-card, .pm-sheet, .ds-pop, .hn-coach, .modal-box,
+    .pv2 .card, .pv2-sheet, .pv2-head, .ss-story, .hf-body, .dl-head, .tl-sheet, .wn, .up-sheet,
+    .aiv2 .card, .dbv2 .card, .habits-head, .cf-grid-wrap, .hive-mind-queen-panel, .hl-news, .hl-sheet,
+    .hive-mind-container .cm-head, .hv-missing, .home-card, .xt-sheet, .mpv2 .card, .bm-head, .bm-sec,
+    .bm-view-box, .phv2 .card, .ph-modal .box, .pf-sheet, .pfv2 .card, .qa-card, .qa-empty, .qd-hero,
+    .qd-stats, .qd-sec, .qd-adv, .stv2 .card, .sk-card, .sk-sheet, .syv2 .card, .sy-modal .box, .calv2 .card,
+    .dc-sheet-bg .sheet, .dcv2 .card, .dcv2 .sheet, .ic-head, .ic-machine-card, .ic-sheet, .pjv2 .card,
+    .pj-sheet-bg .sheet, .tm-card, .smg,
+    /* small: rows, tiles, tips, toasts, list items */
+    .auth-status, .cloud-sync-invite-status, .ds-item, .ds-list, .hr-row, .hn-tip, .hn-opt, .hn-eve-pop > div,
+    .waggle-menu .wg-alert, .waggle-menu .wg-row, .lvr-item, .pv2 .stats > div, .pv2 .tile, .ss-sk, .ss-try,
+    .ss-how, .tag-skillcard, .hf-tip, .hf-notes, .hf-box.cq-tag-box, .df-cl-row, .df-rem-row, .tl-gain, .bizzybee-toast, .wn-it,
+    .cm-wx, .aiv2 .savebar, .dl-today, .dbv2 .tile, .dbv2 .tip, .dbv2 .m-sum div, .hf-code .code,
+    .gacha-refine-block, .ga2 .ga-contents > span, .habits-quote, .habit-item, .hi-row, .pv2-sheet .cb-debuff,
+    .pv2-sheet .cb-slot, .pv2-sheet .cb-item, .cf-bubble, .cf-row, .hl-info, .hl-panel, .cm-stats > *,
+    .home-stat, .xt-row, .bm-tile, .bm-dex, .m3d-get, .bm-hint, .onboarding-page .qlog, .onboarding-page .q,
+    .onboarding-page .own, .onboarding-page .choice, .onboarding-page .todo, .onboarding-page .card,
+    .pfv2 .tile, .pfv2 .tip, .cq-switch, .qd-add-form, .qd-source, .qd-ghost, .qd-links a, .qd-unlocks li,
+    .qd-box, .qd-notes li, .qg-mod, .qg-sec, .qc, .stv2 .sync, .stv2 .pf-sub, .sk-branch, .sk-loot div,
+    .sk-stat3 div, .sk-hist div, .thv .th-card, .dcv2 .term, .dc-sheet-bg .tv-code, .ic-today, .ic-card,
+    .ic-item, .ic-how, .pjv2 .p, .pjv2 .add, .study-item-row, .tm-screen, .hf-d svg, .qt, .qa-done, .ic-wallet span, .mpv2 .stop .lab
+) {
+    --_c: var(--cut, 16px);
+    --_w: var(--hx-w, 1.5px);
+    --_e: var(--hx-on, var(--hx-edge, rgba(var(--bb-accent-rgb, 255, 204, 0), .3)));
+    border-color: transparent !important;
+    border-image: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    clip-path: polygon(var(--_c) 0, calc(100% - var(--_c)) 0, 100% var(--_c), 100% calc(100% - var(--_c)), calc(100% - var(--_c)) 100%, var(--_c) 100%, 0 calc(100% - var(--_c)), 0 var(--_c)) !important;
+    background-image:
+        linear-gradient(var(--_e), var(--_e)), linear-gradient(var(--_e), var(--_e)),
+        linear-gradient(var(--_e), var(--_e)), linear-gradient(var(--_e), var(--_e)),
+        linear-gradient(to bottom right, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to bottom left, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to top right, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to top left, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        var(--hx-fill, none) !important;
+    background-size:
+        calc(100% - 2 * var(--_c)) var(--_w), calc(100% - 2 * var(--_c)) var(--_w),
+        var(--_w) calc(100% - 2 * var(--_c)), var(--_w) calc(100% - 2 * var(--_c)),
+        var(--_c) var(--_c), var(--_c) var(--_c), var(--_c) var(--_c), var(--_c) var(--_c), 100% 100% !important;
+    background-position: var(--_c) 0, var(--_c) 100%, 0 var(--_c), 100% var(--_c), 0 0, 100% 0, 0 100%, 100% 100%, 0 0 !important;
+    background-repeat: no-repeat !important;
+    background-origin: border-box !important;
+}
+:is(
+    textarea:not(:is(.hf-field) *),
+    .auth-status, .cloud-sync-invite-status, .ds-item, .ds-list, .hr-row, .hn-tip, .hn-opt, .hn-eve-pop > div,
+    .waggle-menu .wg-alert, .waggle-menu .wg-row, .lvr-item, .pv2 .stats > div, .pv2 .tile, .ss-sk, .ss-try,
+    .ss-how, .tag-skillcard, .hf-tip, .hf-notes, .hf-box.cq-tag-box, .df-cl-row, .df-rem-row, .tl-gain, .bizzybee-toast, .wn-it,
+    .cm-wx, .aiv2 .savebar, .dl-today, .dbv2 .tile, .dbv2 .tip, .dbv2 .m-sum div, .hf-code .code,
+    .gacha-refine-block, .ga2 .ga-contents > span, .habits-quote, .habit-item, .hi-row, .pv2-sheet .cb-debuff,
+    .pv2-sheet .cb-slot, .pv2-sheet .cb-item, .cf-bubble, .cf-row, .hl-info, .hl-panel, .cm-stats > *,
+    .home-stat, .xt-row, .bm-tile, .bm-dex, .m3d-get, .bm-hint, .onboarding-page .qlog, .onboarding-page .q,
+    .onboarding-page .own, .onboarding-page .choice, .onboarding-page .todo, .onboarding-page .card,
+    .pfv2 .tile, .pfv2 .tip, .cq-switch, .qd-add-form, .qd-source, .qd-ghost, .qd-links a, .qd-unlocks li,
+    .qd-box, .qd-notes li, .qg-mod, .qg-sec, .qc, .stv2 .sync, .stv2 .pf-sub, .sk-branch, .sk-loot div,
+    .sk-stat3 div, .sk-hist div, .thv .th-card, .dcv2 .term, .dc-sheet-bg .tv-code, .ic-today, .ic-card,
+    .ic-item, .ic-how, .pjv2 .p, .pjv2 .add, .study-item-row, .tm-screen, .hf-d svg, .qt, .qa-done, .ic-wallet span, .mpv2 .stop .lab
+) { --cut: 12px; }
+/* A text area's text stays clear of the cut corners. */
+textarea:not(:is(.hf-field) *) { padding-left: max(14px, 1em) !important; padding-right: max(14px, 1em) !important; }
+
+/* ---------- Variants ---------- */
+/* Comb buttons (from 1.0.6): one dark fill, gold for .solid / --main. */
+html .btn.btn, html .bb-btn.bb-btn { background-color: var(--bb-surface-2, #1a1205) !important; color: var(--bb-accent, #ffcc00); }
+html .btn.btn.solid, html .bb-btn.bb-btn--main { --hx-edge: var(--bb-accent-hi, #ffd84a); background-color: var(--bb-accent, #ffcc00) !important; color: var(--bb-accent-ink, #1a1000); }
+html .btn.btn.ghost { background-color: rgba(10, 7, 3, .6) !important; }
+html .btn.btn.danger { --hx-edge: rgba(var(--bb-alt-rgb, 220, 20, 60), .75); }
+html .btn.btn:hover, html .bb-btn.bb-btn:hover { --hx-edge: var(--bb-accent, #ffcc00); }
+/* Focus on a gold-filled box: a white edge, so it still shows. */
+:is(html .btn.solid, .bb-btn--main, .home-tab-pill, .lvl-claim, .sk-up, .sk-lvl, .sk-claim, .ds-go, .hn-btn, .gfx-go):focus-visible { --hx-on: #fff; }
+/* Red (danger) edges. */
+:is(.hl-revive, .hl-inc-link, .pv2-sheet .cb-debuff, .onboarding-page .tag.bad) { --hx-edge: rgba(var(--bb-alt-rgb, 220, 20, 60), .7); }
+/* Pressed chips and tabs: a brighter edge. */
+:is(.pv2 .chip, .dcv2 .chip, .pjv2 .chips button, .cb2 .cb-view button, .ntv .nt-chip, .bm-tabs a, .tl-chips button, .dc-sheet-bg .picks button):is([aria-pressed="true"], [aria-selected="true"], .on, .active) { --hx-edge: var(--bb-accent, #ffcc00); }
+/* Tab groups: the sliding / selected tab is a filled hex with no edge. */
+:is(.home-tab-pill, .td-tabs button, .q-tabs button, .calv2 .seg button, .hl-switch button, .stv2 .look-seg button) { --hx-edge: transparent; }
+:is(.td-tabs, .q-tabs) button[aria-selected="true"] { --hx-fill: linear-gradient(180deg, var(--bb-accent-hi, #ffd84a), var(--bb-t-lo, #e0a800)); }
+.home-tab-pill { --hx-fill: linear-gradient(180deg, var(--h-honey-hi, #ffe27a), var(--h-honey, #ffcc00) 50%, var(--h-amber, #e0a800)); }
+/* Task forms: edges take the difficulty colour (--dc), like the old borders. */
+.hf :is(.hf-box, .hf-adj label, .df-cl-row, .df-rem-row, .df-add, .tf-addtime, .tf-chip, .tf-other-row input, .hf-seg button, button.df-step, button.cq-time, .hf-box.cq-tag-box) { --hx-edge: color-mix(in srgb, var(--dc, #ffcc00) 55%, transparent); }
+.hf .tf-skill { --hx-edge: color-mix(in srgb, var(--skc, #7fc0ff) 60%, transparent); }
+.hf button.cq-diff { --hx-edge: var(--c, var(--dc)); }
+.hf-top :is(.hf-field, .hf-tip) { --hx-edge: rgba(0, 0, 0, .35); }
+.hf-top .hf-field:focus-within { --hx-on: var(--dk, #06210f); }
+/* Gradient fills the shape would otherwise drop. */
+.onboarding-page .btn:not(.ghost) { --hx-fill: linear-gradient(#ffd76a, #d9a520); }
+.onboarding-page :is(.qlog, .card) { --hx-fill: linear-gradient(#1b1812, #100e0a); }
+.pv2-head { --hx-fill: none; }
+
+/* ---------- Tick boxes: a small pointy-top hexagon ---------- */
+input[type="checkbox"]:not(:is(.toggle-switch, .cq-switch, .ds-pop) input) {
+    --_e: var(--hx-on, rgba(var(--bb-accent-rgb, 255, 204, 0), .7));
+    --_w: var(--hx-w, 1.5px);
+    -webkit-appearance: none; appearance: none;
+    flex: none; width: 20px; height: 22px; margin: 0; padding: 0; border: 0; border-radius: 0; cursor: pointer; vertical-align: middle;
+    background-color: #0d0904;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    background-image:
+        linear-gradient(var(--_e), var(--_e)), linear-gradient(var(--_e), var(--_e)),
+        linear-gradient(to bottom right, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to bottom left, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to top right, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px)),
+        linear-gradient(to top left, transparent 50%, var(--_e) 50%, var(--_e) calc(50% + var(--_w)), transparent calc(50% + var(--_w) + .6px));
+    background-size: var(--_w) 50%, var(--_w) 50%, 50% 25%, 50% 25%, 50% 25%, 50% 25%;
+    background-position: 0 50%, 100% 50%, 0 0, 100% 0, 0 100%, 100% 100%;
+    background-repeat: no-repeat;
+    outline: none;
+}
+input[type="checkbox"]:not(:is(.toggle-switch, .cq-switch, .ds-pop) input):checked {
+    background-color: var(--bb-accent, #ffcc00);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 22'%3E%3Cpath d='M5.5 11.5l3 3 6-6.5' fill='none' stroke='%231a1000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: 100% 100%; background-position: 0 0;
+}
+input[type="checkbox"]:not(:is(.toggle-switch, .cq-switch, .ds-pop) input):checked:focus-visible { background-color: var(--bb-accent-hi, #ffd84a); }
+input[type="checkbox"]:not(:is(.toggle-switch, .cq-switch, .ds-pop) input):disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- Switches: pointed track, flat-top hexagon knob ---------- */
+.toggle-switch-thumb, .syv2 .sw::after, .phv2 .sw::after, .cq-switch-ui::after {
+    border-radius: 0 !important;
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+.toggle-switch-thumb { top: 2px !important; left: 3px !important; width: 20px !important; height: 20px !important; }
+.toggle-switch-track { --hx-edge: rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
+.toggle-switch input:checked + .toggle-switch-track, .syv2 .sw[aria-checked="true"], .phv2 .sw[aria-checked="true"] { --hx-edge: var(--bb-accent, #ffcc00); }
+.syv2 .sw::after, .phv2 .sw::after { top: 3px; left: 4px; }
+.syv2 .sw[aria-checked="true"]::after, .phv2 .sw[aria-checked="true"]::after { left: 22px; }
+.cq-switch-ui { --hx-edge: transparent; }
+/* Tiny tags (about 20px tall): 7px points so they don't turn into diamonds. */
+:is(.bb-chip, .phv2 .soon .tag, .syv2 .tag, .qa-tag, .habits-quote-tag, .dbv2 .lv .chip, .pfv2 .lv .chip,
+    .dcv2 .term .cat, .dc-sheet-bg .cat, .onboarding-page .tag, .onboarding-page .due, .wip-badge, .sk-mini,
+    .sk-pill, .qd-dev, .stv2 .pf-soon, .tm-chip, .habit-item-tag, .habit-item-difficulty, .ptr small,
+    .ds-stock span, .lvr-perks span) { --hx-pt: 7px; padding-left: 15px !important; padding-right: 15px !important; }
+.stv2 .look-seg { --hx-pt: 10px; }
+/* Fills and edges that came from gradients or theme colours. */
+.login-card { --hx-fill: linear-gradient(180deg, rgba(14, 11, 5, .94), rgba(6, 5, 2, .97)); --hx-edge: rgba(217, 185, 104, .35); }
+.bb-box--frame { --hx-fill: linear-gradient(var(--bb-alt, #dc143c) 2px, var(--bb-surface-2, #1a140b) 2px, var(--bb-surface, #120d06)); }
+.bb-box--alert { --hx-fill: linear-gradient(90deg, var(--bb-alt, #dc143c) 4px, transparent 4px); }
+.bb-box--glow { --hx-edge: var(--bb-accent, #ffcc00); }
+.panel { --hx-fill: linear-gradient(var(--crimson, #dc143c) 2px, transparent 2px); }
+.bm-tile { --hx-fill: linear-gradient(#1a140b, #100b05); }
+.bm-tile.lock { --hx-fill: repeating-linear-gradient(45deg, #0d0a05 0 8px, #120d06 8px 16px); }
+.hive-mind-container .cm-head { --hx-fill: linear-gradient(180deg, rgba(10, 8, 4, .86), rgba(10, 8, 4, .62)); }
+.qa-card { --hx-fill: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--qc) 18%, transparent), transparent 60%); }
+:is(.qa-card, button.qa-open, .qd-hero, .qd button.qd-focus, .qd button.qd-add, .qd-add-form) { --hx-edge: color-mix(in srgb, var(--qc, #ffcc00) 45%, transparent); }
+/* Gold buttons drawn with a gold gradient. */
+:is(.pm-btn.go, .eh-btn.gold, .hn-btn, .lvr-btn.gold, .ss-btn.gold, .bizzybee-toast-btn.go, .wn-btn.go, .up-btn.go,
+    .sk-up, .sk-lvl, .hl-hatch, .xt-btn.gold, .ic-btn.gold, .pjv2 .acts .go, .lvl-claim) {
+    --hx-fill: linear-gradient(var(--bb-accent-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); --hx-edge: var(--bb-accent-hi, #ffd84a); }
+:is(.pm-btn.go, .eh-btn.gold, .lvr-btn.gold, .ss-btn.gold, .bizzybee-toast-btn.go, .wn-btn.go, .up-btn.go, .hl-hatch,
+    .xt-btn.gold, .ic-btn.gold, .pjv2 .acts .go, .sk-go, .hl-btn.solid):focus-visible { --hx-on: #fff; }
+.hive-mind-gacha-link-btn { --hx-fill: linear-gradient(to bottom, var(--gold-start, #ffcc00), var(--gold-end, #997a00)); }
+.hn-coach { --hx-fill: linear-gradient(#17110a, #0f0b05); }
+.lvr-item { --hx-fill: linear-gradient(#1d160c, #110c05); }
+:is(.ss-story, .wn, .bm-view-box, .ic-head) { --hx-fill: linear-gradient(#1a130a, #0d0904); }
+.bizzybee-toast { --hx-fill: linear-gradient(180deg, #1d160c, #120d06); }
+.hive-mind-queen-panel { --hx-fill: linear-gradient(#1b1d20, #131416); }
+.waggle-menu .wg-alert { --hx-fill: linear-gradient(90deg, rgba(var(--bb-accent-rgb, 255, 204, 0), .2), rgba(var(--bb-alt-rgb, 220, 20, 60), .15)); }
+/* --hx-fill takes ONE layer; a second goes in background-color. */
+.qd-hero { --hx-fill: radial-gradient(130% 100% at 100% 0%, color-mix(in srgb, var(--qc) 30%, transparent), transparent 62%); background-color: #130e07 !important; }
+.ic-machine-card { --hx-fill: radial-gradient(circle at 50% 40%, rgba(var(--bb-alt-rgb, 220, 20, 60), .16), transparent 62%); }
+.onboarding-page .btn:not(.ghost) { --hx-edge: #6e4806; }
+.hf-d svg { --hx-edge: color-mix(in srgb, var(--c, #ffcc00) 40%, transparent); }
+/* Switch focus (the real checkbox is hidden): light up the track edge. */
+.toggle-switch input:focus-visible + .toggle-switch-track, .cq-switch input:focus-visible + .cq-switch-ui { --hx-on: #fff; --hx-w: 2px; }
+/* Login-style pages (login, reset password, feedback, request access). */
+:is(#auth-submit-btn, #invite-submit-btn, #forgot-submit-btn, #welcome-go-btn) { --hx-fill: linear-gradient(180deg, var(--bb-t-hi, #f6e3a4), var(--bb-t-mid, #d9b968) 50%, #a8823a); --hx-edge: transparent; }
+:is(.btn-link, .login-card button[type="submit"]:not([id$="-btn"]), #suggestions-submit-btn, #request-access-submit-btn) { --hx-fill: linear-gradient(to bottom, var(--gold-start, #ffcc00), var(--gold-end, #997a00)); --hx-edge: transparent; }
