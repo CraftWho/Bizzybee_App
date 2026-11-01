@@ -469,16 +469,15 @@ const BeeCard = {
 
                     <div class="bc-top">
                         <span class="bc-rpill">${bee.rarity.toUpperCase()}</span>
-                        <span class="bee-card-name${bee.name.length > 12 ? ' bc-long' : ''}" title="${bee.name}">${bee.name}</span>
+                        ${title ? `<span class="bc-ribbon bc-ribbon--name${(bee.name.length + title.label.length) > 20 ? ' bc-ribbon--two' : ''}" title=""${bee.name} \u201c${title.label}\u201d"><span class="bee-card-name${bee.name.length > 10 ? ' bc-long' : ''}">${bee.name}</span><span class="bc-rt">\u201c${title.label.toUpperCase()}\u201d</span></span>` : `<span class="bee-card-name${bee.name.length > 12 ? ' bc-long' : ''}" title="${bee.name}">${bee.name}</span>`}${/* Nov 1 2026 (Craft): titled bees: name + title in the ribbon, in the name row, so nothing moves down */ ''}
                         ${editable && !(bee.limited && bee.limited.serial) ? `<button class="bee-card-rename-btn" title="Rename this bee">✏️</button>` : ''}
                         ${elementInfo ? `<span class="bc-elhex" title="${elementInfo.label}"><span>${elementInfo.emoji}</span></span>` : ''}
                     </div>
 
-                    ${title ? `<div class="bc-ribbon">\u201c${title.label.toUpperCase()}\u201d</div>` : ''}
                     <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${title && !(bee.limited && bee.limited.serial) ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${/* Nov 1 2026 (Craft): no crown on limited bees */ ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
 
                     <div class="bc-dex">${/* Oct 31 2026 (Craft): No. · obtained · height · weight */ ''}
-                        <span><b>No.${dexNo}</b>${bee.rarity !== 'Royal' && (bee.sex === 'f' || bee.sex === 'm') ? ` <i class="bc-sex bc-sex--${bee.sex}" title="${bee.sex === 'f' ? 'Female' : 'Male'}">${bee.sex === 'f' ? '♀' : '♂'}</i>` : ''}</span>${/* Nov 1 2026 (Craft): sex next to the No. */ ''}
+                        <span><b>No.${dexNo}</b>${bee.rarity !== 'Royal' && (bee.sex === 'f' || bee.sex === 'm') ? ` <i class="bc-sex bc-sex--${bee.sex}" title="${bee.sex === 'f' ? 'Female' : 'Male'}">${bee.sex === 'f' ? '♀ F' : '♂ M'}</i>` : ''}</span>${/* Nov 1 2026 (Craft): sex next to the No. */ ''}
                         <span>${isNaN(new Date(bee.obtainedAt)) ? '—' : new Date(bee.obtainedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                         <span>H ${bee.height != null ? Number(bee.height).toFixed(1) : '—'}cm</span>
                         <span>W ${weight}g</span>
@@ -525,7 +524,7 @@ const BeeCard = {
                     </div>
 
                     <p class="bee-card-flavor">${title ? `\u201c${title.quote.replace('{n}', bee.name)}\u201d` : archetype.description}</p>
-                    <div class="bc-coll"><span>${bee.limited && bee.limited.serial ? `${String(bee.limited.label || 'Limited').replace(/[<>&"]/g, '')} · <b class="bc-limited">#${String(bee.limited.serial).padStart(3, '0')}/${String(bee.limited.of || 50).padStart(3, '0')}</b>` : bee.serial ? `<i class="bc-serial" title="Serial number">${String(bee.serial).replace(/[^A-Za-z0-9-]/g, "")}</i>` : `No.${dexNo} · BizzyBee Base Set`}</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>${/* Oct 31 2026 (Craft): serial number */ ''}
+                    <div class="bc-coll">${/* Nov 1 2026 (Craft): serial bottom-left in the card's own metal; a limited bee's number beside it */ ''}<span class="bc-coll-l">${bee.serial ? `<i class="bc-serial" title="Serial number">${String(bee.serial).replace(/[^A-Za-z0-9-]/g, "")}</i>` : `<span>No.${dexNo} · BizzyBee Base Set</span>`}${bee.limited && bee.limited.serial ? `<span class="bc-lim">${String(bee.limited.label || 'Limited').replace(/[<>&"]/g, '')} · <b class="bc-limited">#${String(bee.limited.serial).padStart(3, '0')}/${String(bee.limited.of || 50).padStart(3, '0')}</b></span>` : ''}</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>
                 </div>
 
                 <div class="bee-card-face bee-card-back">
