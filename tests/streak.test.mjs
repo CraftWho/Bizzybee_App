@@ -35,3 +35,15 @@ test('streak: 5 dailies / To-Dos / quest tasks make a day count; habits do not',
     assert.equal(v.taskStreak(T), 2);
     assert.equal(v.taskStreak('2026-11-04'), 2);   // tomorrow: today not at 5 yet, streak still standing
 });
+
+test('streak: weekly bonus every Sunday with a 7+ day streak', async () => {
+    // 7 days in a row, ending Sunday Nov 8 2026; 5 To-Dos each day.
+    const days = ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08'];
+    const todos = days.flatMap((d, i) => [0, 1, 2, 3, 4].map(k => ({ id: `t${i}-${k}`, label: 'x', xp: 10, completed: true, completedDate: d })));
+    const v = harness({ todos });
+    await v.init();
+    v._checkTaskStreak('2026-11-08');
+    assert.ok(v.state.bonusXP.some(b => b.key === 'streak-week:2026-11-08'));
+    v._checkTaskStreak('2026-11-07');                       // Saturday, 6 days: nothing
+    assert.ok(!v.state.bonusXP.some(b => b.key.startsWith('streak-week:2026-11-07')));
+});
