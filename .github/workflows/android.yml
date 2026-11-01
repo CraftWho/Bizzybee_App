@@ -15,6 +15,14 @@ on:
         description: "Tester build (WebView debugging on)"
         type: boolean
         default: false
+      # Nov 1 2026 (Craft): a separate "BizzyBee Local" app for study. It runs its
+      # own copy of the app files and downloads only what changed after each
+      # deploy. Installs NEXT TO the normal app (different app id). The normal
+      # app still loads the live site.
+      local_copy:
+        description: "BizzyBee Local study build (runs its own copy)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -41,9 +49,15 @@ jobs:
         run: |
           node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
           echo "BB_TAG_SUFFIX=-tester" >> "$GITHUB_ENV"
-      # Nov 1 2026 (Craft): the app's own copy of the app files goes inside the APK.
-      - name: Build the app copy
-        run: node ../tools/make-app-copy.mjs www
+      # Nov 1 2026 (Craft): the Local study build carries its own copy of the app.
+      - name: Local study build - own copy of the app
+        if: ${{ inputs.local_copy }}
+        run: |
+          node ../tools/make-app-copy.mjs www
+          node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.webDir='www';c.appId='com.craftwho.bizzybee.local';c.appName='BizzyBee Local';c.server={androidScheme:'https'};require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          sed -i 's#<string name="app_name">BizzyBee</string>#<string name="app_name">BizzyBee Local</string>#; s#<string name="title_activity_main">BizzyBee</string>#<string name="title_activity_main">BizzyBee Local</string>#' android/app/src/main/res/values/strings.xml
+          echo "BB_APP_ID_SUFFIX=.local" >> "$GITHUB_ENV"
+          echo "BB_TAG_SUFFIX=${BB_TAG_SUFFIX}-local" >> "$GITHUB_ENV"
       - run: npx cap sync android
       - name: Build signed APK
         env:
@@ -62,6 +76,6 @@ jobs:
           tag_name: android-v${{ env.BB_VERSION_NAME }}-b${{ github.run_number }}${{ env.BB_TAG_SUFFIX }}
           target_commitish: ${{ github.sha }}
           name: BizzyBee Android ${{ env.BB_VERSION_NAME }}${{ env.BB_TAG_SUFFIX }}
-          prerelease: ${{ inputs.tester }}
+          prerelease: ${{ inputs.tester || inputs.local_copy }}
           body: Install on your phone, or tap Update in the app (Settings › About). Updates install over the old version.
           files: BizzyBee-${{ env.BB_VERSION_NAME }}.apk
