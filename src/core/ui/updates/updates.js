@@ -22,6 +22,8 @@ const WHATS_NEW = [
         { icon: '🕘', title: 'History', text: 'Everything you finished, day by day. Tap one to open it.', href: 'features/history/history.html' },
         { icon: '📊', title: 'Home stats', text: 'Weather and steps (Android app) join the stat strip. XP today and Done today now always match.', href: 'features/home/home.html' },
         { icon: '⬆️', title: 'Claim on the Dashboard', text: 'Level up ready? Claim it on the Dashboard too.', href: 'features/dashboard/dashboard.html' },
+        { icon: '🔖', title: 'Serial numbers', text: 'Every bee card has its own serial number that never changes.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '📇', title: 'Skill lines', text: 'KeeperDex skills now say what they do.', href: 'features/keeperdex/keeperdex.html' },
         { icon: '✨', title: 'Shiny cards', text: 'Rare and better cards catch the light as you tilt your phone.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '🃏', title: 'KeeperDex cards flip', text: 'Cards you haven\'t found are greyed out and face-down. Tap a found card to see it big and flip it.', href: 'features/keeperdex/keeperdex.html' },
         // Oct 31 2026 (Craft): Batch 5, Skills (from 1.0.6, with ask-first).

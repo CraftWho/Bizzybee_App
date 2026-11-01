@@ -232,6 +232,6 @@ a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left
 /* Oct 31 2026 (Craft): Done today sits higher: it floats above the dock,
    stays in the lower half of the screen, and its buttons land near your
    thumb. A long list scrolls inside it. */
-.xt-scrim { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); box-sizing: border-box; }
-.xt-sheet { max-height: calc(50vh - 104px - env(safe-area-inset-bottom)); min-height: 200px; border-radius: 22px; border: 2px solid #34c77b; padding-bottom: 14px; }
+.xt-scrim { padding: 0 12px calc(96px + 6vh + env(safe-area-inset-bottom)); box-sizing: border-box; }   /* Oct 31 2026 (Craft): a bit higher */
+.xt-sheet { max-height: calc(62vh - 104px - env(safe-area-inset-bottom)); min-height: 200px; border-radius: 22px; border: 2px solid #34c77b; padding-bottom: 14px; }
 .xt-sheet .xt-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
