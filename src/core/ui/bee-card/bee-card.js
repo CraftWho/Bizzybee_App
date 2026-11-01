@@ -707,8 +707,13 @@ const BeeCardGlare = (() => {
     const still = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const paint = () => { raf = null; root.style.setProperty('--bc-gx', gx.toFixed(1) + '%'); root.style.setProperty('--bc-gy', gy.toFixed(1) + '%'); };
     const queue = () => { if (!raf) raf = requestAnimationFrame(paint); };
+    // Nov 1 2026 (Craft): html.bc-motion = the glare is following real motion
+    // (the phone's tilt, or the mouse). Without it, open cards use a gentle
+    // moving glare instead (bee-card.css).
+    const moving = () => { if (!root.classList.contains('bc-motion')) root.classList.add('bc-motion'); };
     function onTilt(e) {
         if (e.beta == null || e.gamma == null) return;
+        moving();
         if (!base) base = { b: e.beta, g: e.gamma };   // how you hold it now = the middle
         const clamp = (v) => Math.max(-1, Math.min(1, v));
         gx = 50 + clamp((e.gamma - base.g) / 30) * 50;
@@ -733,6 +738,7 @@ const BeeCardGlare = (() => {
             if (e.pointerType !== 'mouse') return;
             const card = e.target.closest && e.target.closest('.bc-v2');
             if (!card) return;
+            moving();
             const r = card.getBoundingClientRect();
             card.style.setProperty('--bc-gx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
             card.style.setProperty('--bc-gy', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');

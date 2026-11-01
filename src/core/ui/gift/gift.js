@@ -47,7 +47,7 @@ const Gifts = (() => {
         });
     }
 
-    function close() { if (scrim) { scrim.remove(); scrim = null; } document.body.classList.remove('gf-open'); }
+    function close() { if (scrim) { scrim.remove(); scrim = null; } document.body.classList.remove('gf-open'); document.documentElement.classList.remove('bb-zoom'); }
 
     // Plays the gift: envelope, card, letter, add to hive.
     function open(g) {
@@ -57,7 +57,7 @@ const Gifts = (() => {
         scrim = document.createElement('div');
         scrim.className = 'gf-scrim';
         scrim.setAttribute('role', 'dialog'); scrim.setAttribute('aria-modal', 'true'); scrim.setAttribute('aria-label', 'A gift for you');
-        document.body.appendChild(scrim); document.body.classList.add('gf-open');
+        document.body.appendChild(scrim); document.body.classList.add('gf-open'); document.documentElement.classList.add('bb-zoom');   // everything behind pauses
         const step = (html) => { scrim.innerHTML = `<div class="gf-step">${html}</div>`; return scrim.querySelector('.gf-step'); };
         const envelope = () => {
             const s = step(`<button type="button" class="gf-env"><span class="gf-seal" aria-hidden="true"></span><b>A gift from ${esc(g.from || 'Craft')}</b><span class="gf-note">Tap to open</span></button><button type="button" class="gf-later">Later</button>`);

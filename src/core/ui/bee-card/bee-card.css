@@ -729,3 +729,22 @@
 .bc-v2 .bc-lim { color: #b9b3a6; font-size: 2.6cqw; }
 .bc-v2 .bc-lim small.bc-limited { margin-left: .8cqw; font: 700 1.9cqw/1 ui-monospace, monospace; letter-spacing: .06em; color: var(--m1); opacity: .9; }
 .bc-v2 .bc-abil:empty { background: none; border: 0; }   /* Nov 1 2026: nothing known yet */
+
+/* Nov 1 2026 (Craft): smooth Cover Flow and grid. Cards in the binder don't
+   animate or shine; that's saved for the card you open. */
+.cf-stage .bc-v2 *, .cf-stage .bc-v2 *::before, .cf-stage .bc-v2 *::after,
+.cf-grid .bc-v2 *, .cf-grid .bc-v2 *::before, .cf-grid .bc-v2 *::after { animation: none !important; }
+.cf-stage .bc-v2 .bc-glare, .cf-grid .bc-v2 .bc-glare,
+.cf-stage .bc-v2.bc-titled .bee-card-front::after, .cf-grid .bc-v2.bc-titled .bee-card-front::after { display: none; }
+
+/* An open card (Hive Bees, gift reveal): ONE glare. The holo sweep and the
+   foil on the picture are off. With motion (tilt or mouse) the glare follows
+   it; without motion it drifts across slowly on its own. */
+#cb-expanded .bc-v2.bc-titled .bee-card-front::after, .gf-card-host .bc-v2.bc-titled .bee-card-front::after,
+#cb-expanded .bc-v2 .bc-foil, .gf-card-host .bc-v2 .bc-foil { display: none; }
+html:not(.bc-motion) #cb-expanded .bc-v2 .bc-glare, html:not(.bc-motion) .gf-card-host .bc-v2 .bc-glare {
+    background: linear-gradient(115deg, transparent 36%, rgba(255, 240, 200, .2) 46%, rgba(190, 220, 255, .16) 54%, transparent 64%) 150% 0 / 250% 100% no-repeat;
+    animation: bc-glare-drift 5s ease-in-out infinite;
+}
+@keyframes bc-glare-drift { 0% { background-position: 150% 0; } 60%, 100% { background-position: -60% 0; } }
+@media (prefers-reduced-motion: reduce) { html:not(.bc-motion) #cb-expanded .bc-v2 .bc-glare, html:not(.bc-motion) .gf-card-host .bc-v2 .bc-glare { animation: none; } }
