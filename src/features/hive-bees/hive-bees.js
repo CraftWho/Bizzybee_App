@@ -105,11 +105,11 @@ function cbOpenBee(id) {
     const slots = typeof beeItemSlots === 'function' ? beeItemSlots(b) : 0;
     const itemOf = (id) => id && STORE_ITEM_CATALOG.find(i => i.id === id);
     const R = rates ? rates.v : [0, 0, 0, 0, 0];
+    // Oct 31 2026 (Craft): fix: your King/Queen has no hive-life stats (L), which crashed this sheet.
     const box = PV2.sheet(`
         <div class="head"><button type="button" class="cb-av cb-av-btn" data-act="card" aria-label="Open ${esc(b.name)}'s card">${cbArt(b, 'big')}<span class="cb-tapcard">TAP FOR CARD</span></button>
             <div><h2>${esc(b.name)}${b.title && typeof NAMED_TITLES !== 'undefined' && NAMED_TITLES[b.title] ? ` <span class="cb-title">\u201c${esc(NAMED_TITLES[b.title].label)}\u201d</span>` : ''}</h2><small style="color:var(--${esc(b.rarity)})">${esc(b.rarity)}</small>${b.sex ? ` <small>· ${b.sex === 'm' ? '♂ Male' : '♀ Female'}</small>` : ''}<br><small>${esc(cbJobText(b))}</small></div>
             <button type="button" class="x" data-close aria-label="Close">×</button></div>
-        // Oct 31 2026 (Craft): fix: your King/Queen has no hive-life stats; this crashed the sheet.
         <div class="cb-chips">${needs.map(n => `<span class="cb-chip bad">${esc(n.need)} · ${esc(n.value)}</span>`).join('')}${!needs.length && !(L && L.faintedAt) ? `<span class="cb-chip ok">${f.face} ${esc(f.why)}</span>` : ''}${rates ? `<span class="cb-chip ok">${esc(rates.mode)}</span>` : ''}</div>
         <div class="cb-name"></div>
         ${L ? cbVital('❤️', 'Health', L.health, '#5fd38a', R[4]) + cbVital('⚡', 'Stamina', L.stamina, '#5aa9ff', R[0]) + cbVital('🥱', 'Fatigue', L.fatigue || 0, '#ff8a3d', R[3]) + cbVital('🍯', 'Fullness', L.fullness, '#ffcc00', R[1]) + cbVital('😊', 'Happiness', L.happiness, '#e58fff', R[2]) : ''}
