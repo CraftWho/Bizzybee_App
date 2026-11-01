@@ -3,7 +3,7 @@ console.log("/// PHONE SYNC ONLINE ///");
 // Phone Sync (Oct 2026, approved demo). The calendar feed link works now
 // (netlify/functions/calendar-feed.mjs). Google Calendar / Tasks two-way
 // sync needs a Google Cloud setup first, so those show "Setup needed".
-let feed = { enabled: false, url: null, items: { events: true, todos: true, dailies: false } };
+let feed = { enabled: false, url: null, items: { events: true, todos: true } };   // Nov 1 2026 (Craft): no dailies in the feed
 
 function waitForCloud(ms = 8000) {
     return new Promise(resolve => {
