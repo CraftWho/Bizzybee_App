@@ -18,6 +18,11 @@ const WHATS_NEW = [
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Nov 1 2026 (Craft): Batch 13 (B).
+        { icon: '🤖', title: 'Hive auto-manage', text: 'Staff every comb with one Rare+ Leader and the hive fills empty combs by itself, every hour. Red dots show combs with no workers.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '💎', title: 'Thumb pad', text: 'Hold the gold ＋ to pull out a pad you can put anywhere: Back, Home, Dailies, New, To-Dos, Habits.' },
+        { icon: '📅', title: 'Add to calendar, set alarm', text: 'On To-Dos with a due date and Quests with a deadline. Quests can have a deadline now.', href: 'features/todos/todos.html' },
+        { icon: '💻', title: 'Terminal commands', text: 'ls, cd, find, grep, pipes and Tab. Revert puts your save back.', href: 'plugins/terminal/terminal.html' },
         // Nov 1 2026 (Craft): Batch 13, back from 1.0.7.
         { icon: '🕘', title: 'Quest history', text: 'Every quest shows what you finished, day by day, with time and XP.', href: 'features/quests/quests.html' },
         { icon: '🔤', title: 'Text presets and fonts', text: 'Settings › Look & feel: Easy read, Big & bold, Compact, and a font for reading.', href: 'features/settings/settings.html' },

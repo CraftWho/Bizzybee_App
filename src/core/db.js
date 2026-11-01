@@ -1637,6 +1637,35 @@ const REST_RATES = {
     night: [7, 2.5, 1, -6, 2],        // everyone's sleep
     nursery: [4, 2.5, 1, -3, 4]       // a Nursery bed: heals 4x faster (+1 per working Nurse, max +3)
 };
+// Nov 1 2026 (Craft): Hive Life combs and the jobs done in each (same as
+// HiveLife.COMBS). Used by the comb strength and by auto-manage.
+const HIVE_COMB_JOBS = {
+    royal: { name: 'Royal Chamber', jobs: ['attendant', 'drone'] },
+    nursery: { name: 'Nursery', jobs: ['nurse'] },
+    honey: { name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'] },
+    workshop: { name: 'Workshop', jobs: ['architect', 'cleaner'] },
+    entrance: { name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'] }
+};
+// How good a bee is at a job, about 1-100 (from 1.0.7's WorkerCard). The
+// job's stat, +20% for its talent, less if it's not well or tired.
+function beeJobScore(bee, job) {
+    const info = BEE_CLASSES[job];
+    if (!bee || !info) return 0;
+    let s = info.stat ? Number((bee.stats || {})[info.stat]) || 40 : 40;
+    if (info.stat === 'hp') s = s / 3;   // hp runs ~3x the other stats
+    if (bee.talent === job) s *= 1.2;
+    const probs = beeProblems(bee);
+    if (probs) s *= probs >= 2 ? 0.7 : 0.85;
+    const L = bee.life || {};
+    if (L.stamina != null) s *= 0.6 + 0.4 * Math.min(1, L.stamina / 60);
+    return Math.max(1, Math.min(100, Math.round(s)));
+}
+const COMB_FULL_TEAM = 3;   // three good workers = 100%
+function combPower(bees, jobs) {
+    const total = bees.reduce((n, b) => n + (jobs.includes(b.class) ? beeJobScore(b, b.class) : 0), 0);
+    return Math.min(100, Math.round(total / (COMB_FULL_TEAM * 70) * 100));
+}
+
 const WORK_HOURS = [7, 22];           // 7 AM to 10 PM
 const isNightHour = (h) => h < WORK_HOURS[0] || h >= WORK_HOURS[1];
 // Hurt levels from health (replaces "Injured"): 0 fine, 1 Hurt, 2 Badly hurt, 3 Severely hurt (can't work).
@@ -3421,7 +3450,7 @@ class DatabaseManager {
     // are kept; new rows become new tasks; rows left out are removed.
     // Everything else on the quest (ghost logs, side quests, codex
     // unlocks, repo task...) is left alone. Returns the quest.
-    saveQuestForm(questId, { title, objective, category, source, tasks, makeActive, tags }) {
+    saveQuestForm(questId, { title, objective, category, source, tasks, makeActive, tags, deadline }) {
         if (!this.state) return null;
         if (!this.state.quests) this.state.quests = [];
         const stamp = Date.now();
@@ -3447,6 +3476,8 @@ class DatabaseManager {
         quest.category = category === 'side' ? 'side' : 'main';
         quest.source = source && source.url ? { label: source.label || source.url, url: source.url } : null;
         if (Array.isArray(tags)) quest.tags = [...new Set(tags.map(t => String(t).trim()).filter(Boolean))];
+        // Nov 1 2026 (Craft): optional deadline (YYYY-MM-DD).
+        if (deadline !== undefined) { if (/^\d{4}-\d{2}-\d{2}$/.test(String(deadline || ''))) quest.deadline = deadline; else delete quest.deadline; }
         quest.tasks = (tasks || []).map((row, index) => {
             const prev = row.id && old.find(t => t.id === row.id);
             const minutes = Number(row.minutes) > 0 ? Number(row.minutes) : (prev ? prev.minutes || null : null);
@@ -3673,6 +3704,7 @@ class DatabaseManager {
             if (bee.class) delete bee.life.idleSince;
             else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
         }
+        this.autoJustUnlocked = this._autoUnlockCheck();   // Nov 1 2026 (Craft): auto-manage
         this.save();
         return bee;
     }
@@ -6037,6 +6069,71 @@ Object.assign(DatabaseManager.prototype, {
         return fresh;
     },
 
+    // ---- Auto-manage (Nov 1 2026, Craft; approved demo) ----
+    // Unlocks when every comb with jobs has at least 1 bee, and one of them
+    // is Rare or better: that bee is the Leader. Then, once an hour, an empty
+    // comb gets the best free bee. Never takes resting, recuperating, sick,
+    // hurt or tired bees, eggs, or the Queen. With no free bee, the weakest
+    // bee moves from a comb with 2+ workers (never the Leader). Pauses while
+    // no Leader is working.
+    _combWorkers(id) {
+        const jobs = HIVE_COMB_JOBS[id].jobs;
+        return this._lifeBees().filter(b => jobs.includes(b.class) && !beeIsBrood(b) && !b.life.faintedAt);
+    },
+    hiveLeader() {
+        const RANK = { Rare: 1, Epic: 2, Legendary: 3, Named: 4 };
+        return Object.keys(HIVE_COMB_JOBS).flatMap(id => this._combWorkers(id))
+            .filter(b => RANK[b.rarity] && beeCanWork(b))
+            .sort((a, b) => RANK[b.rarity] - RANK[a.rarity] || beeJobScore(b, b.class) - beeJobScore(a, a.class))[0] || null;
+    },
+    hiveAutoStatus() {
+        if (!this.state || !this.state.hive) return null;
+        const combs = Object.keys(HIVE_COMB_JOBS).map(id => ({ id, name: HIVE_COMB_JOBS[id].name, staffed: this._combWorkers(id).length > 0 }));
+        const leader = this.hiveLeader();
+        return { on: !!(this.state.hive.autoManage && this.state.hive.autoManage.on), leader, combs, staffed: combs.filter(c => c.staffed).length, total: combs.length };
+    },
+    // Called after a job change and every hour. Returns true when it just unlocked.
+    _autoUnlockCheck() {
+        const st = this.hiveAutoStatus();
+        if (!st || st.on || st.staffed < st.total || !st.leader) return false;
+        this.state.hive.autoManage = { on: true, since: new Date().toISOString() };
+        this._lifeEvent('auto', `🤖 Auto-manage unlocked! ${st.leader.name} leads the hive.`, { beeId: st.leader.id });
+        return true;
+    },
+    // One auto-manage pass. Returns the notes it made (also in Hive news).
+    _autoManageHour() {
+        const st = this.hiveAutoStatus();
+        if (!st || !st.on || !st.leader) return [];
+        const leader = st.leader;
+        const notes = [];
+        const ready = (b) => beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery && !beeLockedJob(b);
+        const canDo = (b, jobs) => jobs.filter(j => !!BEE_CLASSES[j].maleOnly === (b.sex === 'm'));
+        st.combs.filter(c => !c.staffed).forEach(c => {
+            const jobs = HIVE_COMB_JOBS[c.id].jobs;
+            const best = (list) => list.map(b => ({ b, j: canDo(b, jobs).sort((x, y) => beeJobScore(b, y) - beeJobScore(b, x))[0] }))
+                .filter(x => x.j).sort((x, y) => beeJobScore(y.b, y.j) - beeJobScore(x.b, x.j))[0];
+            let pick = best(this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ready(b)));
+            let from = null;
+            if (!pick) {
+                const big = Object.keys(HIVE_COMB_JOBS).filter(id => id !== c.id && this._combWorkers(id).length >= 2)
+                    .sort((x, y) => this._combWorkers(y).length - this._combWorkers(x).length);
+                for (const id of big) {
+                    const movable = this._combWorkers(id).filter(b => b.id !== leader.id && ready(b) && canDo(b, jobs).length)
+                        .sort((x, y) => beeJobScore(x, x.class) - beeJobScore(y, y.class));
+                    if (movable.length) { const b = movable[0]; pick = { b, j: canDo(b, jobs).sort((x, y) => beeJobScore(b, y) - beeJobScore(b, x))[0] }; from = HIVE_COMB_JOBS[id].name; break; }
+                }
+            }
+            if (!pick) return;
+            pick.b.jobSince = todayISO();
+            pick.b.class = pick.j;
+            delete pick.b.life.idleSince;
+            const text = from ? `🐝 ${pick.b.name} moved from the ${from} to the ${c.name}.` : `🐝 ${pick.b.name} took over the ${c.name} as a ${BEE_CLASSES[pick.j].label}.`;
+            this._lifeEvent('auto', text, { beeId: pick.b.id });
+            notes.push(text);
+        });
+        return notes;
+    },
+
     // ---- Hour by hour (Oct 28 2026) ----
     // Catches up every whole hour since the last run (max 14 days).
     hiveHourlyTick(now = Date.now()) {
@@ -6051,6 +6148,9 @@ Object.assign(DatabaseManager.prototype, {
         bees.forEach(b => { if (b.life && b.life.injuredUntil) { b.life.health = Math.min(b.life.health, 55); delete b.life.injuredUntil; } });
         for (let k = 1; k <= hours; k++) this._lifeHour(new Date(c.vitalsAt + k * HOUR));
         c.vitalsAt += hours * HOUR;
+        // Nov 1 2026 (Craft): auto-manage, once per catch-up.
+        this._autoUnlockCheck();
+        this._autoManageHour();
         this.saveQuiet();   // Oct 31 2026 (Craft): the clock isn't an edit
         return hours;
     },

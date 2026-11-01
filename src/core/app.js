@@ -778,7 +778,7 @@ const AppShell = {
         // hold the dock for 2 seconds.
         let holdTimer = null;
         const stopHold = () => { clearTimeout(holdTimer); holdTimer = null; };
-        dock.addEventListener('pointerdown', () => { stopHold(); holdTimer = setTimeout(() => this.dockReport(), 2000); });
+        dock.addEventListener('pointerdown', (e) => { stopHold(); if (e.target.closest('.dk-add')) return; holdTimer = setTimeout(() => this.dockReport(), 2000); });   // Nov 1 2026 (Craft): holding ＋ is the thumb pad now
         ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => dock.addEventListener(t, stopHold));
 
         // Swipe up on the gold + to go Home (Oct 28 2026, Craft).
@@ -787,7 +787,7 @@ const AppShell = {
         add.style.touchAction = 'none';
         add.addEventListener('pointerdown', (e) => { swipe = { y: e.clientY, x: e.clientX }; swiped = false; try { add.setPointerCapture(e.pointerId); } catch {} });
         add.addEventListener('pointermove', (e) => {
-            if (!swipe || swiped) return;
+            if (!swipe || swiped || document.body.classList.contains('tp-out')) return;   // Nov 1 2026 (Craft): not while the thumb pad is out
             if (swipe.y - e.clientY > 36 && Math.abs(e.clientX - swipe.x) < 60) {
                 swiped = true;
                 add.classList.add('dk-swiped');
