@@ -9,11 +9,19 @@
 // document.write keeps the files in order and blocking, exactly like plain
 // <script> tags, with no build step.
 (function () {
+    // Nov 1 2026 (Craft): the Android app runs its own copy of the app
+    // (https://localhost, no port). Sign-in and cloud still live on the site,
+    // so calls go to BB_SITE. On the website (and PC LOCAL) BB_SITE is ''.
+    // netlifySiteURL tells the sign-in widget where the site is.
+    const appCopy = location.protocol === 'https:' && location.hostname === 'localhost' && !location.port;
+    window.BB_APP_COPY = appCopy;
+    window.BB_SITE = appCopy ? 'https://bizzybeee.netlify.app' : '';
+    if (appCopy) { try { localStorage.setItem('netlifySiteURL', window.BB_SITE); } catch (e) { /* storage off */ } }
     const me = document.currentScript;
     const core = me.src.replace(/boot\.js(?:\?.*)?$/, '');
     const STYLES = ['global.css', 'ui/themes/themes.css', 'ui/hive-mind/hive-mind.css', 'ui/hive-mind/nano-bee.css', 'ui/toast/toast.css', 'ui/llm-engine/llm-engine.css'];
     const before = ['db.js', 'plugins.js', 'services/notify/notify.js'];
-    const after = ['app.js', 'ui/themes/themes.js', 'services/social/social.js', 'ui/hive-mind/nano-bee.js', 'ui/hive-mind/hive-mind.js', 'ui/toast/toast.js', 'services/reminders/reminders.js', 'ui/llm-engine/llm-engine.js'];
+    const after = ['app.js', 'ui/themes/themes.js', 'services/social/social.js', 'ui/skill-merge/skill-merge.js', 'ui/hive-mind/nano-bee.js', 'ui/hive-mind/hive-mind.js', 'ui/toast/toast.js', 'ui/llm-engine/llm-engine.js'];
     const extra = (me.dataset.with || '').split(/\s+/).filter(Boolean);
     // Themes (Oct 28 2026): set the theme before anything paints, so there's
     // no flash. 'auto' = BizzyBee, and Halloween on Oct 31 (your local day).

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../src/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🐝 Hive Bees</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
+    <link rel="stylesheet" href="../../core/ui/bee-name/bee-name.css">
+    <link rel="stylesheet" href="./hive-bees.css">
+</head>
+<body>
+    <!-- Oct 31 2026 (Craft, approved demo "BizzyBee Card Binder"): Hive Bees is
+         your card binder now. Cover Flow like the old iPod: drag, flick fast to
+         jump by codex number, click wheel, slider, hexagon search, a full-screen
+         list, and a big card with glare. Jobs live in the Hive Mind. -->
+    <main class="pv2 cb2 cf-page">
+        <header class="pv2-head cf-head">
+            <h1 class="pv2-title">🐝 HIVE BEES</h1>
+            <p class="pv2-lead" id="cb-lead">Your cards.</p>
+        </header>
+        <div class="cf-sorts" role="group" aria-label="Sort cards" id="cf-sorts"></div>
+
+        <section class="cf-stage" id="cf-stage" aria-label="Your cards. Drag to browse, tap the middle card to look closer.">
+            <div class="cf-bubble" id="cf-bubble" aria-hidden="true"></div>
+            <p class="cf-empty" id="cf-empty" hidden></p>
+        </section>
+
+        <div class="cf-now" id="cf-now" aria-live="polite"></div>
+
+        <!-- Oct 31 2026 (Craft): grid view (in place of the list). Same spot as
+             Cover Flow, so the wheel stays. The hive behind is paused. -->
+        <section class="cf-grid-wrap" id="cf-grid-wrap" hidden aria-label="All cards">
+            <div class="cf-grid-filters" role="group" aria-label="Show" id="cf-grid-filters"></div>
+            <div class="cf-grid" id="cf-grid"></div>
+        </section>
+
+        <label class="cf-search hexbox">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <span class="sr-only">Search your cards</span>
+            <input type="search" id="cb-q" placeholder="Search name, No. or serial" autocomplete="off">
+        </label>
+
+        <div class="cf-scrub">
+            <span id="cf-pos">0/0</span>
+            <input type="range" id="cf-range" min="0" max="0" step="1" value="0" aria-label="Scroll through cards">
+            <button type="button" class="cf-pill" id="cf-wheel-toggle" aria-pressed="true">Wheel</button>
+        </div>
+
+        <div class="cf-wheel" id="cf-wheel" role="group" aria-label="Click wheel">
+            <button type="button" class="cf-w cf-w-top" data-w="sort">SORT</button>
+            <button type="button" class="cf-w cf-w-left" data-w="prev" aria-label="Previous codex number"><svg viewBox="0 0 22 14" aria-hidden="true"><path d="M11 1 3 7l8 6zM19 1l-8 6 8 6z"/></svg></button>
+            <button type="button" class="cf-w cf-w-right" data-w="next" aria-label="Next codex number"><svg viewBox="0 0 22 14" aria-hidden="true"><path d="m3 1 8 6-8 6zM11 1l8 6-8 6z"/></svg></button>
+            <button type="button" class="cf-w cf-w-bottom" data-w="grid" id="cf-w-grid">GRID</button>
+            <button type="button" class="cf-w-center" data-w="select" aria-label="Select: look closer, press again to flip"></button>
+        </div>
+        <p class="cf-tip" id="cf-tip" hidden>Drag the cards with your finger. Flick fast to jump by codex number. On a computer, use the mouse wheel.</p>
+        <p class="cf-eggs" id="cf-eggs" hidden></p>
+    </main>
+
+    <!-- The big card: tap to flip; Rare and up catch the light (BeeCardGlare). -->
+    <div class="cb-expanded" id="cb-expanded" hidden>
+        <button type="button" class="cb-expanded-close" aria-label="Close">✕</button>
+        <div class="cb-expanded-host"></div>
+        <p class="cb-expanded-hint" id="cb-expanded-hint">Tap the card to flip it.</p>
+        <div class="cb-expanded-btns"><button type="button" class="cf-pill" id="cb-details">Care & details</button></div>
+    </div>
+
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
+    <script src="../../core/ui/egg-designs/egg-designs.js"></script>
+    <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="../../core/ui/bee-name/bee-name.js"></script>
+
+    <script src="./hive-bees.js"></script>
+</body>
+</html>

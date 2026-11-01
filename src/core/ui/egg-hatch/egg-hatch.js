@@ -40,7 +40,7 @@ const EggHatch = (() => {
 
     function open(beeId, { onDone } = {}) {
         if (typeof Vault === 'undefined' || document.querySelector('.eh-scrim')) return;
-        const bee = Vault.getColonyBees().find(b => b.id === beeId);
+        const bee = Vault.getHiveBees().find(b => b.id === beeId);
         if (!bee || !Vault.isEggReady(bee)) { if (typeof Toast !== 'undefined') Toast.show('That egg isn\'t ready yet.', 'neutral'); return; }
         const seed = typeof EggDesign !== 'undefined' ? EggDesign.seedFrom(bee.id) : 7;
         const eggHTML = typeof EggDesign !== 'undefined' ? EggDesign.forBee(bee) : '<svg viewBox="0 0 120 150"><ellipse cx="60" cy="80" rx="48" ry="64" fill="#f0d9a8"/></svg>';
@@ -101,7 +101,7 @@ const EggHatch = (() => {
             r.innerHTML = `<p class="eh-title" style="color:${color}">${esc(b.rarity.toUpperCase())}!</p>
                 <div class="eh-card"></div>
                 <div class="eh-name"></div>
-                <div class="eh-btns"><a class="eh-btn" href="${location.origin}/src/features/colony-bees/colony-bees.html?bee=${encodeURIComponent(b.id)}">Pick a job</a><button type="button" class="eh-btn gold" data-done>Done</button></div>`;
+                <div class="eh-btns"><a class="eh-btn" href="${location.origin}/src/features/hive-bees/hive-bees.html?bee=${encodeURIComponent(b.id)}">Pick a job</a><button type="button" class="eh-btn gold" data-done>Done</button></div>`;
             if (typeof BeeCard !== 'undefined') BeeCard.render(r.querySelector('.eh-card'), b, { editable: false });
             if (typeof BeeName !== 'undefined') BeeName.mount(r.querySelector('.eh-name'), b, { onSaved: () => {} });
             r.querySelector('[data-done]').onclick = close;

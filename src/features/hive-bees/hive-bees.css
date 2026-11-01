@@ -1,0 +1,168 @@
+/* Hive Bees (Oct 2026). Shared look: core/ui/page-v2/page-v2.css. */
+.cb2 .cb-search { display: flex; gap: 8px; margin-bottom: 8px; }
+.cb2 .cb-search input { flex: 1; min-width: 0; }
+.cb2 .cb-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cb2 .cb-bar .chips { flex: 1; min-width: 0; }
+.cb2 .cb-view { flex: none; display: flex; gap: 4px; }
+.cb2 .cb-view button { width: 36px; height: 34px; margin: 0; padding: 0; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14); background: #0d0a05; box-shadow: none; color: var(--muted); font-size: 15px; cursor: pointer; }
+.cb2 .cb-view button[aria-pressed="true"] { color: var(--gold); border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .5); }
+.cb2 .cb-av { position: relative; flex: none; }
+.cb2 .cb-face { position: absolute; right: -7px; bottom: -3px; font-size: 16px; line-height: 1; filter: drop-shadow(0 1px 2px #000); }
+.cb2 .cb-rar { font: 700 .62rem var(--font-main, monospace); letter-spacing: .08em; text-transform: uppercase; }
+.cb2 .cb-empty { margin: 18px 4px; color: var(--muted); font-size: .85rem; }
+.cb2 .cb-empty a { color: var(--gold); }
+/* Cards view: the real bee card, scaled down to a tile. */
+.cb2 .cb-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 10px; }
+@media (min-width: 640px) { .cb2 .cb-cards { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 14px; } }
+.cb2 .cb-tile { position: relative; aspect-ratio: 5 / 7; overflow: hidden; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; cursor: pointer; transition: transform .15s, filter .15s; }
+.cb2 .cb-tile:hover, .cb2 .cb-tile:focus-visible { transform: translateY(-3px); filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--tile-color, #555) 55%, transparent)); outline: none; }
+.cb2 .cb-tile-scale { position: absolute; top: 0; left: 0; width: 260px; transform: scale(var(--tile-scale, .35)); transform-origin: top left; pointer-events: none; }
+.cb2 .cb-tile-scale .bee-card-name, .cb2 .cb-tile-scale .bee-card-role, .cb2 .cb-tile-scale .bee-card-flavor { color: #fff; font-weight: bold; }
+.cb2 .cb-tile-scale .bee-card-flip-hint { display: none; }
+.cb2 .cb-tile .cb-face { right: 4px; bottom: auto; top: 4px; font-size: 18px; z-index: 2; }
+/* Eggs (Oct 2026): the starting-egg art on a plain black card. */
+.cb2 .cb-egg-card { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 10px; background: radial-gradient(circle at 50% 45%, #1a1408, #050402 70%); border: 2px solid #1c1609; }
+.cb2 .cb-egg-card .cb-egg { width: 58%; height: auto; }
+.cb-egg { display: block; flex: none; width: 40px; height: 50px; }
+.cb-egg svg { display: block; width: 100%; height: 100%; }
+.pv2-sheet .cb-egg.big { width: 52px; height: 66px; }
+/* The bee sheet. */
+.pv2-sheet .cb-vital { display: grid; grid-template-columns: 100px 1fr 30px; gap: 8px; align-items: center; margin-top: 6px; font-size: .78rem; }
+.pv2-sheet .cb-bar-v { display: block; height: 8px; border-radius: 9px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.pv2-sheet .cb-bar-v i { display: block; height: 100%; }
+.pv2-sheet .cb-num { text-align: right; color: var(--muted); font-family: var(--font-main, monospace); }
+.pv2-sheet .cb-job { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.pv2-sheet .cb-job label { color: var(--muted); font-size: .78rem; }
+.pv2-sheet .cb-job select { flex: 1; }
+/* Expanded real card. */
+.cb-expanded { position: fixed; inset: 0; z-index: 9500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: rgba(0, 0, 0, .88); opacity: 0; transition: opacity .2s; overflow-y: auto; }
+.cb-expanded[hidden] { display: none; }
+.cb-expanded.is-open { opacity: 1; }
+.cb-expanded-host { width: min(78vw, 300px); transform: scale(.9); transition: transform .2s; }
+.cb-expanded.is-open .cb-expanded-host { transform: scale(1); }
+.cb-expanded-close { position: absolute; top: 18px; right: 18px; width: 38px; height: 38px; margin: 0; padding: 0; border-radius: 50%; background: #151515; border: 1px solid var(--bb-accent, #ffcc00); color: var(--bb-accent, #ffcc00); font-size: 1rem; cursor: pointer; box-shadow: none; }
+.cb-expanded-hint { color: #8a8070; font-size: .72rem; margin: 0; }
+/* List avatar: the bee's own card art. */
+.cb2 .cb-art, .pv2-sheet .cb-art { display: block; flex: none; width: 46px; height: 46px; border-width: 2px; border-radius: 10px; }
+.pv2-sheet .cb-art.big { width: 64px; height: 64px; }
+.cb-art .bc-beewrap { animation: none; inset: 6% 6%; }
+.cb-art .bc-cls, .cb-art .bc-sparkles, .cb-art .bc-foil { display: none; }
+.pv2-sheet .head .cb-av { position: relative; flex: none; }
+.cb-title { color: var(--bb-t-hi, #ffd977); font-family: Georgia, "Times New Roman", serif; font-style: italic; }
+
+/* Bee sheet (Oct 28 2026, approved demo) */
+.pv2-sheet .cb-av-btn { padding: 0; border: 0; background: none; cursor: pointer; }
+.pv2-sheet .cb-tapcard { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); padding: 1px 7px; border-radius: 99px; background: var(--bb-accent, #ffcc00); color: #1a1000; font: 800 .54rem var(--font-main, monospace); white-space: nowrap; }
+.pv2-sheet .cb-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; }
+.pv2-sheet .cb-chip { padding: 3px 9px; border-radius: 99px; font-size: .74rem; border: 1px solid; }
+.pv2-sheet .cb-chip.bad { border-color: rgba(var(--bb-alt-rgb, 220, 20, 60), .5); color: var(--bb-alt-soft, #ff8fa3); background: #2a0a10; }
+.pv2-sheet .cb-chip.ok { border-color: rgba(61, 220, 132, .4); color: #3ddc84; background: #0d2015; }
+.pv2-sheet .cb-vital { grid-template-columns: 100px 1fr 62px; }
+.pv2-sheet .cb-rate { margin-left: 4px; font-size: .62rem; }
+.pv2-sheet .cb-rate.up { color: #3ddc84; } .pv2-sheet .cb-rate.down { color: var(--bb-alt-soft, #ff8fa3); }
+.pv2-sheet .cb-debuff { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: #2a0a10; border: 1px solid rgba(var(--bb-alt-rgb, 220, 20, 60), .45); font-size: .78rem; color: #ffb3c0; }
+.pv2-sheet .cb-debuff b { color: var(--bb-alt-soft, #ff8fa3); }
+.pv2-sheet .cb-bed { border-color: rgba(var(--bb-alt-rgb, 220, 20, 60), .55) !important; color: var(--bb-alt-soft, #ff8fa3) !important; }
+.pv2-sheet .cb-slots { display: grid; gap: 8px; margin-top: 10px; }
+.pv2-sheet .cb-slot, .pv2-sheet .cb-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border-radius: 14px; border: 1px dashed #3a2a0a; background: #0b0803; color: inherit; text-align: left; cursor: pointer; text-decoration: none; font: inherit; }
+.pv2-sheet .cb-item { border-style: solid; }
+.pv2-sheet .cb-item:disabled { opacity: .45; cursor: default; }
+.pv2-sheet .cb-slot .hx { width: 46px; height: 50px; flex: none; display: grid; place-items: center; font-size: 1.3rem; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(180deg, var(--bb-t-hi, #ffe680), var(--bb-accent, #ffcc00) 50%, var(--bb-accent-deep, #8a6000)); position: relative; isolation: isolate; }
+.pv2-sheet .cb-slot .hx::before { content: ""; position: absolute; inset: 2px; clip-path: inherit; background: #140c02; z-index: -1; }
+.pv2-sheet .cb-slot small, .pv2-sheet .cb-item small { display: block; color: var(--muted); font-size: .72rem; }
+.pv2-sheet .cb-items { display: grid; gap: 6px; }
+.pv2-sheet .cb-items[hidden] { display: none; }
+
+/* ===== Oct 31 2026 (Craft): the card binder (Cover Flow) ===== */
+.cf-page { padding-bottom: 130px; }
+.cf-head { margin-bottom: 6px; }
+.cf-sorts { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 4px; }
+.cf-pill { min-height: 36px; margin: 0; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: transparent; color: var(--bb-ink, #f1ede2); font: 700 .78rem system-ui, sans-serif; cursor: pointer; box-shadow: none; }
+.cf-pill[aria-pressed="true"] { background: var(--bb-accent, #ffcc00); border-color: transparent; color: #1a1000; }
+.cf-pill small { opacity: .7; font-weight: 600; }
+.cf-stage { --cf-w: 190px; --cf-s: .73; position: relative; height: calc(var(--cf-w) * 1.4 + 40px); margin: 6px -16px 0; perspective: 900px; touch-action: pan-y; user-select: none; -webkit-user-select: none; overflow: hidden; outline: none; }
+.cf-card { position: absolute; left: 50%; top: 16px; width: var(--cf-w); height: calc(var(--cf-w) * 1.4); margin: 0 0 0 calc(var(--cf-w) / -2); padding: 0; border: 0; background: none; box-shadow: none; cursor: pointer; transform-style: preserve-3d; transition: transform .38s cubic-bezier(.2, .8, .2, 1); -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(255, 255, 255, .14)); }
+.cf-card.dragging { transition: none; }
+.cf-card:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 4px; border-radius: 12px; }
+.cf-scale { position: absolute; top: 0; left: 0; width: 260px; transform: scale(var(--cf-s)); transform-origin: top left; pointer-events: none; }
+.cf-scale .bee-card-flip-hint { display: none; }
+.cf-bubble { position: absolute; left: 50%; top: 34%; z-index: 300; transform: translateX(-50%); padding: 12px 22px; border-radius: 16px; background: rgba(0, 0, 0, .8); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .5); color: var(--bb-accent, #ffcc00); font: 700 2rem var(--font-main, monospace); pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; }
+.cf-bubble.on { opacity: 1; }
+.cf-empty { position: absolute; inset: 40% 20px auto; text-align: center; color: var(--muted, #b8ab8c); font-size: .9rem; }
+.cf-empty a { color: var(--gold, #ffcc00); }
+.cf-now { display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 42px; margin-top: 6px; text-align: center; }
+.cf-now b { font-size: 1.05rem; }
+.cf-now small { color: var(--muted, #b8ab8c); font-size: .74rem; }
+.cf-search { margin: 10px 4px 0; }
+.cf-scrub { display: flex; align-items: center; gap: 10px; margin: 8px 4px 0; }
+.cf-scrub span { width: 44px; color: var(--muted, #b8ab8c); font-size: .72rem; font-variant-numeric: tabular-nums; }
+.cf-scrub input[type="range"] { flex: 1; min-width: 0; height: 28px; margin: 0; accent-color: var(--bb-accent, #ffcc00); }
+.cf-wheel { position: relative; width: 196px; height: 196px; margin: 14px auto 0; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #2b2112, #160f07 70%); box-shadow: inset 0 0 0 2px rgba(var(--bb-accent-rgb, 255, 204, 0), .35), 0 8px 24px rgba(0, 0, 0, .6); touch-action: none; user-select: none; -webkit-user-select: none; }
+.cf-wheel[hidden] { display: none; }
+.cf-w { position: absolute; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: #d8cfb8; font: 800 11px system-ui, sans-serif; letter-spacing: .14em; cursor: pointer; display: grid; place-items: center; }
+.cf-w svg { width: 22px; height: 14px; fill: currentColor; }
+.cf-w-top { left: 66px; top: 6px; width: 64px; height: 44px; }
+.cf-w-bottom { left: 66px; bottom: 6px; width: 64px; height: 44px; }
+.cf-w-left { left: 6px; top: 76px; width: 46px; height: 44px; }
+.cf-w-right { right: 6px; top: 76px; width: 46px; height: 44px; }
+.cf-w-center { position: absolute; left: 60px; top: 60px; width: 76px; height: 76px; margin: 0; padding: 0; border-radius: 50%; border: 0; background: radial-gradient(circle at 50% 35%, #3a2c14, #1d1408); box-shadow: inset 0 0 0 2px rgba(var(--bb-accent-rgb, 255, 204, 0), .5), 0 2px 8px rgba(0, 0, 0, .6); cursor: pointer; }
+.cf-w:active, .cf-w-center:active { filter: brightness(1.4); }
+.cf-tip, .cf-eggs { margin: 14px 8px 0; text-align: center; color: var(--muted, #b8ab8c); font-size: .8rem; line-height: 1.5; }
+.cf-eggs a { color: var(--gold, #ffcc00); }
+/* Full-screen list: covers the page (the hive behind is paused). */
+.cf-list { position: fixed; inset: 0; z-index: 9400; display: flex; flex-direction: column; background: var(--bb-bg, #0b0805); padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+.cf-list[hidden] { display: none; }
+.cf-list-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px 16px 8px; }
+.cf-list-head h2 { margin: 0; padding: 0; border: 0; background: none; font: 800 1.2rem var(--font-main, monospace); letter-spacing: .12em; color: var(--bb-accent, #ffcc00); text-align: left; }
+.cf-list-filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 10px; }
+.cf-list-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; display: grid; align-content: start; gap: 6px; }
+.cf-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; margin: 0; padding: 8px 12px; border-radius: 14px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .16); background: #17110a; color: inherit; text-align: left; cursor: pointer; box-shadow: none; }
+.cf-row .mid { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cf-row .mid b { font-size: .92rem; }
+.cf-row .mid small { color: var(--muted, #b8ab8c); font-size: .72rem; }
+.cf-row .cf-row-serial { font-family: ui-monospace, monospace; letter-spacing: .04em; opacity: .8; }
+.cf-row .chev { color: #8f8466; }
+.cf-list .cb-art { display: block; width: 46px; height: 46px; border-width: 2px; border-radius: 10px; }
+.cf-list .cb-av { position: relative; flex: none; }
+.cf-list .cb-face { position: absolute; right: -7px; bottom: -3px; font-size: 16px; }
+/* The big card: bigger than before; buttons under it. */
+.cb-expanded .cb-expanded-host { width: min(86vw, 360px); }
+.cb-expanded-btns { display: flex; gap: 8px; }
+.pv2-sheet .cb-jobline { margin-top: 12px; }
+.pv2-sheet .cb-jobline a { color: var(--gold, #ffcc00); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .cf-card { transition: none; } .cf-bubble { transition: none; } }
+/* Oct 31 2026 (Craft): fit the whole binder (wheel included) above the dock on a phone. */
+.cf-page .cf-head { padding: 10px 14px; margin-bottom: 8px; }
+.cf-page .cf-head .pv2-title { margin: 0; font-size: 1.25rem; }
+.cf-page .cf-head .pv2-lead { margin: 2px 0 0; font-size: .82rem; }
+.cf-wheel { width: 168px; height: 168px; margin-top: 10px; }
+.cf-w-top { left: 52px; top: 4px; }
+.cf-w-bottom { left: 52px; bottom: 4px; }
+.cf-w-left { left: 4px; top: 62px; }
+.cf-w-right { right: 4px; top: 62px; }
+.cf-w-center { left: 52px; top: 52px; width: 64px; height: 64px; }
+.cf-now { min-height: 36px; margin-top: 2px; }
+.cf-search { margin-top: 6px; }
+.cf-page .cf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 14px 8px; margin-bottom: 6px; }
+.cf-page .cf-head .pv2-lead { margin: 0; white-space: nowrap; }
+.cf-sorts .cf-pill { min-height: 34px; padding: 5px 12px; }
+.cf-stage { height: calc(var(--cf-w) * 1.4 + 22px); margin-top: 2px; }
+.cf-card { top: 8px; }
+.cf-now small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cf-scrub { margin-top: 4px; }
+
+/* Oct 31 2026 (Craft): grid view in place of the list. It takes Cover Flow's
+   spot (same height), so the search, slider and wheel stay below it. */
+.cf-grid-wrap { position: relative; height: calc(var(--cf-gh, 330px)); margin: 2px -4px 0; display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 16px; background: var(--bb-bg, #0b0805); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .18); }
+.cf-grid-wrap[hidden] { display: none; }
+.cf-grid-filters { display: flex; gap: 6px; overflow-x: auto; flex: none; scrollbar-width: none; }
+.cf-grid-filters .cf-pill { flex: none; min-height: 32px; padding: 4px 11px; }
+.cf-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-content: start; padding: 2px; overscroll-behavior: contain; }
+.cf-tile { position: relative; aspect-ratio: 5 / 7; overflow: hidden; margin: 0; padding: 0; border: 0; border-radius: 10px; background: #120d06; box-shadow: none; cursor: pointer; }
+.cf-tile.on { outline: 3px solid var(--bb-accent, #ffcc00); outline-offset: -1px; box-shadow: 0 0 14px rgba(var(--bb-accent-rgb, 255, 204, 0), .6); }
+.cf-tile-scale { position: absolute; top: 0; left: 0; width: 260px; transform: scale(var(--tile-s, .4)); transform-origin: top left; pointer-events: none; }
+.cf-tile-scale .bee-card-flip-hint { display: none; }
+.cf-tile .cb-face { position: absolute; right: 4px; top: 4px; font-size: 16px; z-index: 2; filter: drop-shadow(0 1px 2px #000); }
+.cf-grid .cb-empty { grid-column: 1 / -1; }
+.cf-w:focus, .cf-w:hover { background: none; box-shadow: none; }
+.cf-w:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; border-radius: 10px; }

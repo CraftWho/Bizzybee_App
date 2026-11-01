@@ -3,8 +3,8 @@
 //
 // Who gets it (app.js's loadLocalDevTools decides whether to load this file,
 // and this file double-checks before showing anything):
-//   - This computer: after the Hacker / password login, which lives in the
-//     gitignored src/local/admin.local.js and never reaches GitHub or live.
+//   - This computer (PC LOCAL, Oct 31 2026): always, on the local test
+//     account (Developer / Test Bee, see db.js). No login, no cloud.
 //   - Live site: only when signed in to Cloud Sync with an owner account.
 //     OWNER_HASHES holds SHA-256 hashes of the owner emails, so no address is
 //     written in the code. This is a convenience lock, not real security -
@@ -17,24 +17,23 @@
 // rumble on your phone. Turning it off puts your real save straight back.
 // ============================================================================
 (function () {
-    const OWNER_HASHES = [
-        'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d',
-        '0fb7061c0faa822f969cf19e1e1e96f9abd3ea14b0c3e232f80b25eea65b374f'   // collaborator (Oct 2026)
-    ];
-    const DEV_KEY = 'bizzybee_dev';
+    // Oct 31 2026 (Craft): one list, in app.js (DEV_OWNER_HASHES).
+    const OWNER_HASHES = typeof DEV_OWNER_HASHES !== 'undefined' ? DEV_OWNER_HASHES : [];
     const TEST_KEY = 'bizzybee_dev_test';
 
     const host = location.hostname;
-    const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
-        || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
+    const isLocal = !window.BB_APP_COPY && (host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'   // Nov 1 2026 (Craft): the app's own copy isn't PC LOCAL
+        || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local'));
     const path = location.pathname;
     const nested = path.includes('/features/') || path.includes('/plugins/');
     if (!nested) return;
     const root = '../../..';
-    const localDev = isLocal && localStorage.getItem(DEV_KEY) === '1';
+    // Oct 31 2026 (Craft): this computer = PC LOCAL, the local test account
+    // (db.js). Tools always work here; no Hacker login any more.
+    const localDev = typeof Vault !== 'undefined' ? !!Vault.pcLocal : isLocal;
     const testOn = () => localStorage.getItem(TEST_KEY) === '1';
-    // On this computer (Hacker login) the tools work on the open save, as
-    // before. Everywhere else they need the test save.
+    // On this computer (PC LOCAL) the tools work on the open save. Everywhere
+    // else they need the test save.
     const canAct = () => localDev || testOn();
 
     async function isOwner() {
@@ -106,8 +105,8 @@
     }
 
     function addBee(rarity) {
-        const n = Vault.getColonyBees().filter(b => b.rarity !== 'Royal').length + 1;
-        Vault.addColonyBee({
+        const n = Vault.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1;
+        Vault.addHiveBee({
             id: generateBeeId(), name: `${rarity} Bee #${n}`, rarity, class: null,
             obtainedAt: new Date().toISOString(), source: 'dev',
             stats: rollBeeStats(rarity), weight: rollBeeWeight(rarity), dexNumber: n,
@@ -136,7 +135,7 @@
     function fakeBee(rarity) {
         const bee = {
             id: 'dev-' + Math.random().toString(36).slice(2), rarity, class: null, sex: 'f',
-            name: randomBeeName(Vault.getColonyBees().map(b => b.name)),
+            name: randomBeeName(Vault.getHiveBees().map(b => b.name)),
             obtainedAt: new Date().toISOString(), source: 'dev-preview', dexNumber: 99,
             stats: rollBeeStats(rarity), weight: rollBeeWeight(rarity), element: rollBeeElement(), customNamed: false
         };
@@ -183,7 +182,7 @@
     // ---- hive life + tickets (these DO change the save) ---------------------
     const today = () => todayISO();
     const HIVE = {
-        tickets: (n) => { Vault.state.colony.tickets = (Vault.state.colony.tickets || 0) + n; Vault.save(); toast(`🎟️ +${n} tickets (${Vault.getTicketCount()})`); },
+        tickets: (n) => { Vault.state.hive.tickets = (Vault.state.hive.tickets || 0) + n; Vault.save(); toast(`🎟️ +${n} tickets (${Vault.getTicketCount()})`); },
         day: () => { Vault._ensureBeeLife(); Vault._lifeDay(today()); Vault.save(); reload(); },
         raid: () => { Vault._ensureBeeLife(); Vault._raid(today()); Vault.save(); reload(); },
         egg: () => { Vault.awardBee('gacha', 'Common'); toast('🥚 Egg added to the Nursery'); },
@@ -220,10 +219,10 @@
     }
 
     function exportSave() {
-        const text = Vault.exportFullState();
+        const text = Vault.exportForFile();   // Oct 31 2026 (Craft): typed file name
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-        a.download = `bizzybee-dev-save-${Date.now()}.json`;
+        a.download = Vault.saveFileName();
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }
@@ -236,33 +235,19 @@
                 if (!pin) return;
                 try { text = await CryptoLite.decrypt(text, pin); } catch { alert('Wrong PIN, or the file is damaged.'); return; }
             }
+            if (!Vault.confirmImportKind(text)) return;   // Oct 31 2026 (Craft): REAL/TEST/PCLOCAL check
             const result = Vault.importFullState(text);
             if (!result.ok) { alert(result.error); return; }
             go('src/features/home/home.html');
         };
         reader.readAsText(file);
     }
-    async function loadPersonalFile() {
-        try {
-            const response = await fetch(`${root}/src/core/data.personal.json`, { cache: 'no-store' });
-            if (!response.ok) { alert('No src/core/data.personal.json on this computer.'); return; }
-            const result = Vault.importFullState(await response.text());
-            if (!result.ok) { alert(result.error); return; }
-            go('src/features/home/home.html');
-        } catch (error) { alert(error.message); }
-    }
     function freshSave() {
-        if (!confirm('Start a brand new local save? This one is wiped (export it first if you want it).')) return;
+        if (!confirm('Reset the PC test account? Its data is wiped and it starts over as Developer / Test Bee.')) return;
         localStorage.removeItem(Vault.storageKey);
-        localStorage.removeItem('bizzybee_colony_hatched');
+        localStorage.removeItem('bizzybee_hive_hatched');
         go('src/features/home/home.html');
     }
-    function signOut() {
-        localStorage.removeItem('bizzybee_session');
-        localStorage.removeItem(DEV_KEY);
-        go('index.html');
-    }
-
     // Workshop pages only exist on this computer (gitignored).
     // ---- New in 1.0.4 (Oct 28 2026) ----
     const NEW = {
@@ -279,11 +264,7 @@
                 toast('🔔 Notification in 5 seconds. Lock the phone, then tap it.');
                 return;
             }
-            if (!('Notification' in window) || !navigator.serviceWorker) { toast('This browser can\'t show notifications.'); return; }
-            if ((await Notification.requestPermission()) !== 'granted') { toast('Allow notifications for this site first.'); return; }
-            const reg = await navigator.serviceWorker.register('/sw.js');
-            setTimeout(() => reg.showNotification('🐝 Dev test', { body: `Tap me: opens "${d.label}"`, data: { url }, icon: '/src/assets/icons/icon-192x192.png' }), 5000);
-            toast('🔔 Notification in 5 seconds. Tap it.');
+            toast('Notifications are Android-app only (Oct 31 2026).');
         },
         focus(kind) {
             const list = kind === 'todo' ? Vault.state.todos : kind === 'habit' ? Vault.state.habits : Vault.state.dailyTasks;
@@ -339,9 +320,9 @@
     const SKIES = [['Noon', 'clear', 12], ['Sunset', 'partly', 18], ['Night', 'clear', 23], ['Rain', 'rain', 21], ['Heavy rain', 'heavy', 14], ['Storm', 'storm', 16], ['Snow', 'snow', 10], ['Fog', 'fog', 7], ['Cloudy', 'cloudy', 13]];
 
     const LINKS = [
-        ['Hive inside · Queen', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=queen'],
-        ['Hive inside · King', 'workshop/harnesses/colony-interior-harness.html?lvl=20&royal=king'],
-        ['Hive outside', 'workshop/harnesses/colony-exterior-harness.html?lvl=30'],
+        ['Hive inside · Queen', 'workshop/harnesses/hive-mind-interior-harness.html?lvl=20&royal=queen'],
+        ['Hive inside · King', 'workshop/harnesses/hive-mind-interior-harness.html?lvl=20&royal=king'],
+        ['Hive outside', 'workshop/harnesses/hive-mind-exterior-harness.html?lvl=30'],
         ['Cards (incl. Queen & King)', 'workshop/harnesses/cards-harness.html'],
         ['Bee Action Lab', 'workshop/test-pages/bee-lab/bee-lab.html'],
         ['Card Lab', 'workshop/test-pages/card-lab/card-lab.html'],
@@ -352,7 +333,9 @@
     const css = `
     .dev-fab{position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:70px;z-index:2000;width:40px;height:40px;border-radius:12px;border:1px solid #ff5a4a;background:#1a0606;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 0 12px rgba(255,60,40,.5);padding:0}
     body.onboarding-page .dev-fab{right:12px}
-    .dev-ribbon{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 2px);transform:translateX(-50%);z-index:2000;padding:2px 10px;border-radius:0 0 8px 8px;background:#b3121f;color:#fff;font:700 10px/1.6 monospace;letter-spacing:.14em;pointer-events:none}
+    .dev-badge{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 4px);transform:translateX(-50%);z-index:2001;padding:4px 12px;border-radius:999px;border:0;color:#fff;font:800 11px/1.4 monospace;letter-spacing:.12em;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+    .dev-badge.test{background:#b3121f}
+    .dev-badge.pc{background:#1d5fd1}
     .dev-panel{position:fixed;inset:0 0 0 auto;width:min(380px,100vw);z-index:2100;background:#0d0a05;border-left:1px solid #ff5a4a;color:#f1ede2;font:14px system-ui,sans-serif;overflow-y:auto;padding:14px 14px 40px;box-sizing:border-box;box-shadow:-20px 0 40px rgba(0,0,0,.7);transform:translateX(105%);transition:transform .3s ease}
     .dev-panel.open{transform:none}
     .dev-panel h2{margin:0 0 4px;font:700 18px var(--font-main,monospace);color:#ff7a6a;background:none;border:0;padding:0;text-align:left}
@@ -371,12 +354,12 @@
     function stateText() {
         const user = Vault.getUser(), bar = Vault.getCharacterLevelBar(), o = Vault.getOnboarding(), royal = Vault.getRoyalBee();
         return [
-            `Mode: ${localDev ? 'this computer (Hacker login)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
+            `Mode: ${localDev ? 'PC LOCAL (local test account, never syncs)' : testOn() ? 'TEST SAVE (never syncs)' : 'real save - tools locked'}`,
             `Save key: ${Vault.storageKey}`,
             `Level ${bar.level} · ${bar.xpIntoLevel}/${bar.cap} XP · total ${user.totalXP}`,
             `Egg: ${o ? o.stage : 'none'}${o && o.stage === 'egg' ? ` (${o.energy}/100)` : ''}`,
-            `Royal: ${royal ? `${royal.royal} "${royal.name}"` : 'none'} · bees ${Vault.getColonyBees().length}`,
-            `Tickets ${Vault.getTicketCount()} · eggs ${Vault.getColonyBees().filter(x => x.life && x.life.hatchOn).length}`,
+            `Royal: ${royal ? `${royal.royal} "${royal.name}"` : 'none'} · bees ${Vault.getHiveBees().length}`,
+            `Tickets ${Vault.getTicketCount()} · eggs ${Vault.getHiveBees().filter(x => x.life && x.life.hatchOn).length}`,
             `Habits ${Vault.getHabits().length} · To-Dos ${Vault.getTodos().length} · Dailies ${Vault.getDailyTasks().length}`
         ].join('\n');
     }
@@ -386,11 +369,17 @@
         style.textContent = css;
         document.head.appendChild(style);
 
-        if (testOn()) {
-            const ribbon = document.createElement('div');
-            ribbon.className = 'dev-ribbon';
-            ribbon.textContent = 'TEST SAVE';
-            document.body.appendChild(ribbon);
+        // Oct 31 2026 (Craft): a badge that always floats on a test save, so
+        // you can tell it's not your real save at a glance. Real save: none.
+        if (localDev || testOn()) {
+            const badge = document.createElement('button');
+            badge.type = 'button';
+            badge.className = 'dev-badge ' + (localDev ? 'pc' : 'test');
+            badge.textContent = localDev ? '💻 PC LOCAL' : '🧪 TEST SAVE';
+            badge.addEventListener('click', () => toast(localDev
+                ? 'PC LOCAL: a local test account on this computer (Developer / Test Bee). No cloud. Your real save is never touched.'
+                : 'TEST SAVE: a separate save on this device. Never syncs. Switch back to your real save in 🛠.'));
+            document.body.appendChild(badge);
         }
 
         const fab = document.createElement('button');
@@ -448,6 +437,8 @@
             <div class="dev-state" id="dev-state"></div>
             ${testBlock}
 
+            <!-- Oct 31 2026 (Craft): Themes is locked on the real save too. -->
+            <div class="dev-act">
             <h3>THEMES · NEW IN 1.0.5</h3>
             <div class="dev-row">
                 <button data-dev="theme" data-t="auto">✨ Auto</button>
@@ -460,7 +451,6 @@
                 <a href="${root}/src/features/mailbox/mailbox.html">Mailbox</a>
             </div>
 
-            <div class="dev-act">
             <h3>EGG</h3>
             <div class="dev-row">
                 <button data-dev="egg-restart">Restart egg</button>
@@ -525,7 +515,7 @@
                 <button data-dev="n-icons">Weather icons</button>
             </div>
             <div class="dev-row" style="margin-top:6px">
-                ${SKIES.map(([label, sky, hour]) => `<a href="${root}/src/features/colony/colony.html?sky=${sky}&hour=${hour}">Sky · ${label}</a>`).join('')}
+                ${SKIES.map(([label, sky, hour]) => `<a href="${root}/src/features/hive-mind/hive-mind.html?sky=${sky}&hour=${hour}">Sky · ${label}</a>`).join('')}
             </div>
 
             <h3>TICKETS</h3>
@@ -557,9 +547,7 @@
             <div class="dev-row">
                 <button data-dev="export">Export save</button>
                 <button data-dev="import">Load a save file</button>
-                ${localDev ? `<button data-dev="personal">Load data.personal.json</button>
-                <button data-dev="fresh" class="danger">Fresh save</button>
-                <button data-dev="signout" class="danger">Sign out</button>` : ''}
+                ${localDev ? `<button data-dev="fresh" class="danger">Reset PC test data</button>` : ''}
             </div>
             <input type="file" id="dev-import-input" hidden>
             </div>
@@ -600,7 +588,7 @@
                 'xp-50': () => addXP(50), 'xp-150': () => addXP(150), 'xp-fill': fillBar, 'xp-clear': clearDevXP,
                 bee: () => { addBee(b.dataset.r); open(); },
                 'royal-queen': () => setRoyal('queen'), 'royal-king': () => setRoyal('king'),
-                rehatch: () => { localStorage.setItem('bizzybee_colony_hatched', '[]'); toast('Bees will hatch again on the Hive page'); },
+                rehatch: () => { localStorage.setItem('bizzybee_hive_hatched', '[]'); toast('Bees will hatch again on the Hive page'); },
                 samples: addSamples, export: exportSave, import: () => fileInput.click(),
                 'pv-pull': () => { close(); PREVIEW.pull(b.dataset.r); }, 'pv-destroy': () => { close(); PREVIEW.destroy(); },
                 'pv-combine': () => { close(); PREVIEW.combine(false); }, 'pv-combine-up': () => { close(); PREVIEW.combine(true); },
@@ -615,7 +603,7 @@
                 'n-starter': () => { close(); NEW.starter(); }, 'n-done': () => { close(); NEW.doneToday(); },
                 'n-merge': NEW.merge, 'n-icons': () => { close(); NEW.icons(); }
             };
-            if (localDev) Object.assign(actions, { personal: loadPersonalFile, fresh: freshSave, signout: signOut });
+            if (localDev) Object.assign(actions, { fresh: freshSave });
             if (actions[a]) actions[a]();
         });
     }

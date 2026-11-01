@@ -20,7 +20,7 @@ const BizzyPhone = (() => {
     // ------------------------------------------------------------------ perms
     const DEFS = {
         notifications: {
-            icon: '🔔', title: 'Notifications', why: 'Reminders and Smart Notifications',
+            icon: '🔔', title: 'Notifications', why: 'Reminders and Smart Notifications', app: true,   // Oct 31 2026 (Craft): app only
             card: ['TURN ON REMINDERS?', 'So BizzyBee can remind you about your tasks. You pick which ones.', ['Asked when you turn on reminders, or save a task with a reminder time.']],
             async check() {
                 if (isApp) { try { return norm((await P('LocalNotifications').checkPermissions()).display); } catch { return 'unsupported'; } }
@@ -430,9 +430,9 @@ const BizzyPhone = (() => {
             const st = await f.status().catch(() => ({}));
             if (!st.picked) return false;
             const d = new Date(), pad = (n) => String(n).padStart(2, '0');
-            const name = `bizzybee-save-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.json`;
+            const name = Vault.saveFileName();   // Oct 31 2026 (Craft): bizzybee-REAL-... / TEST
             try {
-                await f.writeFile({ name, text: Vault.exportFullState(), keep: 14, prefix: 'bizzybee-save-' });
+                await f.writeFile({ name, text: Vault.exportForFile(), keep: 14, prefix: `bizzybee-${Vault.saveType()}-` });
                 set('bb_phone_backup_at', String(Date.now()));
                 if (reason !== 'auto') toast(`💾 Backup saved to ${st.folder}.`, 'positive');
                 return true;
@@ -452,6 +452,13 @@ const BizzyPhone = (() => {
         const steps = isApp ? await Steps.sync().catch(() => null) : null;
         if (steps != null) parts.push(`<span class="ph-chip">👟 ${steps.toLocaleString()} steps</span>`);
         const w = await Weather.now().catch(() => null);
+        // Oct 31 2026 (Craft, from 1.0.6): steps and weather sit in the stat strip now.
+        if (document.getElementById('home-hive')) {
+            window.__homeStrip = { steps: steps == null ? null : steps,
+                wx: w ? { temp: w.temp, text: w.text, place: w.place, icon: iconSVG(w.kind || kindOf(w.code), w.isDay !== false) } : null };
+            window.dispatchEvent(new Event('home-strip'));
+            return;
+        }
         if (w) parts.push(`<span class="ph-chip" title="${esc(w.place)}">${iconSVG(w.kind || kindOf(w.code), w.isDay !== false)} ${w.temp}°${w.unit} · ${esc(w.text)} · ${w.hi}°/${w.lo}°${w.rain >= 40 ? ` · ${w.rain}% rain` : ''}</span>`);
         let el = document.getElementById('ph-strip');
         if (!parts.length) { if (el) el.remove(); return; }

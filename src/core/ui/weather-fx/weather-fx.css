@@ -1,8 +1,8 @@
 /* Live sky (Oct 28 2026). Canvases fill their host. */
 .wxfx { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
 /* Hive Mind: the canvas sky replaces the hive art's fixed dusk sky. */
-.colony-nest-scene.wx-live .ch-sky { display: none; }
-.colony-nest-scene.wx-live .wxfx-front { z-index: 2; }
+.hive-mind-nest-scene.wx-live .ch-sky { display: none; }
+.hive-mind-nest-scene.wx-live .wxfx-front { z-index: 2; }
 .cm-wx { display: flex; align-items: center; gap: 10px; margin: 10px auto 0; max-width: 420px; padding: 8px 12px; border-radius: 14px; background: rgba(8, 10, 20, .55); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .22); color: #f1ede2; text-decoration: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); text-align: left; }
 .cm-wx-ic .wxi, .cm-wx-ic { width: 34px; height: 34px; font-size: 1.6rem; flex: none; }
 .cm-wx-mid { flex: 1; min-width: 0; }

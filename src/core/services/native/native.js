@@ -183,7 +183,7 @@ const BizzyNative = (() => {
         if (!App) return;
         App.addListener('backButton', () => {
             // 1. Close the top pop-up (tapping its backdrop closes it).
-            const pop = [...document.querySelectorAll('.xt-scrim, .ic-sheet-bg:not([hidden]), .pj-sheet-bg:not([hidden]), .pm-scrim, .up-scrim, .wn-scrim, .ss-scrim, .hl-sheet-scrim, .colony-card-overlay:not([hidden]), #app-create-sheet, .dev-panel.open')].pop();
+            const pop = [...document.querySelectorAll('.xt-scrim, .ic-sheet-bg:not([hidden]), .pj-sheet-bg:not([hidden]), .pm-scrim, .up-scrim, .wn-scrim, .ss-scrim, .hl-sheet-scrim, .hive-mind-card-overlay:not([hidden]), #app-create-sheet, .dev-panel.open')].pop();
             if (pop) {
                 const x = pop.querySelector('.hl-x, .dev-close, [data-k="close"], [data-close], [data-k="no"], [data-k="skip"]');
                 if (x) x.click(); else pop.dispatchEvent(new MouseEvent('click', { bubbles: true }));

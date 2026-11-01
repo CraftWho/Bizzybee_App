@@ -7,9 +7,9 @@ console.log("/// WAGGLE ONLINE ///");
 // (Chat with Eve) sits at the bottom. The page links live here.
 const WAGGLE_MENU = [
     ['Your hive', [
-        { icon: '🏰', label: 'Hive Mind', path: 'src/features/colony/colony.html', fainted: true },
+        { icon: '🏰', label: 'Hive Mind', path: 'src/features/hive-mind/hive-mind.html', fainted: true },
         { icon: '🌼', label: 'Pollination Chamber', path: 'src/features/gacha/gacha.html', tickets: true },
-        { icon: '🐝', label: 'Colony Bees', path: 'src/features/colony-bees/colony-bees.html' },
+        { icon: '🐝', label: 'Hive Bees', path: 'src/features/hive-bees/hive-bees.html' },
         { icon: '🎒', label: 'Inventory', path: 'src/features/inventory/inventory.html' },
         { icon: '🥚', label: 'Egg Incubator', path: 'src/plugins/incubator/incubator.html', plugin: 'incubator' },
         { icon: '📘', label: 'KeeperDex', path: 'src/features/keeperdex/keeperdex.html' },
@@ -18,7 +18,9 @@ const WAGGLE_MENU = [
     ['Progress', [
         { icon: '📊', label: 'Dashboard', path: 'src/features/dashboard/dashboard.html' },
         { icon: '🗺️', label: 'Map', path: 'src/features/map/map.html' },
+        { icon: '🕘', label: 'History', path: 'src/features/history/history.html' },   // Oct 31 2026 (Craft, from 1.0.6)
         { icon: '🌳', label: 'Skills', path: 'src/features/skills/skills.html' },
+        { icon: '🏅', label: 'Ranks & Titles', path: 'src/features/titles/titles.html' },   // Oct 31 2026 (Craft); renamed Nov 1
         { icon: '👤', label: 'Profile', path: 'src/features/profile/profile.html' }
     ]],
     ['Tools', [
@@ -32,6 +34,7 @@ const WAGGLE_MENU = [
         { icon: '📬', label: 'Mailbox', path: 'src/features/mailbox/mailbox.html', mail: true },
         { icon: '🎨', label: 'Themes', path: 'src/features/themes/themes.html' },
         { icon: '📘', label: 'Guide (Eve)', path: 'src/features/guide/guide.html' },
+        { icon: '🛟', label: 'Contact support', path: 'src/features/support/support.html' },   // Nov 1 2026 (Craft)
         { icon: '🔔', label: 'Notifications', path: 'src/features/notifications/notifications.html' },
         { icon: '🔄', label: 'Phone Sync', path: 'src/features/sync/sync.html' },
         { icon: '🔐', label: 'Account Info', path: 'src/features/account-info/account-info.html' },
@@ -114,16 +117,18 @@ const Waggle = {
         try { bar = v ? v.getCharacterLevelBar() : null; } catch { /* not ready */ }
         try { tickets = v && v.getTicketCount ? v.getTicketCount() : 0; } catch { /* not ready */ }
         let fainted = 0;
-        try { fainted = v ? v.getColonyBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
+        try { fainted = v ? v.getHiveBees().filter(b => b.life && b.life.faintedAt).length : 0; } catch { /* not ready */ }
         let mail = 0;
         try { mail = typeof Social !== 'undefined' ? Social.unread() : 0; } catch { /* not ready */ }
-        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted, mail };
+        let rankUp = 0;   // Oct 31 2026 (Craft): unclaimed rank ups
+        try { rankUp = v && v.getRank ? v.getRank().pending.length : 0; } catch { /* not ready */ }
+        return { levelUp: !!(bar && bar.maxed), level: bar ? bar.level : null, tickets, fainted, mail, rankUp };
     },
 
     updateDot() {
         if (!this.button) return;
         const s = this.status();
-        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.tickets > 0 || s.fainted > 0 || s.mail > 0);
+        this.button.querySelector('.wg-dot').hidden = !(s.levelUp || s.rankUp > 0 || s.tickets > 0 || s.fainted > 0 || s.mail > 0);
     },
 
     renderMenu() {
@@ -132,7 +137,7 @@ const Waggle = {
         const s = this.status();
         const v = typeof Vault !== 'undefined' && Vault.state ? Vault : null;
         const name = v ? (v.state.displayName || (v.getRoyalBee && v.getRoyalBee() || {}).name || (v.getUser() || {}).name || 'Beekeeper') : 'Beekeeper';
-        const bees = v && v.getColonyBees ? v.getColonyBees().length : 0;
+        const bees = v && v.getHiveBees ? v.getHiveBees().length : 0;
         const pluginOn = (id) => typeof Plugins === 'undefined' || Plugins.isEnabled(id);
 
         const pageActs = this.actions.map((a, i) => ({ a, i })).filter(x => !x.a.footer);
@@ -142,6 +147,7 @@ const Waggle = {
 
         let html = `<div class="wg-head"><div class="wg-av">🐝</div><div class="wg-who"><b>${this.esc(name)}</b><small>${s.level ? `Level ${s.level}` : ''}${bees ? ` · ${bees} bee${bees === 1 ? '' : 's'}` : ''}</small></div><button type="button" class="wg-x" aria-label="Close menu">✕</button></div><div class="wg-body">`;
         if (s.levelUp) html += `<a class="wg-alert" href="${root}/src/features/home/home.html">✦ Level up ready! Tap to claim</a>`;
+        if (s.rankUp) html += `<a class="wg-alert" href="${root}/src/features/home/home.html">🎖️ Rank up ready! Tap to claim</a>`;
         if (pageActs.length) html += `<div class="wg-sec">This page</div>` + pageActs.map(({ a, i }) => row(a.icon, a.label, '', `data-action="${i}"`, false)).join('');
         WAGGLE_MENU.forEach(([sec, items]) => {
             const shown = items.filter(it => !it.plugin || pluginOn(it.plugin));

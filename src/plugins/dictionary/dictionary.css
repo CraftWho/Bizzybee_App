@@ -81,3 +81,6 @@
 .dc-sheet-bg .tv-credit { margin: 10px 0 0; color: #a69a80; font-size: .72rem; line-height: 1.4; }
 .dc-sheet-bg .tv-credit a { color: #c2b48f; }
 .dcv2 .term .cd { margin-left: auto; color: var(--bb-accent, #ffcc00); font: 700 .7rem ui-monospace, monospace; opacity: .8; }
+
+/* Oct 31 2026 (Craft, from 1.0.6): hex ring follows the shape. */
+.dcv2 .hx::after { box-shadow: none !important; background: rgba(var(--bb-alt-rgb, 220, 20, 60), .85); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }

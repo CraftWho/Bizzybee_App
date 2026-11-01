@@ -32,6 +32,7 @@
          that anything Cloud Sync-related was ever supposed to happen. See
          HANDOFF.md's save-point notes. Harmless no-op script tag on any
          host without Identity enabled, same as on Settings. -->
+    <script src="./src/core/site.js"></script>   <!-- Nov 1 2026 (Craft): app copy -> site -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body class="login-body">
@@ -99,8 +100,8 @@
 
                 <!-- Sign in (Oct 2026): one form for everyone. Cloud accounts
                      sign in here directly (Netlify Identity, no pop-up). On
-                     this computer the Hacker login (src/local/admin.local.js)
-                     answers first. -->
+                     this computer (PC LOCAL, Oct 31 2026) there is no login:
+                     the app opens the fake test account straight away. -->
                 <section id="auth-signin" class="auth-panel">
                     <form id="login-form" class="auth-form" novalidate>
                         <div class="input-group-auth">

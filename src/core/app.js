@@ -326,6 +326,7 @@ const AppShell = {
                         <span class="ah-coins" title="Honey coins"></span>
                     </div>
                     <button type="button" class="ah-levelup">LEVEL UP ✦</button>
+                    <button type="button" class="ah-rankup">RANK UP 🎖️</button>
                 </div>
             </div>`;
         document.body.insertBefore(head, document.body.firstChild);
@@ -337,6 +338,7 @@ const AppShell = {
 
         head.addEventListener('click', (event) => {
             if (event.target.closest('.ah-levelup')) { this.levelUp(); return; }
+            if (event.target.closest('.ah-rankup')) { this.rankUp(); return; }   // Oct 31 2026 (Craft): ranks
             const chip = event.target.closest('.ah-chip');
             if (chip && chip.classList.contains('ready')) {
                 if (this.isHome) this.levelUp(); else this.goHome();
@@ -439,11 +441,15 @@ const AppShell = {
         const title = kind === 'king' ? 'King' : 'Queen';
         const name = Vault.state.displayName || (royal && royal.name) || user.name || 'Beekeeper';
         q('.ah-name').textContent = name;
-        q('.ah-line').innerHTML = !royal
+        // Oct 31 2026 (Craft): your RANK replaces "King of the hive" (approved
+        // demo). Earned titles join it later ("Forager · Streak Keeper"); on
+        // PC LOCAL the title is "Test Account".
+        const rk = typeof Vault.getRank === 'function' ? Vault.getRank() : null;
+        q('.ah-line').innerHTML = !royal && !Vault.pcLocal
             ? '🐝 Your hive awaits'
-            : royal.name && royal.name !== name
-                ? `👑 ${title} <b>${esc(royal.name)}</b> rules your hive`
-                : `👑 <b>${title}</b> of the hive`;
+            : rk ? `${rankBadgeSVG(rk.rank, 18, rk.level)} <b>${esc(rk.rank.name)}</b>${(() => { const w = Vault.getTitles && Vault.getTitles(); return w && w.worn ? ` · ${esc(w.worn.name)}` : ''; })()}${Vault.pcLocal ? ' · 💻 Test Account' : ''}`   /* Oct 31 2026 (Craft): + the title you wear */
+            : `👑 <b>${title}</b> of the hive`;
+        q('.ah-rankup').classList.toggle('show', !!(rk && rk.pending.length) && this.isHome);
         q('.ah-chip').textContent = levelLabel(bar.level);
         // Bar colour changes every 10 levels (purple-pink for Tiers).
         const [lvA, lvB] = levelColor(bar.level);
@@ -500,7 +506,9 @@ const AppShell = {
             if (typeof Vault.getDayReview !== 'function' || this.key.startsWith('create-') || this.key === 'onboarding') return;
             if (typeof Vault.isOnboarding === 'function' && Vault.isOnboarding()) return;
             const review = Vault.getDayReview();
-            if (!review) return;
+            // Nov 1 2026 (Craft): the Daily bonus comes after Start My Day.
+            if (!review) { this.dailyBonus(); return; }
+            document.addEventListener('bb-daystart-closed', () => this.dailyBonus(), { once: true });
             const show = () => setTimeout(() => { if (typeof DayStart !== 'undefined') DayStart.open(Vault.getDayReview()); }, 900);
             if (typeof DayStart !== 'undefined') { show(); return; }
             if (this._dayStartLoading) return;   // already on its way (it used to load twice)
@@ -513,6 +521,27 @@ const AppShell = {
             js.onload = show;
             document.body.appendChild(js);
         } catch (e) { console.error('Start My Day failed', e); }
+    },
+
+    // Daily bonus (Nov 1 2026, Craft): once a day, after Start My Day.
+    dailyBonus() {
+        try {
+            if (typeof Vault.getDailyBonus !== 'function' || this.key.startsWith('create-') || this.key === 'onboarding') return;
+            if (typeof Vault.isOnboarding === 'function' && Vault.isOnboarding()) return;
+            const info = Vault.getDailyBonus();
+            if (!info || info.claimed) return;
+            const show = () => setTimeout(() => { if (typeof DailyBonus !== 'undefined') DailyBonus.open(); }, 500);
+            if (typeof DailyBonus !== 'undefined') { show(); return; }
+            if (this._bonusLoading) return;
+            this._bonusLoading = true;
+            const css = document.createElement('link');
+            css.rel = 'stylesheet'; css.href = this.url('src/core/ui/daily-bonus/daily-bonus.css');
+            document.head.appendChild(css);
+            const js = document.createElement('script');
+            js.src = this.url('src/core/ui/daily-bonus/daily-bonus.js');
+            js.onload = show;
+            document.body.appendChild(js);
+        } catch (e) { console.error('Daily bonus failed', e); }
     },
 
     queueRefresh() {
@@ -541,6 +570,34 @@ const AppShell = {
         try { await this.loadLevelBar(); } catch (e) { /* falls back to a toast */ }
         if (typeof LevelBar !== 'undefined' && LevelBar.celebrate) LevelBar.celebrate(formatted);
         else if (typeof Toast !== 'undefined') Toast.show(`🎉 ${formatted.title}`, 'positive');
+    },
+
+    // Rank up (Oct 31 2026, Craft): claim the oldest rank up, then the shared
+    // reward screen with the new badge.
+    async rankUp() {
+        const r = typeof Vault.claimRankUp === 'function' ? Vault.claimRankUp() : null;
+        this.refresh();
+        if (!r) return;
+        this.flutter();
+        this.burst();
+        const loot = r.awardedBees.map(bee => ({ bee }));
+        loot.push({ icon: '🎟️', name: r.ticketsGranted === 1 ? 'Gacha ticket' : 'Gacha tickets', qty: r.ticketsGranted, sub: 'Spend in the Pollination Chamber' });
+        const mats = {};
+        r.awardedMaterials.forEach(id => { mats[id] = (mats[id] || 0) + 1; });
+        Object.entries(mats).forEach(([id, n]) => {
+            const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
+            loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' });
+        });
+        const next = typeof Vault.getRank === 'function' ? Vault.getRank() : null;
+        const formatted = {
+            title: `New rank: ${r.rank.name}!`, lines: [],
+            rich: { cap: 'NEW RANK', level: r.rank.name, word: true, badge: rankBadgeSVG(r.rank, 82), ribbon: 'RANK UP', perks: ['🎖️ New badge'], loot,
+                next: null, beeId: r.awardedBees[0] ? r.awardedBees[0].id : null }
+        };
+        try { await this.loadLevelBar(); } catch (e) { /* falls back to a toast */ }
+        if (typeof LevelBar !== 'undefined' && LevelBar.celebrate) LevelBar.celebrate(formatted);
+        else if (typeof Toast !== 'undefined') Toast.show(`🎖️ ${formatted.title}`, 'positive');
+        if (next && next.pending.length && typeof Toast !== 'undefined') setTimeout(() => Toast.show(`🎖️ ${next.pending.length} more rank up${next.pending.length === 1 ? '' : 's'} to claim.`, 'positive'), 1500);
     },
 
     // Skill level-up (Skills page + Dashboard): claims the level, then shows
@@ -590,7 +647,7 @@ const AppShell = {
         const lines = [];
         if (reward.awardedBees.length > 0) {
             const label = reward.awardedBees.length === 1 ? esc(reward.awardedBees[0].name) : `${reward.awardedBees.length} bees`;
-            lines.push(`🐝 ${label} joined your colony!`);
+            lines.push(`🐝 ${label} joined your hive!`);
         }
         if (reward.ticketsGranted > 0) lines.push(`🎟️ +${reward.ticketsGranted} Gacha Ticket${reward.ticketsGranted === 1 ? '' : 's'}`);
         if (reward.awardedMaterials.length > 0) {
@@ -609,14 +666,14 @@ const AppShell = {
             const m = (typeof MATERIAL_CATALOG !== 'undefined' ? MATERIAL_CATALOG : []).find(x => x.id === id);
             loot.push({ icon: m ? m.icon : '✨', name: m ? m.label : id, qty: n, sub: m ? `${m.rarity} material` : '' });
         });
-        const isTier = reward.newLevel > LEVEL_CAP;
+        const isTier = reward.newLevel > LEVEL_CAP;   // Oct 31 2026: past 50 the level number stays; Tiers are ranks now
         const perks = ['❤️ Health refilled'];
         if (isTier) perks.push('👑 Guaranteed Epic bee');
         else if (reward.newLevel % 10 === 0) perks.push('🏅 Milestone level · new bar colour');
         const bar = typeof Vault.getCharacterLevelBar === 'function' ? Vault.getCharacterLevelBar() : null;
-        const bee = reward.awardedBees.find(b => Vault.getColonyBees().some(x => x.id === b.id));
+        const bee = reward.awardedBees.find(b => Vault.getHiveBees().some(x => x.id === b.id));
         const rich = {
-            cap: isTier ? 'PRESTIGE TIER' : 'CHARACTER LEVEL', level: isTier ? reward.newLevel - LEVEL_CAP : reward.newLevel,
+            cap: isTier ? 'PRESTIGE LEVEL' : 'CHARACTER LEVEL', level: reward.newLevel,
             ribbon: isTier ? (reward.newLevel === LEVEL_CAP + 1 ? 'PRESTIGE' : 'TIER UP') : reward.newLevel === LEVEL_CAP ? 'MAX LEVEL' : reward.newLevel % 10 === 0 ? 'MILESTONE' : 'LEVEL UP', perks, loot,
             next: bar ? { level: levelName(reward.newLevel + 1), now: bar.xpIntoLevel, cap: bar.cap } : null,
             beeId: bee ? bee.id : null
@@ -856,6 +913,88 @@ const BizzyFocus = {
     }
 };
 
+// Oct 31 2026 (Craft): a rank's insignia (approved demo). Stripes, pips,
+// wings, crown; Tiers get the crown and a star. size = px height.
+// Oct 31 2026 (Craft): level badges v3. Each rank has its own emblem; the
+// metal changes for every level inside the rank (bronze, silver, gold,
+// platinum, obsidian), so all 50 levels look different.
+(function (root) {
+  let uid = 0;
+  const hex = (cx, cy, r, rot = -90) => [0,1,2,3,4,5].map(i => { const a = Math.PI/180*(60*i+rot); return (cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1); }).join(' ');
+  const METALS = [
+    { name: 'Bronze',   s: ['#ffd1a3', '#c9783b', '#6e3512'], edge: '#3a1a06' },
+    { name: 'Silver',   s: ['#ffffff', '#c6cbd3', '#6d737e'], edge: '#30343a' },
+    { name: 'Gold',     s: ['#fff4b0', '#ffc81f', '#9a6a00'], edge: '#4a3200' },
+    { name: 'Platinum', s: ['#eefaff', '#8fd0f0', '#3c7896'], edge: '#173444' },
+    { name: 'Obsidian', s: ['#5a5a66', '#1c1c22', '#000000'], edge: '#000', gold: true }
+  ];
+  const RANKS = [
+    [1,'Larva','larva'],[5,'Hatchling','hatch'],[10,'Worker','worker'],[15,'Forager','forager'],[20,'Scout','scout'],
+    [25,'Builder','builder'],[30,'Guardian','guardian'],[35,'Swarm Captain','captain'],[40,'Hive Commander','commander'],
+    [45,'Elder','elder'],[50,'Royal Keeper','crown']
+  ];
+  // Emblems: drawn in "F" (the metal) on a dark field, centred near 32,37.
+  const EM = {
+    larva: (F, D) => `<path d="M41 29a10 10 0 1 0 1 12" fill="none" stroke="${F}" stroke-width="8" stroke-linecap="round"/><path d="M27 31l-3-2M25 38h-4M28 44l-2 3M35 47v4" stroke="${D}" stroke-width="2" stroke-linecap="round"/><circle cx="42" cy="28" r="2" fill="${D}"/>`,
+    hatch: (F, D) => `<polygon points="${hex(32,41,13)}" fill="none" stroke="${F}" stroke-width="4"/><path d="M20 36l5 3 4-4 4 4 4-4 4 3 4-3" fill="none" stroke="${F}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="28" r="6" fill="${F}"/><circle cx="30" cy="27" r="1.3" fill="${D}"/><circle cx="34.5" cy="27" r="1.3" fill="${D}"/>`,
+    worker: (F, D) => `<ellipse cx="23" cy="28" rx="9" ry="5" fill="${F}" opacity=".75" transform="rotate(-25 23 28)"/><ellipse cx="41" cy="28" rx="9" ry="5" fill="${F}" opacity=".75" transform="rotate(25 41 28)"/><ellipse cx="32" cy="40" rx="8" ry="12" fill="${F}"/><path d="M24.5 37h15M24.5 43h15" stroke="${D}" stroke-width="3"/><circle cx="32" cy="26" r="4.5" fill="${F}"/><path d="M32 52l-2.5 4h5z" fill="${F}"/>`,
+    forager: (F, D) => `${[0,60,120,180,240,300].map(a => `<ellipse cx="32" cy="27" rx="5" ry="8" fill="${F}" transform="rotate(${a} 32 37)"/>`).join('')}<circle cx="32" cy="37" r="6" fill="${D}"/><circle cx="32" cy="37" r="3.5" fill="${F}"/>`,
+    scout: (F, D) => `<circle cx="32" cy="37" r="14" fill="none" stroke="${F}" stroke-width="3"/><polygon points="32,20 35,34 49,37 35,40 32,54 29,40 15,37 29,34" fill="${F}"/><polygon points="32,28 34,37 32,46 30,37" fill="${D}"/>`,
+    builder: (F, D) => `${[[32,37],[32,25],[42.4,31],[42.4,43],[32,49],[21.6,43],[21.6,31]].map(([x,y],i) => `<polygon points="${hex(x,y,5.6,-30)}" fill="${i%2 ? F : 'none'}" stroke="${F}" stroke-width="1.8"/>`).join('')}`,
+    guardian: (F, D) => `<path d="M32 19l14 5v11c0 9-6 15-14 19-8-4-14-10-14-19V24z" fill="${F}"/><path d="M32 25l8 3v7c0 6-4 10-8 12-4-2-8-6-8-12v-7z" fill="${D}"/><path d="M32 28v14l-2.5-3M32 42l2.5-3" stroke="${F}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    captain: (F, D) => `<path d="M19 22l26 30M45 22L19 52" stroke="${F}" stroke-width="5" stroke-linecap="round"/><path d="M17 20l5 1-1 5zM47 20l-5 1 1 5z" fill="${F}"/><polygon points="${hex(32,37,7)}" fill="${D}" stroke="${F}" stroke-width="2.5"/>`,
+    commander: (F, D) => `<path d="M10 33c6-6 12-6 15-3-4 1-6 4-6 7-4-1-7-2-9-4zM54 33c-6-6-12-6-15-3 4 1 6 4 6 7 4-1 7-2 9-4z" fill="${F}"/><polygon points="32,21 36,32 47,32 38,39 41,50 32,43 23,50 26,39 17,32 28,32" fill="${F}"/><circle cx="32" cy="36" r="3" fill="${D}"/>`,
+    elder: (F, D) => { const leaf = (a, side) => { const x = 32 + 16*Math.cos(a), y = 38 + 16*Math.sin(a), deg = a*180/Math.PI + (side < 0 ? -60 : 60); return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="4.6" ry="2.2" fill="${F}" transform="rotate(${deg.toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`; };
+      const L = [], R = []; for (let i = 0; i < 5; i++) { const t = (105 + i*28) * Math.PI/180; L.push(leaf(t, -1)); R.push(leaf(Math.PI - t, 1)); }
+      return `<path d="M24 53A16 16 0 0 1 20 26M40 53A16 16 0 0 0 44 26" fill="none" stroke="${F}" stroke-width="1.8"/>${L.join('')}${R.join('')}<polygon points="${hex(32,37,8)}" fill="${F}"/><polygon points="${hex(32,37,3.6)}" fill="${D}"/>`; },
+    crown: (F, D) => `<path d="M17 48l-2-20 9 8 8-12 8 12 9-8-2 20z" fill="${F}"/><rect x="17" y="49" width="30" height="5" rx="1.5" fill="${F}"/><circle cx="32" cy="41" r="2.6" fill="${D}"/><circle cx="24" cy="43" r="1.8" fill="${D}"/><circle cx="40" cy="43" r="1.8" fill="${D}"/>`
+  };
+  function badge(emblem, metal, size = 56, extra = '') {
+    const id = 'bd' + (++uid), M = METALS[metal];
+    const field = M.gold ? '#120c02' : '#1b1306';
+    const F = M.gold ? `url(#${id}g)` : `url(#${id}m)`;
+    const w = Math.round(size * 64 / 72);
+    return `<svg class="lvl-badge" width="${w}" height="${size}" viewBox="0 0 64 72" aria-hidden="true">
+<defs><linearGradient id="${id}m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${M.s[0]}"/><stop offset=".5" stop-color="${M.s[1]}"/><stop offset="1" stop-color="${M.s[2]}"/></linearGradient>
+<linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4b0"/><stop offset=".5" stop-color="#ffc81f"/><stop offset="1" stop-color="#9a6a00"/></linearGradient>
+<radialGradient id="${id}f" cx=".5" cy=".38" r=".7"><stop offset="0" stop-color="${M.gold ? '#2a1a04' : '#33240c'}"/><stop offset="1" stop-color="${field}"/></radialGradient></defs>
+<polygon points="32,1.5 62.5,19 62.5,53 32,70.5 1.5,53 1.5,19" fill="url(#${id}m)" stroke="${M.edge}" stroke-width="1.5"/>
+<polygon points="32,7 57.5,21.7 57.5,50.3 32,65 6.5,50.3 6.5,21.7" fill="url(#${id}f)" stroke="${M.gold ? '#ffc81f' : 'rgba(0,0,0,.55)'}" stroke-width="1.2"/>
+<path d="M8 22 L32 8 L56 22" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+${EM[emblem](F, field)}${extra}</svg>`;
+  }
+  function rankOf(level) { let r = RANKS[0]; RANKS.forEach(x => { if (x[0] <= level) r = x; }); return r; }
+  // Badge for a level. 1-49: the rank emblem + the step's metal. 50: Royal Keeper.
+  // Past 50: a Tier every 5 levels, crown in Obsidian with the tier number.
+  function forLevel(level, size) {
+    if (level >= 55) { const t = Math.floor((level - 50) / 5);
+      return badge('crown', 4, size, `<text x="32" y="36" text-anchor="middle" font-family="Courier Prime,monospace" font-weight="700" font-size="11" fill="#120c02">${t}</text>`); }
+    if (level >= 50) return badge('crown', 2, size);
+    const r = rankOf(level);
+    return badge(r[2], Math.min(4, level - r[0]), size);
+  }
+  function infoFor(level) {
+    if (level >= 55) { const t = Math.floor((level - 50) / 5); return { name: 'Tier ' + t, metal: 'Obsidian', first: (level - 50) % 5 === 0 }; }
+    if (level >= 50) return { name: 'Royal Keeper', metal: 'Gold', first: level === 50 };
+    const r = rankOf(level); return { name: r[1], metal: METALS[Math.min(4, level - r[0])].name, first: r[0] === level };
+  }
+  root.LevelBadges = { forLevel, infoFor, RANKS, METALS };
+})(window);
+
+// The badge for a rank (its first level), or for an exact level when given.
+// Nov 1 2026 (Craft): every level 1-50 has its own badge (LevelBadges above).
+function rankBadgeSVG(rank, size = 16, level) {
+    const lv = Number(level) || (rank && rank.from) || 1;
+    return LevelBadges.forLevel(lv, size).replace('class="lvl-badge"', 'class="rank-badge lvl-badge" style="vertical-align:-3px"');
+}
+
+// Oct 31 2026 (Craft): SHA-256 of the owner emails (no address in the code).
+// The 🛠 panel only downloads for these accounts; dev-tools.js reads the same list.
+const DEV_OWNER_HASHES = [
+    'cca1eb9e16323922a118e89aca369781ed00e145a60855b83b0c37398b70f10d',
+    '0fb7061c0faa822f969cf19e1e1e96f9abd3ea14b0c3e232f80b25eea65b374f'   // collaborator (Oct 2026)
+];
+
 class CodexSystem {
     constructor() {
         this.init();
@@ -863,13 +1002,13 @@ class CodexSystem {
 
     init() {
         this.renderGlobalUI();
+        this.registerAppCache();
         this.initAppLock();
         this.initCloudSyncAuto();
         this.initFolderBackupAuto();
         this.injectInstallButton();
         this.loadLocalDevTools();
         this.loadHabiticaSync();
-        this.loadPhoneReminders();
         this.loadTimeLog();
         this.loadHints();
         this.loadPullRefresh();
@@ -881,7 +1020,7 @@ class CodexSystem {
         else setTimeout(() => BizzyFocus.run(), 300);
     }
 
-    // Starter skills (Oct 28 2026): right after "Add to my colony", Home asks
+    // Starter skills (Oct 28 2026): right after "Add to my hive", Home asks
     // "What are you working on?" once. (The Dashboard asks on its own.)
     loadStarterSkills() {
         let flag = null;
@@ -943,6 +1082,12 @@ class CodexSystem {
         const script = document.createElement('script');
         script.src = nested ? '../../../src/core/services/native/native.js' : 'src/core/services/native/native.js';
         document.body.appendChild(script);
+        // Nov 1 2026 (Craft): the app's own copy keeps itself up to date.
+        if (window.BB_APP_COPY && !document.querySelector('script[src*="web-update/web-update.js"]')) {
+            const up = document.createElement('script');
+            up.src = '/src/core/services/web-update/web-update.js';
+            document.body.appendChild(up);
+        }
     }
 
     // Pull down at the top to sync and reload (src/core/ui/pull-refresh/).
@@ -990,18 +1135,8 @@ class CodexSystem {
         document.body.appendChild(script);
     }
 
-    // Phone reminders (src/core/services/push/push.js) - loads on every app page once
-    // they're turned on in Settings, so reminder times stay up to date.
-    loadPhoneReminders() {
-        const path = window.location.pathname;
-        const nested = path.includes('features') || path.includes('plugins');
-        if (!nested || path.includes('/onboarding/')) return;
-        if (localStorage.getItem('bizzybee_push_on') !== '1' || localStorage.getItem('bizzybee_dev_test') === '1') return;
-        if (document.querySelector('script[src*="push/push.js"]')) return;
-        const script = document.createElement('script');
-        script.src = '../../../src/core/services/push/push.js';
-        document.body.appendChild(script);
-    }
+    // Oct 31 2026 (Craft): web reminders and web push were removed (Android
+    // app only; see docs/OPEN-ISSUES.md). Code kept in git tag web-reminders-archive.
 
     // Habitica two-way sync (src/core/services/habitica-sync/) - loads on every app
     // page once this device has the Habitica key (Account Info saves it).
@@ -1023,17 +1158,26 @@ class CodexSystem {
     }
 
     // Dev tools (Craft, 2026-10-09).
-    //  - This computer: src/local/admin.local.js (gitignored) adds the
-    //    Hacker / password login; once signed in that way, the 🛠 panel
-    //    (src/core/dev-tools/dev-tools.js) loads on every page.
+    //  - This computer (PC LOCAL, Oct 31 2026): the 🛠 panel
+    //    (src/core/dev-tools/dev-tools.js) always loads, on the local test account.
     //  - Live site: the 🛠 panel loads only when signed in to Cloud Sync
     //    with the owner's account (DevTools.isOwner checks a SHA-256 of the
     //    email, so the address itself isn't in the code). On live, every
     //    tool works on a separate test save that never syncs.
+    // Oct 31 2026 (Craft): the app cache (sw.js). Keeps a copy of the app per
+    // deploy on the device, so tab switches load from the phone and the app
+    // opens offline. Not on this computer (PC LOCAL always loads fresh).
+    registerAppCache() {
+        // Nov 1 2026 (Craft): the Android app's own copy is already on the phone; no worker needed.
+        if (!('serviceWorker' in navigator) || window.BB_APP_COPY || (typeof Vault !== 'undefined' && Vault.pcLocal)) return;
+        const go = () => navigator.serviceWorker.register('/sw.js').catch(() => {});
+        if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
+    }
+
     loadLocalDevTools() {
         const host = window.location.hostname;
-        const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
-            || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
+        const isLocal = !window.BB_APP_COPY && (host === '' || host === 'localhost' || host === '127.0.0.1' || host === '[::1]'   // Nov 1 2026 (Craft): the app's own copy isn't PC LOCAL
+            || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local'));
         const path = window.location.pathname;
         const nested = path.includes('features') || path.includes('plugins');
         const root = nested ? '../../..' : '.';
@@ -1043,11 +1187,25 @@ class CodexSystem {
             script.onerror = () => script.remove();
             document.body.appendChild(script);
         };
-        if (isLocal) add('src/local/admin.local.js');
+        // Oct 31 2026 (Craft): this computer is PC LOCAL (local test account,
+        // see db.js), so the 🛠 panel always loads here. The Hacker login
+        // (src/local/admin.local.js) is gone.
         if (!nested) return;   // no panel on the login page
-        const localDev = isLocal && localStorage.getItem('bizzybee_dev') === '1';
-        const maybeOwner = localStorage.getItem('bizzybee_session') === 'identity' && !!localStorage.getItem('gotrue.user');
-        if (localDev || maybeOwner || localStorage.getItem('bizzybee_dev_test') === '1') add('src/core/dev-tools/dev-tools.js');
+        const localDev = typeof Vault !== 'undefined' ? !!Vault.pcLocal : isLocal;
+        // Oct 31 2026 (Craft): check the owner BEFORE downloading the 41 KB
+        // panel, so other people's devices (testers) never load it.
+        if (localDev || localStorage.getItem('bizzybee_dev_test') === '1') { add('src/core/dev-tools/dev-tools.js'); return; }
+        if (localStorage.getItem('bizzybee_session') !== 'identity') return;
+        (async () => {
+            try {
+                const user = JSON.parse(localStorage.getItem('gotrue.user') || 'null');
+                const email = user && user.email && String(user.email).trim().toLowerCase();
+                if (!email || !window.crypto || !crypto.subtle) return;
+                const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+                const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+                if (DEV_OWNER_HASHES.includes(hex)) add('src/core/dev-tools/dev-tools.js');
+            } catch { /* no panel */ }
+        })();
     }
 
     renderGlobalUI() {
@@ -1253,11 +1411,11 @@ class CodexSystem {
         if (path.includes('account-info.html')) return 'account-info';
         if (path.includes('account-security.html')) return 'account-security';
         if (path.includes('inventory.html')) return 'inventory';
-        if (path.includes('colony-bees.html')) return 'colony-bees';
+        if (path.includes('hive-bees.html')) return 'hive-bees';   // Oct 31 2026: page renamed; key kept (hints, menus, saved Home layout)
         if (path.includes('keeperdex.html')) return 'keeperdex';
         if (path.includes('models.html')) return 'models';
         if (path.includes('settings.html')) return 'settings';
-        if (path.includes('colony.html')) return 'colony';
+        if (path.includes('hive-mind.html')) return 'hive-mind';   // Oct 31 2026: page renamed; key kept
         if (path.includes('gacha.html')) return 'gacha';
         if (path.includes('honey-store.html')) return 'honey-store';
         if (path.includes('plugin-hub.html')) return 'plugin-hub';
@@ -1274,7 +1432,11 @@ class CodexSystem {
         if (path.includes('habits.html')) return 'habits';
         if (path.includes('create-todo.html')) return 'create-todo';
         if (path.includes('todos.html')) return 'todos';
-        return 'home';
+        // Oct 31 2026 (Craft, from 1.0.6): any other page (Notifications, Guide,
+        // Mailbox, Themes, Friends...) used to count as Home, so tapping the
+        // header or swiping up on the + did nothing there. Use its file name.
+        const m = /\/src\/(?:features|plugins)\/.*?([a-z0-9-]+)\.html$/i.exec(path);
+        return m ? m[1].toLowerCase() : 'home';
     }
 
     // A real "go back" button - lives as its own floating hexagon next to

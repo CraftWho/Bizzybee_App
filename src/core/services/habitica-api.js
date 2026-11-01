@@ -96,7 +96,8 @@ const HabiticaAPI = {
     // needsCron: Habitica hasn't started the player's new day yet. Its own
     // apps run cron on open; scoring before that lands on the old day.
     async getCronState(userId, apiToken) {
-        return HabiticaAPI._get('/user?userFields=needsCron', userId, apiToken);
+        // Nov 1 2026 (Craft): + lastCron, so the sync can tell when Habitica is still on yesterday.
+        return HabiticaAPI._get('/user?userFields=needsCron,lastCron', userId, apiToken);
     },
     async runCron(userId, apiToken) {
         return HabiticaAPI._request('POST', '/cron', userId, apiToken);

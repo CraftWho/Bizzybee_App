@@ -11,13 +11,49 @@ const WHATS_NEW = [
       new: [
         { icon: '🥚', title: 'Egg Incubator', text: 'A plugin. Your steps and dailies hatch eggs faster.', href: 'plugins/incubator/incubator.html' },
         { icon: '🐣', title: 'Tap to hatch', text: 'Ready eggs wait for you. Tap to crack them open and meet your bee.', href: 'features/home/home.html' },
-        { icon: '⏱️', title: 'Bees live hour by hour', text: 'Work drains stats by job. Everyone sleeps 10 PM to 7 AM.', href: 'features/colony-bees/colony-bees.html' },
-        { icon: '🛏️', title: 'Nursery beds', text: 'Sick and hurt bees heal 4× faster in a bed.', href: 'features/colony-bees/colony-bees.html' },
+        { icon: '⏱️', title: 'Bees live hour by hour', text: 'Work drains stats by job. Everyone sleeps 10 PM to 7 AM.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '🛏️', title: 'Nursery beds', text: 'Sick and hurt bees heal 4× faster in a bed.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '🎒', title: 'Held items', text: 'Rare bees and up hold items from the Honey Store.', href: 'features/honey-store/honey-store.html' },
         { icon: '📘', title: 'Eve and the Guide', text: 'Eve is your coach. The Guide shows every feature, new ones first.', href: 'features/guide/guide.html' },
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Nov 1 2026 (Craft): Batch 11.
+        { icon: '📲', title: 'Android: runs from your phone', text: 'The app keeps its own copy and downloads only what changed in each update. Faster, and less internet.' },
+        // Nov 1 2026 (Craft): Batch 10.
+        { icon: '🎁', title: 'Daily bonus', text: 'Open the app each day to move along a 7-day week of rewards. Day 7 gives a Gacha ticket.', href: 'features/home/home.html' },
+        { icon: '🛟', title: 'Contact support', text: 'Something wrong? Settings › Contact support. You get a reply by email.', href: 'features/support/support.html' },
+        { icon: '🔥', title: 'Streaks: 5 of anything', text: 'A day counts toward your streak once you finish 5 tasks: any mix of dailies, To-Dos and quest tasks. You don\'t have to finish everything. Every Sunday with a 7+ day streak: +75 XP.', href: 'features/home/home.html' },
+        // Oct 31 2026 (Craft): Batch 9.
+        { icon: '💬', title: 'Quicker messages', text: 'Messages go away after 2.5 seconds, or tap anywhere to close them.' },
+        { icon: '🔤', title: 'New font', text: 'Courier Prime, built into the app, so it looks the same on every phone and computer.' },
+        { icon: '📅', title: 'Calendar: no more dailies', text: 'The calendar feed now sends only your events and To-Do due dates.' },
+        { icon: '🔁', title: 'Habitica fix', text: 'Dailies no longer show as done at midnight when Habitica hasn\'t started its new day yet.' },
+        { icon: '🏅', title: 'Ranks & Titles', text: 'A ladder of every level, each with its own badge, opening at yours. Earn titles and equip one next to your rank. Past 50, a Tier every 5 levels.', href: 'features/titles/titles.html' },
+        { icon: '☑️', title: 'Tick steps while editing', text: 'Check off checklist steps on the To-Do and Daily edit screens.', href: 'features/todos/todos.html' },
+        { icon: '🥚', title: 'Incubators in the Honey Store', text: 'Buy an Egg Incubator with Honey coins, no plugin needed.', href: 'features/honey-store/honey-store.html' },
+        { icon: '🆕', title: 'Mailbox updates', text: 'A new Updates tab lists every What\'s New.', href: 'features/mailbox/mailbox.html' },
+        // Oct 31 2026 (Craft): Batch 7, the card binder.
+        { icon: '💿', title: 'Hive Bees is your card binder', text: 'Cover Flow like the old iPod: drag, flick, or spin the click wheel. Sort, search, or switch to a grid of cards.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '💭', title: 'Card memories', text: 'Rare and better cards remember how they came to you and the last task you finished. Flip the big card.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '📏', title: 'New card stats', text: 'Height, Resistance and Recovery on every card. Jobs are set in the Hive Mind now.', href: 'features/hive-bees/hive-bees.html' },
+        // Oct 31 2026 (Craft): Batch 6, Progress (from 1.0.6).
+        { icon: '🕘', title: 'History', text: 'Everything you finished, day by day. Tap one to open it.', href: 'features/history/history.html' },
+        { icon: '📊', title: 'Home stats', text: 'Weather and steps (Android app) join the stat strip. XP today and Done today now always match.', href: 'features/home/home.html' },
+        { icon: '⬆️', title: 'Claim on the Dashboard', text: 'Level up ready? Claim it on the Dashboard too.', href: 'features/dashboard/dashboard.html' },
+        { icon: '🔖', title: 'Serial numbers', text: 'Every bee card has its own serial number that never changes.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '📇', title: 'Skill lines', text: 'KeeperDex skills now say what they do.', href: 'features/keeperdex/keeperdex.html' },
+        { icon: '✨', title: 'Shiny cards', text: 'Rare and better cards catch the light as you tilt your phone.', href: 'features/hive-bees/hive-bees.html' },
+        { icon: '🃏', title: 'KeeperDex cards flip', text: 'Cards you haven\'t found are greyed out and face-down. Tap a found card to see it big and flip it.', href: 'features/keeperdex/keeperdex.html' },
+        // Oct 31 2026 (Craft): Batch 5, Skills (from 1.0.6, with ask-first).
+        { icon: '🌱', title: 'Skills honeycomb', text: 'Each skill is a cell with its own path of milestones and rewards. A red dot means a reward is waiting.', href: 'features/skills/skills.html' },
+        { icon: '💡', title: 'Smart skills', text: 'Plain words count: "Go for a run" counts toward Fitness. Skills count time or times done. Time is optional.', href: 'features/skills/skills.html' },
+        { icon: '📖', title: 'Asks first', text: 'A new tag next to a skill asks before it goes in your Dictionary. New everyday skills ask too.', href: 'plugins/dictionary/dictionary.html' },
+        { icon: '🔀', title: 'Merge skills', text: 'Join two look-alike skills, with Undo. A backup is made first.', href: 'features/skills/skills.html' },
+        // Oct 31 2026 (Craft): Colony renamed Hive Mind everywhere.
+        { icon: '🐝', title: 'Colony is now the Hive Mind', text: 'One name everywhere: Hive Mind and Hive Bees. Your bees, tickets and settings moved over by themselves.', href: 'features/hive-mind/hive-mind.html' },
+        // Oct 31 2026 (Craft): ranks.
+        { icon: '🎖️', title: 'Ranks', text: 'A rank and badge every 5 levels, Tiers after 50. Press Rank up on Home for tickets, materials and an egg.', href: 'features/home/home.html' },
         { icon: '📖', title: 'Richer Dictionary', text: 'Full term, code, examples, picture, MDN and W3Schools links.', href: 'plugins/dictionary/dictionary.html' },
       ],
       improved: [
@@ -27,10 +63,19 @@ const WHATS_NEW = [
         { icon: '🆘', title: 'Bee needs help', text: 'Home says exactly what each bee needs.' },
         { icon: '⬆️', title: 'Swipe up to go Home', text: 'Swipe up on the gold + button.' },
         // Oct 30 2026 (Craft): Terminal clear today.
+        // Oct 31 2026 (Craft): Batch 1, stability.
+        { icon: '📱', title: 'One device at a time', text: 'The device you open becomes active. Others show "Continue here", so saves never fight.' },
+        { icon: '🗄️', title: 'Daily backups', text: 'One cloud backup a day, last 4 days kept. No more backups every few minutes.' },
+        { icon: '🔔', title: 'Notifications in the app', text: 'Reminders ring in the Android app. The website no longer sends them.' },
+        // Oct 31 2026 (Craft): speed.
+        { icon: '⚡', title: 'Faster app', text: 'Pages load from your phone after the first visit, and the app opens offline.' },
         { icon: '🧹', title: 'Clear today', text: 'Terminal: type clear today to undo today\'s check-offs, XP and level.', href: 'plugins/terminal/terminal.html' },
       ],
       fixed: [
         { icon: '👣', title: 'Steps', text: 'Now counts your whole day.' },
+        // Oct 31 2026 (Craft): Batch 2.
+        { icon: '🌙', title: 'Evening quest tasks', text: 'Quest tasks done after 8 PM now count on today, not tomorrow.' },
+        { icon: '🎁', title: 'Fair rewards', text: 'A quest pays its loot once. Each task rolls materials once a day.' },
         { icon: '◀️', title: 'Back button', text: 'Goes back one page, not all the way Home.' },
         { icon: '🌤️', title: 'Header', text: 'The weather was removed from the header.' },
       ] },
@@ -39,7 +84,7 @@ const WHATS_NEW = [
         { icon: '🔔', title: 'Notifications page', text: 'Everything that can remind you, in one place. See what\'s coming up.', href: 'features/notifications/notifications.html' },
         { icon: '👆', title: 'Tap a notification to open it', text: 'It opens that daily, To-Do or habit, and it glows.' },
         { icon: '🌅', title: 'Start My Day and habit reminders', text: 'A morning prompt, and a nudge for habits you haven\'t tapped.', href: 'features/notifications/notifications.html' },
-        { icon: '🌧️', title: 'Live sky on the Hive Mind', text: 'Real day and night, sun, moon, clouds, rain, snow and storms.', href: 'features/colony/colony.html' },
+        { icon: '🌧️', title: 'Live sky on the Hive Mind', text: 'Real day and night, sun, moon, clouds, rain, snow and storms.', href: 'features/hive-mind/hive-mind.html' },
         { icon: '🌤️', title: 'Weather in the header', text: 'A small animated icon and the temperature.', href: 'features/settings/settings.html#weather' },
         { icon: '✨', title: 'Done today', text: 'Tap XP today on Home to see everything you finished today.', href: 'features/home/home.html' },
         { icon: '🌱', title: 'Pick your skills', text: 'Choose what you\'re working on. Normal task names count toward it.', href: 'features/dashboard/dashboard.html' },

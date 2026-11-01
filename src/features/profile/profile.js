@@ -48,7 +48,7 @@ function renderRoyal() {
         tile.innerHTML = beeCardArtHTML({ rarityKey: key, rivets: 2, royal: royal ? royal.royal : 'queen' });
         art = tile.outerHTML;
     }
-    el.innerHTML = `${art}<div><b>Your ${kind}${royal && royal.name ? ` · ${esc(royal.name)}` : ''}</b><small>Founder of your colony · ${Vault.getColonyBees().length} bees</small><small style="color:var(--gold);margin-top:6px">Visit the hive →</small></div>`;
+    el.innerHTML = `${art}<div><b>Your ${kind}${royal && royal.name ? ` · ${esc(royal.name)}` : ''}</b><small>Founder of your hive · ${Vault.getHiveBees().length} bees</small><small style="color:var(--gold);margin-top:6px">Visit the hive →</small></div>`;
 }
 
 function activeDays(S) {
@@ -56,7 +56,7 @@ function activeDays(S) {
     (S.dailyTasks || []).forEach(t => (t.completedDates || []).forEach(d => days.add(d)));
     (S.habits || []).forEach(h => (h.history || []).filter(x => x.direction === 'positive').forEach(x => days.add(x.date)));
     (S.todos || []).filter(t => t.completed && t.completedDate).forEach(t => days.add(String(t.completedDate).slice(0, 10)));
-    (S.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed && t.dateCompleted).forEach(t => days.add(String(t.dateCompleted).slice(0, 10))));
+    (S.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed && t.dateCompleted).forEach(t => days.add(localDayOf(t.dateCompleted))));   // Oct 31 2026 (Craft): local day
     return days.size;
 }
 
@@ -68,7 +68,7 @@ function render() {
     (Vault.lastMastered || []).forEach(s => Toast.show(`🌿 Skill mastered: ${s.name}!`, 'positive'));
     const questsDone = (S.quests || []).filter(q => q.status === 'completed');
     document.getElementById('pf-tiles').innerHTML = `
-        <div class="tile"><small>Bees</small><b>${Vault.getColonyBees().length}</b><span>in your colony</span></div>
+        <div class="tile"><small>Bees</small><b>${Vault.getHiveBees().length}</b><span>in your hive</span></div>
         <div class="tile"><small>Quests done</small><b>${questsDone.length}</b><span>long-term goals</span></div>
         <div class="tile"><small>Skills</small><b>${mastered.length}/${tree.length}</b><span>mastered</span></div>
         <div class="tile"><small>Active days</small><b>${activeDays(S)}</b><span>days you got something done</span></div>`;
@@ -109,7 +109,7 @@ document.addEventListener('click', e => {
     const r = Vault.levelUpCharacterBar();
     if (!r) { render(); return; }
     const lines = [];
-    (r.awardedBees || []).forEach(b => lines.push(`🐝 ${esc(b.name)} joined your colony`));
+    (r.awardedBees || []).forEach(b => lines.push(`🐝 ${esc(b.name)} joined your hive`));
     if (r.ticketsGranted) lines.push(`🎟️ +${r.ticketsGranted} ticket${r.ticketsGranted === 1 ? '' : 's'}`);
     (r.awardedMaterials || []).forEach(id => lines.push(`${esc(materialDisplay(id))} +1`));
     document.getElementById('pf-sheet-body').innerHTML = `<div class="pf-burst">${r.newLevel}</div><h3>You reached level ${r.newLevel}!</h3><ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul><button type="button" data-close>Collect</button>`;

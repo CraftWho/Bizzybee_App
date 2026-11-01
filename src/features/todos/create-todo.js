@@ -18,6 +18,8 @@ const TODO_DIFFICULTY_TIERS = [
 
 let selectedDifficulty = 'Easy';
 let timePicker = null;   // TaskForm.timePicker (Oct 2026: XP = minutes x effort)
+// A tag added or removed updates "Counts toward" right away (Oct 29 2026).
+document.addEventListener('tagschange', (e) => { if (e.target && e.target.id === 'todo-tags-list' && timePicker) timePicker.refresh(); });
 let selectedXP = 30;
 let editingTodoId = null;
 let checklistEditor = null;
@@ -73,7 +75,7 @@ function renderDue() {
     }
     document.getElementById('todo-due-hint').textContent = hint;
     document.getElementById('todo-rem-hint').textContent = value
-        ? 'Sends a notification on the due date, while Bizzybee is open in a tab.'
+        ? 'Rings on your phone in the BizzyBee Android app.'
         : 'Reminders go off on the due date, so set one above for these to fire.';
 }
 
@@ -129,7 +131,6 @@ function saveTodo() {
         Vault.addTodo(payload);
         Toast.show(`📝 New to-do: ${label}`, 'positive');
     }
-    if (payload.reminders.length && payload.dueDate) Reminders.requestPermissionIfNeeded();
     goBack();
 }
 
@@ -138,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     Waggle.setActions(baseWaggleActions());
 
-    checklistEditor = TaskForm.checklist(document.getElementById('todo-checklist'), document.getElementById('todo-cl-add'));
+    checklistEditor = TaskForm.checklist(document.getElementById('todo-checklist'), document.getElementById('todo-cl-add'), { checkable: 'todo' });
     reminderEditor = TaskForm.reminders(document.getElementById('todo-reminders'), document.getElementById('todo-rem-add'));
 
     editingTodoId = new URLSearchParams(window.location.search).get('id');

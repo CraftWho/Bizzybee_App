@@ -11,6 +11,7 @@ import { getStore } from '@netlify/blobs';
 import { randomUUID } from 'node:crypto';
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json } from '../lib/cloud-store.mjs';
+import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
 
 const mail = () => getStore({ name: 'bizzybee-mail', consistency: 'strong' });
 const clean = (t, n) => String(t ?? '').replace(/[\u0000-\u0008\u000b-\u001f]/g, '').trim().slice(0, n);
@@ -30,7 +31,7 @@ async function update(store, key, fn, fallback) {
     throw new Error('Busy. Try again.');
 }
 
-export default async (req) => {
+const handler = async (req) => {
     if (req.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405);
     let user;
     try { user = await authenticatedUser(req); } catch { return json({ ok: false, error: 'Sign-in is unavailable. Try again.' }, 503); }
@@ -80,3 +81,4 @@ export default async (req) => {
         return json({ ok: false, error: error.message || 'Mail service failed.' }, 503);
     }
 };
+export default withCors(handler);

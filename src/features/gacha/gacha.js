@@ -15,7 +15,7 @@ function beeColor(rarity) {
 function renderCollectionCounters() {
     const el = document.getElementById('gacha-collection-counter');
     if (!el) return;
-    const bees = Vault.getColonyBees();
+    const bees = Vault.getHiveBees();
     const special = bees.filter(b => b.rarity === 'Named').length;
     const normal = bees.length - special;
     el.innerHTML = `<span>🐝 Normal <strong>${normal}</strong></span><span>✨ Special <strong>${special}</strong></span>`;
@@ -41,14 +41,14 @@ function showSummonResult(bee, { title } = {}) {
     if (!overlay || !resultPanel || !cardHost) return;
 
     overlay.hidden = false;
-    titleEl.textContent = title || `${bee.name} joined the colony!`;
+    titleEl.textContent = title || `${bee.name} joined the hive!`;
     BeeCard.render(cardHost, bee, { editable: false });
     // Name it now (Oct 2026): a random name is already set; 🎲 for another.
     const nameHost = document.getElementById('gacha-summon-name');
     if (nameHost && typeof BeeName !== 'undefined' && bee.rarity !== 'Royal') {
         BeeName.mount(nameHost, bee, {
             label: 'Name your new bee',
-            onSaved: (r) => { titleEl.textContent = `${r.name} joined the colony!`; BeeCard.render(cardHost, r, { editable: false }); }
+            onSaved: (r) => { titleEl.textContent = `${r.name} joined the hive!`; BeeCard.render(cardHost, r, { editable: false }); }
         });
     } else if (nameHost) nameHost.innerHTML = '';
     resultPanel.hidden = false;
@@ -62,8 +62,8 @@ function pollinateForNewBee() {
     const result = Vault.pullWithTicket();
     if (!result) { Toast.show('🎟️ You need a ticket to pollinate. Level up you or your skills to earn more.', 'negative'); renderTicketPanel(); return; }
     const { bee, guaranteed } = result;
-    Toast.show(`🐝 ${bee.name} joined the colony!${guaranteed ? ' (guaranteed Rare+)' : ''}`, 'positive');
-    showSummonReveal(bee, { title: `🌼 ${bee.name} joined the colony!` });
+    Toast.show(`🐝 ${bee.name} joined the hive!${guaranteed ? ' (guaranteed Rare+)' : ''}`, 'positive');
+    showSummonReveal(bee, { title: `🌼 ${bee.name} joined the hive!` });
     renderCollectionCounters();
     renderRefineSelects();
     renderTicketPanel();
@@ -92,7 +92,7 @@ function pollinateMany(n) {
     box.hidden = false;
     const best = results[0];
     if (best && best.bee.rarity !== 'Common') showSummonReveal(best.bee, { title: `🌼 Best pull: ${best.bee.name}!` });
-    Toast.show(`🐝 ${results.length} bees joined the colony!`, 'positive');
+    Toast.show(`🐝 ${results.length} bees joined the hive!`, 'positive');
     renderCollectionCounters();
     renderRefineSelects();
     renderTicketPanel();
@@ -192,7 +192,7 @@ function beeOptionsHTML(bees) {
 }
 
 function renderRefineSelects() {
-    const bees = Vault.getColonyBees().slice().reverse();
+    const bees = Vault.getHiveBees().slice().reverse();
     const destroySelect = document.getElementById('gacha-destroy-select');
     const comboA = document.getElementById('gacha-combine-select-a');
     const comboB = document.getElementById('gacha-combine-select-b');
@@ -233,7 +233,7 @@ async function handleDestroy() {
         return;
     }
 
-    const bee = Vault.getColonyBees().find(b => b.id === beeId);
+    const bee = Vault.getHiveBees().find(b => b.id === beeId);
     if (!bee) return;
     if (!confirm(`Destroy ${bee.name}? This can't be undone.`)) return;
 
@@ -265,8 +265,8 @@ function handleCombine() {
         return;
     }
 
-    const beeA = Vault.getColonyBees().find(b => b.id === idA);
-    const beeB = Vault.getColonyBees().find(b => b.id === idB);
+    const beeA = Vault.getHiveBees().find(b => b.id === idA);
+    const beeB = Vault.getHiveBees().find(b => b.id === idB);
     if (!beeA || !beeB) return;
     if (!confirm(`Combine ${beeA.name} and ${beeB.name}? Both will be consumed.`)) return;
 

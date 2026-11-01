@@ -11,7 +11,7 @@ function render(data) {
     $('hf-list').innerHTML = list.length ? list.map(f => {
         if (f.status === 'ok') {
             const eggs = f.card.bees.filter(b => b.egg).length;
-            return `<div class="hf-row"><span class="hex">${esc(f.card.owner[0] || '?')}</span><span class="mid"><b>${esc(f.card.owner)}</b><small>⭐ Level ${f.card.level} · 🐝 ${f.card.bees.length - eggs} bees${eggs ? ` · 🥚 ${eggs}` : ''}</small></span><a class="bb-btn bb-btn--main" href="../colony/hive-visit.html?code=${encodeURIComponent(f.code)}">Visit</a><button type="button" class="x" data-remove="${esc(f.code)}" aria-label="Remove ${esc(f.code)}">✕</button></div>`;
+            return `<div class="hf-row"><span class="hex">${esc(f.card.owner[0] || '?')}</span><span class="mid"><b>${esc(f.card.owner)}</b><small>⭐ Level ${f.card.level} · 🐝 ${f.card.bees.length - eggs} bees${eggs ? ` · 🥚 ${eggs}` : ''}</small></span><a class="bb-btn bb-btn--main" href="../hive-mind/hive-visit.html?code=${encodeURIComponent(f.code)}">Visit</a><button type="button" class="x" data-remove="${esc(f.code)}" aria-label="Remove ${esc(f.code)}">✕</button></div>`;
         }
         const why = f.status === 'pending' ? 'Waiting for them to add you back' : f.status === 'hidden' ? 'Not sharing their hive right now' : 'This hive is gone';
         return `<div class="hf-row"><span class="hex dim">?</span><span class="mid"><b>${esc(f.name || f.code)}</b><small>${why}</small></span><button type="button" class="x" data-remove="${esc(f.code)}" aria-label="Remove ${esc(f.code)}">✕</button></div>`;
