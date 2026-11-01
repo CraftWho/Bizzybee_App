@@ -447,7 +447,7 @@ const AppShell = {
         const rk = typeof Vault.getRank === 'function' ? Vault.getRank() : null;
         q('.ah-line').innerHTML = !royal && !Vault.pcLocal
             ? '🐝 Your hive awaits'
-            : rk ? `${rankBadgeSVG(rk.rank, 16)} <b>${esc(rk.rank.name)}</b>${(() => { const w = Vault.getTitles && Vault.getTitles(); return w && w.worn ? ` · ${esc(w.worn.name)}` : ''; })()}${Vault.pcLocal ? ' · 💻 Test Account' : ''}`   /* Oct 31 2026 (Craft): + the title you wear */
+            : rk ? `${rankBadgeSVG(rk.rank, 18, rk.level)} <b>${esc(rk.rank.name)}</b>${(() => { const w = Vault.getTitles && Vault.getTitles(); return w && w.worn ? ` · ${esc(w.worn.name)}` : ''; })()}${Vault.pcLocal ? ' · 💻 Test Account' : ''}`   /* Oct 31 2026 (Craft): + the title you wear */
             : `👑 <b>${title}</b> of the hive`;
         q('.ah-rankup').classList.toggle('show', !!(rk && rk.pending.length) && this.isHome);
         q('.ah-chip').textContent = levelLabel(bar.level);
@@ -892,19 +892,77 @@ const BizzyFocus = {
 
 // Oct 31 2026 (Craft): a rank's insignia (approved demo). Stripes, pips,
 // wings, crown; Tiers get the crown and a star. size = px height.
-function rankBadgeSVG(rank, size = 16) {
-    const k = (rank && rank.kind) || 'stripes', n = (rank && rank.n) || 0;
-    const FILL = { stripes: '#ffcc00', pips: '#e8a317', wings: '#c97b10', crown: '#7a0f24', tier: '#4a0a18' };
-    const edge = k === 'crown' || k === 'tier' ? '#ffcc00' : '#a87b00';
-    const hex = (cx, cy, r) => [0, 1, 2, 3, 4, 5].map(i => { const a = Math.PI / 180 * (60 * i - 90); return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`; }).join(' ');
-    let marks = '';
-    if (k === 'stripes') marks = ({ 1: [33], 2: [27, 39], 3: [22, 33, 44] }[n] || []).map(y => `<rect x="13" y="${y}" width="38" height="6" rx="1" fill="#2a1c08"/>`).join('');
-    if (k === 'pips') marks = ({ 1: [32], 2: [22, 42], 3: [16, 32, 48] }[n] || []).map(x => `<polygon points="${hex(x, 36, 8)}" fill="#2a1c08"/>`).join('');
-    if (k === 'wings') marks = ({ 1: [36], 2: [29, 43], 3: [24, 36, 48] }[n] || []).map(y => `<ellipse cx="21" cy="${y}" rx="11" ry="5" fill="#2a1c08" transform="rotate(-14 21 ${y})"/><ellipse cx="43" cy="${y}" rx="11" ry="5" fill="#2a1c08" transform="rotate(14 43 ${y})"/>`).join('');
-    if (k === 'crown' || k === 'tier') marks = '<path d="M16 46 L19 26 L27 36 L32 22 L37 36 L45 26 L48 46 Z" fill="#ffcc00" stroke="#a87b00" stroke-width="2" stroke-linejoin="round"/>';
-    if (k === 'tier') marks += '<polygon points="32,50 34.4,55 40,55.6 35.8,59.2 37,64.6 32,61.8 27,64.6 28.2,59.2 24,55.6 29.6,55" fill="#fff1b3"/>';
+// Oct 31 2026 (Craft): level badges v3. Each rank has its own emblem; the
+// metal changes for every level inside the rank (bronze, silver, gold,
+// platinum, obsidian), so all 50 levels look different.
+(function (root) {
+  let uid = 0;
+  const hex = (cx, cy, r, rot = -90) => [0,1,2,3,4,5].map(i => { const a = Math.PI/180*(60*i+rot); return (cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1); }).join(' ');
+  const METALS = [
+    { name: 'Bronze',   s: ['#ffd1a3', '#c9783b', '#6e3512'], edge: '#3a1a06' },
+    { name: 'Silver',   s: ['#ffffff', '#c6cbd3', '#6d737e'], edge: '#30343a' },
+    { name: 'Gold',     s: ['#fff4b0', '#ffc81f', '#9a6a00'], edge: '#4a3200' },
+    { name: 'Platinum', s: ['#eefaff', '#8fd0f0', '#3c7896'], edge: '#173444' },
+    { name: 'Obsidian', s: ['#5a5a66', '#1c1c22', '#000000'], edge: '#000', gold: true }
+  ];
+  const RANKS = [
+    [1,'Larva','larva'],[5,'Hatchling','hatch'],[10,'Worker','worker'],[15,'Forager','forager'],[20,'Scout','scout'],
+    [25,'Builder','builder'],[30,'Guardian','guardian'],[35,'Swarm Captain','captain'],[40,'Hive Commander','commander'],
+    [45,'Elder','elder'],[50,'Royal Keeper','crown']
+  ];
+  // Emblems: drawn in "F" (the metal) on a dark field, centred near 32,37.
+  const EM = {
+    larva: (F, D) => `<path d="M41 29a10 10 0 1 0 1 12" fill="none" stroke="${F}" stroke-width="8" stroke-linecap="round"/><path d="M27 31l-3-2M25 38h-4M28 44l-2 3M35 47v4" stroke="${D}" stroke-width="2" stroke-linecap="round"/><circle cx="42" cy="28" r="2" fill="${D}"/>`,
+    hatch: (F, D) => `<polygon points="${hex(32,41,13)}" fill="none" stroke="${F}" stroke-width="4"/><path d="M20 36l5 3 4-4 4 4 4-4 4 3 4-3" fill="none" stroke="${F}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="28" r="6" fill="${F}"/><circle cx="30" cy="27" r="1.3" fill="${D}"/><circle cx="34.5" cy="27" r="1.3" fill="${D}"/>`,
+    worker: (F, D) => `<ellipse cx="23" cy="28" rx="9" ry="5" fill="${F}" opacity=".75" transform="rotate(-25 23 28)"/><ellipse cx="41" cy="28" rx="9" ry="5" fill="${F}" opacity=".75" transform="rotate(25 41 28)"/><ellipse cx="32" cy="40" rx="8" ry="12" fill="${F}"/><path d="M24.5 37h15M24.5 43h15" stroke="${D}" stroke-width="3"/><circle cx="32" cy="26" r="4.5" fill="${F}"/><path d="M32 52l-2.5 4h5z" fill="${F}"/>`,
+    forager: (F, D) => `${[0,60,120,180,240,300].map(a => `<ellipse cx="32" cy="27" rx="5" ry="8" fill="${F}" transform="rotate(${a} 32 37)"/>`).join('')}<circle cx="32" cy="37" r="6" fill="${D}"/><circle cx="32" cy="37" r="3.5" fill="${F}"/>`,
+    scout: (F, D) => `<circle cx="32" cy="37" r="14" fill="none" stroke="${F}" stroke-width="3"/><polygon points="32,20 35,34 49,37 35,40 32,54 29,40 15,37 29,34" fill="${F}"/><polygon points="32,28 34,37 32,46 30,37" fill="${D}"/>`,
+    builder: (F, D) => `${[[32,37],[32,25],[42.4,31],[42.4,43],[32,49],[21.6,43],[21.6,31]].map(([x,y],i) => `<polygon points="${hex(x,y,5.6,-30)}" fill="${i%2 ? F : 'none'}" stroke="${F}" stroke-width="1.8"/>`).join('')}`,
+    guardian: (F, D) => `<path d="M32 19l14 5v11c0 9-6 15-14 19-8-4-14-10-14-19V24z" fill="${F}"/><path d="M32 25l8 3v7c0 6-4 10-8 12-4-2-8-6-8-12v-7z" fill="${D}"/><path d="M32 28v14l-2.5-3M32 42l2.5-3" stroke="${F}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    captain: (F, D) => `<path d="M19 22l26 30M45 22L19 52" stroke="${F}" stroke-width="5" stroke-linecap="round"/><path d="M17 20l5 1-1 5zM47 20l-5 1 1 5z" fill="${F}"/><polygon points="${hex(32,37,7)}" fill="${D}" stroke="${F}" stroke-width="2.5"/>`,
+    commander: (F, D) => `<path d="M10 33c6-6 12-6 15-3-4 1-6 4-6 7-4-1-7-2-9-4zM54 33c-6-6-12-6-15-3 4 1 6 4 6 7 4-1 7-2 9-4z" fill="${F}"/><polygon points="32,21 36,32 47,32 38,39 41,50 32,43 23,50 26,39 17,32 28,32" fill="${F}"/><circle cx="32" cy="36" r="3" fill="${D}"/>`,
+    elder: (F, D) => { const leaf = (a, side) => { const x = 32 + 16*Math.cos(a), y = 38 + 16*Math.sin(a), deg = a*180/Math.PI + (side < 0 ? -60 : 60); return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="4.6" ry="2.2" fill="${F}" transform="rotate(${deg.toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`; };
+      const L = [], R = []; for (let i = 0; i < 5; i++) { const t = (105 + i*28) * Math.PI/180; L.push(leaf(t, -1)); R.push(leaf(Math.PI - t, 1)); }
+      return `<path d="M24 53A16 16 0 0 1 20 26M40 53A16 16 0 0 0 44 26" fill="none" stroke="${F}" stroke-width="1.8"/>${L.join('')}${R.join('')}<polygon points="${hex(32,37,8)}" fill="${F}"/><polygon points="${hex(32,37,3.6)}" fill="${D}"/>`; },
+    crown: (F, D) => `<path d="M17 48l-2-20 9 8 8-12 8 12 9-8-2 20z" fill="${F}"/><rect x="17" y="49" width="30" height="5" rx="1.5" fill="${F}"/><circle cx="32" cy="41" r="2.6" fill="${D}"/><circle cx="24" cy="43" r="1.8" fill="${D}"/><circle cx="40" cy="43" r="1.8" fill="${D}"/>`
+  };
+  function badge(emblem, metal, size = 56, extra = '') {
+    const id = 'bd' + (++uid), M = METALS[metal];
+    const field = M.gold ? '#120c02' : '#1b1306';
+    const F = M.gold ? `url(#${id}g)` : `url(#${id}m)`;
     const w = Math.round(size * 64 / 72);
-    return `<svg class="rank-badge" width="${w}" height="${size}" viewBox="0 0 64 72" aria-hidden="true" style="vertical-align:-3px"><polygon points="32,2 62,19 62,53 32,70 2,53 2,19" fill="${FILL[k] || FILL.stripes}" stroke="${edge}" stroke-width="3"/>${marks}</svg>`;
+    return `<svg class="lvl-badge" width="${w}" height="${size}" viewBox="0 0 64 72" aria-hidden="true">
+<defs><linearGradient id="${id}m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${M.s[0]}"/><stop offset=".5" stop-color="${M.s[1]}"/><stop offset="1" stop-color="${M.s[2]}"/></linearGradient>
+<linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4b0"/><stop offset=".5" stop-color="#ffc81f"/><stop offset="1" stop-color="#9a6a00"/></linearGradient>
+<radialGradient id="${id}f" cx=".5" cy=".38" r=".7"><stop offset="0" stop-color="${M.gold ? '#2a1a04' : '#33240c'}"/><stop offset="1" stop-color="${field}"/></radialGradient></defs>
+<polygon points="32,1.5 62.5,19 62.5,53 32,70.5 1.5,53 1.5,19" fill="url(#${id}m)" stroke="${M.edge}" stroke-width="1.5"/>
+<polygon points="32,7 57.5,21.7 57.5,50.3 32,65 6.5,50.3 6.5,21.7" fill="url(#${id}f)" stroke="${M.gold ? '#ffc81f' : 'rgba(0,0,0,.55)'}" stroke-width="1.2"/>
+<path d="M8 22 L32 8 L56 22" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+${EM[emblem](F, field)}${extra}</svg>`;
+  }
+  function rankOf(level) { let r = RANKS[0]; RANKS.forEach(x => { if (x[0] <= level) r = x; }); return r; }
+  // Badge for a level. 1-49: the rank emblem + the step's metal. 50: Royal Keeper.
+  // Past 50: a Tier every 5 levels, crown in Obsidian with the tier number.
+  function forLevel(level, size) {
+    if (level >= 55) { const t = Math.floor((level - 50) / 5);
+      return badge('crown', 4, size, `<text x="32" y="36" text-anchor="middle" font-family="Courier Prime,monospace" font-weight="700" font-size="11" fill="#120c02">${t}</text>`); }
+    if (level >= 50) return badge('crown', 2, size);
+    const r = rankOf(level);
+    return badge(r[2], Math.min(4, level - r[0]), size);
+  }
+  function infoFor(level) {
+    if (level >= 55) { const t = Math.floor((level - 50) / 5); return { name: 'Tier ' + t, metal: 'Obsidian', first: (level - 50) % 5 === 0 }; }
+    if (level >= 50) return { name: 'Royal Keeper', metal: 'Gold', first: level === 50 };
+    const r = rankOf(level); return { name: r[1], metal: METALS[Math.min(4, level - r[0])].name, first: r[0] === level };
+  }
+  root.LevelBadges = { forLevel, infoFor, RANKS, METALS };
+})(window);
+
+// The badge for a rank (its first level), or for an exact level when given.
+// Nov 1 2026 (Craft): every level 1-50 has its own badge (LevelBadges above).
+function rankBadgeSVG(rank, size = 16, level) {
+    const lv = Number(level) || (rank && rank.from) || 1;
+    return LevelBadges.forLevel(lv, size).replace('class="lvl-badge"', 'class="rank-badge lvl-badge" style="vertical-align:-3px"');
 }
 
 // Oct 31 2026 (Craft): SHA-256 of the owner emails (no address in the code).

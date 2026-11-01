@@ -1436,7 +1436,7 @@ const characterXPToReach = (level) => {
     return _xpToReach[level];
 };
 // "LV 23". Oct 31 2026 (Craft): past level 50 the chip keeps the level
-// number (LV 53); the Tier (2 levels each) is your RANK now, see RANKS.
+// number (LV 53); the Tier (5 levels each since Nov 1 2026) is your RANK now, see RANKS.
 function levelLabel(level) {
     return `LV ${level}`;
 }
@@ -6654,11 +6654,13 @@ const RANK_REWARDS = {
     tier: { tickets: 5, mats: [['royal-jelly', 1]], egg: 'Epic' }
 };
 // The rank a level is in. { id, name, kind, n, from, tier? }
+const TIER_STEP = 5;
 function rankForLevel(level) {
     const L = Math.max(1, Number(level) || 1);
-    if (L > LEVEL_CAP) {
-        const t = Math.ceil((L - LEVEL_CAP) / 2);
-        return { id: `tier-${t}`, name: `Tier ${t}`, kind: 'tier', n: t, tier: t, from: LEVEL_CAP + 2 * t - 1 };
+    // Nov 1 2026 (Craft): past 50, a Tier every 5 levels (55, 60, 65...).
+    if (L >= LEVEL_CAP + TIER_STEP) {
+        const t = Math.floor((L - LEVEL_CAP) / TIER_STEP);
+        return { id: `tier-${t}`, name: `Tier ${t}`, kind: 'tier', n: t, tier: t, from: LEVEL_CAP + TIER_STEP * t };
     }
     let r = RANKS[0];
     for (const x of RANKS) if (L >= x.lvl) r = x;
@@ -6668,12 +6670,12 @@ function rankForLevel(level) {
 function ranksUpTo(level) {
     const L = Math.max(1, Number(level) || 1), out = [];
     RANKS.forEach(r => { if (r.lvl > 1 && L >= r.lvl) out.push(rankForLevel(r.lvl)); });
-    for (let lv = LEVEL_CAP + 1; lv <= L; lv += 2) out.push(rankForLevel(lv));
+    for (let lv = LEVEL_CAP + TIER_STEP; lv <= L; lv += TIER_STEP) out.push(rankForLevel(lv));
     return out;
 }
 function nextRank(level) {
     const L = Math.max(1, Number(level) || 1);
-    if (L >= LEVEL_CAP) { const now = rankForLevel(L); const at = L > LEVEL_CAP ? now.from + 2 : LEVEL_CAP + 1; return { ...rankForLevel(at), at }; }
+    if (L >= LEVEL_CAP) { const now = rankForLevel(L); const at = now.kind === 'tier' ? now.from + TIER_STEP : LEVEL_CAP + TIER_STEP; return { ...rankForLevel(at), at }; }
     const r = RANKS.find(x => x.lvl > L);
     return { ...rankForLevel(r.lvl), at: r.lvl };
 }

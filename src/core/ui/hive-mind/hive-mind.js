@@ -20,7 +20,7 @@ const WAGGLE_MENU = [
         { icon: '🗺️', label: 'Map', path: 'src/features/map/map.html' },
         { icon: '🕘', label: 'History', path: 'src/features/history/history.html' },   // Oct 31 2026 (Craft, from 1.0.6)
         { icon: '🌳', label: 'Skills', path: 'src/features/skills/skills.html' },
-        { icon: '🏅', label: 'Titles', path: 'src/features/titles/titles.html' },   // Oct 31 2026 (Craft)
+        { icon: '🏅', label: 'Ranks & Titles', path: 'src/features/titles/titles.html' },   // Oct 31 2026 (Craft); renamed Nov 1
         { icon: '👤', label: 'Profile', path: 'src/features/profile/profile.html' }
     ]],
     ['Tools', [
