@@ -27,6 +27,27 @@ function beeCardColor(rarity) {
     return info ? info.color : BEE_RARITIES[0].color;
 }
 
+// Oct 31 2026 (Craft): Resistance = the element this bee resists (the one
+// that is weak to it). NOTE: placeholder. Resistance needs its own unique
+// design later, not a mirror of Weakness.
+function beeResistElement(element) {
+    if (typeof BEE_ELEMENT_WEAKNESS === 'undefined') return null;
+    const k = Object.keys(BEE_ELEMENT_WEAKNESS).find(x => BEE_ELEMENT_WEAKNESS[x] === element);
+    return k && typeof BEE_ELEMENTS !== 'undefined' ? BEE_ELEMENTS[k] : null;
+}
+// Oct 31 2026 (Craft): the memory on the back of a Rare-or-better card.
+const BEE_MEMORY_HOW = { gacha: 'Pulled in the Pollination Chamber', levelup: 'Level up', tier: 'A level past 50', skill: 'Skill reward', rank: 'Rank up',
+    ticket: 'Named Beast: 10 tickets', combine: 'Combined from two bees', onboarding: 'Hatched from your egg gift', starter: 'Your first bee', incubator: 'Egg Incubator' };
+function beeMemoryHTML(bee) {
+    const e = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    if (bee.rarity === 'Common') return '<p class="bc-mem-none">Common cards don\u2019t keep a memory.</p>';
+    const m = bee.memory;
+    if (!m) return '<p class="bc-mem-none">From before memories. Cards you get from now on remember how they came to you.</p>';
+    const d = new Date(m.at);
+    const when = isNaN(d) ? '' : `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    const how = (BEE_MEMORY_HOW[m.how] || 'Joined your hive') + (m.how === 'levelup' && m.level ? ` to ${m.level + 1}` : '');
+    return `<div class="bc-mem"><b>MEMORY</b><span class="bc-mem-when">Obtained ${e(when)}</span><span>${e(how)}</span>${m.task ? `<span>Last task: \u201c${e(m.task.label)}\u201d (${e(m.task.kind)})</span>` : ''}</div>`;
+}
 function formatBeeObtainedDate(iso) {
     const date = new Date(iso);
     if (isNaN(date.getTime())) return 'Unknown';
@@ -298,7 +319,10 @@ const BeeCard = {
         const { editable = false, onChange } = options;
 
         const weight = typeof bee.weight === 'number' ? bee.weight.toFixed(1) : '?';
-        const dexNo = String(typeof bee.dexNumber === 'number' ? bee.dexNumber : 1).padStart(3, '0');
+        // Oct 31 2026 (Craft): "No." is the bee's KeeperDex (codex) number, its
+        // kind. The serial number is what makes each card unique.
+        const kdEntry = typeof KEEPERDEX_ENTRIES !== 'undefined' ? KEEPERDEX_ENTRIES.find(e => e.rarity === bee.rarity && e.element === bee.element) : null;
+        const dexNo = kdEntry ? String(kdEntry.dexNumber).padStart(3, '0') : bee.rarity === 'Royal' ? 'R' : String(typeof bee.dexNumber === 'number' ? bee.dexNumber : 1).padStart(3, '0');
         const themeKey = (bee.rarity || 'common').toLowerCase();
         const classInfo = bee.class && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.class]
             ? BEE_CLASSES[bee.class]
@@ -379,10 +403,11 @@ const BeeCard = {
                     ${title ? `<div class="bc-ribbon">\u201c${title.label.toUpperCase()}\u201d</div>` : ''}
                     <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null })}${title ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
 
-                    <div class="bc-dex">
+                    <div class="bc-dex">${/* Oct 31 2026 (Craft): No. · obtained · height · weight */ ''}
                         <span><b>No.${dexNo}</b></span>
-                        <span class="bc-dex-species">${archetype.title}</span>
-                        <span>WT ${weight}g</span>
+                        <span>${isNaN(new Date(bee.obtainedAt)) ? '—' : new Date(bee.obtainedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <span>H ${bee.height != null ? Number(bee.height).toFixed(1) : '—'}cm</span>
+                        <span>W ${weight}g</span>
                     </div>
 
                     <div class="bc-abil${traits.length + (title ? 1 : 0) >= 2 ? ' bc-many' : ''}">${abilitiesHTML}</div>
@@ -419,12 +444,10 @@ const BeeCard = {
                         <button class="bee-card-identity-btn">🪪 Make Named Beast (${ownedIdentityCards})</button>
                     </div>` : ''}
 
-                    <div class="bc-bar">
+                    <div class="bc-bar bc-bar3">${/* Oct 31 2026 (Craft): no job picker (jobs are set in the Hive Mind); Weakness | Resistance | Recovery */ ''}
                         <div><small>Weakness</small><span>${weakElementInfo ? `<em title="${weakElementInfo.label}">${weakElementInfo.emoji}</em> ×2` : '—'}</span></div>
-                        <div><small>Job</small>${editable
-                            ? BeeCard._classSelectHTML(bee)
-                            : `<span>${classInfo ? classInfo.label : 'Unassigned'}</span>`}</div>
-                        <div><small>Obtained</small><span>${formatBeeObtainedDate(bee.obtainedAt)}</span></div>
+                        <div><small>Resistance</small><span>${(() => { const r = elementInfo ? beeResistElement(bee.element) : null; return r ? `<em title="${r.label}">${r.emoji}</em> ½` : '—'; })()}</span></div>
+                        <div><small>Recovery</small><span>${bee.recovery != null ? `${bee.recovery}/100` : '—'}</span></div>
                     </div>
 
                     <p class="bee-card-flavor">${title ? `\u201c${title.quote.replace('{n}', bee.name)}\u201d` : archetype.description}</p>
@@ -435,6 +458,7 @@ const BeeCard = {
                     <i class="bc-hexbg"></i><i class="bc-trim"></i>${rivets}
                     <div class="bc-back-inner">
                         <img class="bc-logo" src="${BEE_CARD_ASSETS}bizzybee-badge.webp" alt="BizzyBee" draggable="false">
+                        ${beeMemoryHTML(bee)}
                         <span class="bee-card-flip-hint">↻ tap to flip back</span>
                     </div>
                 </div>

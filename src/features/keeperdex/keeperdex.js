@@ -9,7 +9,11 @@ let kdTab = 'all';
 
 function kdEntries() {
     const bees = Vault.getHiveBees();
-    return KEEPERDEX_ENTRIES.map(entry => ({ entry, obtained: isKeeperDexEntryObtained(entry, bees) }));
+    // Oct 31 2026 (Craft): firstAt = when you first got a bee of this kind (oldest still in your hive).
+    return KEEPERDEX_ENTRIES.map(entry => {
+        const mine = bees.filter(b => b.rarity === entry.rarity && b.element === entry.element).map(b => b.obtainedAt).filter(Boolean).sort();
+        return { entry, obtained: isKeeperDexEntryObtained(entry, bees), firstAt: mine[0] || null };
+    });
 }
 
 function kdScale() {
@@ -35,7 +39,7 @@ function renderKeeperDex() {
         `<button type="button" class="chip" data-tab="${PV2.esc(k)}" aria-pressed="${kdTab === k}">${PV2.esc(label)}<small>${all.filter(x => match(x, k)).length}</small></button>`).join('');
 
     grid.innerHTML = '';
-    all.filter(x => match(x, kdTab)).forEach(({ entry, obtained }) => {
+    all.filter(x => match(x, kdTab)).forEach(({ entry, obtained, firstAt }) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'kd-tile' + (obtained ? '' : ' is-locked');
@@ -43,7 +47,7 @@ function renderKeeperDex() {
         btn.setAttribute('aria-label', obtained ? `${entry.name}, found` : `Entry ${entry.dexNumber}, not found yet`);
         btn.innerHTML = '<div class="kd-scale"><div></div></div>';
         // Oct 31 2026 (Craft, from 1.0.6): not found yet = face-down, so the grid gives no hints.
-        KeeperDexCard.render(btn.querySelector('.kd-scale > div'), entry, { obtained, flipped: !obtained });
+        KeeperDexCard.render(btn.querySelector('.kd-scale > div'), entry, { obtained, flipped: !obtained, firstAt });
         grid.appendChild(btn);
     });
     requestAnimationFrame(kdScale);
@@ -62,7 +66,7 @@ function openDexEntry(dexNumber) {
     ov.innerHTML = `<div class="kd-zoom-card" tabindex="0"></div><p class="kd-zoom-hint">${x.obtained ? 'Tap the card to flip it. Tap outside to close.' : 'Not found yet. Get a matching bee to reveal it. Tap outside to close.'}</p>`;   // Oct 31 2026 (Craft)
     document.body.appendChild(ov);
     const card = ov.querySelector('.kd-zoom-card');
-    KeeperDexCard.render(card, x.entry, { obtained: x.obtained, flipped: !x.obtained });
+    KeeperDexCard.render(card, x.entry, { obtained: x.obtained, flipped: !x.obtained, firstAt: x.firstAt });
     const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
     const onKey = (e) => { if (e.key === 'Escape') close(); else if ((e.key === 'Enter' || e.key === ' ') && document.activeElement === card) { e.preventDefault(); KeeperDexCard.flip(card); } };
     document.addEventListener('keydown', onKey);
