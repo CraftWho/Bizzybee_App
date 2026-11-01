@@ -6531,12 +6531,17 @@ Object.assign(DatabaseManager.prototype, {
         const info = this.getDailyBonus(today);
         if (!info || info.claimed) return null;
         const r = DAILY_BONUS[info.day];
-        if (r.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + r.qty; }
-        else if (r.kind === 'ticket') { this.state.hive.tickets = (this.state.hive.tickets || 0) + r.qty; }
-        else { for (let i = 0; i < r.qty; i++) this._addMaterial(r.kind, 1); }
+        const give = (x) => {
+            if (x.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + x.qty; }
+            else if (x.kind === 'ticket') { this.state.hive.tickets = (this.state.hive.tickets || 0) + x.qty; }
+            else { for (let i = 0; i < x.qty; i++) this._addMaterial(x.kind, 1); }
+        };
+        give(r);
+        const perk = this.titlePerk(today);   // Nov 1 2026 (Craft)
+        if (perk) give(perk);
         this.state.dailyBonus = { last: today, step: info.day };
         this.save();
-        return { day: info.day, ...r };
+        return { day: info.day, ...r, perk };
     },
 
     // ---- Egg Incubator (Oct 28 2026) ----
@@ -6989,10 +6994,13 @@ Object.assign(DatabaseManager.prototype, {
 // from history imports and quest unlocks) count as earned. Perks come later.
 // state.titleWorn = the id you wear, or null for rank only.
 // ============================================================================
+// Nov 1 2026 (Craft; approved demo): a worn special title adds its perk to
+// every Daily bonus (Swarm Lord: Sundays only). Hidden until earned.
+function titlePerkText(p) { return `+${p.qty} ${p.icon}${p.sunday ? ' every Sunday' : ''}`; }
 const SPECIAL_TITLES = [
-    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'Reach a 7-day streak', need: 1,
+    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'Reach a 7-day streak', need: 1, perk: { kind: 'coins', qty: 5, icon: '🪙' },
         have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100|week):/.test(b.key)) ? 1 : 0 },
-    { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7,
+    { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7, perk: { kind: 'pollen', qty: 1, icon: '🌼' },
         have: (S) => {
             const days = new Set();
             (S.dailyTasks || []).forEach(t => (t.completedDates || []).forEach(d => days.add(d)));
@@ -7000,11 +7008,11 @@ const SPECIAL_TITLES = [
             (S.habits || []).forEach(h => (h.history || []).forEach(x => { if (x.direction === 'positive') days.add(x.date); }));
             return days.size;
         } },
-    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', need: 3,
+    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', need: 3, perk: { kind: 'coins', qty: 5, icon: '🪙' },
         have: (S) => (S.quests || []).filter(q => q.dateCompleted || ((q.tasks || []).length && q.tasks.every(t => t.completed))).length },
-    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', need: 25,
+    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', need: 25, perk: { kind: 'royal-nectar', qty: 1, icon: '✨', sunday: true },
         have: (S) => ((S.hive && S.hive.bees) || []).filter(b => b.rarity !== 'Royal').length },
-    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', need: 100,
+    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', need: 100, perk: { kind: 'coins', qty: 10, icon: '🪙' },
         have: (S) => (S.dailyTasks || []).reduce((n, t) => n + (t.completedDates || []).length, 0) + (S.todos || []).filter(t => t.completed).length
             + (S.quests || []).reduce((n, q) => n + (q.tasks || []).filter(t => t.completed).length, 0) }
 ];
@@ -7013,7 +7021,7 @@ Object.assign(DatabaseManager.prototype, {
         if (!this.state) return null;
         const S = this.state;
         const special = SPECIAL_TITLES.map(t => { const earned = t.have(S) >= t.need; return earned
-            ? { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, earned: true }
+            ? { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, earned: true, perk: t.perk ? titlePerkText(t.perk) : '' }
             : { id: t.id, kind: 'special', earned: false }; });   // locked: nothing about it leaves here
         const quest = (S.titles || []).map((t, i) => ({ id: `quest-${i}-${String(t.title || '').toLowerCase().replace(/\W+/g, '-')}`, kind: 'quest', icon: '📜', name: String(t.title || 'Title'), how: t.ability || 'Earned on a quest', earned: true }));
         const all = [...special, ...quest];
@@ -7021,6 +7029,14 @@ Object.assign(DatabaseManager.prototype, {
         return { all, earned: all.filter(t => t.earned), locked: all.filter(t => !t.earned).length, worn };
     },
     // id of an earned title, or null to show your rank only.
+    // The worn special title's perk for today's Daily bonus, or null.
+    titlePerk(today = todayISO()) {
+        const T = this.getTitles();
+        const w = T && T.worn && T.worn.kind === 'special' ? SPECIAL_TITLES.find(t => t.id === T.worn.id) : null;
+        if (!w || !w.perk) return null;
+        if (w.perk.sunday && new Date(today + 'T12:00').getDay() !== 0) return null;
+        return { ...w.perk, title: w.name };
+    },
     wearTitle(id) {
         if (!this.state) return null;
         if (id === null) { this.state.titleWorn = null; this.save(); return true; }
