@@ -4,9 +4,7 @@ android {
     namespace = "com.craftwho.bizzybee"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        // Nov 1 2026 (Craft): the "BizzyBee Local" study build adds ".local", so it installs
-        // next to the normal app instead of replacing it (workflow input local_copy).
-        applicationId "com.craftwho.bizzybee" + (System.getenv("BB_APP_ID_SUFFIX") ?: "")
+        applicationId "com.craftwho.bizzybee"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // CI sets these from the run number, so every release can update the last one.
