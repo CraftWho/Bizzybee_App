@@ -52,7 +52,7 @@
 .habits-quote {
     position: relative;
     margin: 14px 0 0;
-    padding: 14px 14px 12px 44px;
+    padding: 28px 14px 12px 44px; /* Oct 31 2026 (Craft): hexagon look - room for the tag inside the cut corners */
     border-radius: 14px;
     background: #0a0703;
     border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14);
@@ -87,8 +87,8 @@
 
 .habits-quote-tag {
     position: absolute;
-    right: 10px;
-    top: -9px;
+    right: 18px;
+    top: 7px; /* Oct 31 2026 (Craft): hexagon look - sits inside the box (was over the edge, now clipped) */
     padding: 2px 8px;
     border-radius: 999px;
     background: #1d1608;
