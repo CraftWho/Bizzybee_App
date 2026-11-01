@@ -4,8 +4,8 @@ console.log("/// HIVE BEES ONLINE ///");
 // your card binder. Cover Flow (like the old iPod) of every hatched bee:
 // drag with your finger, flick fast to jump by codex number (or letter, rarity
 // or date, by the sort), a click wheel (SORT, prev/next, LIST, center =
-// select/flip), a slider, a hexagon search box, a full-screen list that pauses
-// the hive behind it, and a big card where Rare-and-up cards catch the light
+// select/flip), a slider, a hexagon search box, a grid view (keeps the wheel;
+// pauses the hive behind it), and a big card where Rare-and-up cards catch the light
 // (BeeCardGlare in bee-card.js). "Care & details" opens the old bee sheet
 // (vitals, Nursery, held items). Jobs are set in the Hive Mind.
 // Mood faces come from beeFeeling() in db.js (same as the Hive Life combs).
@@ -169,7 +169,7 @@ function cfGroup(b) {
 function cfList() {
     const q = cf.q.trim().toLowerCase().replace(/^no\.?\s*/, '');
     const time = (b) => new Date(b.obtainedAt || 0).getTime();
-    const l = Vault.getHiveBees().filter(b => !cbIsEgg(b)).filter(b => !q || String(b.name).toLowerCase().includes(q)
+    const l = Vault.getHiveBees().filter(b => !cbIsEgg(b)).filter(b => cf.filter === 'all' || cbMatches(b, cf.filter)).filter(b => !q || String(b.name).toLowerCase().includes(q)
         || String(b.serial || '').toLowerCase().includes(q) || pad3(cfKd(b)).includes(q.padStart(3, '0')));
     if (cf.sort === 'name') l.sort((a, b) => String(a.name).localeCompare(String(b.name)));
     else if (cf.sort === 'rarity') l.sort((a, b) => CB_RARITY_RANK.indexOf(a.rarity) - CB_RARITY_RANK.indexOf(b.rarity) || cfKd(a) - cfKd(b));
@@ -180,6 +180,8 @@ function cfList() {
 let cfBubbleT = null;
 function cfBubble(text) {
     const el = document.getElementById('cf-bubble');
+    const host = cfGridOn() ? document.getElementById('cf-grid-wrap') : document.getElementById('cf-stage');
+    if (el.parentElement !== host) host.appendChild(el);
     el.textContent = text; el.classList.add('on');
     clearTimeout(cfBubbleT); cfBubbleT = setTimeout(() => el.classList.remove('on'), 700);
 }
@@ -223,7 +225,13 @@ function cfGo(i, bubble) {
     if (!cf.bees.length) return;
     cf.idx = Math.max(0, Math.min(cf.bees.length - 1, i));
     if (bubble) cfBubble(cfGroup(cf.bees[cf.idx]));
+    if (cfGridOn()) { cfGridMark(true); cfScrub(); return; }
     cfLayout();
+}
+function cfScrub() {
+    const r = document.getElementById('cf-range');
+    r.max = String(Math.max(0, cf.bees.length - 1)); r.value = String(cf.idx);
+    document.getElementById('cf-pos').textContent = cf.bees.length ? `${cf.idx + 1}/${cf.bees.length}` : '0/0';
 }
 function cfJump(dir) {
     const L = cf.bees; if (!L.length) return;
@@ -255,6 +263,7 @@ function cfRefresh(keepId) {
     e.hidden = !eggs;
     e.innerHTML = `🥚 ${eggs} egg${eggs === 1 ? '' : 's'} in the Nursery. <a href="../hive-mind/hive-mind.html">Hive Mind ›</a>`;
     document.getElementById('cf-sorts').innerHTML = CF_SORTS.map(([k, label]) => `<button type="button" class="cf-pill" data-sort="${k}" aria-pressed="${cf.sort === k}">${label}</button>`).join('');
+    if (cfGridOn()) { cfRenderGrid(); cfScrub(); return; }
     cfLayout();
 }
 function cfSize() {
@@ -262,29 +271,51 @@ function cfSize() {
     cf.w = Math.round(Math.max(140, Math.min(210, stage.clientWidth * .42)));   // fits above the dock on a phone
     stage.style.setProperty('--cf-w', cf.w + 'px');
     stage.style.setProperty('--cf-s', String(cf.w / 260));
+    // The grid takes the same room as Cover Flow plus its name line.
+    document.getElementById('cf-grid-wrap').style.setProperty('--cf-gh', Math.round(cf.w * 1.4 + 22 + 38) + 'px');
 }
 
-// ---- Full-screen list (pauses the hive behind it) ----
-function cfOpenList(filter) {
-    if (filter) cf.filter = filter;
+// ---- Grid view (Oct 31 2026, Craft: in place of the list) ----
+// The card grid sits where Cover Flow was, so the wheel stays: spinning moves
+// the gold highlight, prev/next jump a codex number, the center opens it big.
+// Cards are drawn only when scrolled into view. The hive behind is paused.
+let cfIO = null;
+function cfGridOn() { return !document.getElementById('cf-grid-wrap').hidden; }
+function cfRenderGrid() {
     const esc = PV2.esc;
-    const all = cfList();
-    const box = document.getElementById('cf-list');
-    document.getElementById('cf-list-filters').innerHTML = CB_TABS.map(([k, label]) => `<button type="button" class="cf-pill" data-filter="${k}" aria-pressed="${cf.filter === k}">${label} <small>${all.filter(b => cbMatches(b, k)).length}</small></button>`).join('');
-    const rows = all.filter(b => cbMatches(b, cf.filter));
-    document.getElementById('cf-list-body').innerHTML = rows.length ? rows.map(b => {
-        const color = typeof beeCardColor === 'function' ? beeCardColor(b.rarity) : '#888';
-        return `<button type="button" class="cf-row" data-pick="${esc(b.id)}">
-            <span class="cb-av">${cbArt(b)}<span class="cb-face">${cbFeeling(b).face}</span></span>
-            <span class="mid"><b>${esc(b.name)}</b><small><span style="color:${color}">${esc(b.rarity)}</span> · No.${b.rarity === 'Royal' ? 'R' : pad3(cfKd(b))} · ${esc(cbJobText(b))}</small><small class="cf-row-serial">${esc(b.serial || '')}</small></span>
-            <span class="chev">›</span></button>`;
-    }).join('') : '<p class="cb-empty">No cards match.</p>';
-    box.hidden = false;
-    document.documentElement.classList.add('bb-paused');
+    const saved = cf.filter; cf.filter = 'all'; const all = cfList(); cf.filter = saved;
+    document.getElementById('cf-grid-filters').innerHTML = CB_TABS.map(([k, label]) => `<button type="button" class="cf-pill" data-filter="${k}" aria-pressed="${cf.filter === k}">${label} <small>${all.filter(b => cbMatches(b, k)).length}</small></button>`).join('');
+    const grid = document.getElementById('cf-grid');
+    if (cfIO) cfIO.disconnect();
+    grid.innerHTML = cf.bees.length ? cf.bees.map((b, i) => `<button type="button" class="cf-tile${i === cf.idx ? ' on' : ''}" data-i="${i}" aria-label="${esc(b.name)}, ${esc(b.rarity)}"><div class="cf-tile-scale"><div></div></div><span class="cb-face">${cbFeeling(b).face}</span></button>`).join('')
+        : '<p class="cb-empty">No cards match.</p>';
+    const w = (grid.querySelector('.cf-tile') || {}).offsetWidth || 110;
+    grid.style.setProperty('--tile-s', String(w / 260));
+    grid.style.gridAutoRows = Math.round(w * 1.4) + 'px';   // fixed card height, so many cards scroll instead of squeezing
+    cfIO = new IntersectionObserver((ents) => ents.forEach(en => {
+        if (!en.isIntersecting || en.target.dataset.drawn) return;
+        en.target.dataset.drawn = '1';
+        const b = cf.bees[Number(en.target.dataset.i)];
+        if (b) BeeCard.render(en.target.querySelector('.cf-tile-scale > div'), b, { editable: false });
+    }), { root: grid, rootMargin: '200px' });
+    grid.querySelectorAll('.cf-tile').forEach(t => cfIO.observe(t));
 }
-function cfCloseList() {
-    document.getElementById('cf-list').hidden = true;
-    document.documentElement.classList.remove('bb-paused');
+function cfGridMark(scroll) {
+    const grid = document.getElementById('cf-grid');
+    grid.querySelectorAll('.cf-tile.on').forEach(t => t.classList.remove('on'));
+    const t = grid.querySelector(`.cf-tile[data-i="${cf.idx}"]`);
+    if (t) { t.classList.add('on'); if (scroll) t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+}
+function cfSetGrid(on, filter) {
+    const keep = cf.bees[cf.idx] && cf.bees[cf.idx].id;
+    document.getElementById('cf-grid-wrap').hidden = !on;
+    document.getElementById('cf-stage').hidden = on;
+    document.getElementById('cf-now').hidden = on;
+    document.getElementById('cf-w-grid').textContent = on ? 'FLOW' : 'GRID';
+    document.documentElement.classList.toggle('bb-paused', on);
+    cf.filter = on ? (filter || 'all') : 'all';
+    cfRefresh(keep);
+    if (on) requestAnimationFrame(() => cfGridMark(true));
 }
 
 // ---- The big card ----
@@ -320,7 +351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (beeId && Vault.getHiveBees().some(b => b.id === beeId)) { cfRefresh(beeId); cfZoom(beeId); }
     // ?show=help (Home's "bees need help") opens the list on that filter.
     const show = params.get('show');
-    if (show && CB_TABS.some(([k]) => k === show)) cfOpenList(show);
+    if (show && CB_TABS.some(([k]) => k === show)) cfSetGrid(true, show);
 
     const stage = document.getElementById('cf-stage');
     const wheelBox = document.getElementById('cf-wheel');
@@ -407,17 +438,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (w === 'prev') cfJump(-1);
         else if (w === 'next') cfJump(1);
         else if (w === 'sort') { const k = CF_SORTS.map(x => x[0]); cf.sort = k[(k.indexOf(cf.sort) + 1) % k.length]; cf.idx = 0; cfSave(); cfRefresh('__none'); cfBubble(CF_SORTS.find(x => x[0] === cf.sort)[1].toUpperCase()); }
-        else if (w === 'list') cfOpenList();
+        else if (w === 'grid') cfSetGrid(!cfGridOn());
         else if (w === 'select') { if (cf.zoomId) cfFlipZoom(); else if (cf.bees[cf.idx]) cfZoom(cf.bees[cf.idx].id); }
     });
 
-    const list = document.getElementById('cf-list');
-    list.addEventListener('click', (e) => {
-        if (e.target.closest('[data-close-list]')) { cfCloseList(); return; }
+    const gridWrap = document.getElementById('cf-grid-wrap');
+    gridWrap.addEventListener('click', (e) => {
         const f = e.target.closest('[data-filter]');
-        if (f) { cfOpenList(f.dataset.filter); return; }
-        const p = e.target.closest('[data-pick]');
-        if (p) { cfCloseList(); const i = cf.bees.findIndex(b => b.id === p.dataset.pick); if (i >= 0) cfGo(i, false); }
+        if (f) { cf.filter = f.dataset.filter; cf.idx = 0; cfRefresh('__none'); return; }
+        const t = e.target.closest('.cf-tile');
+        if (t) { cf.idx = Number(t.dataset.i); cfGridMark(false); cfScrub(); cfZoom(cf.bees[cf.idx].id); }
     });
 
     const overlay = document.getElementById('cb-expanded');
@@ -426,7 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cb-details').addEventListener('click', () => { const id = cf.zoomId; cfCloseZoom(); if (id) cbOpenBee(id); });
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        if (!overlay.hidden) cfCloseZoom(); else if (!list.hidden) cfCloseList();
+        if (!overlay.hidden) cfCloseZoom(); else if (cfGridOn()) cfSetGrid(false);
     });
     let rz = null;
     window.addEventListener('resize', () => { if (rz) return; rz = requestAnimationFrame(() => { rz = null; cfSize(); cfRefresh(); }); });
