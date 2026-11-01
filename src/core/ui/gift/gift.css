@@ -27,3 +27,7 @@
 .gf-later { background: none; border: 0; color: #a99bb6; font-size: .85rem; text-decoration: underline; cursor: pointer; }
 .gf-btn:focus-visible, .gf-flip:focus-visible, .gf-env:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .gf-flip .in { transition: none; } .gf-glare { animation: none; } }
+
+/* The official bee card in the reveal (Nov 1 2026, Craft). */
+.gf-card-host { width: min(78vw, 320px); cursor: pointer; }
+.gf-card-host:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: 16px; }

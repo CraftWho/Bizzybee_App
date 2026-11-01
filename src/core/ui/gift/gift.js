@@ -1,7 +1,7 @@
 // Gifts (Nov 1 2026, Craft, approved demo "Grimzy Gift"). The creator sends a
 // numbered limited card (Grimzy) with a letter to someone's sign-in email
 // (Mailbox › Send a gift). It pops up the next time they open BizzyBee:
-// envelope -> card flip -> letter -> "Add Grimzy to my hive". Not opened
+// envelope -> the official bee card, face down, tap to flip -> letter. Not opened
 // within 7 days? It waits in their Mailbox (Letters) until they add it.
 // Server: netlify/functions/limited.mjs (inbox / accept / gift).
 const Gifts = (() => {
@@ -34,6 +34,19 @@ const Gifts = (() => {
         return r.gifts || [];
     }
 
+    // The official bee card (src/core/ui/bee-card/), loaded on pages that don't have it.
+    function beeCardReady() {
+        if (typeof BeeCard !== 'undefined') return Promise.resolve();
+        return new Promise((resolve) => {
+            if (!document.querySelector('link[href*="bee-card/bee-card.css"]')) {
+                const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = root() + 'core/ui/bee-card/bee-card.css'; document.head.appendChild(css);
+            }
+            const js = document.createElement('script'); js.src = root() + 'core/ui/bee-card/bee-card.js';
+            js.onload = () => setTimeout(resolve, 60); js.onerror = () => resolve();
+            document.body.appendChild(js);
+        });
+    }
+
     function close() { if (scrim) { scrim.remove(); scrim = null; } document.body.classList.remove('gf-open'); }
 
     // Plays the gift: envelope, card, letter, add to hive.
@@ -52,33 +65,43 @@ const Gifts = (() => {
             s.querySelector('.gf-later').onclick = close;
             s.querySelector('.gf-env').focus({ preventScroll: true });
         };
-        const card = () => {
-            const s = step(`<button type="button" class="gf-flip" aria-label="Flip the card"><span class="in">
-                <span class="gf-face gf-back">TAP TO REVEAL</span>
-                <span class="gf-face gf-front"><span class="top"><span>${esc(a.label)}</span><span>🔥</span></span><img src="${root()}assets/bees/${a.art}.webp" alt="${esc(a.name)}"><span class="bot"><b>${esc(a.name)}</b><small>${esc(a.title)}</small><span class="gf-serial">#${n} / ${of}</span></span><span class="gf-glare"></span></span>
-            </span></button><p class="gf-note" aria-live="polite">Tap the card</p>`);
-            const f = s.querySelector('.gf-flip');
-            f.onclick = () => { if (f.classList.contains('open')) { letter(); return; } f.classList.add('open'); s.querySelector('.gf-note').textContent = 'Tap again for your letter'; };
-            f.focus({ preventScroll: true });
+        // Opening the envelope adds the bee (so the card you see is YOUR card,
+        // with its real stats), then shows the official bee card face down.
+        const card = async () => {
+            const s = step(`<p class="gf-note" aria-live="polite">Opening…</p>`);
+            let bee = null, serial = g.serial;
+            try {
+                const r = await call({ action: 'accept', edition: g.edition });
+                serial = Number(r.serial);
+                bee = Vault.addLimitedBee(g.edition, serial);
+                write(KEY, { at: Date.now(), gifts: cached().filter(x => x.edition !== g.edition) });
+                window.dispatchEvent(new Event('bb-gifts'));
+                await beeCardReady();
+            } catch (e) {
+                s.innerHTML = `<p class="gf-note">${esc(e.message || 'Could not open it.')} </p><button type="button" class="gf-btn">Try again</button><button type="button" class="gf-later">Later</button>`;
+                s.querySelector('.gf-btn').onclick = card;
+                s.querySelector('.gf-later').onclick = close;
+                return;
+            }
+            const c = step(`<div class="gf-card-host is-flipped" role="button" tabindex="0" aria-label="Tap to flip the card"></div><p class="gf-note" aria-live="polite">Tap the card</p>`);
+            const host = c.querySelector('.gf-card-host');
+            if (bee && typeof BeeCard !== 'undefined') BeeCard.render(host, bee, { editable: false });
+            else host.innerHTML = `<div class="gf-letter">${esc(a.name)} #${pad(serial)}</div>`;
+            const revealed = () => {
+                if (host.classList.contains('is-flipped') || c.querySelector('.gf-btn')) return;
+                c.querySelector('.gf-note').textContent = `${a.name.charAt(0) + a.name.slice(1).toLowerCase()} #${pad(serial)} / ${of} joined your hive!`;
+                c.insertAdjacentHTML('beforeend', '<button type="button" class="gf-btn">Read your letter</button>');
+                c.querySelector('.gf-btn').onclick = () => letter(serial);
+            };
+            host.addEventListener('click', () => setTimeout(revealed, 50));
+            host.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); host.classList.toggle('is-flipped'); setTimeout(revealed, 50); } });
+            host.focus({ preventScroll: true });
         };
-        const letter = () => {
-            const s = step(`<div class="gf-letter">${esc(g.letter || 'Happy Halloween! 🎃')}</div><button type="button" class="gf-btn">Add ${esc(a.name.charAt(0) + a.name.slice(1).toLowerCase())} to my hive</button>`);
+        const letter = (serial) => {
+            const s = step(`<div class="gf-letter">${esc(g.letter || 'Happy Halloween! 🎃')}</div><button type="button" class="gf-btn">Close</button><p class="gf-note">Find ${esc(a.name.charAt(0) + a.name.slice(1).toLowerCase())} #${pad(serial)} in Hive Bees.</p>`);
             const b = s.querySelector('.gf-btn');
             b.focus({ preventScroll: true });
-            b.onclick = async () => {
-                b.disabled = true; b.textContent = 'Adding…';
-                try {
-                    const r = await call({ action: 'accept', edition: g.edition });
-                    const bee = Vault.addLimitedBee(g.edition, Number(r.serial));
-                    write(KEY, { at: Date.now(), gifts: cached().filter(x => x.edition !== g.edition) });
-                    const d = step(`<div class="gf-done"><b>🎃 ${esc(bee ? bee.name : a.name)} #${pad(r.serial)} joined your hive!</b></div><p class="gf-note">Find it in Hive Bees.</p><button type="button" class="gf-btn">Close</button>`);
-                    d.querySelector('.gf-btn').onclick = () => { close(); window.dispatchEvent(new Event('bb-gifts')); };
-                    d.querySelector('.gf-btn').focus({ preventScroll: true });
-                } catch (e) {
-                    b.disabled = false; b.textContent = 'Try again';
-                    if (typeof Toast !== 'undefined') Toast.show(e.message || 'Could not add it. Try again.', 'negative');
-                }
-            };
+            b.onclick = close;
         };
         envelope();
     }
