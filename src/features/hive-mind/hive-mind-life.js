@@ -85,6 +85,7 @@ const HiveLife = (() => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'hl-cell' + (unhappy ? ' alert' : '');
+            btn.dataset.comb = c.id;   // Nov 1 2026 (Craft): each comb has its own color
             btn.style.left = c.x + '%'; btn.style.top = c.y + '%';
             btn.setAttribute('aria-label', `${c.name}, ${count}${unhappy ? `, ${unhappy} need${unhappy === 1 ? 's' : ''} help` : ''}. Tap to manage.`);
             // Nov 1 2026 (Craft): a comb opens with your level. Locked: a black
