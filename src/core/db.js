@@ -1496,6 +1496,16 @@ function expectedLevelTickets(level) {
 // old age, Honey Makers, Drones and a random raid (more likely on a bad
 // streak). Finishing a task/daily feeds every bee (_feedHive).
 // ============================================================================
+// Daily bonus week (Nov 1 2026, Craft): day 1 -> day 7.
+const DAILY_BONUS = [
+    { kind: 'coins', qty: 5, icon: '🪙', name: 'Honey coins' },
+    { kind: 'coins', qty: 10, icon: '🪙', name: 'Honey coins' },
+    { kind: 'pollen', qty: 2, icon: '🌼', name: 'Pollen' },
+    { kind: 'coins', qty: 15, icon: '🪙', name: 'Honey coins' },
+    { kind: 'pollen', qty: 3, icon: '🌼', name: 'Pollen' },
+    { kind: 'royal-nectar', qty: 1, icon: '✨', name: 'Royal Nectar' },
+    { kind: 'ticket', qty: 1, icon: '🎟️', name: 'Gacha ticket' }
+];
 const STREAK_GOAL = 5;   // Nov 1 2026 (Craft): tasks a day needs to count toward your streak
 // Nov 1 2026 (Craft): + a weekly bonus every Sunday while your streak is 7+
 // days, so there's always one coming (7 to 30 days was a long wait).
@@ -6298,9 +6308,33 @@ Object.assign(DatabaseManager.prototype, {
         const q = this._ensureQueen();
         if (!q) return null;
         const earned = computeQueenCoins(this.state, q.since);
-        return { hp: Math.max(0, Math.round(q.hp)), maxHp: QUEEN.maxHp, coins: Math.max(0, earned - (q.spent || 0) - (q.lost || 0)), earned, fainted: q.faintedOn === todayISO() };
+        // Nov 1 2026 (Craft): + q.bonus, coins given by the Daily bonus.
+        return { hp: Math.max(0, Math.round(q.hp)), maxHp: QUEEN.maxHp, coins: Math.max(0, earned + (q.bonus || 0) - (q.spent || 0) - (q.lost || 0)), earned, fainted: q.faintedOn === todayISO() };
     },
     getCoins() { const s = this.getQueenStats(); return s ? s.coins : 0; },
+
+    // ---- Daily bonus (Nov 1 2026, Craft, approved demo option A "7-day comb") ----
+    // Open the app each day to move along a 7-day week. Miss a day and it
+    // starts again at day 1. Day 7 is the big one (a Gacha ticket).
+    // state.dailyBonus = { last: 'YYYY-MM-DD', step: 0-6 (the day last claimed) }.
+    getDailyBonus(today = todayISO()) {
+        if (!this.state) return null;
+        const b = this.state.dailyBonus || {};
+        const claimed = b.last === today;
+        const next = claimed ? b.step : (b.last === shiftISODate(today, -1) && Number.isInteger(b.step) ? (b.step + 1) % 7 : 0);
+        return { claimed, day: next, week: DAILY_BONUS.map(r => ({ ...r })) };
+    },
+    claimDailyBonus(today = todayISO()) {
+        const info = this.getDailyBonus(today);
+        if (!info || info.claimed) return null;
+        const r = DAILY_BONUS[info.day];
+        if (r.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + r.qty; }
+        else if (r.kind === 'ticket') { this.state.hive.tickets = (this.state.hive.tickets || 0) + r.qty; }
+        else { for (let i = 0; i < r.qty; i++) this._addMaterial(r.kind, 1); }
+        this.state.dailyBonus = { last: today, step: info.day };
+        this.save();
+        return { day: info.day, ...r };
+    },
 
     // ---- Egg Incubator (Oct 28 2026) ----
     _incubator() {

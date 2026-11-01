@@ -506,7 +506,9 @@ const AppShell = {
             if (typeof Vault.getDayReview !== 'function' || this.key.startsWith('create-') || this.key === 'onboarding') return;
             if (typeof Vault.isOnboarding === 'function' && Vault.isOnboarding()) return;
             const review = Vault.getDayReview();
-            if (!review) return;
+            // Nov 1 2026 (Craft): the Daily bonus comes after Start My Day.
+            if (!review) { this.dailyBonus(); return; }
+            document.addEventListener('bb-daystart-closed', () => this.dailyBonus(), { once: true });
             const show = () => setTimeout(() => { if (typeof DayStart !== 'undefined') DayStart.open(Vault.getDayReview()); }, 900);
             if (typeof DayStart !== 'undefined') { show(); return; }
             if (this._dayStartLoading) return;   // already on its way (it used to load twice)
@@ -519,6 +521,27 @@ const AppShell = {
             js.onload = show;
             document.body.appendChild(js);
         } catch (e) { console.error('Start My Day failed', e); }
+    },
+
+    // Daily bonus (Nov 1 2026, Craft): once a day, after Start My Day.
+    dailyBonus() {
+        try {
+            if (typeof Vault.getDailyBonus !== 'function' || this.key.startsWith('create-') || this.key === 'onboarding') return;
+            if (typeof Vault.isOnboarding === 'function' && Vault.isOnboarding()) return;
+            const info = Vault.getDailyBonus();
+            if (!info || info.claimed) return;
+            const show = () => setTimeout(() => { if (typeof DailyBonus !== 'undefined') DailyBonus.open(); }, 500);
+            if (typeof DailyBonus !== 'undefined') { show(); return; }
+            if (this._bonusLoading) return;
+            this._bonusLoading = true;
+            const css = document.createElement('link');
+            css.rel = 'stylesheet'; css.href = this.url('src/core/ui/daily-bonus/daily-bonus.css');
+            document.head.appendChild(css);
+            const js = document.createElement('script');
+            js.src = this.url('src/core/ui/daily-bonus/daily-bonus.js');
+            js.onload = show;
+            document.body.appendChild(js);
+        } catch (e) { console.error('Daily bonus failed', e); }
     },
 
     queueRefresh() {
