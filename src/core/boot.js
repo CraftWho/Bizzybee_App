@@ -28,6 +28,7 @@
     if (me.dataset.load === 'styles') {
         let pick = 'auto';
         try { pick = localStorage.getItem('bizzybee_theme') || 'auto'; } catch (e) { /* storage off */ }
+        if (pick === 'halloween') pick = 'auto';   // Nov 1 2026 (Craft): only on Oct 31
         let devDay = null;
         try { devDay = localStorage.getItem('bizzybee_dev_day'); } catch (e) { /* storage off */ }
         const d = devDay ? new Date(devDay + 'T12:00:00') : new Date();
