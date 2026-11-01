@@ -62,12 +62,18 @@ const TaskForm = {
         let items = [];
         const placeholder = opts.placeholder || 'Checklist item';
         const GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+        // opts.checkable (Oct 29 2026, Craft): 'todo' or 'daily' adds a check
+        // circle so steps can be ticked off on the edit screen too. Dailies
+        // count as done only for today (doneOn), same as the Dailies page.
+        const isDone = (item) => opts.checkable === 'daily' ? item.doneOn === todayISO() : !!item.done;
+        const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12.5l4 4 8-9"/></svg>';
         const render = (focusId) => {
             // A `chapter` row (quests, Oct 2026) is a heading: tasks below it
             // group into a drop-down until the next chapter.
             list.innerHTML = items.map(item => `
-                <li class="df-cl-row${item.chapter ? ' chapter' : ''}" data-id="${this.esc(item.id)}">
+                <li class="df-cl-row${item.chapter ? ' chapter' : ''}${opts.checkable && isDone(item) ? ' done' : ''}" data-id="${this.esc(item.id)}">
                     <span class="df-grip" aria-label="Drag to reorder" title="Drag to reorder">${GRIP}</span>
+                    ${opts.checkable && !item.chapter ? `<button type="button" class="df-check" aria-pressed="${isDone(item)}" aria-label="${isDone(item) ? 'Mark not done' : 'Mark done'}">${CHECK}</button>` : ''}
                     <input type="text" class="df-cl-text" value="${this.esc(item.text)}" placeholder="${item.chapter ? 'Chapter name' : this.esc(placeholder)}" maxlength="140" aria-label="${item.chapter ? 'Chapter name' : this.esc(placeholder)}">
                     ${opts.extraHTML && !item.chapter ? opts.extraHTML(item) : ''}
                     <button type="button" class="df-x" aria-label="Remove item">×</button>
@@ -134,6 +140,16 @@ const TaskForm = {
             }
         });
         list.addEventListener('click', (event) => {
+            const ck = opts.checkable && event.target.closest('.df-check');
+            if (ck) {
+                const item = items.find(i => i.id === ck.closest('.df-cl-row').dataset.id);
+                if (item) {
+                    if (opts.checkable === 'daily') { const t = todayISO(); item.doneOn = item.doneOn === t ? null : t; item.done = item.doneOn === t; }
+                    else item.done = !item.done;
+                    render();
+                }
+                return;
+            }
             const x = event.target.closest('.df-x');
             if (!x) {
                 const extra = opts.onExtra && event.target.closest('[data-extra]');

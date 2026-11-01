@@ -447,7 +447,7 @@ const AppShell = {
         const rk = typeof Vault.getRank === 'function' ? Vault.getRank() : null;
         q('.ah-line').innerHTML = !royal && !Vault.pcLocal
             ? '🐝 Your hive awaits'
-            : rk ? `${rankBadgeSVG(rk.rank, 16)} <b>${esc(rk.rank.name)}</b>${Vault.pcLocal ? ' · 💻 Test Account' : ''}`
+            : rk ? `${rankBadgeSVG(rk.rank, 16)} <b>${esc(rk.rank.name)}</b>${(() => { const w = Vault.getTitles && Vault.getTitles(); return w && w.worn ? ` · ${esc(w.worn.name)}` : ''; })()}${Vault.pcLocal ? ' · 💻 Test Account' : ''}`   /* Oct 31 2026 (Craft): + the title you wear */
             : `👑 <b>${title}</b> of the hive`;
         q('.ah-rankup').classList.toggle('show', !!(rk && rk.pending.length) && this.isHome);
         q('.ah-chip').textContent = levelLabel(bar.level);
