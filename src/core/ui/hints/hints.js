@@ -51,6 +51,7 @@ const Hints = (() => {
         projects: ['All your builds in one place. Live sites show a preview.',
             'Tap <b>＋ Add project</b> to add one. Tap ⋯ on a card to edit or pin it.'],
         history: ['Everything you finished on a day. Use ‹ › to change the day, and tap a row to open it.'],   // Oct 31 2026 (Craft)
+        titles: ['Wear a title and it shows next to your rank. Earn more by doing things.'],   // Oct 31 2026 (Craft)
         map: ['Your quests as a trail. Done ones at the bottom, your current one in red.'],
     };
 
@@ -170,6 +171,9 @@ const Hints = (() => {
         { id: "levelup-rewards", icon: "🎁", title: "Level-up rewards", cat: "XP & levels", text: "Every level gives a bee egg, gacha tickets, a random material and full Queen health. Each working Queen's Attendant adds a Royal Nectar.", v: "1.0.0", page: F + 'home/home.html' },
         { id: "past-50", icon: "✦", title: "Past level 50", cat: "XP & levels", text: "After level 50 the number keeps going (LV 51, 52…). Each of these levels also gives a hatched Epic bee, 5 tickets and a Royal Jelly.", v: "1.0.5", page: F + 'home/home.html' },
         { id: "ranks", icon: "🎖️", title: "Ranks", cat: "XP & levels", text: "A new rank every 5 levels, and Tiers past level 50 (one every 2 levels). Each rank stays a secret until you reach it. Press Rank up on Home to claim its badge and reward.", v: "1.0.5", page: F + 'home/home.html' },
+        { id: "titles", icon: "🏅", title: "Titles", cat: "XP & levels", text: "Earn titles by doing things, like finishing quests or keeping a streak. Wear one and it shows next to your rank. Titles you haven't earned stay a secret (???).", v: "1.0.5", intro: true, page: F + 'titles/titles.html' },
+        { id: "checklist-edit", icon: "☑️", title: "Tick steps while editing", cat: "Tasks", text: "On a To-Do or Daily edit screen, tick checklist steps off right there.", v: "1.0.5", page: F + 'todos/todos.html' },
+        { id: "mailbox-updates", icon: "🆕", title: "Updates in the Mailbox", cat: "Social", text: "The Mailbox has two tabs: Letters, and Updates (every What's New, newest first).", v: "1.0.5", page: F + 'mailbox/mailbox.html' },
         { id: "queen-health", icon: "❤️", title: "Queen health", cat: "XP & levels", text: "Your Queen has 50 health. Missed dailies and bad habits hurt her; harder tasks hurt more. Each finished task heals 1. Leveling up refills her.", v: "1.0.0", page: F + 'home/home.html' },
         { id: "queen-faint", icon: "😵", title: "If your Queen faints", cat: "XP & levels", text: "At 0 health she faints. You lose 10% of your coins and this level's XP progress (never a level). She comes back at half health and every bee gets sadder.", v: "1.0.0", page: F + 'home/home.html' },
         { id: "coins", icon: "🪙", title: "Honey coins", cat: "XP & levels", text: "Finishing tasks earns coins: Trivial 1, Easy 2, Medium 3, Hard 5. Unchecking takes them back. Spend them on Streak Charms and incubators.", v: "1.0.0", page: F + 'honey-store/honey-store.html' },
@@ -214,7 +218,7 @@ const Hints = (() => {
         { id: "bee-serials", icon: "🔖", title: "Serial numbers", cat: "Bees & eggs", text: "Every bee has its own serial number (like BZ-7K3M-Q9TD) on the silver plate at the bottom of its card. It never changes.", v: "1.0.5", page: F + 'hive-bees/hive-bees.html' },
         { id: "keeperdex", icon: "📇", title: "KeeperDex", cat: "Bees & eggs", text: "A card for every rarity and element. Cards you haven't found are greyed out and face-down on both sides. Tap a found card to see it big, tap again to flip it.", v: "1.0.0", page: F + 'keeperdex/keeperdex.html' },
         { id: "models", icon: "🧩", title: "Bee Models", cat: "Bees & eggs", text: "Every kind of bee stays a silhouette until you meet it. Tap a locked one to learn how to find it.", v: "1.0.0", page: F + 'models/models.html' },
-        { id: "incubator", icon: "🥚", title: "Egg Incubator", cat: "Bees & eggs", text: "A plugin, off at first. Buy incubators with Honey coins. Your steps and finished dailies hatch eggs inside them faster.", v: "1.0.5", intro: true, page: PL + 'incubator/incubator.html' },
+        { id: "incubator", icon: "🥚", title: "Egg Incubator", cat: "Bees & eggs", text: "Buy one in the Honey Store with Honey coins; that turns its page on. Your steps and finished dailies hatch eggs inside faster.", v: "1.0.5", intro: true, page: PL + 'incubator/incubator.html' },
         { id: "hive-mind", icon: "🏰", title: "Hive Mind", cat: "Hive Mind", text: "Your hive outside and in. Inside, Hive Life shows six combs: tap one to manage its bees. Classic shows the honey cells.", v: "1.0.0", page: F + 'hive-mind/hive-mind.html' },
         { id: "hive-growth", icon: "🍯", title: "Hive growth", cat: "Hive Mind", text: "The hive grows at levels 5, 10, 20 and 35. More honey cells light up as you level. Missed tasks and bad habits hollow some out for 2 weeks.", v: "1.0.0", page: F + 'hive-mind/hive-mind.html' },
         { id: "missed-work", icon: "⚠️", title: "Missed work hurts the hive", cat: "Hive Mind", text: "Each missed daily or late To-Do costs every bee some health and mood. Bees may get sick or hurt.", v: "1.0.5", page: F + 'hive-mind/hive-mind.html' },

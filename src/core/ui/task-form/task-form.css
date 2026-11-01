@@ -208,3 +208,10 @@ body.habit-form-page, body.task-form-page { padding-bottom: 0; }
 .hf .tf-addtime { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--dc, #ffcc00) 55%, transparent); background: none; color: var(--hf-text); font: 600 .95rem var(--hf-sans); text-align: left; cursor: pointer; box-shadow: none; transform: none; }
 .hf .tf-skill { border-color: color-mix(in srgb, var(--skc, #7fc0ff) 60%, transparent); background: color-mix(in srgb, var(--skc, #7fc0ff) 14%, transparent); }
 .hf .tf-clear { opacity: .7; }
+
+/* Check off steps on the edit screen (Oct 29 2026). */
+.df-check { flex: none; width: 26px; height: 26px; display: grid; place-items: center; padding: 0; margin: 0 2px; border-radius: 8px; border: 2px solid var(--bb-accent, #ffcc00); background: none; box-shadow: none; cursor: pointer; }
+.df-check svg { width: 16px; height: 16px; fill: none; stroke: #1a1000; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.df-cl-row.done .df-check { background: var(--bb-accent, #ffcc00); }
+.df-cl-row.done .df-check svg { opacity: 1; }
+.df-cl-row.done .df-cl-text { text-decoration: line-through; opacity: .6; }

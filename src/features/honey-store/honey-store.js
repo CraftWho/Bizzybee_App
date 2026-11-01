@@ -84,7 +84,35 @@ function handlePurchase(itemId) {
     openStoreItem(itemId);
 }
 
+// Oct 31 2026 (Craft, from 1.0.7): Egg incubators, bought here with Honey coins.
+// Buying one also turns the Egg Incubator page on (menu and Home).
+function renderIncubators() {
+    const host = document.getElementById('store-incubators');
+    if (!host || typeof INCUBATORS === 'undefined' || typeof Vault.getIncubator !== 'function') return;
+    const I = Vault.getIncubator();
+    host.innerHTML = INCUBATOR_ORDER.map(id => {
+        const t = INCUBATORS[id], own = I.owned.includes(id), use = I.tier === id, can = I.coins >= t.price;
+        const perks = [`${t.slots} egg slot${t.slots > 1 ? 's' : ''}`, `1 day off per ${t.goal.toLocaleString()} steps`, `Up to ${t.cap} days off a day`,
+            t.full && t.happy ? 'Hatchlings start happy and full' : t.full ? 'Hatchlings start full' : null, t.trait ? `+${Math.round(t.trait * 100)}% birth trait chance` : null].filter(Boolean);
+        const btn = use ? '<a class="hs-inc-btn" href="../../plugins/incubator/incubator.html">In use · Open</a>'
+            : own ? '<a class="hs-inc-btn" href="../../plugins/incubator/incubator.html">Owned · Open</a>'
+            : `<button type="button" class="hs-inc-btn gold" data-inc="${id}" ${can ? '' : 'disabled'}>${can ? `Buy · 🪙 ${t.price.toLocaleString()}` : `🪙 ${t.price.toLocaleString()}`}</button>`;
+        return `<div class="hs-inc-card${own ? ' owned' : ''}">${typeof IncubatorArt !== 'undefined' ? IncubatorArt.svg({ tier: id, mini: true, eggs: [] }) : '🥚'}
+            <div class="mid"><b>${t.icon} ${t.label}</b><ul>${perks.map(x => `<li>${x}</li>`).join('')}</ul>${btn}</div></div>`;
+    }).join('');
+    host.onclick = (e) => {
+        const b = e.target.closest('[data-inc]'); if (!b) return;
+        const t = INCUBATORS[b.dataset.inc];
+        if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = `Tap again to buy`; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ''; renderIncubators(); } }, 3000); return; }
+        const r = Vault.buyIncubator(b.dataset.inc);
+        if (r.ok && typeof Vault.setPluginEnabled === 'function' && !Vault.isPluginEnabled('incubator')) Vault.setPluginEnabled('incubator', true);
+        Toast.show(r.ok ? `${t.icon} ${t.label} bought! Open it to put eggs inside.` : r.error, r.ok ? 'positive' : 'negative');
+        renderAll();
+    };
+}
+
 function renderAll() {
+    renderIncubators();   // Oct 31 2026 (Craft)
     renderWallet();
     renderIdentityCard();
     renderItemGrid();

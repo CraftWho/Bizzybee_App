@@ -6710,6 +6710,57 @@ Object.assign(DatabaseManager.prototype, {
     }
 });
 
+// ============================================================================
+// TITLES (Oct 31 2026, Craft, approved demo "BizzyBee Ranks & Titles").
+// Earned by doing things; you wear one and it shows next to your rank
+// ("Forager · Streak Keeper"). A title you haven't earned shows NOTHING: no
+// name, no rule, no progress, only "???" (Craft). Quest titles (state.titles,
+// from history imports and quest unlocks) count as earned. Perks come later.
+// state.titleWorn = the id you wear, or null for rank only.
+// ============================================================================
+const SPECIAL_TITLES = [
+    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'All dailies done 7 days in a row', need: 1,
+        have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100):/.test(b.key)) ? 1 : 0 },
+    { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7,
+        have: (S) => {
+            const days = new Set();
+            (S.dailyTasks || []).forEach(t => (t.completedDates || []).forEach(d => days.add(d)));
+            (S.todos || []).forEach(t => { if (t.completed && t.completedDate) days.add(t.completedDate); });
+            (S.habits || []).forEach(h => (h.history || []).forEach(x => { if (x.direction === 'positive') days.add(x.date); }));
+            return days.size;
+        } },
+    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', need: 3,
+        have: (S) => (S.quests || []).filter(q => q.dateCompleted || ((q.tasks || []).length && q.tasks.every(t => t.completed))).length },
+    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', need: 25,
+        have: (S) => ((S.hive && S.hive.bees) || []).filter(b => b.rarity !== 'Royal').length },
+    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', need: 100,
+        have: (S) => (S.dailyTasks || []).reduce((n, t) => n + (t.completedDates || []).length, 0) + (S.todos || []).filter(t => t.completed).length
+            + (S.quests || []).reduce((n, q) => n + (q.tasks || []).filter(t => t.completed).length, 0) }
+];
+Object.assign(DatabaseManager.prototype, {
+    getTitles() {
+        if (!this.state) return null;
+        const S = this.state;
+        const special = SPECIAL_TITLES.map(t => { const earned = t.have(S) >= t.need; return earned
+            ? { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, earned: true }
+            : { id: t.id, kind: 'special', earned: false }; });   // locked: nothing about it leaves here
+        const quest = (S.titles || []).map((t, i) => ({ id: `quest-${i}-${String(t.title || '').toLowerCase().replace(/\W+/g, '-')}`, kind: 'quest', icon: '📜', name: String(t.title || 'Title'), how: t.ability || 'Earned on a quest', earned: true }));
+        const all = [...special, ...quest];
+        const worn = all.find(t => t.earned && t.id === S.titleWorn) || null;
+        return { all, earned: all.filter(t => t.earned), locked: all.filter(t => !t.earned).length, worn };
+    },
+    // id of an earned title, or null to show your rank only.
+    wearTitle(id) {
+        if (!this.state) return null;
+        if (id === null) { this.state.titleWorn = null; this.save(); return true; }
+        const t = this.getTitles().all.find(x => x.id === id && x.earned);
+        if (!t) return null;
+        this.state.titleWorn = id;
+        this.save();
+        return t;
+    }
+});
+
 // =====================================================================
 // SAVE MERGE (Oct 28 2026). Two copies of a save (this device + cloud)
 // are combined instead of showing a conflict screen.

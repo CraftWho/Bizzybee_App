@@ -18,6 +18,11 @@ const WHATS_NEW = [
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Oct 31 2026 (Craft): Batch 9.
+        { icon: '🏅', title: 'Titles', text: 'Earn titles and wear one next to your rank. The rest stay a secret until you earn them.', href: 'features/titles/titles.html' },
+        { icon: '☑️', title: 'Tick steps while editing', text: 'Check off checklist steps on the To-Do and Daily edit screens.', href: 'features/todos/todos.html' },
+        { icon: '🥚', title: 'Incubators in the Honey Store', text: 'Buy an Egg Incubator with Honey coins, no plugin needed.', href: 'features/honey-store/honey-store.html' },
+        { icon: '🆕', title: 'Mailbox updates', text: 'A new Updates tab lists every What\'s New.', href: 'features/mailbox/mailbox.html' },
         // Oct 31 2026 (Craft): Batch 7, the card binder.
         { icon: '💿', title: 'Hive Bees is your card binder', text: 'Cover Flow like the old iPod: drag, flick, or spin the click wheel. Sort, search, or switch to a grid of cards.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '💭', title: 'Card memories', text: 'Rare and better cards remember how they came to you and the last task you finished. Flip the big card.', href: 'features/hive-bees/hive-bees.html' },
