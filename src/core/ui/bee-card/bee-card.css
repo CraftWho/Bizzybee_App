@@ -685,3 +685,13 @@
 /* Nov 1 2026 (Craft, from 1.0.7): limited bees' own art and number. */
 .bc-v2 .bc-beewrap--art img { filter: drop-shadow(0 1.5cqw 2cqw rgba(0, 0, 0, .7)); }
 .bc-v2 .bc-limited { color: #ffcf6b; letter-spacing: .06em; }
+
+/* Nov 1 2026 (Craft): sex next to the No. */
+.bc-v2 .bc-sex { font-style: normal; font-weight: 800; margin-left: .8cqw; }
+.bc-v2 .bc-sex--f { color: #ff7ab8; }
+.bc-v2 .bc-sex--m { color: #6fb6ff; }
+/* Nov 1 2026 (Craft): two rows (title + ability, or a trait + ability): two smaller lines each, never cut. */
+.bc-v2 .bc-abil.bc-two { gap: 1cqw; }
+.bc-v2 .bc-abil.bc-two .bc-ab { gap: .2cqw 1.8cqw; }
+.bc-v2 .bc-abil.bc-two .bc-ab h4 { font-size: 3.3cqw; }
+.bc-v2 .bc-abil.bc-two .bc-ab p { font-size: 2.6cqw; line-height: 1.25; }

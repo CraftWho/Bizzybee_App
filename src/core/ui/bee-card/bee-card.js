@@ -475,16 +475,16 @@ const BeeCard = {
                     </div>
 
                     ${title ? `<div class="bc-ribbon">\u201c${title.label.toUpperCase()}\u201d</div>` : ''}
-                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${title ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
+                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${title && !(bee.limited && bee.limited.serial) ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${/* Nov 1 2026 (Craft): no crown on limited bees */ ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
 
                     <div class="bc-dex">${/* Oct 31 2026 (Craft): No. · obtained · height · weight */ ''}
-                        <span><b>No.${dexNo}</b></span>
+                        <span><b>No.${dexNo}</b>${bee.rarity !== 'Royal' && (bee.sex === 'f' || bee.sex === 'm') ? ` <i class="bc-sex bc-sex--${bee.sex}" title="${bee.sex === 'f' ? 'Female' : 'Male'}">${bee.sex === 'f' ? '♀' : '♂'}</i>` : ''}</span>${/* Nov 1 2026 (Craft): sex next to the No. */ ''}
                         <span>${isNaN(new Date(bee.obtainedAt)) ? '—' : new Date(bee.obtainedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                         <span>H ${bee.height != null ? Number(bee.height).toFixed(1) : '—'}cm</span>
                         <span>W ${weight}g</span>
                     </div>
 
-                    <div class="bc-abil${traits.length + (title ? 1 : 0) >= 2 ? ' bc-many' : ''}">${abilitiesHTML}</div>
+                    <div class="bc-abil${traits.length + (title ? 1 : 0) + 1 >= 3 ? ' bc-many' : traits.length + (title ? 1 : 0) + 1 === 2 ? ' bc-two' : ''}">${/* Nov 1 2026 (Craft): the job ability counts too; 2 rows = 2 smaller lines each, 3+ = 1 line */ ''}${abilitiesHTML}</div>
 
                     ${showEvolveAction ? `
                     <div class="bee-card-item-action">
