@@ -523,6 +523,24 @@ const AppShell = {
         } catch (e) { console.error('Start My Day failed', e); }
     },
 
+    // Gifts (Nov 1 2026, Craft): a limited card + letter from the creator
+    // (src/core/ui/gift/). Only signed in to the cloud; never on PC LOCAL.
+    loadGifts() {
+        try {
+            if (this._giftsLoaded || this.key.startsWith('create-') || this.key === 'onboarding') return;
+            if (Vault.pcLocal || Vault.devTest || localStorage.getItem('bizzybee_session') !== 'identity') return;
+            this._giftsLoaded = true;
+            if (typeof Gifts !== 'undefined') { Gifts.check(); return; }   // the Mailbox loads it itself
+            const css = document.createElement('link');
+            css.rel = 'stylesheet'; css.href = this.url('src/core/ui/gift/gift.css');
+            document.head.appendChild(css);
+            const js = document.createElement('script');
+            js.src = this.url('src/core/ui/gift/gift.js');
+            js.onload = () => { if (typeof Gifts !== 'undefined') Gifts.check(); };
+            document.body.appendChild(js);
+        } catch (e) { console.error('Gifts failed', e); }
+    },
+
     // Daily bonus (Nov 1 2026, Craft): once a day, after Start My Day.
     dailyBonus() {
         try {
@@ -554,7 +572,7 @@ const AppShell = {
         if (typeof Vault === 'undefined' || Vault.__shellWatched) return;
         Vault.__shellWatched = true;
         const init = Vault.init.bind(Vault);
-        Vault.init = (...args) => init(...args).then((state) => { this.refresh(); this.lifeNews(); this.dayStart(); return state; });
+        Vault.init = (...args) => init(...args).then((state) => { this.refresh(); this.lifeNews(); this.dayStart(); this.loadGifts(); return state; });   // Nov 1 2026 (Craft): + gifts
         const save = Vault.save.bind(Vault);
         Vault.save = (...args) => { const result = save(...args); this.queueRefresh(); return result; };
         if (Vault.state) this.refresh();

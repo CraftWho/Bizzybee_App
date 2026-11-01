@@ -292,12 +292,86 @@ function beeCardRoyalHTML(kind) {
     return `<div class="bc-royal">${L.map(([c, f]) => `<img class="${c}" src="${BEE_CARD_ASSETS}${f}" alt="" draggable="false">`).join('')}</div>`;
 }
 
-function beeCardArtHTML({ rarityKey = 'common', classInfo = null, silhouette = false, rivets = 3, royal = null } = {}) {
+// Nov 1 2026 (Craft, back from 1.0.7): a Halloween night behind limited
+// Halloween bees (Grimzy): stars, bare trees, tombstones, jack-o'-lanterns.
+function halloweenSceneSVG(uid) {
+    let seed = 31;
+    const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    const W = 300, H = 200, n = v => v.toFixed(1);
+    // stars
+    let stars = '';
+    for (let i = 0; i < 40; i++) stars += `<circle cx="${n(rand() * W)}" cy="${n(rand() * 95)}" r="${n(.3 + rand() * .7)}" opacity="${n(.35 + rand() * .6)}"/>`;
+    // a bare, twisted tree: recursive branches as tapered strokes
+    const tree = (x, y, len, ang, w, depth, out) => {
+        if (depth === 0 || w < .35) return;
+        const a = ang * Math.PI / 180;
+        const mx = x + Math.cos(a) * len * .5 + (rand() - .5) * len * .25, my = y + Math.sin(a) * len * .5;
+        const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
+        out.push(`<path d="M${n(x)} ${n(y)}Q${n(mx)} ${n(my)} ${n(x2)} ${n(y2)}" stroke-width="${n(w)}"/>`);
+        const kids = depth > 3 ? 2 : 2 + (rand() < .4 ? 1 : 0);
+        for (let k = 0; k < kids; k++) tree(x2, y2, len * (.62 + rand() * .18), ang + (k - (kids - 1) / 2) * (28 + rand() * 18) + (rand() - .5) * 14, w * .62, depth - 1, out);
+    };
+    const t1 = [], t2 = [], t3 = [];
+    tree(22, 176, 52, -84, 7, 6, t1);
+    tree(284, 172, 46, -98, 6.2, 6, t2);
+    tree(250, 132, 22, -92, 2.4, 5, t3);
+    // tombstones on the hill
+    const stone = (x, y, s, kind) => {
+        const w = 13 * s, h = 18 * s;
+        const body = kind === 'cross'
+            ? `<path d="M${n(x - 1.6 * s)} ${n(y)}V${n(y - h)}h${n(3.2 * s)}V${n(y)}Z M${n(x - 6 * s)} ${n(y - h * .72)}h${n(12 * s)}v${n(3 * s)}h${n(-12 * s)}Z"/>`
+            : `<path d="M${n(x - w / 2)} ${n(y)}V${n(y - h + w / 2)}A${n(w / 2)} ${n(w / 2)} 0 0 1 ${n(x + w / 2)} ${n(y - h + w / 2)}V${n(y)}Z"/>`
+              + `<text x="${n(x)}" y="${n(y - h * .42)}" font-size="${n(4.2 * s)}" text-anchor="middle" font-family="serif" fill="#141019" opacity=".9">RIP</text>`;
+        return `<g transform="rotate(${n((rand() - .5) * 10)} ${n(x)} ${n(y)})">${body}</g>`;
+    };
+    const stones = stone(66, 160, 1.05, 'arch') + stone(92, 156, .8, 'cross') + stone(206, 158, .95, 'arch') + stone(232, 162, .75, 'cross') + stone(120, 152, .55, 'arch');
+    // jack-o'-lanterns
+    const pumpkin = (cx, cy, s, face) => {
+        const r = 11 * s;
+        const lobes = [-.62, -.3, 0, .3, .62].map((o, i) => `<ellipse cx="${n(cx + o * r)}" cy="${n(cy)}" rx="${n(r * (i === 2 ? .42 : .38))}" ry="${n(r * .78)}" fill="${i % 2 ? '#d9600b' : '#ee7a14'}"/>`).join('');
+        const eyes = `<path d="M${n(cx - r * .45)} ${n(cy - r * .08)}l${n(r * .17)} ${n(-r * .26)}l${n(r * .17)} ${n(r * .26)}Z M${n(cx + r * .11)} ${n(cy - r * .08)}l${n(r * .17)} ${n(-r * .26)}l${n(r * .17)} ${n(r * .26)}Z"/>`;
+        const mouth = face
+            ? `<path d="M${n(cx - r * .5)} ${n(cy + r * .16)}Q${n(cx)} ${n(cy + r * .62)} ${n(cx + r * .5)} ${n(cy + r * .16)}l${n(-r * .16)} ${n(r * .12)}l${n(-r * .12)} ${n(-r * .1)}l${n(-r * .12)} ${n(r * .12)}l${n(-r * .12)} ${n(-r * .12)}l${n(-r * .12)} ${n(r * .12)}Z"/>`
+            : `<path d="M${n(cx - r * .38)} ${n(cy + r * .2)}h${n(r * .76)}l${n(-r * .1)} ${n(r * .24)}h${n(-r * .56)}Z"/>`;
+        return `<g><ellipse cx="${n(cx)}" cy="${n(cy + r * .1)}" rx="${n(r * 1.9)}" ry="${n(r * 1.2)}" fill="url(#hwglow${uid})"/>${lobes}
+            <path d="M${n(cx - r * .1)} ${n(cy - r * .72)}q${n(r * .05)} ${n(-r * .35)} ${n(r * .32)} ${n(-r * .42)}" stroke="#3d5a1e" stroke-width="${n(2.2 * s)}" fill="none" stroke-linecap="round"/>
+            <g fill="#ffd34d">${eyes}${mouth}</g></g>`;
+    };
+    const bat = (x, y, s) => `<path transform="translate(${n(x)} ${n(y)}) scale(${n(s)})" d="M0 0c-2-3-6-4-9-2 2 0 3 1 3 3-2-1-4 0-5 1 3 0 5 2 6 3 1-1 3-2 5-1 2-1 4 0 5 1 1-1 3-3 6-3-1-1-3-2-5-1 0-2 1-3 3-3-3-2-7-1-9 2z"/>`;
+    return `<svg class="bc-forest bc-halloween" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<defs>
+<linearGradient id="hwsky${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0519"/><stop offset=".55" stop-color="#2a0e3c"/><stop offset=".86" stop-color="#6e2a12"/><stop offset="1" stop-color="#2a0f08"/></linearGradient>
+<radialGradient id="hwmoon${uid}"><stop offset="0" stop-color="#fff3c4" stop-opacity=".55"/><stop offset=".45" stop-color="#ffcf6b" stop-opacity=".18"/><stop offset="1" stop-color="#ffcf6b" stop-opacity="0"/></radialGradient>
+<radialGradient id="hwglow${uid}"><stop offset="0" stop-color="#ffb02e" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a00" stop-opacity="0"/></radialGradient>
+<linearGradient id="hwfog${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9a6d6" stop-opacity="0"/><stop offset="1" stop-color="#b9a6d6" stop-opacity=".28"/></linearGradient>
+</defs>
+<rect width="${W}" height="${H}" fill="url(#hwsky${uid})"/>
+<g fill="#fff6dc">${stars}</g>
+<circle cx="214" cy="54" r="70" fill="url(#hwmoon${uid})"/>
+<circle cx="214" cy="54" r="27" fill="#f7ecc6"/>
+<g fill="#d9caa0" opacity=".55"><circle cx="205" cy="47" r="5"/><circle cx="222" cy="62" r="3.5"/><circle cx="220" cy="44" r="2.2"/><circle cx="203" cy="64" r="2.6"/></g>
+<g fill="#120a1c">${bat(176, 40, 1)}${bat(246, 30, .8)}${bat(150, 66, .6)}</g>
+<path d="M0 150Q60 118 130 136T300 128V200H0Z" fill="#1d0f29"/>
+<g fill="none" stroke="#120a17" stroke-linecap="round">${t3.join('')}</g>
+<rect y="118" width="${W}" height="60" fill="url(#hwfog${uid})"/>
+<g fill="#3a3442" stroke="#5a5266" stroke-width=".6">${stones}</g>
+<path d="M0 172Q80 150 160 166T300 160V200H0Z" fill="#0d0713"/>
+<g fill="none" stroke="#07040a" stroke-linecap="round">${t1.join('')}${t2.join('')}</g>
+${pumpkin(46, 182, 1.05, true)}${pumpkin(74, 188, .62, false)}${pumpkin(258, 184, .9, true)}
+<rect y="168" width="${W}" height="32" fill="url(#hwfog${uid})" opacity=".8"/>
+</svg>`;
+}
+
+// art: a bee's own picture (src/assets/bees/<art>.webp, e.g. Grimzy);
+// scene: 'halloween' swaps the forest for the Halloween night (Nov 1 2026).
+function beeCardArtHTML({ rarityKey = 'common', classInfo = null, silhouette = false, rivets = 3, royal = null, art = null, scene = null } = {}) {
     const rivetHTML = ['bc-tl', 'bc-tr', 'bc-bl'].slice(0, rivets).map(c => `<i class="bc-rv ${c}"></i>`).join('');
     const bee = royal
         ? `<div class="bc-beewrap bc-beewrap--royal${silhouette ? ' bc-silhouette' : ''}">${beeCardRoyalHTML(royal)}</div>`
-        : `<div class="bc-beewrap${silhouette ? ' bc-silhouette' : ''}"><img src="${BEE_CARD_ASSETS}card-bee.webp" alt="" draggable="false">${silhouette ? '' : '<div class="bc-tint"></div>'}</div>`;
-    return `${beeCardForest()}${rivetHTML}
+        : art && /^[a-z0-9-]+$/.test(art)
+            ? `<div class="bc-beewrap bc-beewrap--art${silhouette ? ' bc-silhouette' : ''}"><img src="${BEE_CARD_ASSETS}${art}.webp" alt="" draggable="false"></div>`
+            : `<div class="bc-beewrap${silhouette ? ' bc-silhouette' : ''}"><img src="${BEE_CARD_ASSETS}card-bee.webp" alt="" draggable="false">${silhouette ? '' : '<div class="bc-tint"></div>'}</div>`;
+    return `${scene === 'halloween' ? halloweenSceneSVG(beeCardForestId++) : beeCardForest()}${rivetHTML}
         <div class="bc-aura"></div>
         ${bee}
         <div class="bc-foil"></div>
@@ -396,12 +470,12 @@ const BeeCard = {
                     <div class="bc-top">
                         <span class="bc-rpill">${bee.rarity.toUpperCase()}</span>
                         <span class="bee-card-name${bee.name.length > 12 ? ' bc-long' : ''}" title="${bee.name}">${bee.name}</span>
-                        ${editable ? `<button class="bee-card-rename-btn" title="Rename this bee">✏️</button>` : ''}
+                        ${editable && !(bee.limited && bee.limited.serial) ? `<button class="bee-card-rename-btn" title="Rename this bee">✏️</button>` : ''}
                         ${elementInfo ? `<span class="bc-elhex" title="${elementInfo.label}"><span>${elementInfo.emoji}</span></span>` : ''}
                     </div>
 
                     ${title ? `<div class="bc-ribbon">\u201c${title.label.toUpperCase()}\u201d</div>` : ''}
-                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null })}${title ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
+                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${title ? '<span class="bc-crest" aria-hidden="true">👑</span>' : ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
 
                     <div class="bc-dex">${/* Oct 31 2026 (Craft): No. · obtained · height · weight */ ''}
                         <span><b>No.${dexNo}</b></span>
@@ -451,7 +525,7 @@ const BeeCard = {
                     </div>
 
                     <p class="bee-card-flavor">${title ? `\u201c${title.quote.replace('{n}', bee.name)}\u201d` : archetype.description}</p>
-                    <div class="bc-coll"><span>${bee.serial ? `<i class="bc-serial" title="Serial number">${String(bee.serial).replace(/[^A-Za-z0-9-]/g, "")}</i>` : `No.${dexNo} · BizzyBee Base Set`}</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>${/* Oct 31 2026 (Craft): serial number */ ''}
+                    <div class="bc-coll"><span>${bee.limited && bee.limited.serial ? `${String(bee.limited.label || 'Limited').replace(/[<>&"]/g, '')} · <b class="bc-limited">#${String(bee.limited.serial).padStart(3, '0')}/${String(bee.limited.of || 50).padStart(3, '0')}</b>` : bee.serial ? `<i class="bc-serial" title="Serial number">${String(bee.serial).replace(/[^A-Za-z0-9-]/g, "")}</i>` : `No.${dexNo} · BizzyBee Base Set`}</span><b title="${bee.rarity}">${BEE_CARD_RARITY_SYMBOLS[rarityKey]}</b></div>${/* Oct 31 2026 (Craft): serial number */ ''}
                 </div>
 
                 <div class="bee-card-face bee-card-back">
