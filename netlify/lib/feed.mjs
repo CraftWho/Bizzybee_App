@@ -6,8 +6,10 @@ import { getStore } from '@netlify/blobs';
 import { randomBytes } from 'node:crypto';
 
 export const feeds = () => getStore({ name: 'bizzybee-feeds', consistency: 'strong' });
-export const FEED_ITEMS = ['events', 'todos', 'dailies'];
-export const DEFAULT_ITEMS = { events: true, todos: true, dailies: false };
+// Nov 1 2026 (Craft): dailies removed. Repeating dailies filled the whole
+// calendar; the feed is for dated things only (events and due To-Dos).
+export const FEED_ITEMS = ['events', 'todos'];
+export const DEFAULT_ITEMS = { events: true, todos: true };
 export const newToken = () => randomBytes(24).toString('base64url');
 export const validToken = (t) => typeof t === 'string' && /^[A-Za-z0-9_-]{32}$/.test(t);
 
@@ -35,25 +37,6 @@ const nextDay = (d8) => {
     return d.toISOString().slice(0, 10).replace(/-/g, '');
 };
 const stamp = (now) => new Date(now).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-const DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-
-// A daily's repeat schedule as an RRULE (matches db.js isDailyDueOn).
-export function dailyRule(daily) {
-    const r = daily.repeats || { type: 'daily', every: 1 };
-    const every = Math.max(1, Math.min(365, Number(r.every) || 1));
-    const iv = every > 1 ? `;INTERVAL=${every}` : '';
-    if (r.type === 'weekly') {
-        const days = (r.daysOfWeek || []).filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
-        if (!days.length) return null;
-        return `FREQ=WEEKLY${iv};BYDAY=${[...new Set(days)].sort().map(d => DAYS[d]).join(',')}`;
-    }
-    if (r.type === 'monthly') {
-        const day = daily.startDate ? Number(String(daily.startDate).slice(8, 10)) : 1;
-        return `FREQ=MONTHLY${iv};BYMONTHDAY=${day > 28 ? -1 : day}`;
-    }
-    return `FREQ=DAILY${iv}`;
-}
-
 export function buildIcs(state, items, now = Date.now()) {
     const want = cleanItems(items);
     const dt = stamp(now);
@@ -78,12 +61,6 @@ export function buildIcs(state, items, now = Date.now()) {
         const d8 = ymd(t && t.dueDate);
         if (!d8 || t.completed || !t.label) continue;
         add(`todo-${safeId(t.id)}`, `✅ ${t.label}`, allDay(d8));
-    }
-    if (want.dailies) for (const d of state.dailyTasks || []) {
-        const rule = d && d.label ? dailyRule(d) : null;
-        const d8 = ymd(d && d.startDate) || ymd(new Date(now).toISOString());
-        if (!rule) continue;
-        add(`daily-${safeId(d.id)}`, `☀️ ${d.label}`, allDay(d8), [`RRULE:${rule}`]);
     }
     lines.push('END:VCALENDAR');
     return lines.map(fold).join('\r\n') + '\r\n';
