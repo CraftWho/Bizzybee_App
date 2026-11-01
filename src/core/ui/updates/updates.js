@@ -27,7 +27,7 @@ const WHATS_NEW = [
         // Oct 31 2026 (Craft): Batch 9.
         { icon: '💬', title: 'Quicker messages', text: 'Messages go away after 2.5 seconds, or tap anywhere to close them.' },
         { icon: '🔤', title: 'New font', text: 'Courier Prime, built into the app, so it looks the same on every phone and computer.' },
-        { icon: '📅', title: 'Calendar: no more dailies', text: 'The calendar feed now sends only your events and To-Do due dates.' },
+        { icon: '📅', title: 'Calendar: only the big stuff', text: 'Your calendar now gets your own events and Hard To-Dos with a due date. Dailies, habits and small To-Dos stay off it.' },
         { icon: '🔁', title: 'Habitica fix', text: 'Dailies no longer show as done at midnight when Habitica hasn\'t started its new day yet.' },
         { icon: '🏅', title: 'Ranks & Titles', text: 'A ladder of every level, each with its own badge, opening at yours. Earn titles and equip one next to your rank. Past 50, a Tier every 5 levels.', href: 'features/titles/titles.html' },
         { icon: '☑️', title: 'Tick steps while editing', text: 'Check off checklist steps on the To-Do and Daily edit screens.', href: 'features/todos/todos.html' },
