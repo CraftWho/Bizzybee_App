@@ -46,6 +46,44 @@ function migrateHiveKey(s) {
     return changed;
 }
 // Device-only settings that used the old name (bee hatch memory, list view).
+// Oct 31 2026 (Craft): every bee gets a serial number when it's made (or the
+// first time an older save loads), so each card can be tracked later. It never
+// changes. Format BZ-XXXX-XXXX (no 0/O/1/I/L, so it reads clearly).
+const SERIAL_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+function newBeeSerial(taken) {
+    for (let tries = 0; tries < 20; tries++) {
+        const n = new Uint8Array(8);
+        try { crypto.getRandomValues(n); } catch { for (let i = 0; i < 8; i++) n[i] = Math.floor(Math.random() * 256); }
+        const c = [...n].map(x => SERIAL_CHARS[x % SERIAL_CHARS.length]).join('');
+        const serial = `BZ-${c.slice(0, 4)}-${c.slice(4)}`;
+        if (!taken || !taken.has(serial)) return serial;
+    }
+    return `BZ-${Date.now().toString(36).toUpperCase()}`;
+}
+// Oct 31 2026 (Craft): also fills height and Recovery, and gives a new
+// Rare-or-better bee its memory: when it came, how (its source), and the last
+// task you finished. fresh = called from save(), so a bee without a serial is
+// brand new; bees in an older save (on load) get no memory ("before memories").
+function ensureBeeSerials(s, fresh = false) {
+    const bees = s && s.hive && Array.isArray(s.hive.bees) ? s.hive.bees : [];
+    if (!bees.some(b => b && (!b.serial || b.height == null || b.recovery == null))) return false;
+    const taken = new Set(bees.map(b => b && b.serial).filter(Boolean));
+    bees.forEach(b => {
+        if (!b) return;
+        if (!b.serial) {
+            if (fresh && b.rarity !== 'Common' && !b.memory) {
+                const last = s.lastTaskDone;
+                b.memory = { at: b.obtainedAt || new Date().toISOString(), how: b.source || 'gacha',
+                    level: s.characterLevelBar && s.characterLevelBar.acknowledgedLevel || null,
+                    task: last ? { kind: last.kind, label: last.label } : null };
+            }
+            b.serial = newBeeSerial(taken); taken.add(b.serial);
+        }
+        if (b.height == null) b.height = rollBeeHeight(b.rarity);
+        if (b.recovery == null) b.recovery = rollBeeRecovery(b.rarity);
+    });
+    return true;
+}
 function migrateHiveStorage() {
     if (typeof localStorage === 'undefined') return;
     [['bizzybee_colony_hatched', 'bizzybee_hive_hatched'], ['bizzybee_colony_bees_view', 'bizzybee_hive_bees_view']].forEach(([from, to]) => {
@@ -1121,6 +1159,18 @@ const BEE_WEIGHT_RANGES = {
     Named: [3.0, 5.0]
 };
 
+// Oct 31 2026 (Craft): height (cm) and Recovery (1-100, how well a bee
+// recovers; shown on the card only for now, no game effect yet).
+const BEE_HEIGHT_RANGES = { Common: [1.0, 1.4], Rare: [1.2, 1.7], Epic: [1.4, 2.0], Legendary: [1.7, 2.4], Named: [1.8, 2.6], Royal: [2.2, 2.8] };
+const BEE_RECOVERY_RANGES = { Common: [20, 60], Rare: [30, 70], Epic: [40, 80], Legendary: [55, 90], Named: [60, 95], Royal: [70, 100] };
+function rollBeeHeight(rarity) {
+    const [min, max] = BEE_HEIGHT_RANGES[rarity] || BEE_HEIGHT_RANGES.Common;
+    return Math.round((min + Math.random() * (max - min)) * 10) / 10;
+}
+function rollBeeRecovery(rarity) {
+    const [min, max] = BEE_RECOVERY_RANGES[rarity] || BEE_RECOVERY_RANGES.Common;
+    return Math.round(min + Math.random() * (max - min));
+}
 function rollBeeWeight(rarity) {
     const [min, max] = BEE_WEIGHT_RANGES[rarity] || BEE_WEIGHT_RANGES.Common;
     return Math.round((min + Math.random() * (max - min)) * 10) / 10;
@@ -1171,16 +1221,17 @@ const BEE_ELEMENT_WEAKNESS = {
 // on Epic/Legendary/Named so the higher tiers read as a genuine step up
 // on the card itself, not just a different border color.
 const KEEPERDEX_ELEMENT_SKILLS = {
-    fire: [{ name: 'Ember Sting', power: 10 }, { name: 'Wax Melt', power: 20 }],
-    water: [{ name: 'Dew Drop', power: 10 }, { name: 'Cool Mist', power: 20 }],
-    earth: [{ name: 'Root Bind', power: 10 }, { name: 'Pollen Dust', power: 20 }],
-    wind: [{ name: 'Gale Buzz', power: 10 }, { name: 'Tailwind', power: 20 }]
+    // Oct 31 2026 (Craft): each skill has a short line shown on the card.
+    fire: [{ name: 'Ember Sting', power: 10, text: 'A hot jab that leaves a burn.' }, { name: 'Wax Melt', power: 20, text: 'Softens the foe\'s armor.' }],
+    water: [{ name: 'Dew Drop', power: 10, text: 'A cool splash that refreshes.' }, { name: 'Cool Mist', power: 20, text: 'A haze that slows the foe.' }],
+    earth: [{ name: 'Root Bind', power: 10, text: 'Roots hold the foe in place.' }, { name: 'Pollen Dust', power: 20, text: 'A cloud that makes foes sneeze.' }],
+    wind: [{ name: 'Gale Buzz', power: 10, text: 'A gust from fast wings.' }, { name: 'Tailwind', power: 20, text: 'Speeds up the whole swarm.' }]
 };
 
 const KEEPERDEX_RARITY_SIGNATURE_SKILL = {
-    Epic: { name: 'Overdrive Buzz', power: 35 },
-    Legendary: { name: 'Radiant Sting', power: 50 },
-    Named: { name: 'Unbound Fury', power: 65 }
+    Epic: { name: 'Overdrive Buzz', power: 35, text: 'Wings at full power for one big hit.' },
+    Legendary: { name: 'Radiant Sting', power: 50, text: 'A blinding, glowing strike.' },
+    Named: { name: 'Unbound Fury', power: 65, text: 'All its strength at once.' }
 };
 
 // Reused verbatim from BEE_ARCHETYPES' element-based entries (bee-card.js)
@@ -1385,7 +1436,7 @@ const characterXPToReach = (level) => {
     return _xpToReach[level];
 };
 // "LV 23". Oct 31 2026 (Craft): past level 50 the chip keeps the level
-// number (LV 53); the Tier (2 levels each) is your RANK now, see RANKS.
+// number (LV 53); the Tier (5 levels each since Nov 1 2026) is your RANK now, see RANKS.
 function levelLabel(level) {
     return `LV ${level}`;
 }
@@ -1445,7 +1496,20 @@ function expectedLevelTickets(level) {
 // old age, Honey Makers, Drones and a random raid (more likely on a bad
 // streak). Finishing a task/daily feeds every bee (_feedHive).
 // ============================================================================
-const STREAK_BONUS = { allDailies: 20, milestones: [[3, 30], [7, 75], [30, 300], [100, 1000]] };
+// Daily bonus week (Nov 1 2026, Craft): day 1 -> day 7.
+const DAILY_BONUS = [
+    { kind: 'coins', qty: 5, icon: '🪙', name: 'Honey coins' },
+    { kind: 'coins', qty: 10, icon: '🪙', name: 'Honey coins' },
+    { kind: 'pollen', qty: 2, icon: '🌼', name: 'Pollen' },
+    { kind: 'coins', qty: 15, icon: '🪙', name: 'Honey coins' },
+    { kind: 'pollen', qty: 3, icon: '🌼', name: 'Pollen' },
+    { kind: 'royal-nectar', qty: 1, icon: '✨', name: 'Royal Nectar' },
+    { kind: 'ticket', qty: 1, icon: '🎟️', name: 'Gacha ticket' }
+];
+const STREAK_GOAL = 5;   // Nov 1 2026 (Craft): tasks a day needs to count toward your streak
+// Nov 1 2026 (Craft): + a weekly bonus every Sunday while your streak is 7+
+// days, so there's always one coming (7 to 30 days was a long wait).
+const STREAK_BONUS = { allDailies: 20, weekly: 75, milestones: [[3, 30], [30, 300], [100, 1000]] };
 
 const LIFE = {
     // Death is paused (Craft, Oct 2026): bees still faint and can be
@@ -1780,6 +1844,8 @@ function isPcLocalHost() {
     if (typeof location === 'undefined') return false;
     const host = location.hostname || '';
     if (location.protocol === 'file:') return true;
+    // Nov 1 2026 (Craft): https://localhost with no port is the Android app's own copy, not PC LOCAL.
+    if (location.protocol === 'https:' && host === 'localhost' && !location.port) return false;
     return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')
         || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 }
@@ -1851,7 +1917,7 @@ class DatabaseManager {
             const user = netlifyIdentity.currentUser();
             if (!user) return false;
             const token = await user.jwt();
-            const response = await fetch('/.netlify/functions/load-state', {
+            const response = await fetch((typeof window !== 'undefined' && window.BB_SITE || '') + '/.netlify/functions/load-state', {   // Nov 1 2026 (Craft)
                 method: 'GET', cache: 'no-store',
                 headers: { Authorization: `Bearer ${token}` },
                 signal: AbortSignal.timeout(15000)
@@ -1990,7 +2056,7 @@ class DatabaseManager {
     // A downloaded full save is applied once on localhost, before normal
     // blueprint/backfill logic. Subsequent local edits survive every reload.
     async refreshLocalCloudDownload() {
-        if (!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+        if (!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) || window.BB_APP_COPY   // Nov 1 2026 (Craft): not in the app's own copy
             || localStorage.getItem('bizzybee_session') === 'identity' || this.devTest) return;
         const nested = /\/(features|plugins)\//.test(window.location.pathname);
         let response;
@@ -2266,6 +2332,8 @@ class DatabaseManager {
     // 3. Save current state to the browser
     save() {
         if (this.state) {
+            ensureBeeSerials(this.state, true);   // Oct 31 2026 (Craft): new bees get their serial (and memory)
+            try { this._checkTaskStreak(); } catch (e) { /* never blocks a save */ }   // Nov 1 2026 (Craft)
             try {
                 // Stamped on every real mutation that goes through this method -
                 // NOT touched by importFullState() below, which writes straight
@@ -2314,6 +2382,7 @@ class DatabaseManager {
     validateFullState(parsed) {
         const object = value => value && typeof value === 'object' && !Array.isArray(value);
         migrateHiveKey(parsed);   // Oct 31 2026 (Craft): colony -> hive
+        ensureBeeSerials(parsed);   // Oct 31 2026 (Craft): serial numbers
         // Old saves (schema 7 and older) still say "dp" - rename to "xp" first.
         if (object(parsed) && (parsed.schemaVersion == null || parsed.schemaVersion < 8)) upgradeLegacyPoints(parsed);
         if (!object(parsed) || !object(parsed.user) || !Array.isArray(parsed.quests)) throw new Error('That is not a Bizzybee save file.');
@@ -2587,6 +2656,7 @@ class DatabaseManager {
         // dateCompleted (below) stays date-only - this is scoped to tasks.
         task.dateCompleted = task.completed ? new Date().toISOString() : null;
         if (task.completed) this._queenHeal(`quest:${task.id}`);
+        if (task.completed) this._noteDone('Quest', task.label);   // Oct 31 2026 (Craft): card memories
 
         this._updateQuestCompletionState(quest);
 
@@ -4198,6 +4268,7 @@ class DatabaseManager {
         }
 
         if (justCompleted) this._queenHeal(`daily:${task.id}:${today}`);
+        if (justCompleted) this._noteDone('Daily', task.label);   // Oct 31 2026 (Craft): card memories
         this._checkStreakBonus(today);
         if (justCompleted && typeof this.incubatorTick === 'function') this.incubatorTick(today);   // dailies warm the Egg Incubator
         this.save();
@@ -4209,28 +4280,56 @@ class DatabaseManager {
     // Streak bonus XP (Oct 27 2026): +20 when every daily due today is done,
     // plus a one-time bonus when the hive streak reaches 3 / 7 / 30 / 100
     // days. Un-checking a daily takes today's bonuses back.
+    // STREAK (Nov 1 2026, Craft): a day counts once you finish STREAK_GOAL (5)
+    // tasks of any kind: dailies, To-Dos and quest tasks (not habits, Craft).
+    // Not everything has to be done. The streak = days in a row that counted;
+    // today joins once it reaches 5.
+    tasksDoneOn(day = todayISO()) {
+        return this.doneOn(day).filter(x => x.kind !== 'habit').length;
+    }
+    taskStreak(today = todayISO()) {
+        if (!this.state) return 0;
+        let n = this.tasksDoneOn(today) >= STREAK_GOAL ? 1 : 0;
+        for (let i = 1; i <= 730; i++) {
+            if (this.tasksDoneOn(shiftISODate(today, -i)) < STREAK_GOAL) break;
+            n++;
+        }
+        return n;
+    }
+    // The 3 / 7 / 30 / 100-day bonuses, paid once on the day you reach them.
+    // Dropping under 5 today takes today's bonus back.
+    _checkTaskStreak(today = todayISO()) {
+        if (!this.state) return;
+        if (!this.state.bonusXP) this.state.bonusXP = [];
+        const mine = this.state.bonusXP.filter(b => b.date === today && /^streak-(\d+|week):/.test(b.key));
+        if (this.tasksDoneOn(today) < STREAK_GOAL) {
+            if (mine.length) this.state.bonusXP = this.state.bonusXP.filter(b => !mine.includes(b));
+            return;
+        }
+        if (mine.length) return;
+        const streak = this.taskStreak(today);
+        const add = [];
+        STREAK_BONUS.milestones.forEach(([days, xp]) => { if (streak === days) add.push({ key: `streak-${days}:${today}`, date: today, xp, why: `${days}-day streak` }); });
+        const [y, mo, d] = today.split('-').map(Number);
+        if (streak >= 7 && new Date(y, mo - 1, d).getDay() === 0) add.push({ key: `streak-week:${today}`, date: today, xp: STREAK_BONUS.weekly, why: `Weekly streak (${streak} days)` });
+        if (!add.length) return;
+        this.state.bonusXP.push(...add);
+        if (typeof Toast !== 'undefined') Toast.show(add.map(b => `🔥 +${b.xp} XP · ${b.why}`).join('  '), 'positive');
+    }
+
     _checkStreakBonus(today = todayISO()) {
         if (!this.state.bonusXP) this.state.bonusXP = [];
         const due = (this.state.dailyTasks || []).filter(d => (!d.startDate || d.startDate <= today) && isDailyDueOn(d, today));
         const allDone = due.length > 0 && due.every(d => (d.completedDates || []).includes(today));
         const mine = this.state.bonusXP.filter(b => b.date === today);
         if (!allDone) {
-            if (mine.length) this.state.bonusXP = this.state.bonusXP.filter(b => b.date !== today);
+            if (mine.some(b => b.key.startsWith('all-dailies:'))) this.state.bonusXP = this.state.bonusXP.filter(b => b.key !== `all-dailies:${today}`);
             return;
         }
-        if (mine.length) return;
-        // Days in a row (today included) with every due daily done or saved.
-        const list = this.state.dailyTasks || [];
-        let streak = 1;
-        for (let i = 1; i <= 120; i++) {
-            const day = shiftISODate(today, -i);
-            const dueDay = list.filter(d => (!d.startDate || d.startDate <= day) && isDailyDueOn(d, day));
-            if (!dueDay.length) continue;
-            if (!dueDay.every(d => (d.completedDates || []).includes(day) || (d.savedDates || []).includes(day))) break;
-            streak++;
-        }
+        // Nov 1 2026 (Craft): the 3 / 7 / 30 / 100-day bonuses moved to the
+        // task streak (_checkTaskStreak); this one is just "all dailies done".
+        if (mine.some(b => b.key.startsWith('all-dailies:'))) return;
         const add = [{ key: `all-dailies:${today}`, date: today, xp: STREAK_BONUS.allDailies, why: 'All dailies done' }];
-        STREAK_BONUS.milestones.forEach(([days, xp]) => { if (streak === days) add.push({ key: `streak-${days}:${today}`, date: today, xp, why: `${days}-day streak` }); });
         this.state.bonusXP.push(...add);
         if (typeof Toast !== 'undefined') Toast.show(add.map(b => `🔥 +${b.xp} XP · ${b.why}`).join('  '), 'positive');
     }
@@ -4369,6 +4468,7 @@ class DatabaseManager {
         // same reasoning as computeSkillContributions skipping negative
         // clicks for the matrix - a lapse shouldn't drop loot.
         if (direction === 'positive') this._collectMaterialsOnCompletion(`habit:${habit.id}`);
+        if (direction === 'positive') this._noteDone('Habit', habit.label);   // Oct 31 2026 (Craft): card memories
         return habit;
     }
 
@@ -4505,12 +4605,39 @@ class DatabaseManager {
 
         todo.completed = !todo.completed;
         todo.completedDate = todo.completed ? todayISO() : null;
+        todo.completedAt = todo.completed ? Date.now() : null;   // Oct 31 2026 (Craft, from 1.0.6): time for History
         if (todo.completed) this._queenHeal(`todo:${todo.id}`);
+        if (todo.completed) this._noteDone('To-Do', todo.label);   // Oct 31 2026 (Craft): card memories
 
         this.save();
         this._syncLevelUpBees();
         if (todo.completed) this._collectMaterialsOnCompletion(`todo:${todo.id}`);
         return todo;
+    }
+
+    // Oct 31 2026 (Craft, from 1.0.6): everything finished on one day
+    // (YYYY-MM-DD), newest first. One list for Home's XP today, Done today
+    // and History, so they always match. Quest tasks use your local day; a
+    // bad habit tap costs half (same math as the level bar). t = ms or 0.
+    doneOn(day = todayISO()) {
+        if (!this.state) return [];
+        const out = [], S = this.state;
+        (S.dailyTasks || []).forEach(t => { if ((t.completedDates || []).includes(day)) out.push({ kind: 'daily', icon: '☀️', what: 'Daily', id: t.id, label: t.label, xp: Number(t.xp) || 0, t: (t._days && t._days[day] && t._days[day].t) || 0 }); });
+        (S.todos || []).forEach(t => { if (t.completed && t.completedDate === day) out.push({ kind: 'todo', icon: '✅', what: 'To-Do', id: t.id, label: t.label, xp: Number(t.xp) || 0, t: t.completedAt || t._mt || 0 }); });
+        (S.quests || []).forEach(q => (q.tasks || []).forEach(t => {
+            if (!t.completed || localDayOf(t.dateCompleted) !== day) return;
+            const ms = String(t.dateCompleted || '').length > 10 ? (Date.parse(t.dateCompleted) || 0) : 0;
+            out.push({ kind: 'quest', icon: '🗺️', what: q.title, id: q.id, extra: t.id, label: t.label, xp: Number(t.xp) || 0, t: ms });
+        }));
+        (S.habits || []).forEach(h => {
+            const taps = (h.history || []).filter(x => x.date === day);
+            const good = taps.filter(x => x.direction === 'positive'), minus = taps.length - good.length;
+            const stamp = (x) => Number(String(x.id || '').split('-')[1]) || 0;
+            const last = taps.length ? Math.max(...taps.map(stamp)) : 0;
+            if (good.length) out.push({ kind: 'habit', icon: '🔁', what: `Habit${good.length > 1 ? ` ×${good.length}` : ''}`, id: h.id, label: h.label, xp: good.reduce((n, x) => n + completionXP(h, x.minutes), 0), t: last });
+            if (minus) out.push({ kind: 'habit', icon: '😖', what: `Bad habit${minus > 1 ? ` ×${minus}` : ''}`, id: h.id, label: h.label, xp: -minus * habitPenaltyXP(h), t: last });
+        });
+        return out.sort((a, b) => b.t - a.t);
     }
 
     addTodo({ label, xp, difficulty, notes, checklist, dueDate, dueTime, reminders, tags, minutes, skillsOff }) {
@@ -6183,9 +6310,33 @@ Object.assign(DatabaseManager.prototype, {
         const q = this._ensureQueen();
         if (!q) return null;
         const earned = computeQueenCoins(this.state, q.since);
-        return { hp: Math.max(0, Math.round(q.hp)), maxHp: QUEEN.maxHp, coins: Math.max(0, earned - (q.spent || 0) - (q.lost || 0)), earned, fainted: q.faintedOn === todayISO() };
+        // Nov 1 2026 (Craft): + q.bonus, coins given by the Daily bonus.
+        return { hp: Math.max(0, Math.round(q.hp)), maxHp: QUEEN.maxHp, coins: Math.max(0, earned + (q.bonus || 0) - (q.spent || 0) - (q.lost || 0)), earned, fainted: q.faintedOn === todayISO() };
     },
     getCoins() { const s = this.getQueenStats(); return s ? s.coins : 0; },
+
+    // ---- Daily bonus (Nov 1 2026, Craft, approved demo option A "7-day comb") ----
+    // Open the app each day to move along a 7-day week. Miss a day and it
+    // starts again at day 1. Day 7 is the big one (a Gacha ticket).
+    // state.dailyBonus = { last: 'YYYY-MM-DD', step: 0-6 (the day last claimed) }.
+    getDailyBonus(today = todayISO()) {
+        if (!this.state) return null;
+        const b = this.state.dailyBonus || {};
+        const claimed = b.last === today;
+        const next = claimed ? b.step : (b.last === shiftISODate(today, -1) && Number.isInteger(b.step) ? (b.step + 1) % 7 : 0);
+        return { claimed, day: next, week: DAILY_BONUS.map(r => ({ ...r })) };
+    },
+    claimDailyBonus(today = todayISO()) {
+        const info = this.getDailyBonus(today);
+        if (!info || info.claimed) return null;
+        const r = DAILY_BONUS[info.day];
+        if (r.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + r.qty; }
+        else if (r.kind === 'ticket') { this.state.hive.tickets = (this.state.hive.tickets || 0) + r.qty; }
+        else { for (let i = 0; i < r.qty; i++) this._addMaterial(r.kind, 1); }
+        this.state.dailyBonus = { last: today, step: info.day };
+        this.save();
+        return { day: info.day, ...r };
+    },
 
     // ---- Egg Incubator (Oct 28 2026) ----
     _incubator() {
@@ -6290,6 +6441,12 @@ Object.assign(DatabaseManager.prototype, {
         return true;
     },
     // +1 health, once per task per day (so un-check/re-check can't farm it).
+    // Oct 31 2026 (Craft): the last task you finished, so a Rare-or-better
+    // card made next can remember what earned it (see ensureBeeSerials).
+    _noteDone(kind, label) {
+        if (!this.state || !label) return;
+        this.state.lastTaskDone = { kind, label: String(label).slice(0, 80), at: new Date().toISOString() };
+    },
     _queenHeal(key) {
         const q = this._ensureQueen();
         if (!q || q.healed.includes(key)) return;
@@ -6565,11 +6722,13 @@ const RANK_REWARDS = {
     tier: { tickets: 5, mats: [['royal-jelly', 1]], egg: 'Epic' }
 };
 // The rank a level is in. { id, name, kind, n, from, tier? }
+const TIER_STEP = 5;
 function rankForLevel(level) {
     const L = Math.max(1, Number(level) || 1);
-    if (L > LEVEL_CAP) {
-        const t = Math.ceil((L - LEVEL_CAP) / 2);
-        return { id: `tier-${t}`, name: `Tier ${t}`, kind: 'tier', n: t, tier: t, from: LEVEL_CAP + 2 * t - 1 };
+    // Nov 1 2026 (Craft): past 50, a Tier every 5 levels (55, 60, 65...).
+    if (L >= LEVEL_CAP + TIER_STEP) {
+        const t = Math.floor((L - LEVEL_CAP) / TIER_STEP);
+        return { id: `tier-${t}`, name: `Tier ${t}`, kind: 'tier', n: t, tier: t, from: LEVEL_CAP + TIER_STEP * t };
     }
     let r = RANKS[0];
     for (const x of RANKS) if (L >= x.lvl) r = x;
@@ -6579,12 +6738,12 @@ function rankForLevel(level) {
 function ranksUpTo(level) {
     const L = Math.max(1, Number(level) || 1), out = [];
     RANKS.forEach(r => { if (r.lvl > 1 && L >= r.lvl) out.push(rankForLevel(r.lvl)); });
-    for (let lv = LEVEL_CAP + 1; lv <= L; lv += 2) out.push(rankForLevel(lv));
+    for (let lv = LEVEL_CAP + TIER_STEP; lv <= L; lv += TIER_STEP) out.push(rankForLevel(lv));
     return out;
 }
 function nextRank(level) {
     const L = Math.max(1, Number(level) || 1);
-    if (L >= LEVEL_CAP) { const now = rankForLevel(L); const at = L > LEVEL_CAP ? now.from + 2 : LEVEL_CAP + 1; return { ...rankForLevel(at), at }; }
+    if (L >= LEVEL_CAP) { const now = rankForLevel(L); const at = now.kind === 'tier' ? now.from + TIER_STEP : LEVEL_CAP + TIER_STEP; return { ...rankForLevel(at), at }; }
     const r = RANKS.find(x => x.lvl > L);
     return { ...rankForLevel(r.lvl), at: r.lvl };
 }
@@ -6618,6 +6777,57 @@ Object.assign(DatabaseManager.prototype, {
         if (pay.egg) { const bee = this.awardBee('rank', pay.egg); if (bee) awardedBees.push(bee); }
         this.save();
         return { rank, ticketsGranted: pay.tickets, awardedMaterials, awardedBees, pendingLeft: info.pending.length - 1 };
+    }
+});
+
+// ============================================================================
+// TITLES (Oct 31 2026, Craft, approved demo "BizzyBee Ranks & Titles").
+// Earned by doing things; you wear one and it shows next to your rank
+// ("Forager · Streak Keeper"). A title you haven't earned shows NOTHING: no
+// name, no rule, no progress, only "???" (Craft). Quest titles (state.titles,
+// from history imports and quest unlocks) count as earned. Perks come later.
+// state.titleWorn = the id you wear, or null for rank only.
+// ============================================================================
+const SPECIAL_TITLES = [
+    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'Reach a 7-day streak', need: 1,
+        have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100|week):/.test(b.key)) ? 1 : 0 },
+    { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7,
+        have: (S) => {
+            const days = new Set();
+            (S.dailyTasks || []).forEach(t => (t.completedDates || []).forEach(d => days.add(d)));
+            (S.todos || []).forEach(t => { if (t.completed && t.completedDate) days.add(t.completedDate); });
+            (S.habits || []).forEach(h => (h.history || []).forEach(x => { if (x.direction === 'positive') days.add(x.date); }));
+            return days.size;
+        } },
+    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', need: 3,
+        have: (S) => (S.quests || []).filter(q => q.dateCompleted || ((q.tasks || []).length && q.tasks.every(t => t.completed))).length },
+    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', need: 25,
+        have: (S) => ((S.hive && S.hive.bees) || []).filter(b => b.rarity !== 'Royal').length },
+    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', need: 100,
+        have: (S) => (S.dailyTasks || []).reduce((n, t) => n + (t.completedDates || []).length, 0) + (S.todos || []).filter(t => t.completed).length
+            + (S.quests || []).reduce((n, q) => n + (q.tasks || []).filter(t => t.completed).length, 0) }
+];
+Object.assign(DatabaseManager.prototype, {
+    getTitles() {
+        if (!this.state) return null;
+        const S = this.state;
+        const special = SPECIAL_TITLES.map(t => { const earned = t.have(S) >= t.need; return earned
+            ? { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, earned: true }
+            : { id: t.id, kind: 'special', earned: false }; });   // locked: nothing about it leaves here
+        const quest = (S.titles || []).map((t, i) => ({ id: `quest-${i}-${String(t.title || '').toLowerCase().replace(/\W+/g, '-')}`, kind: 'quest', icon: '📜', name: String(t.title || 'Title'), how: t.ability || 'Earned on a quest', earned: true }));
+        const all = [...special, ...quest];
+        const worn = all.find(t => t.earned && t.id === S.titleWorn) || null;
+        return { all, earned: all.filter(t => t.earned), locked: all.filter(t => !t.earned).length, worn };
+    },
+    // id of an earned title, or null to show your rank only.
+    wearTitle(id) {
+        if (!this.state) return null;
+        if (id === null) { this.state.titleWorn = null; this.save(); return true; }
+        const t = this.getTitles().all.find(x => x.id === id && x.earned);
+        if (!t) return null;
+        this.state.titleWorn = id;
+        this.save();
+        return t;
     }
 });
 

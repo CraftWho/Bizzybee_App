@@ -32,8 +32,12 @@
         <h2 class="sec">Special items</h2>
         <section class="card" id="store-identity-row"></section>
 
-        <a class="card hs-inc-link" href="../../plugins/incubator/incubator.html#store" id="store-incubator-link" hidden><span>🥚</span><span><b>Egg Incubators</b><small>Hatch eggs faster with your steps. Four tiers.</small></span><span class="chev">›</span></a>
-        <script>document.addEventListener('DOMContentLoaded', () => { if (typeof Plugins === 'undefined' || Plugins.isEnabled('incubator')) document.getElementById('store-incubator-link').hidden = false; });</script>
+        <!-- Oct 31 2026 (Craft, from 1.0.7): Egg Incubators are sold here with
+             Honey coins (no need to turn on the plugin first). Buying one turns
+             the Egg Incubator page on, so it shows in your menu and Home. -->
+        <h2 class="sec">Egg Incubators</h2>
+        <div class="hs-inc" id="store-incubators"></div>
+        <p class="note">Paid with Honey coins. Eggs inside hatch faster as you walk or finish dailies. One works at a time, and a better one takes over. <a href="../../plugins/incubator/incubator.html">Open your incubator</a></p>
 
         <h2 class="sec">Items bees hold</h2>
         <div class="tiles" id="store-held-grid"></div>
@@ -52,6 +56,7 @@
     <script src="../../core/ui/item-card/item-card.js"></script>
 
     <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="../../plugins/incubator/incubator-art.js"></script>
     <script src="./honey-store.js"></script>
 </body>
 </html>

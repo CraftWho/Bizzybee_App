@@ -1,6 +1,7 @@
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json, KEEP_DAILY, KEEP_OTHER, backups, readLatest, listBackups, createBackup, plain } from '../lib/cloud-store.mjs';
-export default async (req) => {
+import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
+const handler = async (req) => {
     if (!['GET', 'POST'].includes(req.method)) return json({ ok: false, error: 'Method not allowed' }, 405);
     let user;
     try { user = await authenticatedUser(req); } catch { return json({ ok: false, error: 'Identity is unavailable. Please retry.' }, 503); }
@@ -27,3 +28,4 @@ export default async (req) => {
         return json({ ok: true, backups: await listBackups(user.id), keepDaily: KEEP_DAILY, keepOther: KEEP_OTHER });
     } catch { return json({ ok: false, error: 'Backup operation failed. Check cloud encryption configuration and try again.' }, 503); }
 };
+export default withCors(handler);

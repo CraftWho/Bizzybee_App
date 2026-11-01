@@ -15,7 +15,7 @@ const TERM_RANK = { none: 0, user: 1, moderator: 2, owner: 3 };
 const TERM_TEST_KEY = 'bizzybee_dev_test';
 const TERM_LOG_KEY = 'bizzybee_terminal_log';
 const termHost = location.hostname;
-const termIsLocal = termHost === '' || termHost === 'localhost' || termHost === '127.0.0.1' || termHost === '[::1]' || /^(10|192\.168)\./.test(termHost) || termHost.endsWith('.local');
+const termIsLocal = !window.BB_APP_COPY && (termHost === '' || termHost === 'localhost' || termHost === '127.0.0.1' || termHost === '[::1]' || /^(10|192\.168)\./.test(termHost) || termHost.endsWith('.local'));   // Nov 1 2026 (Craft): the app's own copy isn't PC LOCAL
 let termLevel = 'none';
 let termExpires = null;
 let termSignedIn = false;

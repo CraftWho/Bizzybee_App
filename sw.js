@@ -17,6 +17,7 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 
 const PACK_PATHS = /^\/src\/(plugins\/(calendar|dictionary|study|terminal|projects)\/|assets\/3d\/)/;
 const host = self.location.hostname;
+// Nov 1 2026 (Craft): the Android app's own copy (https://localhost) never registers this worker (app.js).
 const LOCAL = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')
     || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 const APP_PREFIX = 'bizzy-app-';

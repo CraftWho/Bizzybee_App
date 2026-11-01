@@ -15,7 +15,8 @@ const DayStart = (() => {
         return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     }
 
-    function close() { if (scrim) { scrim.remove(); scrim = null; } document.body.classList.remove('ds-open'); }
+    // Nov 1 2026 (Craft): tells the app Start My Day is closed (the Daily bonus shows next).
+    function close() { if (scrim) { scrim.remove(); scrim = null; } document.body.classList.remove('ds-open'); document.dispatchEvent(new Event('bb-daystart-closed')); }
 
     function open(review) {
         if (!review || scrim) return;

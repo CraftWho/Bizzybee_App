@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <title>🛟 Contact support</title>
+    <!-- Nov 1 2026 (Craft, approved demo "Support & Daily Bonus"): help goes
+         here, not the Terminal. A Netlify Form (name="support"), same pattern
+         as Send feedback (suggestions.html): every field must be in this
+         static HTML so Netlify finds the form when it deploys. The field
+         named "email" becomes Reply-To, so replying in the support inbox
+         answers that person directly. Form submissions are free on Netlify
+         (no credits, since Apr 2026). -->
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../settings/settings.css">
+    <link rel="stylesheet" href="./support.css">
+</head>
+<body>
+    <main class="stv2 spv">
+        <h1 class="settings-title">🛟 CONTACT SUPPORT</h1>
+        <p class="sp-lead">Tell us what's wrong. You'll get a reply by email.</p>
+        <form class="card sp-form" id="sp-form" name="support" method="POST" data-netlify="true" netlify-honeypot="bot-field" novalidate>
+            <input type="hidden" name="form-name" value="support">
+            <p class="sp-hp" aria-hidden="true"><label>Leave empty: <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+            <input type="hidden" name="topic" id="sp-topic" value="Something's broken">
+            <input type="hidden" name="app" id="sp-app" value="">
+            <input type="hidden" name="page" id="sp-page" value="">
+            <input type="hidden" name="bee" id="sp-bee" value="">
+            <div class="sp-tag" id="sp-topic-lbl">What do you need help with?</div>
+            <div class="sp-chips" role="group" aria-labelledby="sp-topic-lbl">
+                <button type="button" class="sp-chip" aria-pressed="true" data-t="Something's broken">🐞 Something's broken</button>
+                <button type="button" class="sp-chip" aria-pressed="false" data-t="My save or account">💾 My save or account</button>
+                <button type="button" class="sp-chip" aria-pressed="false" data-t="How do I…">❓ How do I…</button>
+                <button type="button" class="sp-chip" aria-pressed="false" data-t="Other">💬 Other</button>
+            </div>
+            <label class="sp-field" for="sp-msg">Tell us what happened
+                <textarea id="sp-msg" name="message" required maxlength="3000" placeholder="What were you doing? What did you expect?"></textarea>
+            </label>
+            <label class="sp-field" for="sp-mail">Your email, for the reply
+                <input id="sp-mail" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+            </label>
+            <div class="sp-sends" id="sp-sends"></div>
+            <p class="sp-err" id="sp-err" role="alert" hidden></p>
+            <button type="submit" class="sp-go" id="sp-go">Send to support</button>
+        </form>
+        <section class="card sp-sent" id="sp-sent" hidden>
+            <b>✓ Sent</b>
+            <p>Thanks! We'll reply to <span id="sp-sent-mail"></span>.</p>
+            <button type="button" class="sp-again" id="sp-again">Send another</button>
+        </section>
+        <p class="sp-foot">Comfortable with commands? The Terminal is there for advanced users.</p>
+    </main>
+    <script src="../../core/boot.js"></script>
+    <script src="./support.js"></script>
+</body>
+</html>

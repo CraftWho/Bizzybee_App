@@ -18,7 +18,9 @@ const WAGGLE_MENU = [
     ['Progress', [
         { icon: '📊', label: 'Dashboard', path: 'src/features/dashboard/dashboard.html' },
         { icon: '🗺️', label: 'Map', path: 'src/features/map/map.html' },
+        { icon: '🕘', label: 'History', path: 'src/features/history/history.html' },   // Oct 31 2026 (Craft, from 1.0.6)
         { icon: '🌳', label: 'Skills', path: 'src/features/skills/skills.html' },
+        { icon: '🏅', label: 'Ranks & Titles', path: 'src/features/titles/titles.html' },   // Oct 31 2026 (Craft); renamed Nov 1
         { icon: '👤', label: 'Profile', path: 'src/features/profile/profile.html' }
     ]],
     ['Tools', [
@@ -32,6 +34,7 @@ const WAGGLE_MENU = [
         { icon: '📬', label: 'Mailbox', path: 'src/features/mailbox/mailbox.html', mail: true },
         { icon: '🎨', label: 'Themes', path: 'src/features/themes/themes.html' },
         { icon: '📘', label: 'Guide (Eve)', path: 'src/features/guide/guide.html' },
+        { icon: '🛟', label: 'Contact support', path: 'src/features/support/support.html' },   // Nov 1 2026 (Craft)
         { icon: '🔔', label: 'Notifications', path: 'src/features/notifications/notifications.html' },
         { icon: '🔄', label: 'Phone Sync', path: 'src/features/sync/sync.html' },
         { icon: '🔐', label: 'Account Info', path: 'src/features/account-info/account-info.html' },

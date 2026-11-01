@@ -53,3 +53,5 @@ repomix-output.xml
 
 # Oct 31 2026 (Craft): written at deploy by tools/stamp-version.mjs.
 version.json
+# Nov 1 2026 (Craft): written by the deploy (tools/stamp-version.mjs)
+app-files.json

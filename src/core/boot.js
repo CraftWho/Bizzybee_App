@@ -9,6 +9,14 @@
 // document.write keeps the files in order and blocking, exactly like plain
 // <script> tags, with no build step.
 (function () {
+    // Nov 1 2026 (Craft): the Android app runs its own copy of the app
+    // (https://localhost, no port). Sign-in and cloud still live on the site,
+    // so calls go to BB_SITE. On the website (and PC LOCAL) BB_SITE is ''.
+    // netlifySiteURL tells the sign-in widget where the site is.
+    const appCopy = location.protocol === 'https:' && location.hostname === 'localhost' && !location.port;
+    window.BB_APP_COPY = appCopy;
+    window.BB_SITE = appCopy ? 'https://bizzybeee.netlify.app' : '';
+    if (appCopy) { try { localStorage.setItem('netlifySiteURL', window.BB_SITE); } catch (e) { /* storage off */ } }
     const me = document.currentScript;
     const core = me.src.replace(/boot\.js(?:\?.*)?$/, '');
     const STYLES = ['global.css', 'ui/themes/themes.css', 'ui/hive-mind/hive-mind.css', 'ui/hive-mind/nano-bee.css', 'ui/toast/toast.css', 'ui/llm-engine/llm-engine.css'];
