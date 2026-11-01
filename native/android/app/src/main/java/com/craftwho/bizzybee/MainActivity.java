@@ -10,6 +10,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BeeAlertsPlugin.class);
         registerPlugin(BeeUpdaterPlugin.class);
         registerPlugin(BeeFilesPlugin.class);
+        // Nov 1 2026 (Craft): the app's own copy + its updates (BeeWebPlugin).
+        // A downloaded version that failed to start twice is dropped here.
+        registerPlugin(BeeWebPlugin.class);
+        BeeWebPlugin.checkLastStart(this);
         super.onCreate(savedInstanceState);
     }
 }
