@@ -110,9 +110,9 @@ const TaskRow = {
     _card(item, { cls, done, meta, open }) {
         const s = this.style(item);
         const items = item.checklist || [];
-        return `<li class="${cls}" data-row-id="${this.esc(item.id)}" style="--dc:${s.color};--dk:${s.ink}">
+        return `<li class="${cls} hand-row" data-row-id="${this.esc(item.id)}" style="--dc:${s.color};--dk:${s.ink}">
             <div class="dr-side">${this.checkButton(item, done)}</div>
-            <div class="dr-mid">
+            <div class="dr-mid hand-text">
                 <div class="dr-main" data-act="edit" role="button" tabindex="0" aria-label="Edit ${this.esc(item.label)}">
                     <span class="dr-title">${this.esc(item.label)}</span>
                     ${item.notes ? `<span class="dr-notes">${this.esc(item.notes)}</span>` : ''}

@@ -19,6 +19,11 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 2 2026 (Craft): Batch 18.
+        { icon: '🔢', title: 'Website version updates itself', text: 'Settings › About shows the date, batch and code of the version you are on.', href: 'features/settings/settings.html' },
+        // Nov 2 2026 (Craft): Batch 17.
+        { icon: '✋', title: 'Left or right hand', text: 'Settings › Look & feel: put check boxes and + / − on your thumb\'s side.', href: 'features/settings/settings.html' },
+        { icon: '🐝', title: 'Element bees', text: 'Water, Fire, Wind and Earth bees each have their own look.', href: 'features/hive-bees/hive-bees.html' },
         // Nov 1 2026 (Craft): Batch 14.
         { icon: '📯', title: 'Something new in the Honey Mart', text: 'Look in the Special pocket.', href: 'features/honey-store/honey-store.html' },
         { icon: '📅', title: 'Quest deadlines remind you', text: 'Smart Notifications now cover Quests with a deadline.' },
@@ -335,17 +340,30 @@ const BizzyUpdates = (() => {
     }
 
     // ---------------- Settings › About ----------------
+    // Nov 2 2026 (Craft): the website version updates itself. Each deploy
+    // writes /version.json (tools/stamp-version.mjs): date · batch · commit.
+    // The commit points to the exact code on GitHub when something breaks.
+    async function siteStamp() {
+        const h = location.hostname;
+        if (h === '127.0.0.1' || h === '[::1]' || h.endsWith('.local') || (h === 'localhost' && !isApp)) return 'PC local';
+        try {
+            const v = await (await fetch(new URL('/version.json', location.origin), { cache: 'no-store' })).json();
+            const day = v.builtAt ? new Date(v.builtAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+            return [day, v.batch, v.commit ? String(v.commit).slice(0, 7) : ''].filter(Boolean).join(' · ') || 'unknown';
+        } catch { return 'unknown'; }
+    }
     async function renderAbout(host) {
         if (!host) return;
         const mine = isApp ? await installedVersion() : null;
         host.innerHTML = `
-            <div class="row"><span class="hx">🐝</span><span class="mid"><b id="ab-title">BizzyBee ${esc(APP_WEB_VERSION)}</b><small id="ab-sub">Website ${esc(APP_WEB_VERSION)}${mine ? ` · App ${esc(mine)}` : ''}</small></span><button type="button" class="btn" id="ab-update" hidden>Update</button></div>
+            <div class="row"><span class="hx">🐝</span><span class="mid"><b id="ab-title">BizzyBee ${esc(APP_WEB_VERSION)}</b><small id="ab-sub">Website …${mine ? ` · App ${esc(mine)}` : ''}</small></span><button type="button" class="btn" id="ab-update" hidden>Update</button></div>
             ${isApp ? `<div class="row"><span class="hx">🔁</span><span class="mid"><b>Check for updates</b><small id="ab-check-note">${get(CHECK_KEY) ? `Checked ${new Date(Number(get(CHECK_KEY))).toLocaleString()}` : 'Not checked yet'}</small></span><button type="button" class="btn" id="ab-check">Check</button></div>
             <div class="row ab-token"><span class="hx">🔑</span><span class="mid"><b>GitHub token</b><small>The app's releases are private for now. A read-only token lets this phone see them. It stays on this phone.</small>
                 <span class="ab-tok-line"><input type="password" id="ab-token" autocomplete="off" placeholder="${token() ? 'Saved ✓ (paste to replace)' : 'github_pat_…'}"><button type="button" class="btn" id="ab-token-save">Save</button></span>
                 <small><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Make one on GitHub</a>: Fine-grained → Only select repositories: Bizzybee_App → Repository permissions: Contents → Read-only.</small></span></div>` : ''}
             <button type="button" class="row" id="ab-news"><span class="hx">📰</span><span class="mid"><b>What's new</b><small>Every update and what changed</small></span><span class="chev">›</span></button>`;
         const $ = (id) => host.querySelector('#' + id);
+        siteStamp().then(t => { $('ab-sub').textContent = `Website ${t}${mine ? ` · App ${mine}` : ''}`; });   // Nov 2 2026 (Craft)
         $('ab-news').addEventListener('click', () => openWhatsNew(WHATS_NEW));
         if (!isApp) return;
         const show = (r) => {

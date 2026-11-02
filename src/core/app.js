@@ -264,6 +264,8 @@ const Appearance = {
             const sw = (key, list, def) => list.map(c => `<button type="button" class="look-sw" data-k="${key}" data-v="${c}" style="background:${c}" aria-label="${c}" aria-pressed="${(v[key] || def) === c}"></button>`).join('');
             const now = this.presetNow();
             host.innerHTML = `
+                <div class="row"><span class="hx">✋</span><span class="mid"><b>Buttons on</b><small>Check boxes, + and − follow your thumb</small></span></div>
+                <div class="look-presets look-hand">${['left', 'right'].map(h => `<button type="button" class="look-preset" data-hand="${h}" aria-pressed="${(document.documentElement.dataset.hand || 'left') === h}">${h === 'left' ? '👈 Left' : 'Right 👉'}</button>`).join('')}</div>
                 <div class="row"><span class="hx">⚡</span><span class="mid"><b>Quick presets</b><small>One tap. Fine-tune below.</small></span></div>
                 <div class="look-presets">${this.PRESETS.map(p => `<button type="button" class="look-preset" data-preset="${p.id}" aria-pressed="${now === p.id}"><span aria-hidden="true">${p.icon}</span>${p.label}</button>`).join('')}</div>
                 <div class="row"><span class="hx">🔤</span><span class="mid"><b>Font</b><small>For reading text. Titles keep the hive look.</small></span></div>
@@ -284,6 +286,9 @@ const Appearance = {
         host.addEventListener('click', (e) => {
             const s = e.target.closest('.look-sw');
             if (s) { const def = { title: this.TITLES[0], text: this.TEXTS[0], para: this.PARAS[0] }[s.dataset.k]; this.set({ [s.dataset.k]: s.dataset.v === def ? null : s.dataset.v }); render(); return; }
+            // Nov 2 2026 (Craft): left or right hand (boot.js applies it on every page).
+            const hd = e.target.closest('[data-hand]');
+            if (hd) { const right = hd.dataset.hand === 'right'; try { localStorage.setItem('bizzybee_hand', right ? 'right' : 'left'); } catch { /* storage off */ } if (right) document.documentElement.dataset.hand = 'right'; else delete document.documentElement.dataset.hand; render(); return; }
             const pr = e.target.closest('[data-preset]');
             if (pr) { const p = this.PRESETS.find(x => x.id === pr.dataset.preset); this.set(null); if (p && Object.keys(p.set).length) this.set(p.set); render(); return; }
             const fo = e.target.closest('[data-font]');

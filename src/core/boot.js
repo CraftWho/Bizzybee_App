@@ -18,6 +18,8 @@
     // Nov 2 2026 (Craft): true only in "BizzyBee Dev", your own APK (tools/make-app-copy.mjs
     // flips it when BB_PERSONAL=1). Owner tools on, no updates from the live site.
     window.BB_PERSONAL = false;
+    // Nov 2 2026 (Craft): left or right hand, before the page paints (Settings › Look & feel).
+    try { if (localStorage.getItem('bizzybee_hand') === 'right') document.documentElement.dataset.hand = 'right'; } catch (e) { /* storage off */ }
     window.BB_SITE = appCopy ? 'https://bizzybeee.netlify.app' : '';
     if (appCopy) { try { localStorage.setItem('netlifySiteURL', window.BB_SITE); } catch (e) { /* storage off */ } }
     const me = document.currentScript;
