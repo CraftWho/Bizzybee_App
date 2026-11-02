@@ -53,9 +53,9 @@ const HabitRow = {
 
     html(habit) {
         const s = this.style(habit);
-        return `<li class="hr-row" data-habit-id="${this.esc(habit.id)}" style="--dc:${s.color};--dk:${s.ink}">
+        return `<li class="hr-row hand-row${!habit.positive && habit.negative ? ' hr-neg-only' : ''}" data-habit-id="${this.esc(habit.id)}" style="--dc:${s.color};--dk:${s.ink}">
             <div class="hr-side${habit.positive ? ' lit' : ''}">${this.hexButton(habit, 'positive')}</div>
-            <div class="hr-mid" data-hr="edit" role="button" tabindex="0" aria-label="Edit ${this.esc(habit.label)}">
+            <div class="hr-mid hand-text" data-hr="edit" role="button" tabindex="0" aria-label="Edit ${this.esc(habit.label)}">
                 <span class="hr-title">${this.esc(habit.label)}</span>
                 ${this.notesHTML(habit)}
                 <span class="hr-count">${this.counts(habit)}</span>

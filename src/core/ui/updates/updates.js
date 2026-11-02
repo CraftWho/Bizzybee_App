@@ -19,6 +19,9 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 2 2026 (Craft): Batch 17.
+        { icon: '✋', title: 'Left or right hand', text: 'Settings › Look & feel: put check boxes and + / − on your thumb\'s side.', href: 'features/settings/settings.html' },
+        { icon: '🐝', title: 'Element bees', text: 'Water, Fire, Wind and Earth bees each have their own look.', href: 'features/hive-bees/hive-bees.html' },
         // Nov 1 2026 (Craft): Batch 14.
         { icon: '📯', title: 'Something new in the Honey Mart', text: 'Look in the Special pocket.', href: 'features/honey-store/honey-store.html' },
         { icon: '📅', title: 'Quest deadlines remind you', text: 'Smart Notifications now cover Quests with a deadline.' },
