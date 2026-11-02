@@ -42,3 +42,7 @@
 /* Nov 1 2026 (Craft): gift rows */
 .mb-giftrow { display: block; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .mb-write select { width: 100%; padding: 10px; border-radius: 10px; background: #0a0703; color: inherit; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); font: inherit; }
+
+/* Nov 1 2026 (Craft): a friend's item gift, with the item attached. */
+.mb-attach { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 2px dashed rgba(var(--bb-accent-rgb, 255, 204, 0), .5); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .06); }
+.mb-attach span { flex: 1; min-width: 0; font-weight: 700; }

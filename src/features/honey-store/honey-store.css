@@ -1,29 +1,44 @@
-/* Honey Store v2 (Oct 2026). Shared look: core/ui/page-v2/page-v2.css. */
-.hs2 .hs-wallet { grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.hs2 .hs-wallet > div { padding: 9px 2px; }
-.hs2 .hs-coins { border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .45) !important; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .08) !important; }
-.hs2 .hs-wallet small { font-size: .62rem; }
-.hs2 .hs-price { font: 700 .7rem var(--font-main, monospace); color: var(--gold); }
-.hs2 .tile.hs-cant .hs-price { color: var(--muted); }
-.hs2 .tile.hs-cant .hx { filter: grayscale(.6) brightness(.8); }
-.hs2 .note a { color: var(--gold); }
-.hs2 .hs-links { margin-top: 18px; }
-.hs2 .card button.row .mid b { color: var(--gold2); }
-/* Egg Incubators link (Oct 28 2026) */
-.hs-inc-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-decoration: none; color: inherit; border-color: rgba(var(--bb-alt-rgb, 220, 20, 60), .45) !important; }
-.hs-inc-link > span:first-child { font-size: 1.6rem; }
-.hs-inc-link b { display: block; color: var(--bb-accent, #ffcc00); }
-.hs-inc-link small { color: #c2b48f; font-size: .78rem; }
-.hs-inc-link .chev { margin-left: auto; color: var(--bb-accent, #ffcc00); }
-
-/* Oct 31 2026 (Craft, from 1.0.7): Egg Incubators sold in the store. */
-.hs-inc { display: grid; gap: 10px; }
-.hs-inc-card { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; padding: 12px; border-radius: 16px; background: rgba(14, 10, 4, .94); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .16); }
-.hs-inc-card.owned { border-color: rgba(61, 220, 132, .45); }
-.hs-inc-card svg { width: 96px; height: auto; display: block; }
-.hs-inc-card .mid { min-width: 0; }
-.hs-inc-card b { display: block; color: var(--bb-accent, #ffcc00); font: 800 .84rem var(--font-main, monospace); letter-spacing: .04em; }
-.hs-inc-card ul { margin: 4px 0 8px; padding-left: 18px; color: #c2b48f; font-size: .76rem; }
-.hs-inc-btn { display: inline-block; padding: 8px 12px; border-radius: 11px; border: 1px solid #3a2a0a; background: #1a140b; color: #f1ede2; font: 700 .76rem var(--font-main, monospace); text-decoration: none; cursor: pointer; }
-.hs-inc-btn.gold { border: 0; background: linear-gradient(var(--bb-t-hi, #ffd84a), var(--bb-accent-lo, #e6b52c)); color: #1a1000; }
-.hs-inc-btn:disabled { opacity: .5; cursor: default; }
+/* Honey Mart (Nov 1 2026, Craft; approved demo): a game-shop feel. Cream
+   speech and list boxes framed in honey gold, dark page around them. */
+.hm { --hm-box: #fbf3dc; --hm-ink: #2a1d06; --hm-line: #c98a00; }
+.hm-shop { background: #16120a; border: 2px solid var(--hm-line); border-radius: 14px; overflow: hidden; display: grid; margin-bottom: 14px; }
+.hm-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px; background: linear-gradient(#2a1d06, #120c02); border-bottom: 2px solid var(--hm-line); }
+.hm-top b { font: 700 .82rem var(--font-main, monospace); color: var(--bb-accent, #ffcc00); letter-spacing: .06em; white-space: nowrap; }
+.hm-money { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.hm-money span { background: #0b0905; border: 1px solid #3a2a0a; border-radius: 8px; padding: 3px 6px; font: 700 .72rem var(--font-main, monospace); color: var(--bb-accent, #ffcc00); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hm-say { margin: 10px; padding: 12px 14px; border-radius: 10px; background: var(--hm-box); color: var(--hm-ink); border: 3px double var(--hm-line); font: 700 .88rem/1.4 var(--font-main, monospace); min-height: 40px; }
+.hm-menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 10px 10px; }
+.hm-mbtn { margin: 0; padding: 12px 6px; border-radius: 10px; border: 2px solid var(--hm-line); background: #1a140b; color: #f5ecd4; font: 700 .86rem var(--font-main, monospace); letter-spacing: .06em; cursor: pointer; box-shadow: none; }
+.hm-mbtn[aria-pressed="true"] { background: var(--bb-accent, #ffcc00); color: #1a1000; }
+.hm-pockets { display: flex; align-items: center; gap: 6px; padding: 0 10px 6px; }
+.hm-arrow { flex: none; width: 36px; height: 36px; margin: 0; padding: 0; border-radius: 8px; border: 1px solid #3a2a0a; background: #1a140b; color: #f5ecd4; font-size: 1rem; cursor: pointer; box-shadow: none; }
+.hm-pk { flex: 1; text-align: center; font: 700 .8rem var(--font-main, monospace); color: var(--bb-accent, #ffcc00); letter-spacing: .08em; text-transform: uppercase; }
+.hm-dots { display: flex; justify-content: center; gap: 5px; padding-bottom: 8px; }
+.hm-dots i { width: 7px; height: 7px; border-radius: 50%; background: #3a2a0a; }
+.hm-dots i.on { background: var(--bb-accent, #ffcc00); }
+.hm-list { margin: 0 10px; border: 2px solid var(--hm-line); border-radius: 10px; background: var(--hm-box); max-height: 300px; overflow: auto; }
+.hm-li { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0; padding: 10px 12px; border: 0; border-bottom: 1px solid #e8d9ad; border-radius: 0; background: none; color: var(--hm-ink); text-align: left; font: 700 .88rem var(--font-main, monospace); cursor: pointer; box-shadow: none; }
+.hm-li:last-child { border-bottom: 0; }
+.hm-li .ic { font-size: 1.2rem; width: 26px; text-align: center; }
+.hm-li .nm { flex: 1; min-width: 0; }
+.hm-li .pr { font-variant-numeric: tabular-nums; }
+.hm-li[aria-selected="true"] { background: #ffe9a6; }
+.hm-li[aria-selected="true"] .nm::before { content: "▶ "; color: #c0392b; }
+.hm-li.cant .pr { color: #b08a5a; }
+.hm-li.empty { cursor: default; font-weight: 400; }
+.hm-desc { margin: 10px; padding: 10px 12px; border-radius: 10px; background: #0f0b05; border: 1px solid #3a2a0a; font-size: .84rem; line-height: 1.45; min-height: 52px; display: grid; gap: 4px; color: #f5ecd4; }
+.hm-desc small { color: #a8987a; }
+.hm-q { margin: 0 10px 10px; padding: 10px; border: 2px solid var(--hm-line); border-radius: 10px; background: var(--hm-box); color: var(--hm-ink); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.hm-q .arr { display: grid; gap: 4px; }
+.hm-q .arr button { width: 42px; height: 34px; margin: 0; padding: 0; border-radius: 8px; border: 2px solid var(--hm-line); background: #fff7e0; color: var(--hm-ink); font-weight: 800; cursor: pointer; box-shadow: none; }
+.hm-q .arr button:disabled { opacity: .35; }
+.hm-q .x { font: 700 1.35rem var(--font-main, monospace); text-align: center; font-variant-numeric: tabular-nums; }
+.hm-q .tot { font: 700 .88rem var(--font-main, monospace); text-align: right; font-variant-numeric: tabular-nums; }
+.hm-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 10px 12px; }
+.hm-ok, .hm-no { margin: 0; padding: 12px; border-radius: 10px; font: 700 .86rem var(--font-main, monospace); cursor: pointer; box-shadow: none; }
+.hm-ok { border: 0; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; }
+.hm-no { border: 1px solid #3a2a0a; background: #1a140b; color: #f5ecd4; }
+.hm-friend { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 6px; padding: 10px; border-radius: 10px; border: 1px solid #3a2a0a; background: #0f0b05; color: #f5ecd4; text-align: left; cursor: pointer; box-shadow: none; }
+.hm-friend[aria-pressed="true"] { border-color: var(--bb-accent, #ffcc00); background: rgba(255, 204, 0, .1); }
+.pv2-sheet textarea#hm-note { width: 100%; box-sizing: border-box; min-height: 70px; border-radius: 10px; border: 1px solid #3a2a0a; background: #0f0b05; color: #f5ecd4; font: inherit; padding: 10px; }
+.hs-links { margin-top: 0; }

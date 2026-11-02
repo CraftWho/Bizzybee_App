@@ -157,22 +157,36 @@ function renderReadyEggs() {
     el.innerHTML = `<span class="home-help-ic" aria-hidden="true">🥚</span><span class="home-help-t"><b>${eggs.length} egg${eggs.length === 1 ? ' is' : 's are'} ready to hatch!</b><small>Tap to crack ${eggs.length === 1 ? 'it' : 'the first one'} open.</small></span><span class="home-help-go" aria-hidden="true">›</span>`;
 }
 
+// Nov 1 2026 (Craft; approved demo): no more "bees need help" card pushing
+// the Home apps down. Eve (Adam if your royal is a King) pops up in the
+// corner with one line, leaves after 5 seconds, and a tap takes you to
+// the bees that need help. At most once every 30 minutes for the same news.
 function renderBeeHelp() {
     renderReadyEggs();
-    const el = document.getElementById('home-help');
-    if (!el || typeof beeNeeds !== 'function') return;
-    // Oct 28 2026 (Craft): say exactly who needs what, and how to fix it.
+    const card = document.getElementById('home-help');
+    if (card) card.hidden = true;
+    if (typeof beeNeeds !== 'function') return;
     const list = Vault.getHiveBees().filter(b => b.rarity !== 'Royal')
         .map(b => ({ b, needs: beeNeeds(b) })).filter(x => x.needs.length);
-    el.hidden = !list.length;
     if (!list.length) return;
-    const shown = list.slice(0, 3);
-    el.setAttribute('aria-label', `${list.length} bee${list.length === 1 ? ' needs' : 's need'} help`);
-    el.innerHTML = `<span class="home-help-ic" aria-hidden="true">${list.some(x => x.needs[0].need === 'Fainted') ? '😵' : list.some(x => x.needs[0].need === 'No job') ? '😠' : '😢'}</span>
-        <span class="home-help-t"><b>${list.length} bee${list.length === 1 ? ' needs' : 's need'} help</b>
-        ${shown.map(({ b, needs }) => `<span class="home-help-bee"><i>${escapeHTML(b.name)}</i> ${needs.map(n => `<em>${escapeHTML(n.need)}</em> <small>${escapeHTML(n.value)}</small>`).join(' · ')}<small class="fix">→ ${escapeHTML(needs[0].fix)}</small></span>`).join('')}
-        ${list.length > 3 ? `<small>+${list.length - 3} more</small>` : ''}</span>
-        <span class="home-help-go" aria-hidden="true">›</span>`;
+    const line = list.slice(0, 2).map(({ b, needs }) => `${b.name}: ${needs[0].need.toLowerCase()}`).join(' · ') + (list.length > 2 ? ` · +${list.length - 2} more` : '');
+    try {
+        const last = JSON.parse(sessionStorage.getItem('bizzybee_eve_help') || 'null');
+        if (last && last.line === line && Date.now() - last.at < 30 * 60000) return;
+        sessionStorage.setItem('bizzybee_eve_help', JSON.stringify({ line, at: Date.now() }));
+    } catch { /* storage off: show it */ }
+    const royal = Vault.getHiveBees().find(b => b.rarity === 'Royal');
+    const who = royal && royal.royal === 'king' ? { name: 'Adam', face: '🤴' } : { name: 'Eve', face: '👸' };
+    setTimeout(() => {
+        const el = document.createElement('button');
+        el.type = 'button'; el.className = 'home-eve';
+        el.setAttribute('aria-label', `${who.name}: ${line}. Tap to check on them.`);
+        el.innerHTML = `<span class="home-eve-bub">${escapeHTML(line)}<small>${who.name} · tap to check on them</small></span><span class="home-eve-who" aria-hidden="true">${who.face}</span>`;
+        el.addEventListener('click', () => { location.href = '../hive-bees/hive-bees.html?show=help'; });
+        document.body.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('in'));
+        setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 450); }, 5000);
+    }, 1200);
 }
 
 // ---- Today ----
@@ -347,7 +361,7 @@ const APP_ICONS = {
 // screen. Hold any app to rearrange (apps wiggle), drag, then tap Done.
 // The order is kept in the save (state.homeAppOrder), so it follows you.
 const HOME_APPS = [
-    { key: 'hive-mind', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
+    { key: 'hive-mind', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Mart' },   // Nov 1 2026 (Craft): renamed
     { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
     { key: 'hive-archive', label: 'Hive Archive' }, { key: 'notifications', label: 'Notifications' }, { key: 'settings', label: 'Settings' }

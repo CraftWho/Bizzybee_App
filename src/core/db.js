@@ -7048,6 +7048,69 @@ Object.assign(DatabaseManager.prototype, {
     }
 });
 
+// ============================================================================
+// HONEY MART (Nov 1 2026, Craft; from 1.0.7's Store v3, approved demo): buy
+// several at once (capped by what you can afford), sell for half its worth,
+// and gifts between friends (hive.mjs, delivered to the Mailbox).
+// Sell values: coins as-is; materials count as MAT_COIN coins each.
+// ============================================================================
+const MAT_COIN = { pollen: 4, 'royal-nectar': 15, 'honey-drop': 40, 'royal-jelly': 200 };
+const SELL_RATE = 0.5;
+function storePriceHave(vault, item) {
+    if (item.price.currency === 'coins') return vault.getCoins();
+    return vault.getMaterials()[item.price.materialId] || 0;
+}
+Object.assign(DatabaseManager.prototype, {
+    maxAffordable(itemId) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId);
+        if (!item || !this.state) return 0;
+        return Math.max(0, Math.min(99, Math.floor(storePriceHave(this, item) / item.price.amount)));
+    },
+    buyStoreItems(itemId, qty = 1) {
+        if (!this.maxAffordable(itemId)) return null;
+        const n = Math.max(1, Math.min(Math.floor(qty) || 1, this.maxAffordable(itemId)));
+        let last = null;
+        for (let i = 0; i < n; i++) { const r = this.purchaseStoreItem(itemId); if (!r) break; last = r; last.count = i + 1; }
+        return last;
+    },
+    // What one of this sells for, in Honey coins (half its worth, at least 1).
+    sellValue(id) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === id);
+        if (item) return Math.max(1, Math.floor((item.price.currency === 'coins' ? item.price.amount : item.price.amount * (MAT_COIN[item.price.materialId] || 4)) * SELL_RATE));
+        if (MAT_COIN[id]) return Math.max(1, Math.floor(MAT_COIN[id] * SELL_RATE));
+        return 0;
+    },
+    sellOwned(id, qty = 1) {
+        if (!this.state || !this.state.inventory) return null;
+        const inv = this.state.inventory, isMat = !!MAT_COIN[id] && !STORE_ITEM_CATALOG.some(i => i.id === id);
+        const bag = isMat ? (inv.materials = inv.materials || {}) : (inv.items = inv.items || {});
+        const have = bag[id] || 0, n = Math.max(1, Math.min(Math.floor(qty) || 1, have)), each = this.sellValue(id);
+        if (!have || !each) return null;
+        bag[id] = have - n;
+        const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + each * n;   // coins come in as a bonus (getQueenStats)
+        this.save();
+        return { n, coins: each * n };
+    },
+    // Gifts: held items only. Taken out before sending; put back if it fails.
+    giftTakeOut(itemId) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
+        const items = this.getItems();
+        if (!item || !(items[itemId] > 0)) return null;
+        this.state.inventory.items[itemId] = items[itemId] - 1;
+        this.save();
+        return item;
+    },
+    giftPutIn(itemId, n = 1) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
+        if (!item || !this.state) return null;
+        if (!this.state.inventory) this.state.inventory = { materials: {}, items: {} };
+        if (!this.state.inventory.items) this.state.inventory.items = {};
+        this.state.inventory.items[itemId] = (this.state.inventory.items[itemId] || 0) + Math.max(1, Math.min(5, n));
+        this.save();
+        return item;
+    }
+});
+
 // =====================================================================
 // SAVE MERGE (Oct 28 2026). Two copies of a save (this device + cloud)
 // are combined instead of showing a conflict screen.
