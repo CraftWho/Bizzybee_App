@@ -245,6 +245,7 @@ const BizzyUpdates = (() => {
     const buildOf = (tag, version) => { const b = String(tag).match(/-b(\d+)$/); return b ? Number(b[1]) : Number(String(version).split('.').pop()) || 0; };
     async function check({ quiet } = {}) {
         if (!isApp) return { state: 'web' };
+        if (window.BB_PERSONAL) return { state: 'none' };   // Nov 2 2026 (Craft): BizzyBee Dev is rebuilt by hand
         const tk = token();
         const headers = { Accept: 'application/vnd.github+json' };
         if (tk) headers.Authorization = `Bearer ${tk}`;
