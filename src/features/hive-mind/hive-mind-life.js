@@ -176,17 +176,47 @@ const HiveLife = (() => {
         const id = backTo; backTo = null;
         if (id && lastMount) openRoom(id, lastMount);
     }
-    // Auto-manage panel (Nov 1 2026, Craft; approved demo).
+    // Auto-manage panel (Nov 1 2026, Craft; approved demos). Nothing at all
+    // shows until auto-manage or Auto-swap is unlocked: no hints.
     function autoPanel() {
         const el = document.createElement('div');
         const st = Vault.hiveAutoStatus && Vault.hiveAutoStatus();
-        if (!st) return el;
+        const swap = Vault.autoSwapUnlocked && Vault.autoSwapUnlocked();
+        if (!st || (!st.on && !swap)) return el;
         const L = st.leader;
-        if (!st.on && !st.filled) return el;   // nothing to show yet
-        el.className = 'hl-auto' + (st.running ? ' on' : '');
-        el.innerHTML = !st.on ? `<b>🔒 Auto-manage</b> <span class="hl-chk"><span class="${st.filled === st.open ? 'y' : ''}">${st.filled}/${st.open}</span><span class="${L ? 'y' : ''}">🎖 ${L ? esc(L.name) : '?'}</span></span>`
-            : st.running ? `<b>🤖 Auto-manage</b> · 🎖 ${esc(L.name)}`
+        el.className = 'hl-auto' + (st.running || swap ? ' on' : '');
+        let html = !st.on ? '' : st.running ? `<b>🤖 Auto-manage</b> · 🎖 ${esc(L.name)}`
             : `<b>⏸ Auto-manage</b> · ${st.stuck ? `${esc(st.stuck.name)} is tired` : 'no Leader'}`;
+        if (swap) {
+            const P = Vault.autoSwapPrefs();
+            const bees = Vault.getHiveBees().filter(b => b.rarity !== 'Royal' && !beeIsBrood(b) && !(b.life && b.life.faintedAt));
+            const last = Vault.state.hive.lastSwap;
+            const byId = (id) => Vault.getHiveBees().find(b => b.id === id);
+            const lastLine = last && Date.now() - Date.parse(last.at) < 6 * 3600000 && byId(last.in) && byId(last.out)
+                ? `<small>🔄 ${esc(byId(last.in).name)} took over the ${esc(BEE_CLASSES[last.job].label)} job. ${esc(byId(last.out).name)} is resting.</small>` : '';
+            html += `<div class="hl-swap">
+                <div class="hl-swap-row"><b class="hl-swap-t">🔄 Auto-swap</b><button type="button" class="hl-sw" data-swap="toggle" role="switch" aria-checked="${P.on}" aria-label="Auto-swap"><i></i></button></div>
+                ${P.on ? `<div class="hl-swap-row"><span class="hl-swap-l">Swap below</span><input type="range" min="10" max="60" step="5" value="${P.pct}" data-swap="pct" aria-label="Swap a bee out below this stamina"><span class="hl-swap-p">${P.pct}%</span></div>
+                <div class="hl-seg"><button type="button" data-swap="auto" aria-pressed="${P.mode === 'auto'}">Automatic</button><button type="button" data-swap="pick" aria-pressed="${P.mode === 'pick'}">I choose</button></div>
+                ${P.mode === 'pick' ? `<div class="hl-pool">${bees.map(b => `<button type="button" class="hl-chip" data-pool="${esc(b.id)}" aria-pressed="${P.pool.includes(b.id)}">${esc(b.name)}</button>`).join('')}</div>` : ''}
+                ${lastLine}` : ''}</div>`;
+        }
+        el.innerHTML = html;
+        el.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-swap], [data-pool]');
+            if (!b) return;
+            const P = Vault.autoSwapPrefs();
+            if (b.dataset.swap === 'toggle') Vault.setAutoSwap({ on: !P.on });
+            else if (b.dataset.swap === 'auto' || b.dataset.swap === 'pick') Vault.setAutoSwap({ mode: b.dataset.swap });
+            else if (b.dataset.pool) Vault.setAutoSwap({ pool: P.pool.includes(b.dataset.pool) ? P.pool.filter(x => x !== b.dataset.pool) : [...P.pool, b.dataset.pool] });
+            el.replaceWith(autoPanel());
+        });
+        el.addEventListener('input', (e) => {
+            if (e.target.dataset.swap !== 'pct') return;
+            const v = Number(e.target.value);
+            e.target.nextElementSibling.textContent = v + '%';
+            Vault.setAutoSwap({ pct: v });
+        });
         return el;
     }
     function closeRoom() {
@@ -289,7 +319,8 @@ const HiveLife = (() => {
                 if (!open.includes(j)) return '<div class="hl-slot-lock" aria-label="Locked"></div>';
                 const info = BEE_CLASSES[j];
                 const h = Vault.jobHolder(j);
-                if (h) return `<h3 class="hl-sub">${info.icon} ${esc(info.label)}</h3>` + WC.html(h, { job: j, action: 'rest', label: 'Rest', leader: lead && lead.id === h.id });
+                const ls = Vault.state.hive.lastSwap, fresh = ls && ls.in === (h && h.id) && ls.job === j && Date.now() - Date.parse(ls.at) < 6 * 3600000;
+                if (h) return `<h3 class="hl-sub">${info.icon} ${esc(info.label)}</h3>` + WC.html(h, { job: j, action: 'rest', label: 'Rest', leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
                 const fits = all.filter(b => !b.class && !beeIsBrood(b) && !(b.life && b.life.faintedAt) && Vault.beeFitsJob(b, j)).sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
                 return `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="hl-empty">empty</span></h3>`
                     + (fits.length ? fits.map(b => { const after = combPower([...holders, { ...b, class: j }], c.jobs); return WC.html(b, { job: j, effect: `+${after - power}%`, action: 'add', label: 'Add' }); }).join('') : '<p class="hl-note">—</p>');
