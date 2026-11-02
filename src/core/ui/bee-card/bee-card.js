@@ -364,11 +364,16 @@ ${pumpkin(46, 182, 1.05, true)}${pumpkin(74, 188, .62, false)}${pumpkin(258, 184
 
 // art: a bee's own picture (src/assets/bees/<art>.webp, e.g. Grimzy);
 // scene: 'halloween' swaps the forest for the Halloween night (Nov 1 2026).
-function beeCardArtHTML({ rarityKey = 'common', classInfo = null, silhouette = false, rivets = 3, royal = null, art = null, scene = null } = {}) {
+// Nov 2 2026 (Craft): each element has its own bee (Water, Fire, Wind, Earth).
+// A bee with no art of its own shows its element's bee instead of the gold one.
+// Earth (Craft's pick): the mossy bee for Common to Epic, the sand swirl for Legendary and up.
+const ELEMENT_BEE_ART = { water: 'elements/bee-water', fire: 'elements/bee-fire', wind: 'elements/bee-wind', earth: 'elements/bee-earth-b', 'earth-top': 'elements/bee-earth-c' };
+function beeCardArtHTML({ rarityKey = 'common', classInfo = null, silhouette = false, rivets = 3, royal = null, art = null, scene = null, element = null } = {}) {
+    if (!art && !royal && element && ELEMENT_BEE_ART[element]) art = element === 'earth' && ['legendary', 'named'].includes(rarityKey) ? ELEMENT_BEE_ART['earth-top'] : ELEMENT_BEE_ART[element];
     const rivetHTML = ['bc-tl', 'bc-tr', 'bc-bl'].slice(0, rivets).map(c => `<i class="bc-rv ${c}"></i>`).join('');
     const bee = royal
         ? `<div class="bc-beewrap bc-beewrap--royal${silhouette ? ' bc-silhouette' : ''}">${beeCardRoyalHTML(royal)}</div>`
-        : art && /^[a-z0-9-]+$/.test(art)
+        : art && /^[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(art)
             ? `<div class="bc-beewrap bc-beewrap--art${silhouette ? ' bc-silhouette' : ''}"><img src="${BEE_CARD_ASSETS}${art}.webp" alt="" draggable="false"></div>`
             : `<div class="bc-beewrap${silhouette ? ' bc-silhouette' : ''}"><img src="${BEE_CARD_ASSETS}card-bee.webp" alt="" draggable="false">${silhouette ? '' : '<div class="bc-tint"></div>'}</div>`;
     return `${scene === 'halloween' ? halloweenSceneSVG(beeCardForestId++) : beeCardForest()}${rivetHTML}
@@ -474,7 +479,7 @@ const BeeCard = {
                         ${elementInfo ? `<span class="bc-elhex" title="${elementInfo.label}"><span>${elementInfo.emoji}</span></span>` : ''}
                     </div>
 
-                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null })}${/* Nov 1 2026 (Craft): no crown on Named bees; only the King or Queen wears one (their own art) */ ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
+                    <div class="bc-art">${beeCardArtHTML({ rarityKey, classInfo, royal: bee.royal || null, art: bee.art || null, scene: bee.scene || null, element: bee.element || null })}${/* Nov 1 2026 (Craft): no crown on Named bees; only the King or Queen wears one (their own art) */ ''}${!title && bee.talent && typeof BEE_CLASSES !== 'undefined' && BEE_CLASSES[bee.talent] && bee.rarity !== 'Royal' ? `<span class="bc-talent${bee.class === bee.talent ? ' on' : ''}" title="Natural talent: 20% better at this job">⭐ Born ${BEE_CLASSES[bee.talent].label}</span>` : ''}</div>
 
                     <div class="bc-dex">${/* Oct 31 2026 (Craft): No. · obtained · height · weight */ ''}
                         <span><b>No.${dexNo}</b>${bee.rarity !== 'Royal' && (bee.sex === 'f' || bee.sex === 'm') ? ` <i class="bc-sex bc-sex--${bee.sex}" title="${bee.sex === 'f' ? 'Female' : 'Male'}">${bee.sex === 'f' ? '♀<span>F</span>' : '♂<span>M</span>'}</i>` : ''}</span>${/* Nov 1 2026 (Craft): sex next to the No. */ ''}
