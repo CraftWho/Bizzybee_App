@@ -69,6 +69,17 @@
                 <input type="url" id="cq-source-url" placeholder="https://" autocomplete="off" inputmode="url">
             </label>
 
+            <!-- Nov 1 2026 (Craft): optional deadline + Add to calendar / Set alarm -->
+            <h2 class="hf-h">Deadline <small>optional</small></h2>
+            <div class="tf-due">
+                <label class="hf-box">
+                    <small>Finish by</small>
+                    <input type="date" id="cq-deadline">
+                </label>
+                <button type="button" class="df-x tf-due-clear" id="cq-deadline-clear" aria-label="Clear deadline" hidden>×</button>
+            </div>
+            <div id="cq-phone"></div>
+
             <label class="cq-switch" id="cq-focus-row">
                 <input type="checkbox" id="cq-focus">
                 <span class="cq-switch-ui" aria-hidden="true"></span>

@@ -59,7 +59,9 @@ export function buildIcs(state, items, now = Date.now()) {
     }
     if (want.todos) for (const t of state.todos || []) {
         const d8 = ymd(t && t.dueDate);
-        if (!d8 || t.completed || !t.label) continue;
+        // Nov 1 2026 (Craft): only Hard To-Dos. The rest have reminders; a
+        // calendar full of small tasks doesn't help.
+        if (!d8 || t.completed || !t.label || t.difficulty !== 'Hard') continue;
         add(`todo-${safeId(t.id)}`, `✅ ${t.label}`, allDay(d8));
     }
     lines.push('END:VCALENDAR');

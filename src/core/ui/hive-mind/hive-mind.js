@@ -42,6 +42,49 @@ const WAGGLE_MENU = [
     ]]
 ];
 
+// Nov 1 2026 (Craft; from 1.0.7, approved demo): Home tiles you choose.
+// Hold a page in this menu to pin it to Home (or take it off). Home's edit
+// mode can remove tiles, add any page with ＋, and Reset Home. Saved as
+// state.homeTiles { hidden: [keys], extra: [keys] } so it follows the save.
+const HOME_DEFAULT_TILES = ['hive-mind', 'models', 'honey-store', 'skills', 'map', 'dashboard', 'profile', 'plugin-hub', 'hive-archive', 'notifications', 'settings'];
+const HomeTiles = {
+    keyOf: (path) => path.split('#')[0].split('/').pop().replace(/\.html$/, ''),
+    state() {
+        const v = typeof Vault !== 'undefined' && Vault.state ? Vault.state : null;
+        if (!v) return { hidden: [], extra: [] };
+        const t = v.homeTiles && typeof v.homeTiles === 'object' ? v.homeTiles : {};
+        return { hidden: Array.isArray(t.hidden) ? t.hidden : [], extra: Array.isArray(t.extra) ? t.extra : [] };
+    },
+    put(t) { if (typeof Vault === 'undefined' || !Vault.state) return; Vault.state.homeTiles = t; Vault.save(); },
+    // A default tile is on unless hidden; any other page is on only if added.
+    isDefault(key) {
+        if (HOME_DEFAULT_TILES.includes(key)) return true;
+        return typeof Plugins !== 'undefined' && !['habits', 'todos'].includes(key) && Plugins.getCatalog().some(e => e.id === key && Plugins.isEnabled(e.id));
+    },
+    isOn(key) { const t = this.state(); return this.isDefault(key) ? !t.hidden.includes(key) : t.extra.includes(key); },
+    set(key, on) {
+        const t = this.state();
+        t.hidden = t.hidden.filter(k => k !== key); t.extra = t.extra.filter(k => k !== key);
+        if (this.isDefault(key) && !on) t.hidden.push(key);
+        if (!this.isDefault(key) && on) t.extra.push(key);
+        this.put(t);
+    },
+    reset() {
+        if (typeof Vault === 'undefined' || !Vault.state) return;
+        delete Vault.state.homeTiles; delete Vault.state.homeAppOrder; Vault.save();
+    },
+    // Every page in the menu, for Home's ＋ sheet: { key, label, icon, path }.
+    menuPages() {
+        const out = [], seen = new Set();
+        WAGGLE_MENU.forEach(([, items]) => items.forEach(it => {
+            const key = this.keyOf(it.path);
+            if (seen.has(key) || (it.plugin && typeof Plugins !== 'undefined' && !Plugins.isEnabled(it.plugin))) return;
+            seen.add(key); out.push({ key, label: it.label, icon: it.icon, path: it.path });
+        }));
+        return out;
+    }
+};
+
 const Waggle = {
     actions: [],
     isOpen: false,
@@ -98,6 +141,34 @@ const Waggle = {
             }
         });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.isOpen) this.close(); });
+
+        // Nov 1 2026 (Craft): hold a page row (0.5s) to pin it to Home or take it off.
+        let pinTimer = null, pinned = false;
+        menu.addEventListener('pointerdown', (e) => {
+            const row = e.target.closest('a.wg-row[href]');
+            if (!row) return;
+            pinned = false;
+            const start = { x: e.clientX, y: e.clientY };
+            const stop = (ev) => {
+                if (ev && ev.type === 'pointermove' && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 8) return;
+                clearTimeout(pinTimer); pinTimer = null;
+                ['pointermove', 'pointerup', 'pointercancel'].forEach(t => window.removeEventListener(t, stop));
+            };
+            ['pointermove', 'pointerup', 'pointercancel'].forEach(t => window.addEventListener(t, stop));
+            pinTimer = setTimeout(() => {
+                pinTimer = null; pinned = true;
+                const key = HomeTiles.keyOf(row.getAttribute('href'));
+                const label = (row.querySelector('.wg-t') || row).firstChild.textContent.trim();
+                if (key === 'home') return;
+                const on = !HomeTiles.isOn(key);
+                HomeTiles.set(key, on);
+                if (navigator.vibrate) navigator.vibrate(15);
+                if (typeof Toast !== 'undefined') Toast.show(on ? `📌 ${label} added to Home` : `${label} removed from Home`, on ? 'positive' : 'neutral');
+                window.dispatchEvent(new Event('home-tiles-changed'));
+            }, 500);
+        });
+        menu.addEventListener('click', (e) => { if (pinned && e.target.closest('a.wg-row')) { e.preventDefault(); e.stopPropagation(); pinned = false; } }, true);
+        menu.addEventListener('contextmenu', (e) => { if (e.target.closest('a.wg-row')) e.preventDefault(); });
 
         document.body.append(b, scrim, menu);
         this.button = b; this.menu = menu; this.scrim = scrim;
@@ -161,7 +232,7 @@ const Waggle = {
                 return row(it.icon, it.label, extra, `href="${root}/${it.path}"${it.key ? ` data-key="${it.key}"` : ''}`, on);
             }).join('');
         });
-        html += '</div>';
+        html += '<p class="wg-tip">Tip: hold a page to pin it to Home.</p></div>';   // Nov 1 2026 (Craft)
         if (footer.length) html += `<div class="wg-foot">${footer.map(({ a, i }) => `<button type="button" data-action="${i}">${a.icon} ${this.esc(a.label)}</button>`).join('')}</div>`;
         this.menu.innerHTML = html;
         this.updateDot();

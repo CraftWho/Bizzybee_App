@@ -725,7 +725,8 @@ body.hive-life .hive-mind-hud { display: none; }
 .hl-bee.is-queen { width: 40px; height: 40px; margin: -20px 0 0 -20px; font-size: 30px; transition-duration: 3.4s; cursor: default; }
 .hl-bee.is-faint { transition: none; }
 .hl-bee.is-faint .hl-b { animation: none; filter: grayscale(1) brightness(.6); transform: rotate(90deg); }
-@keyframes hlBuzz { from { translate: 0 -1px; rotate: -6deg; } to { translate: 0 1px; rotate: 6deg; } }
+/* Nov 1 2026 (Craft): 3-point buzz, softer than the old 2-point one. */
+@keyframes hlBuzz { 0% { translate: 0 -1.5px; rotate: -5deg; } 50% { translate: .5px 0; rotate: 0deg; } 100% { translate: 0 1.5px; rotate: 5deg; } }
 .hl-more { position: absolute; z-index: 4; font: 700 .6rem var(--font-main, monospace); color: #241600; background: var(--bb-accent, #ffcc00); border-radius: 999px; padding: 2px 6px; pointer-events: none; }
 .hl-flyer { position: absolute; z-index: 6; font-size: 18px; pointer-events: none; transition: left 2.2s ease-in-out, top 2.2s ease-in-out; display: flex; flex-direction: column; align-items: center; }
 .hl-flyer .hl-b { animation-duration: .2s; }
@@ -871,3 +872,77 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 @keyframes cfSway { 0%, 100% { rotate: -1.5deg; } 50% { rotate: 1.5deg; } }
 @keyframes cfOrbit { from { transform: rotate(0) translateX(calc(min(21vw, 104px) * .55)) scaleY(.5); } to { transform: rotate(360deg) translateX(calc(min(21vw, 104px) * .55)) scaleY(.5); } }
 @media (prefers-reduced-motion: reduce) { .cf-hive, .cf-bee { animation: none; } }
+
+/* Nov 1 2026 (Craft): smoother bee animations (from 1.0.7). A softer walking
+   curve, staggered wing beats so bees aren't in step, faster wings in flight,
+   a slower queen, and still bees for anyone who asks for reduced motion.
+   Eggs and fainted bees keep their own look. */
+.hl-bee { transition-timing-function: cubic-bezier(.45, .05, .35, 1); }
+.hl-bee:nth-of-type(3n):not(.is-egg):not(.is-faint) .hl-b { animation-duration: .41s; animation-delay: -.12s; }
+.hl-bee:nth-of-type(3n+1):not(.is-egg):not(.is-faint) .hl-b { animation-duration: .31s; animation-delay: -.2s; }
+.hl-flyer { transition-timing-function: cubic-bezier(.3, .1, .3, 1); }
+.hl-flyer .hl-b { animation-duration: .14s; }
+.hl-bee.is-queen:not(.is-egg):not(.is-faint) .hl-b { animation-duration: .9s; }
+@media (prefers-reduced-motion: reduce) {
+    .hl-bee, .hl-flyer { transition: none; }
+    .hl-b, .hl-bee .hl-b { animation: none !important; }
+}
+
+/* Nov 1 2026 (Craft): "The Hive is Buzzing" (combs with no workers) and the
+   auto-manage panel (approved demo). */
+.hl-need { position: absolute; top: 4px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #ff2d4a; box-shadow: 0 0 0 2px #120d05, 0 0 10px rgba(255, 45, 74, .8); animation: hlNeed 1.4s ease-in-out infinite; pointer-events: none; }
+@keyframes hlNeed { 50% { transform: scale(1.25); } }
+.hl-buzz { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 45, 74, .12); border: 1px solid rgba(255, 45, 74, .45); color: #ffd7dd; font-size: .82rem; }
+.hl-buzz b { color: #fff; }
+.hl-auto { display: grid; gap: 4px; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 204, 0, .06); border: 1px solid rgba(255, 204, 0, .25); color: #f1ede2; font-size: .82rem; }
+.hl-auto b { color: #ffcc00; }
+.hl-auto.on { background: rgba(127, 224, 138, .08); border-color: rgba(127, 224, 138, .45); }
+.hl-auto.on b { color: #7fe08a; }
+.hl-auto small { color: #c2b48f; font-size: .72rem; }
+.hl-chk { display: flex; flex-wrap: wrap; gap: 4px 12px; color: #c2b48f; font-size: .76rem; }
+.hl-chk .y { color: #7fe08a; }
+.hl-row .wk-lead { font-size: .7rem; }
+@media (prefers-reduced-motion: reduce) { .hl-need { animation: none; } }
+/* Nov 1 2026 (Craft): locked combs and job slots are black with only the
+   outline showing. No words: there's more to find. */
+.hl-cell.is-locked { cursor: default; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .45); }
+.hl-cell.is-locked::before { content: ""; position: absolute; inset: 2px; background: #050403; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.hl-cell.is-locked:hover { transform: none; filter: none; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .45); }
+.hl-slot-lock { position: relative; height: 58px; margin: 12px 0 4px; border-radius: 12px; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .35); }
+.hl-slot-lock::before { content: ""; position: absolute; inset: 1.5px; border-radius: 11px; background: #050403; }
+.hl-empty { color: #ff8a96; }
+
+/* Nov 1 2026 (Craft): each comb its own bright color (approved preview A).
+   Locked combs stay black with an outline. */
+.hl-cell[data-comb] { background: linear-gradient(160deg, var(--cb-hi), var(--cb-lo)); }
+.hl-cell[data-comb]:hover { background: linear-gradient(160deg, var(--cb-hi), var(--cb-lo)); }
+.hl-cell[data-comb] .hl-in { background: linear-gradient(160deg, var(--cb-lo), var(--cb-in)); }
+.hl-cell[data-comb] .hl-nm { color: #fff4d6; }
+.hl-cell[data-comb="royal"] { --cb-hi: #9b6bd6; --cb-lo: #3b1d63; --cb-in: #2a1546; }
+.hl-cell[data-comb="nursery"] { --cb-hi: #e07a9a; --cb-lo: #7a2a45; --cb-in: #3d1422; }
+.hl-cell[data-comb="honey"] { --cb-hi: #f2b632; --cb-lo: #8a5a0c; --cb-in: #3b2808; }
+.hl-cell[data-comb="workshop"] { --cb-hi: #d0783a; --cb-lo: #6a3212; --cb-in: #33180a; }
+.hl-cell[data-comb="rest"] { --cb-hi: #5f8fd6; --cb-lo: #22406e; --cb-in: #121f36; }
+.hl-cell[data-comb="entrance"] { --cb-hi: #6cbf5e; --cb-lo: #2b5e27; --cb-in: #142d12; }
+.hl-cell.alert[data-comb] .hl-in { box-shadow: inset 0 0 0 2px var(--bb-alt, #dc143c); }
+
+/* Nov 1 2026 (Craft): Auto-swap (approved demo). */
+.hl-swap { display: grid; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px solid rgba(127, 224, 138, .25); animation: hlGrow .35s ease-out; }
+@keyframes hlGrow { from { opacity: 0; transform: translateY(-4px); } }
+.hl-swap-row { display: flex; align-items: center; gap: 10px; }
+.hl-swap-t { color: #5aa9ff !important; flex: 1; }
+.hl-swap-l { font-size: .72rem; color: #c2b48f; }
+.hl-swap-row input[type=range] { flex: 1; accent-color: var(--bb-accent, #ffcc00); }
+.hl-swap-p { min-width: 40px; text-align: right; font: 700 .86rem var(--font-main, monospace); color: var(--bb-accent, #ffcc00); }
+.hl-sw { position: relative; width: 44px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: 99px; background: #3a2a0a; cursor: pointer; box-shadow: none; }
+.hl-sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #f5ecd4; transition: left .2s; }
+.hl-sw[aria-checked="true"] { background: #7fe08a; }
+.hl-sw[aria-checked="true"] i { left: 23px; }
+.hl-seg { display: flex; gap: 6px; }
+.hl-seg button { flex: 1; margin: 0; padding: 7px 4px; border-radius: 10px; border: 1px solid #3a2a0a; background: #1a140b; color: #f5ecd4; font-size: .74rem; font-weight: 700; cursor: pointer; box-shadow: none; }
+.hl-seg button[aria-pressed="true"] { border: 0; background: var(--bb-accent, #ffcc00); color: #1a1000; }
+.hl-pool { display: flex; flex-wrap: wrap; gap: 6px; }
+.hl-chip { margin: 0; padding: 5px 10px; border-radius: 99px; border: 1px solid #3a2a0a; background: #1a140b; color: #f5ecd4; font-size: .74rem; cursor: pointer; box-shadow: none; }
+.hl-chip[aria-pressed="true"] { border-color: #5aa9ff; background: rgba(90, 169, 255, .15); color: #cfe4ff; }
+.wk-card.wk-fresh { background: rgba(127, 224, 138, .12); border-color: rgba(127, 224, 138, .6); }
+.hl-auto > .hl-swap:first-child { margin-top: 0; padding-top: 0; border-top: 0; }   /* Nov 1 2026 (Craft): no line when it stands alone */

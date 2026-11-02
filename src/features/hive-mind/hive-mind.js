@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         cardOverlay.addEventListener('click', (e) => {
             if (!e.target.closest('.bee-card, .hive-mind-queen-panel, .hl-panel')) {
                 cardOverlay.hidden = true;
-                if (hiveMindHiveView() === 'life' && document.body.classList.contains('hive-mind-inside')) renderHiveLife();
+                if (hiveMindHiveView() === 'life' && document.body.classList.contains('hive-mind-inside')) { renderHiveLife(); HiveLife.reopenLast(); }   // Nov 1 2026 (Craft): back to the comb
             }
         });
     }
