@@ -1102,3 +1102,14 @@ html.bb-zoom body *:not(#cb-expanded, #cb-expanded *, .gf-scrim, .gf-scrim *), h
    control you swipe or drag, so pulling down on it never refreshes the page
    (pull-refresh.js checks it) and the browser's own pull stays off too. */
 .no-pull { overscroll-behavior: contain; touch-action: none; }
+
+/* Nov 2 2026 (Craft; approved demo): left or right hand. Settings › Look &
+   feel sets <html data-hand="right"> (boot.js reads it before the page
+   paints). Reusable: put class="hand-row" on any flex row whose buttons
+   should sit on your thumb's side, and "hand-text" on its text part. */
+html[data-hand="right"] .hand-row { flex-direction: row-reverse; }
+html[data-hand="right"] .hand-row > .hand-text { text-align: right; align-items: flex-end; }
+html[data-hand="right"] .hand-row > .hand-text > * { text-align: right; justify-content: flex-end; }
+/* A habit with only + or only − shows one button, on your side. */
+.hr-row .hr-side:not(.lit) { display: none; }
+.hr-row.hr-neg-only .hr-side { order: -1; }

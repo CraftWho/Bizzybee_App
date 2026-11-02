@@ -139,9 +139,9 @@ const QuestUI = {
         if (!compact && task.ghosts) meta.push(this.ghostsHTML(task.ghostsDone || 0, task.ghosts));
         if (!compact && task.difficulty) meta.unshift(`<span class="qt-diff">${this.esc(task.difficulty)}</span>`);
         if (!compact && task.completed && task.dateCompleted) meta.push(`<span class="qt-when">✓ ${this.esc(this.shortDate(task.dateCompleted))}</span>`);
-        return `<li class="qt dr-row${task.completed ? ' done' : ''}" data-task-id="${this.esc(task.id)}" style="--dc:${s.color};--dk:${s.ink}">
+        return `<li class="qt dr-row hand-row${task.completed ? ' done' : ''}" data-task-id="${this.esc(task.id)}" style="--dc:${s.color};--dk:${s.ink}">
             ${TaskRow.checkButton(task, !!task.completed)}
-            <div class="qt-text">${label}<div class="qt-meta">${meta.join('')}</div></div>
+            <div class="qt-text hand-text">${label}<div class="qt-meta">${meta.join('')}</div></div>
         </li>`;
     },
 
