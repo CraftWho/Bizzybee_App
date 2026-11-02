@@ -17,10 +17,24 @@ Craft 🐝`;
 function renderGifts() {
     const box = $('mb-gifts');
     const list = typeof Gifts !== 'undefined' ? Gifts.cached() : [];
+    // Nov 1 2026 (Craft): items friends sent from the Honey Mart, as letters with the item attached.
+    const items = typeof Social !== 'undefined' && Social.cachedItemGifts ? Social.cachedItemGifts() : [];
     box.innerHTML = list.map((g, i) => `<button type="button" class="bb-box mb-letter unread mb-giftrow" data-gift="${i}">
         <div class="top"><h3 class="bb-title">🎁 A gift from ${esc(g.from || 'Craft')}</h3><span class="new">NEW</span></div>
-        <small>Grimzy #${String(g.serial).padStart(3, '0')} · ${when(g.at)} · tap to open</small></button>`).join('');
-    box.onclick = (e) => { const b = e.target.closest('[data-gift]'); if (b) Gifts.open(list[+b.dataset.gift]); };
+        <small>Grimzy #${String(g.serial).padStart(3, '0')} · ${when(g.at)} · tap to open</small></button>`).join('')
+        + items.map(g => { const it = (typeof STORE_ITEM_CATALOG !== 'undefined' && STORE_ITEM_CATALOG.find(x => x.id === g.item)) || { icon: '🎁', label: g.item };
+            return `<article class="bb-box mb-letter unread mb-itemgift">
+                <div class="top"><h3 class="bb-title">🎁 From ${esc(g.from || 'a friend')}</h3><span class="new">NEW</span></div>
+                <small>${when(g.at)}</small>${g.note ? `<p class="body">${esc(g.note)}</p>` : ''}
+                <div class="mb-attach"><span>${it.icon} ${esc(it.label)} × ${g.n || 1}</span><button type="button" class="bb-btn bb-btn--main" data-take="${esc(g.id)}">Take</button></div></article>`; }).join('');
+    box.onclick = async (e) => {
+        const b = e.target.closest('[data-gift]'); if (b) { Gifts.open(list[+b.dataset.gift]); return; }
+        const t = e.target.closest('[data-take]');
+        if (!t) return;
+        t.disabled = true; t.textContent = '…';
+        try { const r = await Social.acceptGift(t.dataset.take); const it = STORE_ITEM_CATALOG.find(x => x.id === r.item); Toast.show(`🎁 ${it ? it.label : 'Gift'} is in your Bag.`, 'positive'); renderGifts(); }
+        catch (err) { Toast.show(err.message || 'Could not take it.', 'negative'); t.disabled = false; t.textContent = 'Take'; }
+    };
 }
 
 let giftFormReady = false;
@@ -76,6 +90,7 @@ function render(data) {
 async function load(force) {
     renderGifts();
     if (typeof Gifts !== 'undefined' && localStorage.getItem('bizzybee_session') === 'identity') Gifts.inbox(force).then(renderGifts).catch(() => {});
+    if (localStorage.getItem('bizzybee_session') === 'identity' && Social.itemGifts) Social.itemGifts().then(renderGifts).catch(() => {});   // Nov 1 2026 (Craft)
     render(Social.cachedMail());
     try { render(await Social.mail(force)); $('mb-signin').hidden = true; }
     catch (e) {

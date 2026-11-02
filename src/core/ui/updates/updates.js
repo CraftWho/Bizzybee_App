@@ -19,6 +19,8 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        { icon: '🍯', title: 'Honey Mart', text: 'The store is a real shop now: Buy, Sell, pockets and a quantity box. Send bee items to friends; gifts arrive in the Mailbox.', href: 'features/honey-store/honey-store.html' },
+        { icon: '👸', title: 'Eve on Home', text: 'Bees that need help no longer push your Home apps down. Eve pops up instead.' },
         { icon: '📌', title: 'Your Home, your tiles', text: 'Hold a tile to remove or add pages. Hold a page in the menu to pin it.', href: 'features/home/home.html' },
         { icon: '🎁', title: 'Title perks', text: 'A special title you wear adds a little to every Daily bonus.', href: 'features/titles/titles.html' },
         { icon: '🐝', title: 'A growing hive', text: 'New parts of your hive open as you level up. Each job needs a bee with the right talent.', href: 'features/hive-mind/hive-mind.html' },
