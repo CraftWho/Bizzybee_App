@@ -100,6 +100,8 @@ const WHATS_NEW = [
         { icon: '🧹', title: 'Clear today', text: 'Terminal: type clear today to undo today\'s check-offs, XP and level.', href: 'plugins/terminal/terminal.html' },
       ],
       fixed: [
+        // Nov 2 2026 (Craft): Batch 19.
+        { icon: '🔐', title: 'Signing in on a new phone', text: 'Your hive loads before anything else. No more egg for an account that already has a hive.' },
         { icon: '👣', title: 'Steps', text: 'Now counts your whole day.' },
         // Oct 31 2026 (Craft): Batch 2.
         { icon: '🌙', title: 'Evening quest tasks', text: 'Quest tasks done after 8 PM now count on today, not tomorrow.' },
