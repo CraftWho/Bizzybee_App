@@ -15,6 +15,15 @@ on:
         description: "Tester build (WebView debugging on)"
         type: boolean
         default: false
+      # Nov 2 2026 (Craft): "BizzyBee Dev", Craft's own app. Run it on the
+      # `personal` branch. Its own app id, name and DEV icon (installs next to
+      # BizzyBee), owner tools on, WebView debugging on, and it never takes
+      # files from the live site. Posted as a pre-release, so BizzyBee's own
+      # update check never offers it to anyone.
+      personal:
+        description: "BizzyBee Dev (your own app; run on the personal branch)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -41,6 +50,17 @@ jobs:
         run: |
           node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
           echo "BB_TAG_SUFFIX=-tester" >> "$GITHUB_ENV"
+      - name: BizzyBee Dev - own app id, name, icon, debugging
+        if: ${{ inputs.personal }}
+        run: |
+          node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.appId='com.craftwho.bizzybee.dev';c.appName='BizzyBee Dev';c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          sed -i 's/applicationId "com.craftwho.bizzybee"/applicationId "com.craftwho.bizzybee.dev"/' android/app/build.gradle
+          sed -i 's|<string name="app_name">BizzyBee</string>|<string name="app_name">BizzyBee Dev</string>|; s|<string name="title_activity_main">BizzyBee</string>|<string name="title_activity_main">BizzyBee Dev</string>|' android/app/src/main/res/values/strings.xml
+          cp -r assets/dev-icon/res/. android/app/src/main/res/
+          grep -q 'com.craftwho.bizzybee.dev' android/app/build.gradle
+          echo "BB_PERSONAL=1" >> "$GITHUB_ENV"
+          echo "BB_TAG_SUFFIX=-dev" >> "$GITHUB_ENV"
+          echo "BB_APP_NAME=BizzyBee-Dev" >> "$GITHUB_ENV"
       # Nov 1 2026 (Craft): the app's own copy of the app files goes inside the APK.
       - name: Build the app copy
         run: node ../tools/make-app-copy.mjs www
@@ -56,12 +76,12 @@ jobs:
           export BB_KEYSTORE_PATH="$RUNNER_TEMP/bizzybee.jks"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/BizzyBee-$BB_VERSION_NAME.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/${BB_APP_NAME:-BizzyBee}-$BB_VERSION_NAME.apk"
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: android-v${{ env.BB_VERSION_NAME }}-b${{ github.run_number }}${{ env.BB_TAG_SUFFIX }}
           target_commitish: ${{ github.sha }}
-          name: BizzyBee Android ${{ env.BB_VERSION_NAME }}${{ env.BB_TAG_SUFFIX }}
-          prerelease: ${{ inputs.tester }}
+          name: ${{ inputs.personal && 'BizzyBee Dev' || 'BizzyBee Android' }} ${{ env.BB_VERSION_NAME }}${{ env.BB_TAG_SUFFIX }}
+          prerelease: ${{ inputs.tester || inputs.personal }}
           body: Install on your phone, or tap Update in the app (Settings › About). Updates install over the old version.
-          files: BizzyBee-${{ env.BB_VERSION_NAME }}.apk
+          files: ${{ env.BB_APP_NAME || 'BizzyBee' }}-${{ env.BB_VERSION_NAME }}.apk
