@@ -51,7 +51,7 @@ jobs:
           node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
           echo "BB_TAG_SUFFIX=-tester" >> "$GITHUB_ENV"
       - name: BizzyBee Dev - own app id, name, icon, debugging
-        if: ${{ inputs.personal }}
+        if: ${{ inputs.personal || github.ref_name == 'personal' }}   # the personal branch always builds Dev
         run: |
           node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.appId='com.craftwho.bizzybee.dev';c.appName='BizzyBee Dev';c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
           sed -i 's/applicationId "com.craftwho.bizzybee"/applicationId "com.craftwho.bizzybee.dev"/' android/app/build.gradle
@@ -81,7 +81,7 @@ jobs:
         with:
           tag_name: android-v${{ env.BB_VERSION_NAME }}-b${{ github.run_number }}${{ env.BB_TAG_SUFFIX }}
           target_commitish: ${{ github.sha }}
-          name: ${{ inputs.personal && 'BizzyBee Dev' || 'BizzyBee Android' }} ${{ env.BB_VERSION_NAME }}${{ env.BB_TAG_SUFFIX }}
-          prerelease: ${{ inputs.tester || inputs.personal }}
+          name: ${{ env.BB_PERSONAL == '1' && 'BizzyBee Dev' || 'BizzyBee Android' }} ${{ env.BB_VERSION_NAME }}${{ env.BB_TAG_SUFFIX }}
+          prerelease: ${{ inputs.tester || env.BB_PERSONAL == '1' }}
           body: Install on your phone, or tap Update in the app (Settings › About). Updates install over the old version.
           files: ${{ env.BB_APP_NAME || 'BizzyBee' }}-${{ env.BB_VERSION_NAME }}.apk
