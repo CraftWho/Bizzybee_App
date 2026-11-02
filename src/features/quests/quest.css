@@ -186,3 +186,17 @@
 
 .qd-ghost-n { display: block; margin-top: 3px; }
 .qg .qd-ghosts { margin: 0; }
+
+/* Nov 1 2026 (Craft): quest history */
+.qd-hist summary { list-style: none; cursor: pointer; }
+.qd-hist summary::-webkit-details-marker { display: none; }
+.qd-hist summary .qd-h::after { content: " ▾"; color: var(--muted, #a69a80); }
+.qd-hist[open] summary .qd-h::after { content: " ▴"; }
+.qd-hist-day { margin: 14px 0 6px; font: 700 .7rem var(--font-main, monospace); letter-spacing: .12em; text-transform: uppercase; color: var(--muted, #a69a80); }
+.qd-hist-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.qd-hist-list li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .04); font-size: .88rem; }
+.qd-hist-list small { flex: none; color: var(--muted, #a69a80); }
+
+/* Nov 1 2026 (Craft): quest deadline */
+.qd-deadline { margin: 4px 0 0; font-size: .82rem; color: var(--muted, #a69a80); }
+.qd-deadline b { color: #ff7a7a; }

@@ -95,8 +95,8 @@ const BizzyPhone = (() => {
             settings() { this.request(); },
         },
         calendar: {
-            icon: '📅', title: 'Phone calendar', why: 'See your phone events in Calendar. Add To-Do due dates to it.', app: true,
-            card: ['USE YOUR PHONE CALENDAR?', 'BizzyBee reads your events to show them in its Calendar, and adds your To-Do due dates. Nothing leaves your phone.', ['You pick which of the two to turn on.', 'Turning it off removes the To-Dos it added.']],
+            icon: '📅', title: 'Phone calendar', why: 'See your phone events in Calendar. Add Hard To-Do due dates to it.', app: true,
+            card: ['USE YOUR PHONE CALENDAR?', 'BizzyBee reads your events to show them in its Calendar, and adds your Hard To-Do due dates. Nothing leaves your phone.', ['You pick which of the two to turn on.', 'Turning it off removes the To-Dos it added.']],
             async check() {
                 const c = P('CapacitorCalendar');
                 if (!c) return 'unsupported';
@@ -281,9 +281,10 @@ const BizzyPhone = (() => {
             const m = this.map();
             const todos = new Map((Vault.state.todos || []).map(t => [t.id, t]));
             const drop = async (id) => { try { await c.deleteEvent({ id: String(m[id].e) }); } catch {} delete m[id]; };
-            for (const id of Object.keys(m)) { const t = todos.get(id); if (!t || t.completed || !t.dueDate) await drop(id); }
+            // Nov 1 2026 (Craft): Hard To-Dos only, like the calendar feed.
+            for (const id of Object.keys(m)) { const t = todos.get(id); if (!t || t.completed || !t.dueDate || t.difficulty !== 'Hard') await drop(id); }
             for (const t of todos.values()) {
-                if (t.completed || !t.dueDate) continue;
+                if (t.completed || !t.dueDate || t.difficulty !== 'Hard') continue;
                 const sig = `${t.label}|${t.dueDate}|${t.dueTime || ''}`;
                 if (m[t.id] && m[t.id].s === sig) continue;
                 if (m[t.id]) await drop(t.id);

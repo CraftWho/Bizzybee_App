@@ -13,7 +13,7 @@ function harness(state) {
     const localStorage = { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, String(v)), removeItem: k => data.delete(k) };
     const context = vm.createContext({ localStorage, console: { log() {}, error() {} }, Event,
         window: { location: { pathname: '/' }, dispatchEvent() {} }, fetch: async () => ({ ok: false }) });
-    vm.runInContext(readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8') + '\nglobalThis.vault = Vault; Math.random = () => 0.99; LIFE.deathEnabled = true;', context);
+    vm.runInContext(readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8') + '\nglobalThis.vault = Vault; HIVE_JOB_RULES = false; Math.random = () => 0.99; LIFE.deathEnabled = true;', context);
     return { vault: context.vault, g: (code) => vm.runInContext(code, context) };
 }
 

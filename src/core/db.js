@@ -699,9 +699,24 @@ const NAMED_TITLES = {
     champ: { label: 'The Champ', icon: '🏆', power: 'Main Event', text: '+15% power in counter-raids.', job: null, quote: '{n} has never lost a fight worth winning.' },
     bold: { label: 'The Bold', icon: '🦁', power: 'Fearless', text: 'Never hurt when a raid gets in.', job: null, quote: '{n} flies straight at the hornets.' },
     wanderer: { label: 'The Wanderer', icon: '🧭', power: 'Far Flyer', text: 'Counts as two Scouts when guiding Foragers to rare finds.', job: 'scout', quote: '{n} knows every flower for a mile.' },
-    unyielding: { label: 'The Unyielding', icon: '🧱', power: 'Iron Seal', text: '+15% raid defense while a Propolis Sealer.', job: 'barrier', quote: 'Cracks close wherever {n} goes.' }
+    unyielding: { label: 'The Unyielding', icon: '🧱', power: 'Iron Seal', text: '+15% raid defense while a Propolis Sealer.', job: 'barrier', quote: 'Cracks close wherever {n} goes.' },
+    // Limited titles (Oct 29 2026, back Nov 1) belong to one limited bee and are never rolled.
+    reaper: { label: 'The Reaper', icon: '💀', power: 'Soul Harvest', text: 'While an Undertaker, every fallen bee also leaves a Honey Drop.', job: 'undertaker', quote: 'When the moon is full, {n} comes to collect.', limited: true }
 };
-const NAMED_TITLE_IDS = Object.keys(NAMED_TITLES);
+const NAMED_TITLE_IDS = Object.keys(NAMED_TITLES).filter(id => !NAMED_TITLES[id].limited);
+
+// Limited editions (Oct 29 2026, Craft; back Nov 1 2026): numbered bees, 50
+// in the world. The number comes from the server (netlify/functions/
+// limited.mjs), which keeps the official list (number -> account); #001 is
+// the creator's. Given as a gift with a letter (Mailbox) or claimed on the
+// event day. Limited bees never die, can't be renamed, released or combined.
+const LIMITED_EDITIONS = {
+    'grimzy-2026': {
+        id: 'grimzy-2026', label: 'Halloween 2026', name: 'Grimzy', title: 'reaper', element: 'fire', of: 50,
+        art: 'grimzy', scene: 'halloween', month: 10, day: 31
+    }
+};
+const beeIsLimited = (b) => !!(b && b.limited && b.limited.serial);
 const rollNamedTitle = () => NAMED_TITLE_IDS[Math.floor(Math.random() * NAMED_TITLE_IDS.length)];
 // True when this bee's title power is switched on (its job matches).
 function beeTitlePower(bee, titleId) {
@@ -1622,6 +1637,43 @@ const REST_RATES = {
     night: [7, 2.5, 1, -6, 2],        // everyone's sleep
     nursery: [4, 2.5, 1, -3, 4]       // a Nursery bed: heals 4x faster (+1 per working Nurse, max +3)
 };
+// Nov 1 2026 (Craft): Hive Life combs and the jobs done in each (same as
+// HiveLife.COMBS). Used by the comb strength and by auto-manage.
+// Nov 1 2026 (Craft): the hive grows with your level. One new job slot
+// every 1-2 levels (the Lv 1 job becomes your first bee's talent).
+let HIVE_JOB_RULES = true;   // tests of the older job mechanics turn this off
+const HIVE_JOB_LADDER = [
+    { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 4, job: 'collector' }, { lv: 5, job: 'guardian' },
+    { lv: 7, job: 'watercarrier' }, { lv: 8, job: 'architect' }, { lv: 10, job: 'attendant' }, { lv: 11, job: 'cleaner' },
+    { lv: 13, job: 'scout' }, { lv: 14, job: 'drone' }, { lv: 16, job: 'barrier' }, { lv: 17, job: 'undertaker' }
+];
+const HIVE_COMB_JOBS = {
+    royal: { name: 'Royal Chamber', jobs: ['attendant', 'drone'] },
+    nursery: { name: 'Nursery', jobs: ['nurse'] },
+    honey: { name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'] },
+    workshop: { name: 'Workshop', jobs: ['architect', 'cleaner'] },
+    entrance: { name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'] }
+};
+// How good a bee is at a job, about 1-100 (from 1.0.7's WorkerCard). The
+// job's stat, +20% for its talent, less if it's not well or tired.
+function beeJobScore(bee, job) {
+    const info = BEE_CLASSES[job];
+    if (!bee || !info) return 0;
+    let s = info.stat ? Number((bee.stats || {})[info.stat]) || 40 : 40;
+    if (info.stat === 'hp') s = s / 3;   // hp runs ~3x the other stats
+    if (bee.talent === job) s *= 1.2;
+    const probs = beeProblems(bee);
+    if (probs) s *= probs >= 2 ? 0.7 : 0.85;
+    const L = bee.life || {};
+    if (L.stamina != null) s *= 0.6 + 0.4 * Math.min(1, L.stamina / 60);
+    return Math.max(1, Math.min(100, Math.round(s)));
+}
+const COMB_FULL_TEAM = 3;   // three good workers = 100%
+function combPower(bees, jobs) {
+    const total = bees.reduce((n, b) => n + (jobs.includes(b.class) ? beeJobScore(b, b.class) : 0), 0);
+    return Math.min(100, Math.round(total / (COMB_FULL_TEAM * 70) * 100));
+}
+
 const WORK_HOURS = [7, 22];           // 7 AM to 10 PM
 const isNightHour = (h) => h < WORK_HOURS[0] || h >= WORK_HOURS[1];
 // Hurt levels from health (replaces "Injured"): 0 fine, 1 Hurt, 2 Badly hurt, 3 Severely hurt (can't work).
@@ -3406,7 +3458,7 @@ class DatabaseManager {
     // are kept; new rows become new tasks; rows left out are removed.
     // Everything else on the quest (ghost logs, side quests, codex
     // unlocks, repo task...) is left alone. Returns the quest.
-    saveQuestForm(questId, { title, objective, category, source, tasks, makeActive, tags }) {
+    saveQuestForm(questId, { title, objective, category, source, tasks, makeActive, tags, deadline }) {
         if (!this.state) return null;
         if (!this.state.quests) this.state.quests = [];
         const stamp = Date.now();
@@ -3432,6 +3484,8 @@ class DatabaseManager {
         quest.category = category === 'side' ? 'side' : 'main';
         quest.source = source && source.url ? { label: source.label || source.url, url: source.url } : null;
         if (Array.isArray(tags)) quest.tags = [...new Set(tags.map(t => String(t).trim()).filter(Boolean))];
+        // Nov 1 2026 (Craft): optional deadline (YYYY-MM-DD).
+        if (deadline !== undefined) { if (/^\d{4}-\d{2}-\d{2}$/.test(String(deadline || ''))) quest.deadline = deadline; else delete quest.deadline; }
         quest.tasks = (tasks || []).map((row, index) => {
             const prev = row.id && old.find(t => t.id === row.id);
             const minutes = Number(row.minutes) > 0 ? Number(row.minutes) : (prev ? prev.minutes || null : null);
@@ -3506,6 +3560,22 @@ class DatabaseManager {
     // to recompute it from; it has to be stored as its own fact.
     getHiveBees() {
         return this.state && this.state.hive ? (this.state.hive.bees || []) : [];
+    }
+
+    // Limited editions (Nov 1 2026): adds the numbered bee once the server
+    // has given it its number. One per edition; a second call keeps it.
+    addLimitedBee(editionId, serial) {
+        const ed = LIMITED_EDITIONS[editionId];
+        if (!this.state || !ed || !(Number.isInteger(serial) && serial >= 1 && serial <= ed.of)) return null;
+        const have = this.getHiveBees().find(b => b.limited && b.limited.edition === editionId);
+        if (have) { have.limited.serial = serial; this.save(); return have; }
+        return this.addHiveBee({
+            id: generateBeeId(), name: ed.name, rarity: 'Named', title: ed.title,
+            obtainedAt: new Date().toISOString(), source: 'limited', stats: rollBeeStats('Named'), weight: rollBeeWeight('Named'),
+            dexNumber: this.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1, element: ed.element,
+            customNamed: true, art: ed.art, scene: ed.scene, class: NAMED_TITLES[ed.title].job || null,
+            limited: { edition: editionId, serial, of: ed.of, label: ed.label, claimedAt: new Date().toISOString() }
+        });
     }
 
     addHiveBee(bee) {
@@ -3594,6 +3664,7 @@ class DatabaseManager {
 
         const trimmed = (newName || '').trim();
         if (!trimmed) return null;
+        if (beeIsLimited(bee)) return null;   // limited bees keep their name (Nov 1 2026)
 
         bee.name = trimmed.slice(0, 40);
         // Flags this bee as user-named - the Identity Card store item
@@ -3627,6 +3698,9 @@ class DatabaseManager {
         // Named Beasts: the title fixes the job.
         const locked = beeLockedJob(bee);
         if (locked && className !== locked) return null;
+        // Nov 1 2026 (Craft): open jobs only, talent only, one bee per job.
+        this.lastJobError = className ? this.jobBlock(bee, className) : '';
+        if (this.lastJobError) return null;
         // Hive Life: only male bees can be Drones, and Drones do nothing else.
         if (className && bee.sex) {
             const maleOnly = !!BEE_CLASSES[className].maleOnly;
@@ -3641,6 +3715,7 @@ class DatabaseManager {
             if (bee.class) delete bee.life.idleSince;
             else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
         }
+        this.autoJustUnlocked = this._autoUnlockCheck();   // Nov 1 2026 (Craft): auto-manage
         this.save();
         return bee;
     }
@@ -4075,6 +4150,7 @@ class DatabaseManager {
         const index = bees.findIndex(b => b.id === beeId);
         if (index === -1) return null;
         if (bees[index].rarity === 'Royal') return null;   // the founder stays
+        if (beeIsLimited(bees[index])) return null;        // limited bees stay (Nov 1 2026)
 
         const [removed] = bees.splice(index, 1);
 
@@ -4108,6 +4184,7 @@ class DatabaseManager {
         const beeB = bees.find(b => b.id === beeIdB);
         if (!beeA || !beeB) return null;
         if (beeA.rarity === 'Royal' || beeB.rarity === 'Royal') return null;
+        if (beeIsLimited(beeA) || beeIsLimited(beeB)) return null;   // Nov 1 2026
 
         const indexOf = (rarity) => {
             const idx = RARITY_ORDER.indexOf(rarity);
@@ -6003,12 +6080,131 @@ Object.assign(DatabaseManager.prototype, {
         return fresh;
     },
 
+    // ---- Hive levels + auto-manage (Nov 1 2026, Craft; approved demos) ----
+    // The hive grows with your level: HIVE_JOB_LADDER opens one job slot
+    // every 1-2 levels. Your first bee's talent is the job that opens at
+    // Lv 1, so every hive starts differently. One bee per job slot, and a
+    // bee can only take the job that matches its talent (Named bees: the
+    // job their title sets). Auto-manage unlocks when every open job is
+    // filled and one worker is Rare or better (the Leader); then every hour
+    // an empty open job gets a free bee with that talent. It pauses while a
+    // working bee is tired and no other bee with that talent is free, or
+    // while no Leader is working, and comes back by itself.
+    hiveJobLadder() {
+        const c = this.state && this.state.hive;
+        if (!c) return HIVE_JOB_LADDER.slice();
+        if (!c.firstJob) {
+            const first = this._lifeBees().filter(b => b.rarity !== 'Named' && b.talent).sort((a, b) => String(a.obtainedAt || '').localeCompare(String(b.obtainedAt || '')))[0];
+            if (first) c.firstJob = first.talent;
+        }
+        const f = c.firstJob;
+        if (!f || f === HIVE_JOB_LADDER[0].job) return HIVE_JOB_LADDER.slice();
+        const lv1 = HIVE_JOB_LADDER[0], other = HIVE_JOB_LADDER.find(x => x.job === f);
+        if (!other) return HIVE_JOB_LADDER.slice();
+        return HIVE_JOB_LADDER.map(x => x.job === f ? { lv: lv1.lv, job: f } : x === lv1 ? { lv: other.lv, job: lv1.job } : x).sort((a, b) => a.lv - b.lv);
+    },
+    hiveOpenJobs() {
+        const lv = (this.getUser() || {}).level || 1;
+        return this.hiveJobLadder().filter(x => x.lv <= lv).map(x => x.job);
+    },
+    // The bee in a job slot (alive, not an egg), or null.
+    jobHolder(job) {
+        return this._lifeBees().find(b => b.class === job && !beeIsBrood(b) && !b.life.faintedAt) || null;
+    },
+    beeFitsJob(bee, job) {
+        const locked = beeLockedJob(bee);
+        return locked ? locked === job : bee.talent === job;
+    },
+    // Why a bee can't take a job right now, or '' if it can.
+    jobBlock(bee, job) {
+        if (!job || job === 'recuperate' || !HIVE_JOB_RULES) return '';
+        if (!this.hiveOpenJobs().includes(job)) return 'That job isn\'t open yet.';
+        if (!this.beeFitsJob(bee, job)) return 'Only a bee with that talent can do this job.';
+        const h = this.jobHolder(job);
+        if (h && h.id !== bee.id) return `${h.name} already has this job.`;
+        return '';
+    },
+    // Every worker in this comb is Rare or better: they tire and get hungry 50% slower.
+    combIsRare(id) {
+        const w = this._combWorkers(id);
+        return w.length > 0 && w.every(b => ['Rare', 'Epic', 'Legendary', 'Named'].includes(b.rarity));
+    },
+    _rareCombOf(bee) {
+        const id = Object.keys(HIVE_COMB_JOBS).find(k => HIVE_COMB_JOBS[k].jobs.includes(bee.class));
+        return !!id && this.combIsRare(id);
+    },
+    // Once (Nov 1 2026): bees working off-talent, in a job that isn't open,
+    // or doubled up on a job go to rest.
+    _talentJobsMigrate() {
+        const c = this.state && this.state.hive;
+        if (!c || c.talentJobsV1 || !HIVE_JOB_RULES) return;
+        c.talentJobsV1 = true;
+        const open = this.hiveOpenJobs();
+        let moved = 0;
+        const keep = {};
+        this._lifeBees().filter(b => b.class && !beeIsBrood(b)).sort((a, b) => beeJobScore(b, b.class) - beeJobScore(a, a.class)).forEach(b => {
+            if (open.includes(b.class) && this.beeFitsJob(b, b.class) && !keep[b.class]) { keep[b.class] = b.id; return; }
+            b.class = null; b.jobSince = todayISO(); b.life.idleSince = todayISO(); moved++;
+        });
+        if (moved) this._lifeEvent('auto', `🐝 The hive reorganized. ${moved} bee${moved === 1 ? '' : 's'} went to rest.`);
+        this.save();
+    },
+    _combWorkers(id) {
+        const jobs = HIVE_COMB_JOBS[id].jobs;
+        return this._lifeBees().filter(b => jobs.includes(b.class) && !beeIsBrood(b) && !b.life.faintedAt);
+    },
+    hiveLeader() {
+        const RANK = { Rare: 1, Epic: 2, Legendary: 3, Named: 4 };
+        const open = this.hiveOpenJobs();
+        return this._lifeBees().filter(b => open.includes(b.class) && RANK[b.rarity] && !beeIsBrood(b) && beeCanWork(b))
+            .sort((a, b) => RANK[b.rarity] - RANK[a.rarity] || beeJobScore(b, b.class) - beeJobScore(a, a.class))[0] || null;
+    },
+    _autoReady(b) {
+        return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery;
+    },
+    hiveAutoStatus() {
+        if (!this.state || !this.state.hive) return null;
+        const open = this.hiveOpenJobs();
+        const filled = open.filter(j => this.jobHolder(j)).length;
+        const leader = this.hiveLeader();
+        // A tired worker with nobody free to take its place pauses it.
+        const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b));
+        const stuck = open.map(j => this.jobHolder(j)).find(b => b && b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
+        const on = !!(this.state.hive.autoManage && this.state.hive.autoManage.on);
+        return { on, running: on && !!leader && !stuck, leader, stuck, open: open.length, filled };
+    },
+    // Called after a job change and every hour. Returns true when it just unlocked.
+    _autoUnlockCheck() {
+        const st = this.hiveAutoStatus();
+        if (!st || st.on || st.filled < st.open || !st.leader) return false;
+        this.state.hive.autoManage = { on: true, since: new Date().toISOString() };
+        this._lifeEvent('auto', `🤖 Auto-manage unlocked. ${st.leader.name} leads the hive.`, { beeId: st.leader.id });
+        return true;
+    },
+    // One auto-manage pass: an empty open job gets the best free bee with that talent.
+    _autoManageHour() {
+        const st = this.hiveAutoStatus();
+        if (!st || !st.running) return [];
+        const notes = [];
+        this.hiveOpenJobs().filter(j => !this.jobHolder(j)).forEach(j => {
+            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && this.beeFitsJob(b, j))
+                .sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j))[0];
+            if (!pick) return;
+            pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
+            const text = `🐝 ${pick.name} took the ${BEE_CLASSES[j].label} job.`;
+            this._lifeEvent('auto', text, { beeId: pick.id });
+            notes.push(text);
+        });
+        return notes;
+    },
+
     // ---- Hour by hour (Oct 28 2026) ----
     // Catches up every whole hour since the last run (max 14 days).
     hiveHourlyTick(now = Date.now()) {
         if (!this.state || !this.state.hive) return 0;
         const c = this.state.hive;
         const HOUR = 3600000;
+        this._talentJobsMigrate();   // Nov 1 2026 (Craft): once
         if (!c.vitalsAt) { c.vitalsAt = now; return 0; }
         const hours = Math.min(14 * 24, Math.floor((now - c.vitalsAt) / HOUR));
         if (hours <= 0) return 0;
@@ -6017,6 +6213,9 @@ Object.assign(DatabaseManager.prototype, {
         bees.forEach(b => { if (b.life && b.life.injuredUntil) { b.life.health = Math.min(b.life.health, 55); delete b.life.injuredUntil; } });
         for (let k = 1; k <= hours; k++) this._lifeHour(new Date(c.vitalsAt + k * HOUR));
         c.vitalsAt += hours * HOUR;
+        // Nov 1 2026 (Craft): auto-manage, once per catch-up.
+        this._autoUnlockCheck();
+        this._autoManageHour();
         this.saveQuiet();   // Oct 31 2026 (Craft): the clock isn't an edit
         return hours;
     },
@@ -6036,8 +6235,9 @@ Object.assign(DatabaseManager.prototype, {
             const hungerX = L.birthTrait === 'deep-stomach' ? 0.75 : 1;
             if (working) {
                 const r = JOB_RATES[b.class] || [-4, -3, -1, 2.5];
-                L.stamina = clampVital(L.stamina + r[0] * (relentless ? 0.75 : 1), true);
-                L.fullness = clampVital(L.fullness + r[1] * hungerX, true);
+                const rareX = HIVE_JOB_RULES && this._rareCombOf(b) ? 0.5 : 1;   // Nov 1 2026 (Craft): all Rare+ comb
+                L.stamina = clampVital(L.stamina + r[0] * (relentless ? 0.75 : 1) * rareX, true);
+                L.fullness = clampVital(L.fullness + r[1] * hungerX * rareX, true);
                 L.happiness = clampVital(L.happiness + r[2], true);
                 L.fatigue = clampVital(L.fatigue + r[3] * beeFatigueFactor(b) * (water ? 0.75 : 1) * (relentless ? 0.6 : 1), true);
                 if (L.fullness >= 50) L.health = clampVital(L.health + 0.2, true);
@@ -6162,7 +6362,8 @@ Object.assign(DatabaseManager.prototype, {
         // Faint too long, or too old -> the bee dies (only while death is on).
         if (LIFE.deathEnabled) bees.slice().forEach(b => {
             const L = b.life;
-            if (L.faintedAt && (daysBetween(L.faintedAt, day) || 0) >= LIFE.faintDays) this._beeDies(b, 'neglect', day);
+            if (beeIsLimited(b)) { /* limited bees never die (Nov 1 2026) */ }
+            else if (L.faintedAt && (daysBetween(L.faintedAt, day) || 0) >= LIFE.faintDays) this._beeDies(b, 'neglect', day);
             else if (beeAgeDays(b, day) >= beeLifespan(b)) this._beeDies(b, 'old age', day);
         });
 
@@ -6330,12 +6531,17 @@ Object.assign(DatabaseManager.prototype, {
         const info = this.getDailyBonus(today);
         if (!info || info.claimed) return null;
         const r = DAILY_BONUS[info.day];
-        if (r.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + r.qty; }
-        else if (r.kind === 'ticket') { this.state.hive.tickets = (this.state.hive.tickets || 0) + r.qty; }
-        else { for (let i = 0; i < r.qty; i++) this._addMaterial(r.kind, 1); }
+        const give = (x) => {
+            if (x.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + x.qty; }
+            else if (x.kind === 'ticket') { this.state.hive.tickets = (this.state.hive.tickets || 0) + x.qty; }
+            else { for (let i = 0; i < x.qty; i++) this._addMaterial(x.kind, 1); }
+        };
+        give(r);
+        const perk = this.titlePerk(today);   // Nov 1 2026 (Craft)
+        if (perk) give(perk);
         this.state.dailyBonus = { last: today, step: info.day };
         this.save();
-        return { day: info.day, ...r };
+        return { day: info.day, ...r, perk };
     },
 
     // ---- Egg Incubator (Oct 28 2026) ----
@@ -6788,10 +6994,13 @@ Object.assign(DatabaseManager.prototype, {
 // from history imports and quest unlocks) count as earned. Perks come later.
 // state.titleWorn = the id you wear, or null for rank only.
 // ============================================================================
+// Nov 1 2026 (Craft; approved demo): a worn special title adds its perk to
+// every Daily bonus (Swarm Lord: Sundays only). Hidden until earned.
+function titlePerkText(p) { return `+${p.qty} ${p.icon}${p.sunday ? ' every Sunday' : ''}`; }
 const SPECIAL_TITLES = [
-    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'Reach a 7-day streak', need: 1,
+    { id: 'streak-keeper', icon: '🔥', name: 'Streak Keeper', how: 'Reach a 7-day streak', need: 1, perk: { kind: 'coins', qty: 5, icon: '🪙' },
         have: (S) => (S.bonusXP || []).some(b => /^streak-(7|30|100|week):/.test(b.key)) ? 1 : 0 },
-    { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7,
+    { id: 'faithful', icon: '🌅', name: 'Faithful', how: 'Finish something on 7 different days', need: 7, perk: { kind: 'pollen', qty: 1, icon: '🌼' },
         have: (S) => {
             const days = new Set();
             (S.dailyTasks || []).forEach(t => (t.completedDates || []).forEach(d => days.add(d)));
@@ -6799,11 +7008,11 @@ const SPECIAL_TITLES = [
             (S.habits || []).forEach(h => (h.history || []).forEach(x => { if (x.direction === 'positive') days.add(x.date); }));
             return days.size;
         } },
-    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', need: 3,
+    { id: 'questmaster', icon: '🗺️', name: 'Questmaster', how: 'Finish 3 quests', need: 3, perk: { kind: 'coins', qty: 5, icon: '🪙' },
         have: (S) => (S.quests || []).filter(q => q.dateCompleted || ((q.tasks || []).length && q.tasks.every(t => t.completed))).length },
-    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', need: 25,
+    { id: 'swarm-lord', icon: '🐝', name: 'Swarm Lord', how: 'Have 25 bees', need: 25, perk: { kind: 'royal-nectar', qty: 1, icon: '✨', sunday: true },
         have: (S) => ((S.hive && S.hive.bees) || []).filter(b => b.rarity !== 'Royal').length },
-    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', need: 100,
+    { id: 'centurion', icon: '💯', name: 'Centurion', how: 'Finish 100 tasks', need: 100, perk: { kind: 'coins', qty: 10, icon: '🪙' },
         have: (S) => (S.dailyTasks || []).reduce((n, t) => n + (t.completedDates || []).length, 0) + (S.todos || []).filter(t => t.completed).length
             + (S.quests || []).reduce((n, q) => n + (q.tasks || []).filter(t => t.completed).length, 0) }
 ];
@@ -6812,7 +7021,7 @@ Object.assign(DatabaseManager.prototype, {
         if (!this.state) return null;
         const S = this.state;
         const special = SPECIAL_TITLES.map(t => { const earned = t.have(S) >= t.need; return earned
-            ? { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, earned: true }
+            ? { id: t.id, kind: 'special', icon: t.icon, name: t.name, how: t.how, earned: true, perk: t.perk ? titlePerkText(t.perk) : '' }
             : { id: t.id, kind: 'special', earned: false }; });   // locked: nothing about it leaves here
         const quest = (S.titles || []).map((t, i) => ({ id: `quest-${i}-${String(t.title || '').toLowerCase().replace(/\W+/g, '-')}`, kind: 'quest', icon: '📜', name: String(t.title || 'Title'), how: t.ability || 'Earned on a quest', earned: true }));
         const all = [...special, ...quest];
@@ -6820,6 +7029,14 @@ Object.assign(DatabaseManager.prototype, {
         return { all, earned: all.filter(t => t.earned), locked: all.filter(t => !t.earned).length, worn };
     },
     // id of an earned title, or null to show your rank only.
+    // The worn special title's perk for today's Daily bonus, or null.
+    titlePerk(today = todayISO()) {
+        const T = this.getTitles();
+        const w = T && T.worn && T.worn.kind === 'special' ? SPECIAL_TITLES.find(t => t.id === T.worn.id) : null;
+        if (!w || !w.perk) return null;
+        if (w.perk.sunday && new Date(today + 'T12:00').getDay() !== 0) return null;
+        return { ...w.perk, title: w.name };
+    },
     wearTitle(id) {
         if (!this.state) return null;
         if (id === null) { this.state.titleWorn = null; this.save(); return true; }
@@ -6828,6 +7045,69 @@ Object.assign(DatabaseManager.prototype, {
         this.state.titleWorn = id;
         this.save();
         return t;
+    }
+});
+
+// ============================================================================
+// HONEY MART (Nov 1 2026, Craft; from 1.0.7's Store v3, approved demo): buy
+// several at once (capped by what you can afford), sell for half its worth,
+// and gifts between friends (hive.mjs, delivered to the Mailbox).
+// Sell values: coins as-is; materials count as MAT_COIN coins each.
+// ============================================================================
+const MAT_COIN = { pollen: 4, 'royal-nectar': 15, 'honey-drop': 40, 'royal-jelly': 200 };
+const SELL_RATE = 0.5;
+function storePriceHave(vault, item) {
+    if (item.price.currency === 'coins') return vault.getCoins();
+    return vault.getMaterials()[item.price.materialId] || 0;
+}
+Object.assign(DatabaseManager.prototype, {
+    maxAffordable(itemId) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId);
+        if (!item || !this.state) return 0;
+        return Math.max(0, Math.min(99, Math.floor(storePriceHave(this, item) / item.price.amount)));
+    },
+    buyStoreItems(itemId, qty = 1) {
+        if (!this.maxAffordable(itemId)) return null;
+        const n = Math.max(1, Math.min(Math.floor(qty) || 1, this.maxAffordable(itemId)));
+        let last = null;
+        for (let i = 0; i < n; i++) { const r = this.purchaseStoreItem(itemId); if (!r) break; last = r; last.count = i + 1; }
+        return last;
+    },
+    // What one of this sells for, in Honey coins (half its worth, at least 1).
+    sellValue(id) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === id);
+        if (item) return Math.max(1, Math.floor((item.price.currency === 'coins' ? item.price.amount : item.price.amount * (MAT_COIN[item.price.materialId] || 4)) * SELL_RATE));
+        if (MAT_COIN[id]) return Math.max(1, Math.floor(MAT_COIN[id] * SELL_RATE));
+        return 0;
+    },
+    sellOwned(id, qty = 1) {
+        if (!this.state || !this.state.inventory) return null;
+        const inv = this.state.inventory, isMat = !!MAT_COIN[id] && !STORE_ITEM_CATALOG.some(i => i.id === id);
+        const bag = isMat ? (inv.materials = inv.materials || {}) : (inv.items = inv.items || {});
+        const have = bag[id] || 0, n = Math.max(1, Math.min(Math.floor(qty) || 1, have)), each = this.sellValue(id);
+        if (!have || !each) return null;
+        bag[id] = have - n;
+        const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + each * n;   // coins come in as a bonus (getQueenStats)
+        this.save();
+        return { n, coins: each * n };
+    },
+    // Gifts: held items only. Taken out before sending; put back if it fails.
+    giftTakeOut(itemId) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
+        const items = this.getItems();
+        if (!item || !(items[itemId] > 0)) return null;
+        this.state.inventory.items[itemId] = items[itemId] - 1;
+        this.save();
+        return item;
+    },
+    giftPutIn(itemId, n = 1) {
+        const item = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
+        if (!item || !this.state) return null;
+        if (!this.state.inventory) this.state.inventory = { materials: {}, items: {} };
+        if (!this.state.inventory.items) this.state.inventory.items = {};
+        this.state.inventory.items[itemId] = (this.state.inventory.items[itemId] || 0) + Math.max(1, Math.min(5, n));
+        this.save();
+        return item;
     }
 });
 

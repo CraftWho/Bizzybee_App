@@ -295,7 +295,7 @@ function initPhoneFeatures(tries = 0) {
         const ok = await C.setAdd(box.checked);
         box.disabled = false;
         if (!ok) { box.checked = false; return; }
-        Toast.show(box.checked ? '🗓️ To-Do due dates added to your phone calendar.' : 'Removed BizzyBee To-Dos from your phone calendar.', 'positive');
+        Toast.show(box.checked ? '🗓️ Hard To-Do due dates added to your phone calendar.' : 'Removed BizzyBee To-Dos from your phone calendar.', 'positive');
     });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') steps(); });
 }

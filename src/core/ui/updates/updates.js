@@ -18,6 +18,25 @@ const WHATS_NEW = [
         { icon: '🎃', title: 'Themes and Halloween', text: 'Settings › Themes. Halloween turns on by itself on Oct 31, icon and all.', href: 'features/themes/themes.html' },
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
+        // Nov 1 2026 (Craft): Batch 13 (B).
+        { icon: '🍯', title: 'Honey Mart', text: 'The store is a real shop now: Buy, Sell, pockets and a quantity box. Send bee items to friends; gifts arrive in the Mailbox.', href: 'features/honey-store/honey-store.html' },
+        { icon: '👸', title: 'Eve on Home', text: 'Bees that need help no longer push your Home apps down. Eve pops up instead.' },
+        { icon: '📌', title: 'Your Home, your tiles', text: 'Hold a tile to remove or add pages. Hold a page in the menu to pin it.', href: 'features/home/home.html' },
+        { icon: '🎁', title: 'Title perks', text: 'A special title you wear adds a little to every Daily bonus.', href: 'features/titles/titles.html' },
+        { icon: '🐝', title: 'A growing hive', text: 'New parts of your hive open as you level up. Each job needs a bee with the right talent.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '💎', title: 'Thumb pad', text: 'Hold the gold ＋ to pull out a pad you can put anywhere: Back, Home, Dailies, New, To-Dos, Habits.' },
+        { icon: '📅', title: 'Add to calendar, set alarm', text: 'On To-Dos with a due date and Quests with a deadline. Quests can have a deadline now.', href: 'features/todos/todos.html' },
+        { icon: '💻', title: 'Terminal commands', text: 'ls, cd, find, grep, pipes and Tab. Revert puts your save back.', href: 'plugins/terminal/terminal.html' },
+        // Nov 1 2026 (Craft): Batch 13, back from 1.0.7.
+        { icon: '🕘', title: 'Quest history', text: 'Every quest shows what you finished, day by day, with time and XP.', href: 'features/quests/quests.html' },
+        { icon: '🔤', title: 'Text presets and fonts', text: 'Settings › Look & feel: Easy read, Big & bold, Compact, and a font for reading.', href: 'features/settings/settings.html' },
+        { icon: '💡', title: "Tips: Don't show again", text: "Hide one page's tips for good. Got it now only hides them until you reopen the app." },
+        { icon: '🐝', title: 'Smoother bees', text: 'Hive Life bees walk and buzz more naturally, out of step with each other.' },
+        { icon: '📖', title: 'Dictionary links to MDN', text: 'Terms link to MDN, the free open-source web reference.' },
+        // Nov 1 2026 (Craft): Batch 12.
+        { icon: '🎃', title: 'Grimzy', text: 'The numbered Halloween 2026 bee. Only 50 exist, sent as gifts with a letter.', href: 'features/mailbox/mailbox.html' },
+        { icon: '⚙️', title: 'Settings in groups', text: 'A short list of groups instead of one long page, with search and red dots for anything that needs you.', href: 'features/settings/settings.html' },
+        { icon: '🎃', title: 'Halloween is for Oct 31', text: 'The Halloween look turns on by itself on Halloween. The rest of the year it is BizzyBee.' },
         // Nov 1 2026 (Craft): Batch 11.
         { icon: '📲', title: 'Android: runs from your phone', text: 'The app keeps its own copy and downloads only what changed in each update. Faster, and less internet.' },
         // Nov 1 2026 (Craft): Batch 10.
@@ -27,7 +46,7 @@ const WHATS_NEW = [
         // Oct 31 2026 (Craft): Batch 9.
         { icon: '💬', title: 'Quicker messages', text: 'Messages go away after 2.5 seconds, or tap anywhere to close them.' },
         { icon: '🔤', title: 'New font', text: 'Courier Prime, built into the app, so it looks the same on every phone and computer.' },
-        { icon: '📅', title: 'Calendar: no more dailies', text: 'The calendar feed now sends only your events and To-Do due dates.' },
+        { icon: '📅', title: 'Calendar: only the big stuff', text: 'Your calendar now gets your own events and Hard To-Dos with a due date. Dailies, habits and small To-Dos stay off it.' },
         { icon: '🔁', title: 'Habitica fix', text: 'Dailies no longer show as done at midnight when Habitica hasn\'t started its new day yet.' },
         { icon: '🏅', title: 'Ranks & Titles', text: 'A ladder of every level, each with its own badge, opening at yours. Earn titles and equip one next to your rank. Past 50, a Tier every 5 levels.', href: 'features/titles/titles.html' },
         { icon: '☑️', title: 'Tick steps while editing', text: 'Check off checklist steps on the To-Do and Daily edit screens.', href: 'features/todos/todos.html' },

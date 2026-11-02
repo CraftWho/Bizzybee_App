@@ -40,6 +40,7 @@ function heroHTML(quest) {
         </div>
         ${parent ? `<a class="qd-parent" href="./quest.html?id=${encodeURIComponent(parent.id)}">↖ Part of ${esc(parent.title)}</a>` : ''}
         <h1 class="qd-title">${esc(quest.title)}</h1>
+        ${quest.deadline && !done ? `<p class="qd-deadline">📅 Finish by ${esc(new Date(quest.deadline + 'T12:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }))}${quest.deadline < todayISO() ? ' · <b>overdue</b>' : ''}</p>` : ''}
         ${quest.objective ? `<p class="qd-obj">${esc(quest.objective)}</p>` : '<p class="qd-obj qd-muted">No objective yet. Tap the pencil to say what finishing looks like.</p>'}
         ${done ? '' : `<button type="button" class="qd-focus${isActive ? ' on' : ''}" id="qd-focus" aria-pressed="${isActive}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6"/></svg>${isActive ? 'In focus' : 'Focus on this quest'}</button>`}
@@ -221,6 +222,23 @@ function extrasHTML(quest) {
     return parts.length ? `<section class="qd-sec">${parts.join('')}</section>` : '';
 }
 
+// Nov 1 2026 (Craft): quest history (from 1.0.7, without the private notes).
+// Every finished task, newest first, grouped by day, with totals.
+function historyHTML(quest) {
+    const done = (quest.tasks || []).filter(t => t.completed && t.dateCompleted)
+        .map(t => ({ t, ms: Date.parse(t.dateCompleted) || 0 })).sort((a, b) => b.ms - a.ms);
+    if (!done.length) return '';
+    const byDay = new Map();
+    done.forEach(x => { const k = x.ms ? new Date(x.ms).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Earlier'; if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(x); });
+    const xp = done.reduce((n, x) => n + (Number(x.t.xp) || 0), 0);
+    const first = done[done.length - 1].ms, days = byDay.size;
+    return `<section class="qd-sec"><details class="qd-hist" data-key="history"${openGroups.has('history') ? ' open' : ''}>
+        <summary><h2 class="qd-h">🕘 History <span class="qd-muted">${done.length} done · +${xp} XP · ${days} day${days === 1 ? '' : 's'}</span></h2></summary>
+        ${first ? `<p class="qd-muted">First task done ${esc(new Date(first).toLocaleDateString())}.</p>` : ''}
+        ${[...byDay].map(([day, list]) => `<h3 class="qd-hist-day">${esc(day)}</h3><ul class="qd-hist-list">${list.map(x => `<li><span>${esc(x.t.label)}</span><small>${x.ms && String(x.t.dateCompleted).length > 10 ? esc(new Date(x.ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + ' · ' : ''}+${esc(x.t.xp || 0)} XP</small></li>`).join('')}</ul>`).join('')}
+    </details></section>`;
+}
+
 function advancedHTML(quest) {
     return `<details class="qd-adv" id="qd-adv">
         <summary>Advanced · raw quest data</summary>
@@ -239,7 +257,7 @@ function render() {
     }
     const advOpen = document.getElementById('qd-adv') && document.getElementById('qd-adv').open;
     root.style.cssText = QuestUI.styleAttr(quest);
-    root.innerHTML = heroHTML(quest) + statsHTML(quest) + tasksHTML(quest) + sourceHTML(quest) + ghostHTML(quest) + linksHTML(quest) + extrasHTML(quest) + advancedHTML(quest);
+    root.innerHTML = heroHTML(quest) + statsHTML(quest) + tasksHTML(quest) + sourceHTML(quest) + ghostHTML(quest) + linksHTML(quest) + historyHTML(quest) + extrasHTML(quest) + advancedHTML(quest);
     if (advOpen) document.getElementById('qd-adv').open = true;
     document.title = `📜 ${quest.title}`;
     if (addingTask) document.getElementById('qd-task-input').focus();

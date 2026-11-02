@@ -330,11 +330,13 @@ function cfZoom(id) {
     document.getElementById('cb-expanded-hint').textContent = b.rarity === 'Common'
         ? 'Tap the card to flip it.' : 'Tilt your phone (or move the mouse) to catch the light. Tap to flip.';
     overlay.hidden = false;
+    document.documentElement.classList.add('bb-zoom');   // Nov 1 2026 (Craft): everything behind the open card pauses
     requestAnimationFrame(() => overlay.classList.add('is-open'));
 }
 function cfCloseZoom() {
     const overlay = document.getElementById('cb-expanded');
     overlay.classList.remove('is-open'); cf.zoomId = null;
+    document.documentElement.classList.remove('bb-zoom');
     setTimeout(() => { overlay.hidden = true; }, 200);
 }
 function cfFlipZoom() {

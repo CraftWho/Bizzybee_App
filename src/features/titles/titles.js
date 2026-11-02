@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = (t) => {
                 if (!t.earned) return `<div class="tt-row locked">${LOCK}<span class="mid"><b>???</b><small>Not earned yet.</small></span></div>`;
                 const on = T.worn && T.worn.id === t.id;
-                return `<div class="tt-row${on ? ' here' : ''}"${on ? ' id="tt-here"' : ''}>${titleBadge(t)}<span class="mid"><b>${esc(t.name)}</b><small>${esc(t.how)}</small></span>${on ? EQUIPPED : equipBtn(t.id)}</div>`;
+                return `<div class="tt-row${on ? ' here' : ''}"${on ? ' id="tt-here"' : ''}>${titleBadge(t)}<span class="mid"><b>${esc(t.name)}</b><small>${esc(t.how)}</small>${t.perk ? `<small class="tt-perk">🎁 ${esc(t.perk)} on every Daily bonus</small>` : ''}</span>${on ? EQUIPPED : equipBtn(t.id)}</div>`;   // Nov 1 2026 (Craft): perk
             };
             html = `<div class="tt-row${T.worn ? '' : ' here'}"${T.worn ? '' : ' id="tt-here"'}>${LevelBadges.forLevel(level, 43)}<span class="mid"><b>Rank only</b><small>Show just your rank.</small></span>${T.worn ? equipBtn('') : EQUIPPED}</div>`
                 + T.earned.map(row).join('') + T.all.filter(t => !t.earned).map(row).join('');

@@ -7,13 +7,16 @@ const Themes = (() => {
     const THEMES = [
         { id: 'auto', icon: '✨', label: 'Auto', note: 'BizzyBee, and Halloween on Oct 31', colors: ['#ffcc00', '#ff7a1a', '#8fe33a'], bg: ['#1a140b', '#160b1f'] },
         { id: 'bee', icon: '🐝', label: 'BizzyBee', note: 'Black, gold and red', colors: ['#ffcc00', '#dc143c', '#f1ede2'], bg: ['#1a140b', '#050402'] },
-        { id: 'halloween', icon: '🎃', label: 'Halloween', note: 'Pumpkin, slime, cobwebs and bats', colors: ['#ff7a1a', '#8fe33a', '#f3ead8'], bg: ['#22102e', '#0a0510'] },
+        // Nov 1 2026 (Craft): Halloween can't be picked; it turns on by itself on Oct 31 (Auto).
+        { id: 'halloween', icon: '🎃', label: 'Halloween', note: 'Pumpkin, slime, cobwebs and bats', colors: ['#ff7a1a', '#8fe33a', '#f3ead8'], bg: ['#22102e', '#0a0510'], seasonal: true },
     ];
     const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
     const put = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* storage off */ } };
     const today = () => { const d = get(DAY_KEY); return d ? new Date(d + 'T12:00:00') : new Date(); };
     const seasonal = () => { const d = today(); return d.getMonth() === 9 && d.getDate() === 31 ? 'halloween' : 'bee'; };
-    const pick = () => { const p = get(KEY); return THEMES.some(t => t.id === p) ? p : 'auto'; };
+    // A saved Halloween pick (from before Nov 1 2026) counts as Auto.
+    const pickable = (id) => THEMES.some(t => t.id === id && !t.seasonal);
+    const pick = () => { const p = get(KEY); return pickable(p) ? p : 'auto'; };
     const current = () => (pick() === 'auto' ? seasonal() : pick());
 
     // App icons: each theme can have its own set in src/assets/icons/<id>/.
@@ -113,7 +116,7 @@ const Themes = (() => {
 
     // Saves the pick on this device and in your save (so it follows you).
     function set(id) {
-        if (!THEMES.some(t => t.id === id)) return null;
+        if (!pickable(id)) return null;
         put(KEY, id === 'auto' ? null : id);
         if (typeof Vault !== 'undefined' && Vault.state) { Vault.state.theme = id; Vault.save(); }
         return apply();
@@ -123,7 +126,9 @@ const Themes = (() => {
     function fromSave() {
         if (typeof Vault === 'undefined' || !Vault.state) return false;
         const saved = Vault.state.theme;
-        if (saved && saved !== pick() && THEMES.some(t => t.id === saved)) { put(KEY, saved === 'auto' ? null : saved); apply(); }
+        // Nov 1 2026 (Craft): an old Halloween pick goes back to Auto, everywhere.
+        if (saved && !pickable(saved)) { Vault.state.theme = 'auto'; put(KEY, null); Vault.save(); apply(); return true; }
+        if (saved && saved !== pick() && pickable(saved)) { put(KEY, saved === 'auto' ? null : saved); apply(); }
         return true;
     }
 
@@ -141,5 +146,5 @@ const Themes = (() => {
     });
     window.addEventListener('vault-saved', () => fromSave());
 
-    return { list: () => THEMES.slice(), pick, current, set, apply, devDay, seasonal };
+    return { list: () => THEMES.filter(t => !t.seasonal), pick, current, set, apply, devDay, seasonal };
 })();

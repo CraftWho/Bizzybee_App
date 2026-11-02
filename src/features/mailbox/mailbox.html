@@ -35,12 +35,25 @@
         <div class="mb-btns"><button type="button" class="bb-btn bb-btn--main" id="mb-send">Send to everyone</button></div>
     </section>
 
+    <!-- Nov 1 2026 (Craft): send a numbered limited card + letter to one person. -->
+    <section class="bb-box bb-box--glow mb-write" id="mb-gift" hidden>
+        <h2 class="mb-sec">🎁 Send a gift</h2>
+        <label for="mb-gift-to">SEND TO (THEIR SIGN-IN EMAIL)</label><input id="mb-gift-to" type="email" autocomplete="off" placeholder="name@example.com">
+        <label for="mb-gift-no">CARD</label><select id="mb-gift-no"></select>
+        <label for="mb-gift-letter">LETTER</label><textarea id="mb-gift-letter" maxlength="2000"></textarea>
+        <p class="mb-note">Shows the next time they open BizzyBee. Not opened in 7 days? It waits in their Mailbox.</p>
+        <div class="mb-btns"><button type="button" class="bb-btn bb-btn--main" id="mb-gift-send">Send the gift</button></div>
+        <p class="mb-note" id="mb-gift-sent"></p>
+    </section>
+    <div id="mb-gifts"></div>
     <div class="mb-head"><h2 class="mb-sec">Letters</h2><button type="button" class="mb-refresh" id="mb-refresh" aria-label="Check for new mail">↻</button></div>
     <div id="mb-list"><p class="mb-empty">Loading…</p></div>
     <p class="mb-note" id="mb-updated"></p>
     </div>
 </main>
 <script src="../../core/boot.js"></script>
-<script src="./mailbox.js"></script>
+<link rel="stylesheet" href="../../core/ui/gift/gift.css">
+    <script src="../../core/ui/gift/gift.js"></script>
+    <script src="./mailbox.js"></script>
 </body>
 </html>
