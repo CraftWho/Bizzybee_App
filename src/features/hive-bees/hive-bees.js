@@ -54,7 +54,7 @@ function cbArt(b, cls = '') {
     const key = String(b.rarity || 'common').toLowerCase();
     const rarityKey = (typeof BEE_CARD_RARITY_KEYS !== 'undefined' && BEE_CARD_RARITY_KEYS.includes(key)) ? key : 'common';
     const el = b.element && typeof BEE_ELEMENTS !== 'undefined' && BEE_ELEMENTS[b.element] ? b.element : 'none';
-    return `<span class="cb-art bc-v2 bc-tile bc-r-${rarityKey} bc-e-${el} ${cls}" aria-hidden="true">${beeCardArtHTML({ rarityKey, rivets: 0, royal: b.royal || null })}</span>`;
+    return `<span class="cb-art bc-v2 bc-tile bc-r-${rarityKey} bc-e-${el} ${cls}" aria-hidden="true">${beeCardArtHTML({ rarityKey, rivets: 0, royal: b.royal || null, art: b.art || null, element: b.element || null })   /* Nov 2 2026 (Craft): element bees */}</span>`;
 }
 function cbMatches(b, tab) {
     const f = cbFeeling(b).key;
