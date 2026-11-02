@@ -12,7 +12,7 @@ const WebUpdate = (() => {
 
     async function check({ force = false } = {}) {
         const P = plugin();
-        if (!P || busy || !window.BB_SITE) return null;
+        if (!P || busy || !window.BB_SITE || window.BB_PERSONAL) return null;
         let last = 0;
         try { last = Number(localStorage.getItem(KEY)) || 0; } catch { /* fine */ }
         if (!force && Date.now() - last < CHECK_EVERY) return null;
@@ -32,7 +32,7 @@ const WebUpdate = (() => {
 
     function start() {
         const P = plugin();
-        if (!P || !window.BB_APP_COPY) return;
+        if (!P || !window.BB_APP_COPY || window.BB_PERSONAL) return;   // Nov 2 2026 (Craft): BizzyBee Dev runs its own branch, never the live site's files
         // This version started fine: keep it.
         P.confirm().catch(() => {});
         setTimeout(() => check(), 4000);

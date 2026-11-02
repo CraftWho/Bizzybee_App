@@ -147,6 +147,20 @@ const BizzyNotify = (() => {
             if (P.todo.at) add('todo', t, deadline, 3, 'Due now', 'Mark it done?', false, 'at');
         });
 
+        // Nov 1 2026 (Craft): Quest deadlines. Smart Notifications use the Hard
+        // To-Do plan (quests are big); without Smart, a morning nudge on the day.
+        if (P.todo.on) (S.quests || []).forEach(q => {
+            if (!q.deadline || q.status === 'completed' || q.dateCompleted) return;
+            if ((q.tasks || []).length && q.tasks.every(t => t.completed)) return;
+            const task = { id: q.id, label: q.title || 'Quest' };
+            if (smart) {
+                const deadline = at(q.deadline, DEFAULT_DEADLINE);
+                shrink(PLAN.todo.Hard).forEach(([m, lvl, title, text, sticky], n) => add('quest', task, new Date(deadline.getTime() + m * 60000), lvl, title, text, sticky, `s${n}`));
+                return;
+            }
+            if (P.todo.morning) add('quest', task, at(q.deadline, '09:00'), 1, 'Quest due today', '', false, 'morning');
+        });
+
         // Habits: one nudge a day for good habits not tapped yet.
         if (P.habit.on && TIME.test(P.habit.time)) dayList.forEach(day => {
             const open = (S.habits || []).filter(h => h.positive !== false && !(day === today && tappedToday(h, day)));

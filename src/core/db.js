@@ -987,6 +987,8 @@ const STORE_ITEM_CATALOG = [
     { id: 'lightbulb', label: 'Lightbulb', icon: '💡', kind: 'trait', rarity: 'Rare', trait: 'insight', price: { materialId: 'pollen', amount: 4 }, description: 'Grants the Bright Idea trait - plus a chance to evolve a Common/Rare bee to Epic.' },
     // Start My Day (Oct 2026): saves one daily's streak on a miss, used
     // automatically. Paid in Honey coins, not materials.
+    // Nov 1 2026 (Craft): unlocks Auto-swap for good (it also comes with auto-manage). One per hive.
+    { id: 'queens-whistle', label: "Queen's Whistle", icon: '📯', kind: 'unlock', rarity: 'Legendary', price: { currency: 'coins', amount: 600 }, description: 'One blow and your hive swaps tired bees out by itself. Yours for good.' },
     { id: 'streak-charm', label: 'Streak Charm', icon: '🎁', kind: 'charm', rarity: 'Rare', price: { currency: 'coins', amount: 25 }, description: "Saves one daily's streak when you miss it. Used up automatically in the morning, after your Guard Bees, and only on streaks of 2 days or more." },
     // Held items (Oct 28 2026, approved demo): Rare and up hold them (see
     // beeItemSlots). 'use' items fire on their own when needed and are used
@@ -4055,6 +4057,7 @@ class DatabaseManager {
         if (!this.state.inventory.materials) this.state.inventory.materials = {};
         if (!this.state.inventory.items) this.state.inventory.items = {};
 
+        if (item.kind === 'unlock' && this.ownsUnlock(item.id)) return null;   // Nov 1 2026 (Craft): one per hive
         const { materialId, amount } = item.price;
         if (item.price.currency === 'coins') {
             if (!this.spendCoins(amount)) return null;
@@ -4063,7 +4066,10 @@ class DatabaseManager {
             if (owned < amount) return null;
             this.state.inventory.materials[materialId] = owned - amount;
         }
-        this.state.inventory.items[itemId] = (this.state.inventory.items[itemId] || 0) + 1;
+        if (item.kind === 'unlock') {
+            if (!this.state.unlocks) this.state.unlocks = {};
+            this.state.unlocks[item.id] = new Date().toISOString();
+        } else this.state.inventory.items[itemId] = (this.state.inventory.items[itemId] || 0) + 1;
 
         this.save();
         return { item };
@@ -6182,6 +6188,45 @@ Object.assign(DatabaseManager.prototype, {
         return true;
     },
     // One auto-manage pass: an empty open job gets the best free bee with that talent.
+    // ---- Auto-swap (Nov 1 2026, Craft; approved demo) ----
+    // Comes with auto-manage, or the Queen's Whistle from the Honey Mart.
+    // Each hour, a working bee whose stamina is below your % hands its job
+    // to a rested bee with the same talent (automatic: the best rested one;
+    // "I choose": only bees you picked). The tired bee rests.
+    autoSwapUnlocked() {
+        return !!(this.state && this.state.hive && ((this.state.hive.autoManage && this.state.hive.autoManage.on) || this.ownsUnlock('queens-whistle')));
+    },
+    autoSwapPrefs() {
+        const c = this.state && this.state.hive;
+        const a = (c && c.autoSwap) || {};
+        return { on: a.on !== false, pct: Math.max(10, Math.min(60, Number(a.pct) || 30)), mode: a.mode === 'pick' ? 'pick' : 'auto', pool: Array.isArray(a.pool) ? a.pool : [] };
+    },
+    setAutoSwap(patch) {
+        if (!this.state || !this.state.hive) return null;
+        this.state.hive.autoSwap = { ...this.autoSwapPrefs(), ...patch };
+        this.save();
+        return this.autoSwapPrefs();
+    },
+    _autoSwapHour() {
+        if (!this.autoSwapUnlocked()) return [];
+        const P = this.autoSwapPrefs();
+        if (!P.on) return [];
+        const notes = [];
+        this.hiveOpenJobs().forEach(j => {
+            const h = this.jobHolder(j);
+            if (!h || h.life.stamina >= P.pct || beeLockedJob(h)) return;
+            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && b.life.stamina >= P.pct + 20 && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
+                .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
+            if (!pick) return;
+            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince;   // resting, not upset
+            pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince;
+            this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
+            const text = `🔄 ${pick.name} took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
+            this._lifeEvent('auto', text, { beeId: pick.id });
+            notes.push(text);
+        });
+        return notes;
+    },
     _autoManageHour() {
         const st = this.hiveAutoStatus();
         if (!st || !st.running) return [];
@@ -6216,6 +6261,7 @@ Object.assign(DatabaseManager.prototype, {
         // Nov 1 2026 (Craft): auto-manage, once per catch-up.
         this._autoUnlockCheck();
         this._autoManageHour();
+        this._autoSwapHour();   // Nov 1 2026 (Craft)
         this.saveQuiet();   // Oct 31 2026 (Craft): the clock isn't an edit
         return hours;
     },
@@ -7061,9 +7107,11 @@ function storePriceHave(vault, item) {
     return vault.getMaterials()[item.price.materialId] || 0;
 }
 Object.assign(DatabaseManager.prototype, {
+    ownsUnlock(id) { return !!(this.state && this.state.unlocks && this.state.unlocks[id]); },
     maxAffordable(itemId) {
         const item = STORE_ITEM_CATALOG.find(i => i.id === itemId);
         if (!item || !this.state) return 0;
+        if (item.kind === 'unlock') return !this.ownsUnlock(item.id) && storePriceHave(this, item) >= item.price.amount ? 1 : 0;
         return Math.max(0, Math.min(99, Math.floor(storePriceHave(this, item) / item.price.amount)));
     },
     buyStoreItems(itemId, qty = 1) {
