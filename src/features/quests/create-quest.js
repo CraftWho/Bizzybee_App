@@ -76,6 +76,7 @@ function difficultyPill(item) {
 function loadExisting(quest) {
     document.getElementById('quest-title-input').value = quest.title || '';
     document.getElementById('quest-objective-input').value = quest.objective || '';
+    document.getElementById('cq-deadline').value = quest.deadline || '';   // Nov 1 2026 (Craft)
     category = quest.category === 'side' ? 'side' : 'main';
     // A chapter row goes in wherever a task's chapter (module) changes.
     const rows = [];
@@ -139,7 +140,8 @@ function saveQuest() {
         source: url ? { label: document.getElementById('cq-source-label').value.trim(), url } : null,
         tasks: tasks.map(i => ({ id: i.existing ? i.id : null, label: i.text, difficulty: i.difficulty, xp: rowXP(i), minutes: i.minutes || null, module: i.module || null })),
         tags: (addTagFromInput(), questTags),
-        makeActive: document.getElementById('cq-focus').checked
+        makeActive: document.getElementById('cq-focus').checked,
+        deadline: document.getElementById('cq-deadline').value || null   // Nov 1 2026 (Craft)
     });
     if (!document.getElementById('cq-focus').checked && editingQuestId && Vault.getActiveQuestId() === editingQuestId) {
         Vault.setActiveQuestId(null);
@@ -205,6 +207,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cq-tasks').addEventListener('click', () => setTimeout(renderTotal, 0));
     document.getElementById('cq-task-add').addEventListener('click', () => setTimeout(renderTotal, 0));
     document.getElementById('cq-chapter-add').addEventListener('click', () => taskEditor.addChapter());
+    // Nov 1 2026 (Craft): deadline + Add to calendar / Set alarm.
+    const dl = document.getElementById('cq-deadline');
+    const phone = TaskForm.phoneButtons(document.getElementById('cq-phone'), () => dl.value ? {
+        title: document.getElementById('quest-title-input').value.trim(), notes: document.getElementById('quest-objective-input').value.trim(), date: dl.value, time: null } : null);
+    const dlRender = () => { document.getElementById('cq-deadline-clear').hidden = !dl.value; phone.refresh(); };
+    dl.addEventListener('change', dlRender);
+    document.getElementById('cq-deadline-clear').addEventListener('click', () => { dl.value = ''; dlRender(); });
+    dlRender();
 
     TaskForm.privacyToggle(document.getElementById('hf-tip-btn'), document.getElementById('hf-tip'));
     document.getElementById('quest-title-input').addEventListener('keydown', (event) => {

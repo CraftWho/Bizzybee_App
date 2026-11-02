@@ -12,7 +12,11 @@ const CloudSyncAuto = (() => {
     let timer, running = false, ready = false, conflict = false, revision = null, inactive = false;
     let accountId = null;
     let lastStatus = 'Connecting to cloud…', lastError = '';
-    const enabled = () => localStorage.getItem('bizzybee_auto_sync') !== 'false';
+    const enabled = () => {
+        // Nov 1 2026 (Craft): paused while the Terminal is open (terminal-shell.js).
+        try { if (sessionStorage.getItem('bizzybee_sync_paused') === '1') return false; } catch { /* storage off */ }
+        return localStorage.getItem('bizzybee_auto_sync') !== 'false';
+    };
     const dirty = () => localStorage.getItem(Vault.storageKey + ':dirty') === 'true';
     const revisionKey = () => Vault.storageKey + ':revision';
     // This browser/app install. Tabs on one device share it (same storage).

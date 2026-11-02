@@ -1094,3 +1094,11 @@ html .btn.btn:focus-visible, html .bb-btn.bb-btn:focus-visible { outline: none; 
 /* Oct 31 2026 (Craft): a full-screen view (like the Hive Bees list) pauses
    every animation behind it. */
 html.bb-paused body *, html.bb-paused body *::before, html.bb-paused body *::after { animation-play-state: paused !important; }
+
+/* Nov 1 2026 (Craft): a card is open big (Hive Bees, gift reveal): everything behind it pauses. */
+html.bb-zoom body *:not(#cb-expanded, #cb-expanded *, .gf-scrim, .gf-scrim *), html.bb-zoom body *:not(#cb-expanded, #cb-expanded *, .gf-scrim, .gf-scrim *)::before, html.bb-zoom body *:not(#cb-expanded, #cb-expanded *, .gf-scrim, .gf-scrim *)::after { animation-play-state: paused !important; }
+
+/* Nov 1 2026 (Craft): reusable. Put class="no-pull" (or data-no-pull) on any
+   control you swipe or drag, so pulling down on it never refreshes the page
+   (pull-refresh.js checks it) and the browser's own pull stays off too. */
+.no-pull { overscroll-behavior: contain; touch-action: none; }

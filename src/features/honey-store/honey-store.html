@@ -10,7 +10,7 @@
     <link rel="manifest" href="../../../manifest.json">
     <meta name="theme-color" content="#050402">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🍯 Honey Store</title>
+    <title>🍯 Honey Mart</title>
 
     <script src="../../core/boot.js" data-load="styles"></script>
     <link rel="stylesheet" href="../../core/ui/item-card/item-card.css">
@@ -20,35 +20,23 @@
 </head>
 <body>
 
-    <!-- Honey Store v2 (Oct 2026): same look as Settings/Inventory. -->
-    <main class="pv2 hs2">
-        <header class="pv2-head">
-            <h1 class="pv2-title">🍯 HONEY STORE</h1>
-            <p class="pv2-lead">Spend materials on gear that gives a bee a trait.</p>
-        </header>
-
-        <div class="stats hs-wallet" id="store-wallet-panel"></div>
-
-        <h2 class="sec">Special items</h2>
-        <section class="card" id="store-identity-row"></section>
-
-        <!-- Oct 31 2026 (Craft, from 1.0.7): Egg Incubators are sold here with
-             Honey coins (no need to turn on the plugin first). Buying one turns
-             the Egg Incubator page on, so it shows in your menu and Home. -->
-        <h2 class="sec">Egg Incubators</h2>
-        <div class="hs-inc" id="store-incubators"></div>
-        <p class="note">Paid with Honey coins. Eggs inside hatch faster as you walk or finish dailies. One works at a time, and a better one takes over. <a href="../../plugins/incubator/incubator.html">Open your incubator</a></p>
-
-        <h2 class="sec">Items bees hold</h2>
-        <div class="tiles" id="store-held-grid"></div>
-        <p class="note">Rare and Epic bees hold 1 item, Legendary and Named hold 2. Use-up items fire on their own when needed. Gear stays on. Give one from a bee's card on <a href="../hive-bees/hive-bees.html">Hive Bees</a>.</p>
-
-        <h2 class="sec">Trait gear</h2>
-        <div class="tiles" id="store-item-grid"></div>
-        <p class="note">Each item gives a bee a trait, and a Common or Rare bee a shot at Epic. Use them from a bee's card on the <a href="../hive-bees/hive-bees.html">Hive Bees</a> page.</p>
-
+    <!-- Honey Mart (Nov 1 2026, Craft; approved demo): a game-shop feel. The
+         clerk talks, you pick BUY / SELL / QUIT, flip pockets with ◀ ▶, pick
+         from a list with prices on the right, and set how many with ▲ ▼. -->
+    <main class="pv2 hs2 hm">
+        <div class="hm-shop" id="hm-shop">
+            <div class="hm-top"><b>🍯 HONEY MART</b><div class="hm-money" id="hm-money"></div></div>
+            <div class="hm-say" id="hm-say" aria-live="polite"></div>
+            <div class="hm-menu" id="hm-menu" role="group" aria-label="Shop">
+                <button type="button" class="hm-mbtn" data-m="buy" aria-pressed="true">BUY</button>
+                <button type="button" class="hm-mbtn" data-m="sell" aria-pressed="false">SELL</button>
+                <button type="button" class="hm-mbtn" data-m="quit" aria-pressed="false">QUIT</button>
+            </div>
+            <div id="hm-body"></div>
+        </div>
         <section class="card hs-links">
             <a class="row" href="../inventory/inventory.html"><span class="hx">🎒</span><span class="mid"><b>Inventory</b><small>Everything you own</small></span><span class="chev">›</span></a>
+            <a class="row" href="../mailbox/mailbox.html"><span class="hx">📬</span><span class="mid"><b>Mailbox</b><small>Gifts from friends arrive here</small></span><span class="chev">›</span></a>
         </section>
     </main>
 

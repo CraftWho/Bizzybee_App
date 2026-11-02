@@ -23,6 +23,7 @@ document.addEventListener('tagschange', (e) => { if (e.target && e.target.id ===
 let selectedXP = 30;
 let editingTodoId = null;
 let checklistEditor = null;
+let phoneButtons = null;   // Nov 1 2026 (Craft)
 let reminderEditor = null;
 
 // Tags: Dictionary terms, Daily / To-Do / Habit tags, Quest titles + tasks.
@@ -65,6 +66,7 @@ function renderDue() {
     const value = document.getElementById('todo-due-date').value;
     document.getElementById('todo-due-clear').hidden = !value;
     document.getElementById('todo-due-time-box').hidden = !value;
+    if (phoneButtons) phoneButtons.refresh();   // Nov 1 2026 (Craft)
     document.querySelectorAll('#todo-due-quick [data-days]').forEach(b => b.classList.toggle('on', value === isoPlusDays(Number(b.dataset.days))));
     let hint = 'Optional. Leave it blank for a to-do with no deadline.';
     if (value) {
@@ -141,6 +143,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     checklistEditor = TaskForm.checklist(document.getElementById('todo-checklist'), document.getElementById('todo-cl-add'), { checkable: 'todo' });
     reminderEditor = TaskForm.reminders(document.getElementById('todo-reminders'), document.getElementById('todo-rem-add'));
+    // Nov 1 2026 (Craft): Add to calendar / Set alarm, from the due date and time.
+    phoneButtons = TaskForm.phoneButtons(document.getElementById('todo-phone'), () => {
+        const date = document.getElementById('todo-due-date').value;
+        return date ? { title: document.getElementById('todo-title-input').value.trim(), notes: (document.getElementById('todo-notes-input') || {}).value || '',
+            date, time: document.getElementById('todo-due-time').value || null } : null;
+    });
 
     editingTodoId = new URLSearchParams(window.location.search).get('id');
     const existing = editingTodoId ? Vault.getTodos().find(t => t.id === editingTodoId) : null;

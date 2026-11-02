@@ -1,0 +1,202 @@
+<!-- Nov 1 2026 (Craft): brought back from 1.0.7. Not linked from the app yet. No personal email; a BizzyBee email comes later. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BizzyBee · Beta testers wanted</title>
+<meta name="description" content="BizzyBee turns your habits, dailies and to-dos into a living bee hive. Free beta for Android and iPhone.">
+<meta property="og:title" content="BizzyBee · Your to-dos grow a hive">
+<meta property="og:description" content="Habits, dailies and to-dos that hatch bees, build a hive and level you up. Free beta.">
+<meta name="theme-color" content="#0b0905">
+<link rel="icon" href="../src/assets/icons/icon-192x192.png">
+<link rel="canonical" href="https://bizzybeee.netlify.app/get/">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
+<!-- BizzyBee tester site (Oct 29 2026). Static, no tracking.
+     Oct 30 2026 (Craft): lives on the main site at /get/. Public beta is invite
+     only: the form below is a Netlify Form ("invite-request"); Craft emails the
+     invite. No download token or releases repo. -->
+<style>
+:root {
+    --bg: #0b0905; --panel: #17120a; --panel2: #211a0e; --line: #3a2d14;
+    --ink: #f3ecdc; --muted: #a69a80; --gold: #ffcc00; --gold-hi: #ffd84a; --red: #dc143c;
+    --display: "Space Mono", ui-monospace, Menlo, monospace;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--body);
+    background-image: radial-gradient(ellipse at 50% -10%, rgba(255, 204, 0, .14), transparent 60%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 0 56 16v32L28 64 0 48V16zM28 64v33' fill='none' stroke='%23ffcc00' stroke-opacity='.07'/%3E%3C/svg%3E"); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left)); }
+a { color: var(--gold); }
+.beta { display: inline-block; padding: 4px 10px; border: 1px solid var(--red); color: #ff8aa0; font: 700 .7rem var(--display); letter-spacing: .14em; text-transform: uppercase; }
+h1, h2 { font-family: var(--display); color: var(--gold); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; letter-spacing: .01em; }
+h2 { font-size: 1.35rem; letter-spacing: .06em; text-transform: uppercase; }
+.lead { color: var(--muted); font-size: 1.1rem; max-width: 34em; }
+
+/* hero */
+.hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 36px; align-items: center; padding: 56px 0 30px; }
+.hero .copy { display: grid; gap: 18px; }
+.phone { position: relative; width: min(300px, 78vw); margin: 0 auto; border-radius: 34px; padding: 10px; background: linear-gradient(160deg, #3a2d14, #0d0a05); box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 0 1px var(--line); }
+.phone img { display: block; width: 100%; border-radius: 26px; }
+@media (max-width: 760px) { .hero { grid-template-columns: 1fr; padding-top: 34px; } .hero .shot { order: -1; } }
+
+/* comb buttons, same as the app */
+.btn { --tip: 12px; --edge: rgba(255, 204, 0, .6); --fill: #1a1205; position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px calc(var(--tip) + 18px); color: var(--gold); font: 700 .95rem var(--display); text-decoration: none; border: 0; background: none; cursor: pointer;
+    clip-path: polygon(var(--tip) 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, var(--tip) 100%, 0 50%); }
+.btn::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--edge); clip-path: inherit; }
+.btn::after { content: ""; position: absolute; inset: 1.5px; z-index: -1; background: var(--fill);
+    clip-path: polygon(calc(var(--tip) - 1px) 0, calc(100% - var(--tip) + 1px) 0, 100% 50%, calc(100% - var(--tip) + 1px) 100%, calc(var(--tip) - 1px) 100%, 0 50%); }
+.btn.main { --edge: var(--gold-hi); --fill: var(--gold); color: #1a1000; }
+.btn:hover, .btn:focus-visible { --edge: #fff; outline: none; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* get it */
+.get { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 18px 0 8px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 12px; align-content: start; }
+.card.first { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(255, 204, 0, .25), 0 10px 40px rgba(255, 204, 0, .08); }
+.card h3 { margin: 0; font: 700 1.05rem var(--display); color: var(--ink); }
+.card p { margin: 0; color: var(--muted); }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; color: var(--ink); }
+.steps li::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 28px; height: 32px; font: 700 .85rem var(--display); color: #1a1000; background: var(--gold);
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.ios-share { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -.15em; }
+.qr { display: none; align-items: center; gap: 16px; }
+.qr img { width: 132px; height: 132px; border-radius: 12px; }
+.desktop .qr { display: flex; }
+.note { font-size: .86rem; color: var(--muted); }
+/* invite form */
+.fld { display: grid; gap: 6px; border: 0; padding: 0; margin: 0; }
+.fld span, .fld legend { font-size: .86rem; color: var(--muted); padding: 0; }
+.fld input:not([type=radio]) { font: inherit; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.fld input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.pick { display: inline-flex; gap: 8px; align-items: center; margin-right: 18px; padding: 8px 0; color: var(--ink); }
+.pick input { accent-color: var(--gold); width: 18px; height: 18px; }
+
+/* in-app browser banner (Instagram, Facebook) */
+.iab { display: none; position: sticky; top: 0; z-index: 5; background: var(--red); color: #fff; padding: 12px max(18px, env(safe-area-inset-left)); font-weight: 600; }
+.iab.show { display: block; }
+.iab .row { max-width: 980px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.iab button { border: 0; border-radius: 10px; padding: 8px 12px; background: #fff; color: #7a0019; font-weight: 800; cursor: pointer; }
+
+/* features */
+.feat { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px; }
+.feat figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.feat img { display: block; width: 100%; aspect-ratio: 9 / 13; object-fit: cover; object-position: top; }
+.feat figcaption { padding: 14px 16px 16px; }
+.feat figcaption b { display: block; font-family: var(--display); color: var(--gold); }
+.feat figcaption span { color: var(--muted); font-size: .92rem; }
+section { padding: 34px 0; }
+footer { padding: 30px 0 50px; color: var(--muted); font-size: .86rem; border-top: 1px solid var(--line); margin-top: 20px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* Nov 1 2026 (Craft): no screenshots until new ones are taken */
+.hexart { display: grid; place-items: center; aspect-ratio: 390 / 844; background: radial-gradient(circle at 50% 40%, #3b2808, #0b0905 70%); }
+.hexart span { font-size: 96px; }
+.fic { display: grid; place-items: center; aspect-ratio: 4 / 3; font-size: 64px; background: radial-gradient(circle, #2a1d06, #0b0905 75%); border-radius: 12px; }
+</style>
+</head>
+<body>
+<div class="iab" id="iab" role="alert"><div class="row">
+    <span id="iab-text">You're in Instagram's browser. Open this page in Safari to install BizzyBee.</span>
+    <button type="button" id="iab-copy">Copy link</button>
+</div></div>
+
+<div class="wrap">
+    <header class="hero">
+        <div class="copy">
+            <span class="beta">Free beta · testers wanted</span>
+            <h1>Your to-dos grow a real hive.</h1>
+            <p class="lead">BizzyBee turns habits, dailies and to-dos into a living colony. Finish your day, hatch bees, give them jobs and level up your skills. Skip a day and your hive feels it.</p>
+            <div class="btns"><a class="btn main" href="#get">Request an invite</a><a class="btn" href="#what">See what it does</a></div>
+        </div>
+        <div class="shot"><div class="phone hexart" aria-hidden="true"><span>🐝</span></div></div>   <!-- Nov 1 2026 (Craft): new screenshots later -->
+    </header>
+
+    <section id="get">
+        <h2>Request an invite</h2>
+        <p class="lead">The beta is invite only while it's small. Tell us where to send it. You'll get an email with your invite and simple steps for your phone.</p>
+        <div class="get">
+            <form class="card first" id="invite" name="invite-request" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+                <input type="hidden" name="form-name" value="invite-request">
+                <p hidden><label>Leave this empty: <input name="bot-field"></label></p>
+                <label class="fld"><span>Name</span><input name="name" autocomplete="name" required maxlength="80"></label>
+                <label class="fld"><span>Email</span><input type="email" name="email" autocomplete="email" required maxlength="120"></label>
+                <fieldset class="fld"><legend>Your phone</legend>
+                    <label class="pick"><input type="radio" name="phone" value="Android" required> 🤖 Android</label>
+                    <label class="pick"><input type="radio" name="phone" value="iPhone"> 🍎 iPhone</label>
+                </fieldset>
+                <label class="fld"><span>How did you hear about BizzyBee? <i>(optional)</i></span><input name="heard" maxlength="120"></label>
+                <button class="btn main" type="submit" id="invite-btn">Request my invite</button>
+                <p class="note" id="invite-err" hidden></p>
+            </form>
+            <article class="card" id="invite-done" hidden>
+                <h3>🐝 You're on the list!</h3>
+                <p>Watch your inbox (and spam folder) for the invite. It has everything you need.</p>
+            </article>
+            <article class="card">
+                <h3>What happens next</h3>
+                <ol class="steps">
+                    <li><span>You get an invite email.</span></li>
+                    <li><span><b>Android:</b> tap the download link in it and open BizzyBee. <b>iPhone:</b> open BizzyBee in Safari, tap Share <svg class="ios-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="the Share button"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>, then <b>Add to Home Screen</b>.</span></li>
+                    <li><span>Make your account. Your hive saves to the cloud, so it's safe if you change phones.</span></li>
+                </ol>
+            </article>
+        </div>
+        <p class="note">Beta: things may change or break. Need help? Use <b>Contact support</b> in the app.</p>
+    </section>
+    <section id="what">
+        <h2>What it does</h2>
+        <div class="feat">
+            <figure><span class="fic" aria-hidden="true">🏰</span><figcaption><b>A hive that grows with you</b><span>Finish tasks to light up cells and hatch bees. Missed tasks make cells decay.</span></figcaption></figure>
+            <figure><span class="fic" aria-hidden="true">🌳</span><figcaption><b>Skills from plain words</b><span>Write "Go for a run" and Fitness grows. Real time, kept apart from XP.</span></figcaption></figure>
+            <figure><span class="fic" aria-hidden="true">🃏</span><figcaption><b>Collect every bee</b><span>Rarities, elements and named bees. Missing cards stay face-down until you find them.</span></figcaption></figure>
+        </div>
+    </section>
+</div>
+
+<footer><div class="wrap">
+    <span>BizzyBee · made by one indie developer.</span>
+    <span><a href="privacy.html">Privacy</a></span>
+</div></footer>
+
+<script>
+// Instagram / Facebook open links in their own browser, where iPhone can't
+// add to the Home Screen, so say how to get to Safari (or Chrome).
+// Oct 30 2026 (Craft): the invite form posts to Netlify Forms without leaving the page.
+(function () {
+    var ua = navigator.userAgent || '';
+    var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var android = /Android/.test(ua);
+    var inApp = /Instagram|FBAN|FBAV|FB_IAB|FBIOS|Line\/|TikTok|musical_ly/.test(ua);
+    var pre = document.querySelector('#invite input[name=phone][value="' + (ios ? 'iPhone' : 'Android') + '"]');
+    if (ios || android) pre.checked = true;
+    if (inApp) {
+        document.getElementById('iab').classList.add('show');
+        if (android) document.getElementById('iab-text').textContent = "You're in an app's browser. Tap ⋮ and choose Open in Chrome.";
+        else if (ios) document.getElementById('iab-text').textContent = "You're in an app's browser. Tap ⋯ and choose Open in Safari, or copy the link and paste it into Safari.";
+    }
+    document.getElementById('iab-copy').addEventListener('click', function () {
+        var b = this, url = location.href.split('#')[0];
+        var done = function () { b.textContent = 'Copied ✓'; };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { prompt('Copy this link:', url); });
+        else prompt('Copy this link:', url);
+    });
+    var form = document.getElementById('invite'), err = document.getElementById('invite-err'), btn = document.getElementById('invite-btn');
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        err.hidden = true; btn.disabled = true; btn.textContent = 'Sending…';
+        fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(form)).toString() })
+            .then(function (r) { if (!r.ok) throw new Error(r.status); form.hidden = true; document.getElementById('invite-done').hidden = false; })
+            .catch(function () { err.textContent = "That didn't send. Check your connection and try again, or try again later."; err.hidden = false; })
+            .then(function () { btn.disabled = false; btn.textContent = 'Request my invite'; });
+    });
+})();
+</script>
+</body>
+</html>

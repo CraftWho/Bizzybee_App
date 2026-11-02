@@ -56,27 +56,33 @@ const Hints = (() => {
     };
 
     let page = null, step = 0, el = null;
+    // Nov 1 2026 (Craft): "Got it" = not again until the app is reopened.
+    const SNOOZE = 'bizzybee_tips_snoozed';
+    const snoozedList = () => { try { return JSON.parse(sessionStorage.getItem(SNOOZE) || '[]'); } catch { return []; } };
+    const snoozed = (p) => snoozedList().includes(p);
+    const snoozeForNow = (p) => { try { sessionStorage.setItem(SNOOZE, JSON.stringify([...new Set([...snoozedList(), p])])); } catch { /* storage off */ } };
 
     function close() { if (el) el.remove(); el = null; }
     function show(force) {
         close();
         const tips = TIPS[page];
-        if (!tips || (!force && (!Vault.hintsOn() || Vault.hintSeen(page)))) return;
+        if (!tips || (!force && (!Vault.hintsOn() || Vault.hintSeen(page) || snoozed(page)))) return;
         el = document.createElement('div');
         el.className = 'hn-tip';
         el.setAttribute('role', 'status');
         const last = step >= tips.length - 1;
         el.innerHTML = `<span class="bee" aria-hidden="true">👑</span><b class="hn-eve">EVE</b> ${tips[step]}
             <div class="hn-ft"><span>${tips.length > 1 ? `Tip ${step + 1} of ${tips.length}` : 'Tip'}</span>
-            <button type="button" class="hn-off">Turn off hints</button>
+            <button type="button" class="hn-off">Don't show again</button>
             <button type="button" class="hn-btn">${last ? 'Got it' : 'Next'}</button></div>`;
         el.querySelector('.hn-btn').onclick = () => {
             if (!last) { step++; show(true); return; }
-            Vault.markHintSeen(page); close();
+            snoozeForNow(page); close();   // Nov 1 2026 (Craft): until the app is reopened
         };
         el.querySelector('.hn-off').onclick = () => {
-            Vault.setHintsOn(false); close(); removeCoach(); removeAsk();
-            if (typeof Toast !== 'undefined') Toast.show('💡 Hints off. Turn them back on in Settings.', 'positive');
+            // Nov 1 2026 (Craft): "Don't show again" hides this page's tips for good.
+            Vault.markHintSeen(page); close();
+            if (typeof Toast !== 'undefined') Toast.show('👍 Got it. These tips are in the Guide if you need them.', 'positive');
         };
         document.body.appendChild(el);
     }
@@ -176,6 +182,23 @@ const Hints = (() => {
         { id: "support", icon: "🛟", title: "Contact support", cat: "App & settings", text: "Something wrong? Settings › Contact support (also in the menu and at the bottom of the Guide). Pick a topic, say what happened and add your email. You get a reply by email. It sends the app version, the page you came from and your bee name, never your tasks, notes or save.", v: "1.0.5", page: F + 'support/support.html' },
         { id: "daily-bonus", icon: "🎁", title: "Daily bonus", cat: "XP & levels", text: "Open the app each day for a bonus, right after Start My Day. Each day moves you along a 7-day week: coins, Pollen, Royal Nectar, and a Gacha ticket on day 7. Miss a day and it starts again at day 1.", v: "1.0.5", intro: true, page: F + 'home/home.html' },
         { id: "app-copy", icon: "📲", title: "The app runs from your phone", cat: "App & settings", text: "The Android app keeps its own copy of BizzyBee, so pages open from your phone, not the internet. After each update it downloads only the files that changed. A new version opens the next time you start the app (or tap Restart now). If one ever fails to start, the app goes back to the last good one by itself. Sign-in and cloud sync still use the internet.", v: "1.0.5" },
+        { id: "settings-groups", icon: "⚙️", title: "Settings groups", cat: "App & settings", text: "Settings is a short list of groups: Account & cloud, Notifications & phone, Look & feel, Eve & help, Tracking, Your data and About. Tap one to open it, ← to go back. Search finds any setting. A red dot means something there needs you.", v: "1.0.5", page: F + 'settings/settings.html' },
+        // Nov 1 2026 (Craft): Batch 13 (brought back from 1.0.7).
+        // Nov 1 2026 (Craft): Batch 13 (B).
+        { id: "auto-swap", icon: "🔄", title: "Auto-swap", cat: "Hive Mind", text: "Tired bees hand their job to a rested bee with the same talent. Set the stamina % in Hive Life. Comes with auto-manage, or from the Honey Mart.", v: "1.0.5", page: F + 'hive-mind/hive-mind.html' },
+        { id: "honey-mart", icon: "🍯", title: "Honey Mart", cat: "Store & items", text: "Buy and sell like a real shop. Flip pockets with ◀ ▶, pick how many with ▲ ▼. Selling gives half an item's worth. Items bees hold can be sent to a friend as a gift; it arrives in their Mailbox.", v: "1.0.5", intro: true, page: F + 'honey-store/honey-store.html' },
+        { id: "eve-popup", icon: "👸", title: "Eve on Home", cat: "Getting started", text: "When bees need help, Eve (or Adam, if your royal is a King) pops up for a moment. Tap her to check on them.", v: "1.0.5", page: F + 'home/home.html' },
+        { id: "home-tiles", icon: "📌", title: "Your Home tiles", cat: "Getting started", text: "Hold a Home tile to edit Home: ✕ removes a tile, ＋ adds any page, Reset Home goes back. In the menu, hold a page to pin it to Home.", v: "1.0.5", intro: true, page: F + 'home/home.html', steps: [{ page: 'home', sel: '#home-app-grid', text: 'Hold any tile here to edit your Home.' }] },
+        { id: "title-perks", icon: "🎁", title: "Title perks", cat: "XP & levels", text: "Wear a special title and it adds a little to every Daily bonus.", v: "1.0.5", intro: true, page: F + 'titles/titles.html' },
+        { id: "hive-auto", icon: "🐝", title: "A growing hive", cat: "Hive Mind", text: "Your hive grows as you level up. Each job takes one bee, and only a bee with the talent for it. A red dot means a job is waiting. Fill them all and see what happens.", v: "1.0.5", intro: true, page: F + 'hive-mind/hive-mind.html' },
+        { id: "thumb-pad", icon: "💎", title: "Thumb pad", cat: "Getting started", text: "Press and hold the gold ＋ to pull out a see-through pad: Back, Home, Dailies, New, To-Dos and Habits. Drag it anywhere. Tap the middle to fold it. Triple-tap it, or tap the empty ＋, to put it back.", v: "1.0.5", intro: true, page: F + 'home/home.html', steps: [{ page: 'home', sel: '.dk-add', text: 'Press and hold this ＋ to pull out your thumb pad.' }] },
+        { id: "calendar-alarm", icon: "📅", title: "Add to calendar, set alarm", cat: "Tasks", text: "A To-Do with a due date, or a Quest with a deadline, gets Add to calendar and Set alarm. In the Android app they open your phone's calendar and Clock. On the website you get a calendar file; alarms are app only.", v: "1.0.5", intro: true, page: F + 'todos/todos.html' },
+        { id: "terminal-shell", icon: "💻", title: "Terminal commands", cat: "Plugins", text: "For people who know terminals: ls, cd, cat, find, grep, head, wc, pipes with |, and Tab to complete. A backup is made when it opens; Revert puts it back. Cloud sync pauses while it's open.", v: "1.0.5", page: PL + 'terminal/terminal.html' },
+        { id: "quest-history", icon: "🕘", title: "Quest history", cat: "Tasks", text: "Each quest has a History section: every task you finished, day by day, with the time and XP, plus totals. Tap it to open.", v: "1.0.5", intro: true, page: F + 'quests/quests.html' },
+        { id: "text-look", icon: "🔤", title: "Text presets and fonts", cat: "App & settings", text: "Settings › Look & feel: one-tap presets (Default, Easy read, Big & bold, Compact) and a font for reading text. Fine-tune colors and sizes below them.", v: "1.0.5", intro: true, page: F + 'settings/settings.html' },
+        { id: "tips-hide", icon: "💡", title: "Hide a page's tips", cat: "Getting started", text: "On one of Eve's tips, Got it hides them until you reopen the app. Don't show again hides that page's tips for good. Settings › Eve & help › Show tips again brings them all back. The Guide puts a ✓ on features you've seen.", v: "1.0.5", page: F + 'guide/guide.html' },
+        { id: "dictionary-links", icon: "📖", title: "Dictionary links", cat: "Plugins", text: "Each term links to MDN, the free open-source web reference. Fill from MDN copies the meaning and code, with a credit line.", v: "1.0.5", page: PL + 'dictionary/dictionary.html' },
+        { id: "limited-gifts", icon: "🎁", title: "Gifts and limited bees", cat: "Bees & eggs", text: "Limited bees like Grimzy (Halloween 2026) are numbered: only 50 exist. The creator can send one as a gift with a letter. It pops up the next time you open BizzyBee, and waits in your Mailbox until you add it. Limited bees never die and keep their name.", v: "1.0.5", page: F + 'mailbox/mailbox.html' },
         { id: "titles", icon: "🏅", title: "Titles", cat: "XP & levels", text: "Earn titles by doing things, like finishing quests or keeping a streak. Equip one and it shows next to your rank. Titles you haven't earned stay a secret (???).", v: "1.0.5", intro: true, page: F + 'titles/titles.html' },
         { id: "checklist-edit", icon: "☑️", title: "Tick steps while editing", cat: "Tasks", text: "On a To-Do or Daily edit screen, tick checklist steps off right there.", v: "1.0.5", page: F + 'todos/todos.html' },
         { id: "mailbox-updates", icon: "🆕", title: "Updates in the Mailbox", cat: "Social", text: "The Mailbox has two tabs: Letters, and Updates (every What's New, newest first).", v: "1.0.5", page: F + 'mailbox/mailbox.html' },
@@ -258,7 +281,7 @@ const Hints = (() => {
         { id: "pull-refresh", icon: "🔄", title: "Pull to refresh", cat: "App & settings", text: "On a touch screen, pull down at the top to send changes, load a newer cloud copy and reload.", v: "1.0.4", page: F + 'home/home.html' },
         { id: "themes", icon: "🎨", title: "Themes", cat: "App & settings", text: "Change how the whole app looks. Halloween turns on by itself on Oct 31.", v: "1.0.5", intro: true, page: F + 'themes/themes.html' },
         { id: "appearance", icon: "🔠", title: "Text & look", cat: "App & settings", text: "Text colours, sizes, bold text and high contrast. Saved on this device.", v: "1.0.4", page: F + 'settings/settings.html' },
-        { id: "phone-sync", icon: "🔗", title: "Phone Sync", cat: "App & settings", text: "Turn on a calendar feed link to see your own events and To-Do due dates in any calendar app. Dailies never go to your calendar.", v: "1.0.4", page: F + 'sync/sync.html' },
+        { id: "phone-sync", icon: "🔗", title: "Phone Sync", cat: "App & settings", text: "Turn on a calendar feed link to see your own events and your Hard To-Dos (with a due date) in any calendar app. Dailies, habits and smaller To-Dos stay off it; their reminders cover them.", v: "1.0.4", page: F + 'sync/sync.html' },
         { id: "whats-new", icon: "🆕", title: "What's New", cat: "App & settings", text: "Shows once after each update. Every update is listed in Settings › About.", v: "1.0.0", page: F + 'settings/settings.html' },
         { id: "habitica", icon: "⚔️", title: "Habitica sync", cat: "App & settings", text: "Add your Habitica User ID and API token, and Habits, Dailies and To-Dos sync both ways.", v: "1.0.0", page: F + 'account-info/account-info.html' },
         { id: "hive-archive", icon: "🗄️", title: "Hive Archive", cat: "App & settings", text: "Coming soon: a shelf for PDFs, books and articles.", v: "1.0.0", page: F + 'hive-archive/hive-archive.html' },
@@ -331,7 +354,7 @@ const Hints = (() => {
         Vault.setHintsOn(on);
         if (on) { addAsk(); coach(); } else { close(); removeCoach(); removeAsk(); }
     }
-    function resetAll() { Vault.resetHints(); step = 0; addAsk(); show(false); }
+    function resetAll() { Vault.resetHints(); try { sessionStorage.removeItem(SNOOZE); } catch { /* storage off */ } step = 0; addAsk(); show(false); }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();

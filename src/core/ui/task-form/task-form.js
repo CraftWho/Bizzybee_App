@@ -212,6 +212,89 @@ const TaskForm = {
         };
     },
 
+    // Nov 1 2026 (Craft; from 1.0.7, approved demo): "Add to calendar" and
+    // "Set alarm" on To-Dos and Quests with a date. Greyed out until there is
+    // a date. In the Android app both open the phone's own calendar / Clock
+    // with everything filled in (BeeAlerts). On the website, Add to calendar
+    // gives an .ics file with an alert 15 min early; Set alarm is app only.
+    // info() -> { title, notes, date 'YYYY-MM-DD', time 'HH:MM'|null } or null.
+    // Returns { refresh() } to call when the date changes.
+    phoneButtons(mount, info) {
+        const Cap = window.Capacitor;
+        const isApp = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+        const native = () => (isApp && Cap.Plugins && Cap.Plugins.BeeAlerts) || null;
+        const toast = (m, t = 'neutral') => { if (typeof Toast !== 'undefined') Toast.show(m, t); };
+        mount.innerHTML = `<div class="tf-phone">
+            <button type="button" class="tf-phone-btn" data-ph="cal"><span aria-hidden="true">📅</span> Add to calendar</button>
+            <button type="button" class="tf-phone-btn" data-ph="alarm"><span aria-hidden="true">⏰</span> Set alarm</button>
+        </div><p class="hf-hint hf-hint-left tf-phone-hint"></p>`;
+        const hint = mount.querySelector('.tf-phone-hint');
+        const pad = n => String(n).padStart(2, '0');
+        const icsText = (x) => {
+            const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+            const esc = t => String(t || '').replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+            const fmt = t => `${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}T${pad(t.getHours())}${pad(t.getMinutes())}00`;
+            let start, end;
+            if (x.time) {
+                const [Y, M, D] = x.date.split('-').map(Number), [h, m] = x.time.split(':').map(Number);
+                const s0 = new Date(Y, M - 1, D, h, m);
+                start = `DTSTART:${fmt(s0)}`; end = `DTEND:${fmt(new Date(s0.getTime() + 30 * 60000))}`;
+            } else {
+                const n = new Date(x.date + 'T12:00'); n.setDate(n.getDate() + 1);
+                start = `DTSTART;VALUE=DATE:${x.date.replace(/-/g, '')}`; end = `DTEND;VALUE=DATE:${n.getFullYear()}${pad(n.getMonth() + 1)}${pad(n.getDate())}`;
+            }
+            return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BizzyBee//EN', 'BEGIN:VEVENT',
+                `UID:${Date.now()}-${Math.random().toString(36).slice(2)}@bizzybee`, `DTSTAMP:${stamp}`, start, end,
+                `SUMMARY:${esc('🐝 ' + x.title)}`, ...(x.notes ? [`DESCRIPTION:${esc(x.notes)}`] : []),
+                'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc(x.title)}`, x.time ? 'TRIGGER:-PT15M' : 'TRIGGER:PT9H', 'END:VALARM',
+                'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+        };
+        const addToCalendar = async (x) => {
+            const n = native();
+            if (n) {
+                const [h, m] = (x.time || '00:00').split(':').map(Number), [Y, M, D] = x.date.split('-').map(Number);
+                const begin = new Date(Y, M - 1, D, h, m).getTime();
+                try { await n.addToCalendar({ title: '🐝 ' + x.title, notes: x.notes || '', begin, end: begin + (x.time ? 30 : 24 * 60) * 60000, allDay: !x.time, rrule: '' }); }
+                catch (e) { toast('Update BizzyBee to add this to your calendar.'); }
+                return;
+            }
+            const url = URL.createObjectURL(new Blob([icsText(x)], { type: 'text/calendar' }));
+            const a = document.createElement('a');
+            a.href = url; a.download = (x.title.replace(/[^\w ]+/g, '').trim().slice(0, 40) || 'bizzybee') + '.ics';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            toast('📅 Calendar file ready. Open it to add the event.', 'positive');
+        };
+        const setAlarm = async (x) => {
+            const n = native();
+            if (!n) { toast('⏰ Set alarm works in the BizzyBee Android app.'); return; }
+            const time = x.time || '09:00';   // no time: 9 AM on the day
+            const [Y, M, D] = x.date.split('-').map(Number), [h, m] = time.split(':').map(Number);
+            const at = new Date(Y, M - 1, D, h, m).getTime(), now = Date.now();
+            if (at <= now) { toast('That time has passed.'); return; }
+            // A phone alarm only knows a time of day, so it must be within 24 hours.
+            if (at - now > 24 * 3600000) { toast('An alarm can only be set for the next 24 hours. Add it to your calendar instead.'); return; }
+            try { await n.setAlarm({ hour: h, minutes: m, message: '🐝 ' + x.title.slice(0, 60), days: [] }); }
+            catch (e) { toast('Update BizzyBee to set alarms.'); }
+        };
+        const refresh = () => {
+            const x = info();
+            mount.querySelectorAll('[data-ph]').forEach(b => { b.disabled = !(x && x.date); });
+            hint.textContent = !(x && x.date) ? 'Set a date to add it to your calendar or set an alarm.'
+                : isApp ? 'Opens your phone\'s calendar or Clock with it filled in.' : 'Adds it to your calendar with an alert. Set alarm works in the Android app.';
+        };
+        mount.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-ph]');
+            if (!b || b.disabled) return;
+            const x = info();
+            if (!x || !x.date) return;
+            if (!x.title) { toast('Give it a name first.'); return; }
+            if (b.dataset.ph === 'cal') addToCalendar(x); else setAlarm(x);
+        });
+        refresh();
+        return { refresh };
+    },
+
     privacyToggle(btn, tip) {
         btn.addEventListener('click', () => {
             tip.hidden = !tip.hidden;

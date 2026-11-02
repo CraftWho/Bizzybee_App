@@ -6,9 +6,69 @@ const when = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'shor
 const ago = (at) => { const m = Math.round((Date.now() - at) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`; };
 let seenBefore = {};
 
+// Nov 1 2026 (Craft): Craft's Halloween letter, the default for gifts.
+const GIFT_LETTER = `Happy Halloween! 🎃
+
+Thank you for being one of the very first Hive in BizzyBee. Happy Halloween! A gift for you.
+
+Craft 🐝`;
+
+// Your gifts waiting to be added (Grimzy...). Tap to open.
+function renderGifts() {
+    const box = $('mb-gifts');
+    const list = typeof Gifts !== 'undefined' ? Gifts.cached() : [];
+    // Nov 1 2026 (Craft): items friends sent from the Honey Mart, as letters with the item attached.
+    const items = typeof Social !== 'undefined' && Social.cachedItemGifts ? Social.cachedItemGifts() : [];
+    box.innerHTML = list.map((g, i) => `<button type="button" class="bb-box mb-letter unread mb-giftrow" data-gift="${i}">
+        <div class="top"><h3 class="bb-title">🎁 A gift from ${esc(g.from || 'Craft')}</h3><span class="new">NEW</span></div>
+        <small>Grimzy #${String(g.serial).padStart(3, '0')} · ${when(g.at)} · tap to open</small></button>`).join('')
+        + items.map(g => { const it = (typeof STORE_ITEM_CATALOG !== 'undefined' && STORE_ITEM_CATALOG.find(x => x.id === g.item)) || { icon: '🎁', label: g.item };
+            return `<article class="bb-box mb-letter unread mb-itemgift">
+                <div class="top"><h3 class="bb-title">🎁 From ${esc(g.from || 'a friend')}</h3><span class="new">NEW</span></div>
+                <small>${when(g.at)}</small>${g.note ? `<p class="body">${esc(g.note)}</p>` : ''}
+                <div class="mb-attach"><span>${it.icon} ${esc(it.label)} × ${g.n || 1}</span><button type="button" class="bb-btn bb-btn--main" data-take="${esc(g.id)}">Take</button></div></article>`; }).join('');
+    box.onclick = async (e) => {
+        const b = e.target.closest('[data-gift]'); if (b) { Gifts.open(list[+b.dataset.gift]); return; }
+        const t = e.target.closest('[data-take]');
+        if (!t) return;
+        t.disabled = true; t.textContent = '…';
+        try { const r = await Social.acceptGift(t.dataset.take); const it = STORE_ITEM_CATALOG.find(x => x.id === r.item); Toast.show(`🎁 ${it ? it.label : 'Gift'} is in your Bag.`, 'positive'); renderGifts(); }
+        catch (err) { Toast.show(err.message || 'Could not take it.', 'negative'); t.disabled = false; t.textContent = 'Take'; }
+    };
+}
+
+let giftFormReady = false;
+async function setupGiftForm() {
+    if (giftFormReady || typeof Gifts === 'undefined') return;
+    giftFormReady = true;
+    $('mb-gift').hidden = false;
+    if (!$('mb-gift-letter').value) $('mb-gift-letter').value = GIFT_LETTER;
+    let taken = new Set();
+    try { const r = await Gifts.sent(); (r.sent || []).forEach(g => taken.add(g.serial)); } catch { /* list stays full */ }
+    const opts = [];
+    for (let n = 1; n <= 50; n++) if (!taken.has(n)) opts.push(`<option value="${n}">🎃 Grimzy · #${String(n).padStart(3, '0')} of 050${n === 1 ? ' (yours)' : ''}</option>`);
+    $('mb-gift-no').innerHTML = opts.join('');
+    const sent = [...taken].sort((a, b) => a - b);
+    $('mb-gift-sent').textContent = sent.length ? `Sent so far: ${sent.map(n => '#' + String(n).padStart(3, '0')).join(', ')}` : '';
+    $('mb-gift-send').onclick = async () => {
+        const email = $('mb-gift-to').value.trim(), serial = Number($('mb-gift-no').value), letter = $('mb-gift-letter').value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { Toast.show('Add their sign-in email.', 'negative'); return; }
+        const btn = $('mb-gift-send'); btn.disabled = true;
+        try {
+            await Gifts.send({ edition: 'grimzy-2026', email, serial, letter });
+            Toast.show(`🎁 Grimzy #${String(serial).padStart(3, '0')} sent.`, 'positive');
+            $('mb-gift-to').value = '';
+            giftFormReady = false; setupGiftForm();
+            try { await Gifts.inbox(true); renderGifts(); } catch { /* fine */ }
+        } catch (e) { Toast.show(e.message, 'negative'); }
+        finally { btn.disabled = false; }
+    };
+}
+
 function render(data) {
     if (!data) return;
     $('mb-write').hidden = !data.creator;
+    if (data.creator) setupGiftForm();
     const mine = Social.myCode();
     $('mb-list').innerHTML = data.letters.length ? data.letters.map(l => {
         const unread = !seenBefore[l.id];
@@ -28,6 +88,9 @@ function render(data) {
 }
 
 async function load(force) {
+    renderGifts();
+    if (typeof Gifts !== 'undefined' && localStorage.getItem('bizzybee_session') === 'identity') Gifts.inbox(force).then(renderGifts).catch(() => {});
+    if (localStorage.getItem('bizzybee_session') === 'identity' && Social.itemGifts) Social.itemGifts().then(renderGifts).catch(() => {});   // Nov 1 2026 (Craft)
     render(Social.cachedMail());
     try { render(await Social.mail(force)); $('mb-signin').hidden = true; }
     catch (e) {
@@ -61,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof Waggle !== 'undefined' && typeof baseWaggleActions === 'function') Waggle.setActions(baseWaggleActions());
     try { seenBefore = JSON.parse(localStorage.getItem('bizzybee_mail_seen') || '{}'); } catch { seenBefore = {}; }
     load(false);
+    window.addEventListener('bb-gifts', renderGifts);
     $('mb-refresh').onclick = () => load(true);
     $('mb-send').onclick = async () => {
         const title = $('mb-title').value.trim(), body = $('mb-body').value.trim();
