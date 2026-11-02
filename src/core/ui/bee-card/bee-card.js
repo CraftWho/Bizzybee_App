@@ -366,9 +366,10 @@ ${pumpkin(46, 182, 1.05, true)}${pumpkin(74, 188, .62, false)}${pumpkin(258, 184
 // scene: 'halloween' swaps the forest for the Halloween night (Nov 1 2026).
 // Nov 2 2026 (Craft): each element has its own bee (Water, Fire, Wind, Earth).
 // A bee with no art of its own shows its element's bee instead of the gold one.
-const ELEMENT_BEE_ART = { water: 'elements/bee-water', fire: 'elements/bee-fire', wind: 'elements/bee-wind', earth: 'elements/bee-earth-a' };
+// Earth (Craft's pick): the mossy bee for Common to Epic, the sand swirl for Legendary and up.
+const ELEMENT_BEE_ART = { water: 'elements/bee-water', fire: 'elements/bee-fire', wind: 'elements/bee-wind', earth: 'elements/bee-earth-b', 'earth-top': 'elements/bee-earth-c' };
 function beeCardArtHTML({ rarityKey = 'common', classInfo = null, silhouette = false, rivets = 3, royal = null, art = null, scene = null, element = null } = {}) {
-    if (!art && !royal && element && ELEMENT_BEE_ART[element]) art = ELEMENT_BEE_ART[element];
+    if (!art && !royal && element && ELEMENT_BEE_ART[element]) art = element === 'earth' && ['legendary', 'named'].includes(rarityKey) ? ELEMENT_BEE_ART['earth-top'] : ELEMENT_BEE_ART[element];
     const rivetHTML = ['bc-tl', 'bc-tr', 'bc-bl'].slice(0, rivets).map(c => `<i class="bc-rv ${c}"></i>`).join('');
     const bee = royal
         ? `<div class="bc-beewrap bc-beewrap--royal${silhouette ? ' bc-silhouette' : ''}">${beeCardRoyalHTML(royal)}</div>`
