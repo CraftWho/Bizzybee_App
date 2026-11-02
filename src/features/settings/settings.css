@@ -385,3 +385,6 @@ body.st-in-group .stv2 > .st-list, body.st-in-group #dev-section, body.st-in-gro
 .stv2 .look-preset span { font-size: 1.2rem; }
 .stv2 .look-preset[aria-pressed="true"] { border-color: var(--bb-accent, #ffcc00); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .18); }
 .stv2 .look-fonts .look-preset { font-size: .82rem; padding: 12px 4px; }
+
+/* Nov 2 2026 (Craft): left / right hand */
+.stv2 .look-hand { grid-template-columns: repeat(2, 1fr); }
