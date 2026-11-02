@@ -59,3 +59,23 @@ test('hive levels: all-Rare comb, auto-manage unlocks, fills, and pauses when st
     assert.equal(st.running, false);
     assert.equal(st.stuck.id, 'r');
 });
+
+test('auto-swap: Queen\'s Whistle unlocks it; a tired worker hands its job to a rested bee', async () => {
+    const v = harness({ hive: { bees: [bee('w', 'nurse', { n: 1 }), bee('r', 'nurse', { n: 2 })], tickets: 0, vitalsAt: Date.now() } });
+    await v.init();
+    v.assignBeeClass('w', 'nurse');
+    assert.equal(v.autoSwapUnlocked(), false);
+    assert.equal(v._autoSwapHour().length, 0);
+    v.state.queen = { ...(v.state.queen || {}), since: '2026-01-01', bonus: 1000 };
+    v._ensureQueen().bonus = 1000;
+    assert.ok(v.purchaseStoreItem('queens-whistle'));
+    assert.equal(v.purchaseStoreItem('queens-whistle'), null);       // one per hive
+    assert.ok(v.autoSwapUnlocked());
+    v.getHiveBees().find(b => b.id === 'w').life.stamina = 20;
+    const notes = v._autoSwapHour();
+    assert.equal(notes.length, 1);
+    assert.equal(v.jobHolder('nurse').id, 'r');
+    v.setAutoSwap({ mode: 'pick', pool: [] });
+    v.getHiveBees().find(b => b.id === 'r').life.stamina = 10;
+    assert.equal(v._autoSwapHour().length, 0);                       // "I choose" with nobody picked
+});

@@ -35,7 +35,8 @@ function rows() {
                 return { id: 'inc:' + id, inc: id, icon: t.icon, label: t.label, priceIcon: '🪙', price: t.price, have: own ? 1 : 0, max: own ? 0 : (I.coins >= t.price ? 1 : 0), owned: own,
                     text: `${t.slots} egg slot${t.slots > 1 ? 's' : ''}. 1 day off per ${t.goal.toLocaleString()} steps, up to ${t.cap} a day.${t.full ? ' Hatchlings start full.' : ''}${t.trait ? ` +${Math.round(t.trait * 100)}% birth trait chance.` : ''}` }; }) };
         }
-        return { list, key, items: STORE_ITEM_CATALOG.filter(i => pocketOf(i) === key).map(i => ({ id: i.id, icon: i.icon, label: i.label, priceIcon: priceInfo(i).icon, price: i.price.amount, have: items[i.id] || 0, max: Vault.maxAffordable(i.id), text: i.description, held: i.kind === 'held' })) };
+        return { list, key, items: STORE_ITEM_CATALOG.filter(i => pocketOf(i) === key).map(i => { const owned = i.kind === 'unlock' && Vault.ownsUnlock(i.id);   // Nov 1 2026 (Craft): one-time unlocks
+            return { id: i.id, icon: i.icon, label: i.label, priceIcon: priceInfo(i).icon, price: i.price.amount, have: owned ? 1 : (items[i.id] || 0), max: owned ? 0 : Vault.maxAffordable(i.id), text: i.description, held: i.kind === 'held', owned, unlock: i.kind === 'unlock' }; }) };
     }
     if (key === 'mats') {
         const m = Vault.getMaterials();
@@ -61,7 +62,7 @@ function render() {
         <div class="hm-list" role="listbox" aria-label="${esc(pocket)}">${items.length ? items.map(i => `<button type="button" class="hm-li${mode === 'buy' && !i.max ? ' cant' : ''}" role="option" data-i="${esc(i.id)}" aria-selected="${i.id === sel}">
             <span class="ic">${i.icon}</span><span class="nm">${esc(i.label)}</span><span class="pr">${mode === 'buy' ? (i.owned ? 'Owned' : `${i.priceIcon} ${i.price.toLocaleString()}`) : `×${i.have}`}</span></button>`).join('')
             : `<div class="hm-li empty">${mode === 'buy' ? 'Nothing here yet.' : 'Nothing in this pocket.'}</div>`}</div>
-        <div class="hm-desc">${it ? `<b>${it.icon} ${esc(it.label)}</b><span>${esc(it.text || '')}</span><small>${mode === 'buy' ? (it.inc ? (it.owned ? 'You own this one.' : '') : `In your Bag: ${it.have}`) : it.price ? `Sells for 🪙 ${it.price} each` : ''}</small>` : '<small>Pick an item.</small>'}</div>
+        <div class="hm-desc">${it ? `<b>${it.icon} ${esc(it.label)}</b><span>${esc(it.text || '')}</span><small>${mode === 'buy' ? (it.inc || it.unlock ? (it.owned ? 'You own this one.' : '') : `In your Bag: ${it.have}`) : it.price ? `Sells for 🪙 ${it.price} each` : ''}</small>` : '<small>Pick an item.</small>'}</div>
         ${it && it.max ? `<div class="hm-q"><div class="arr"><button type="button" data-q="1" aria-label="More"${qty >= it.max ? ' disabled' : ''}>▲</button><button type="button" data-q="-1" aria-label="Fewer"${qty <= 1 ? ' disabled' : ''}>▼</button></div>
             <div class="x">× ${String(qty).padStart(2, '0')}</div><div class="tot">${mode === 'buy' ? it.priceIcon : '🪙'} ${(qty * it.price).toLocaleString()}</div></div>
             <div class="hm-acts">${mode === 'sell' && it.held ? '<button type="button" class="hm-no" id="hm-gift">🎁 Send as gift</button>' : '<button type="button" class="hm-no" id="hm-cancel">Cancel</button>'}<button type="button" class="hm-ok" id="hm-go">${mode === 'buy' ? 'BUY' : 'SELL'}</button></div>` : ''}
@@ -87,7 +88,7 @@ function go() {
         say(r.ok ? `Here you go! Your ${it.label}. Put eggs inside from the Egg Incubator page. 🐝` : r.error);
     } else if (mode === 'buy') {
         const r = Vault.buyStoreItems(it.id, qty);
-        say(r ? `Here you go! ${r.count} × ${it.label}. Thank you! 🐝` : 'Sorry, you can\'t afford that.');
+        say(r ? (it.unlock ? `Here you go! Your ${it.label}. Your hive will know what to do. 🐝` : `Here you go! ${r.count} × ${it.label}. Thank you! 🐝`) : 'Sorry, you can\'t afford that.');
     } else {
         const r = Vault.sellOwned(it.id, qty);
         say(r ? `Thanks! Here's 🪙 ${r.coins}.` : 'Sorry, I can\'t buy that.');

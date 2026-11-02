@@ -925,3 +925,24 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .hl-cell[data-comb="rest"] { --cb-hi: #5f8fd6; --cb-lo: #22406e; --cb-in: #121f36; }
 .hl-cell[data-comb="entrance"] { --cb-hi: #6cbf5e; --cb-lo: #2b5e27; --cb-in: #142d12; }
 .hl-cell.alert[data-comb] .hl-in { box-shadow: inset 0 0 0 2px var(--bb-alt, #dc143c); }
+
+/* Nov 1 2026 (Craft): Auto-swap (approved demo). */
+.hl-swap { display: grid; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px solid rgba(127, 224, 138, .25); animation: hlGrow .35s ease-out; }
+@keyframes hlGrow { from { opacity: 0; transform: translateY(-4px); } }
+.hl-swap-row { display: flex; align-items: center; gap: 10px; }
+.hl-swap-t { color: #5aa9ff !important; flex: 1; }
+.hl-swap-l { font-size: .72rem; color: #c2b48f; }
+.hl-swap-row input[type=range] { flex: 1; accent-color: var(--bb-accent, #ffcc00); }
+.hl-swap-p { min-width: 40px; text-align: right; font: 700 .86rem var(--font-main, monospace); color: var(--bb-accent, #ffcc00); }
+.hl-sw { position: relative; width: 44px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: 99px; background: #3a2a0a; cursor: pointer; box-shadow: none; }
+.hl-sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #f5ecd4; transition: left .2s; }
+.hl-sw[aria-checked="true"] { background: #7fe08a; }
+.hl-sw[aria-checked="true"] i { left: 23px; }
+.hl-seg { display: flex; gap: 6px; }
+.hl-seg button { flex: 1; margin: 0; padding: 7px 4px; border-radius: 10px; border: 1px solid #3a2a0a; background: #1a140b; color: #f5ecd4; font-size: .74rem; font-weight: 700; cursor: pointer; box-shadow: none; }
+.hl-seg button[aria-pressed="true"] { border: 0; background: var(--bb-accent, #ffcc00); color: #1a1000; }
+.hl-pool { display: flex; flex-wrap: wrap; gap: 6px; }
+.hl-chip { margin: 0; padding: 5px 10px; border-radius: 99px; border: 1px solid #3a2a0a; background: #1a140b; color: #f5ecd4; font-size: .74rem; cursor: pointer; box-shadow: none; }
+.hl-chip[aria-pressed="true"] { border-color: #5aa9ff; background: rgba(90, 169, 255, .15); color: #cfe4ff; }
+.wk-card.wk-fresh { background: rgba(127, 224, 138, .12); border-color: rgba(127, 224, 138, .6); }
+.hl-auto > .hl-swap:first-child { margin-top: 0; padding-top: 0; border-top: 0; }   /* Nov 1 2026 (Craft): no line when it stands alone */
