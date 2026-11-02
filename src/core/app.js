@@ -1246,7 +1246,7 @@ class CodexSystem {
         const localDev = typeof Vault !== 'undefined' ? !!Vault.pcLocal : isLocal;
         // Oct 31 2026 (Craft): check the owner BEFORE downloading the 41 KB
         // panel, so other people's devices (testers) never load it.
-        if (localDev || localStorage.getItem('bizzybee_dev_test') === '1') { add('src/core/dev-tools/dev-tools.js'); return; }
+        if (localDev || window.BB_PERSONAL || localStorage.getItem('bizzybee_dev_test') === '1') { add('src/core/dev-tools/dev-tools.js'); return; }   // Nov 2 2026 (Craft): + BizzyBee Dev
         if (localStorage.getItem('bizzybee_session') !== 'identity') return;
         (async () => {
             try {
