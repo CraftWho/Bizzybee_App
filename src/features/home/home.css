@@ -235,3 +235,26 @@ a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left
 .xt-scrim { padding: 0 12px calc(96px + 6vh + env(safe-area-inset-bottom)); box-sizing: border-box; }   /* Oct 31 2026 (Craft): a bit higher */
 .xt-sheet { max-height: calc(62vh - 104px - env(safe-area-inset-bottom)); min-height: 200px; border-radius: 22px; border: 2px solid #34c77b; padding-bottom: 14px; }
 .xt-sheet .xt-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+/* Nov 1 2026 (Craft; from 1.0.7): choose Home tiles - ✕ to remove, ＋ to add, Reset Home. */
+.home-app { position: relative; }
+.home-apps-btns { display: flex; gap: 8px; align-items: center; }
+.home-apps-reset { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(243, 230, 189, .3); background: rgba(0, 0, 0, .5); color: #f3e6bd; font: 600 .76rem system-ui, sans-serif; }
+.home-apps-reset[hidden] { display: none; }
+.home-app-x { display: none; position: absolute; top: 0; right: 8px; width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid #120d05; background: var(--cr); color: #fff; font: 700 .7rem/1 system-ui, sans-serif; z-index: 2; }
+.home-app-grid.editing .home-app-x { display: grid; place-items: center; }
+.home-app-add { display: none; background: none; border: 0; cursor: pointer; }
+.home-app-grid.editing .home-app-add { display: flex; animation: none; }
+.home-app-add .home-app-ic { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .12); }
+.home-app-add .home-app-ic svg { stroke: var(--gc); stroke-width: 2.6; }
+.home-app-emoji { font-size: 1.6rem; line-height: 1; position: relative; z-index: 1; }
+.home-add-emoji { font-size: 1.6rem; line-height: 1; }
+.home-add-tip { margin-top: 12px; }
+
+/* Nov 1 2026 (Craft): Eve (or Adam) pops up instead of the "bees need help" card. */
+.home-eve { position: fixed; z-index: 1100; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: min(78vw, 340px); display: flex; align-items: flex-end; gap: 8px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; text-align: left; cursor: pointer; opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
+.home-eve.in { opacity: 1; transform: none; }
+.home-eve-bub { background: #fbf3dc; color: #2a1d06; border: 2px solid #c98a00; border-radius: 14px 14px 4px 14px; padding: 10px 12px; font: 700 .82rem/1.4 var(--font-main, monospace); box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
+.home-eve-bub small { display: block; margin-top: 4px; font: .7rem system-ui, sans-serif; color: #7a5a20; }
+.home-eve-who { flex: none; width: 44px; height: 48px; display: grid; place-items: center; font-size: 1.5rem; background: linear-gradient(#ffd84a, #c98a00); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+@media (prefers-reduced-motion: reduce) { .home-eve { transition: none; } }

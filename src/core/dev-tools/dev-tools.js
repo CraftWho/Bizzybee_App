@@ -443,7 +443,6 @@
             <div class="dev-row">
                 <button data-dev="theme" data-t="auto">✨ Auto</button>
                 <button data-dev="theme" data-t="bee">🐝 BizzyBee</button>
-                <button data-dev="theme" data-t="halloween">🎃 Halloween</button>
                 <button data-dev="theme-day" data-d="halloween" class="go">Pretend it's Oct 31</button>
                 <button data-dev="theme-day">Back to today</button>
                 <a href="${root}/src/features/themes/themes.html">Themes page</a>

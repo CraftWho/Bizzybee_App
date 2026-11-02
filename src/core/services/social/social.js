@@ -56,6 +56,21 @@ const Social = (() => {
     }
     const cachedFriends = () => read(K.friends);
     async function add(code, letter) { const r = await call('hive', { action: 'add', code, ...(letter ? { letter } : {}) }); await friends(true); return r; }
+    // Nov 1 2026 (Craft; from 1.0.7): gifts of held items, through the
+    // Mailbox. The item leaves your Bag first and comes back if sending fails.
+    async function gift(code, itemId, note) {
+        if (!Vault.giftTakeOut(itemId)) throw new Error('You don\'t have that item.');
+        try { await call('hive', { action: 'gift', code, item: itemId, note: note || '' }); }
+        catch (e) { Vault.giftPutIn(itemId, 1); throw e; }
+    }
+    async function itemGifts() { const r = await call('hive', { action: 'gifts' }); write('bizzybee_item_gifts', { at: Date.now(), list: r.gifts || [] }); return r.gifts || []; }
+    const cachedItemGifts = () => (read('bizzybee_item_gifts') || {}).list || [];
+    async function acceptGift(id) {
+        const r = await call('hive', { action: 'accept', id });
+        Vault.giftPutIn(r.item, r.n);
+        const c = read('bizzybee_item_gifts'); if (c) { c.list = (c.list || []).filter(g => g.id !== id); write('bizzybee_item_gifts', c); }
+        return r;
+    }
     async function remove(code) { await call('hive', { action: 'remove', code }); return friends(true); }
     async function sharing(on) { const r = await call('hive', { action: 'sharing', on }); const c = read(K.friends) || {}; c.sharing = r.sharing; write(K.friends, c); return r.sharing; }
 
@@ -72,7 +87,7 @@ const Social = (() => {
     const cachedMail = () => read(K.mail);
     function unread() {
         const c = read(K.mail), seen = read(K.seen) || {};
-        return c ? c.letters.filter(l => !seen[l.id]).length : 0;
+        return (c ? c.letters.filter(l => !seen[l.id]).length : 0) + ((read('bizzybee_item_gifts') || {}).list || []).length;   // Nov 1 2026 (Craft): + gifts waiting
     }
     function markRead(id) { const s = read(K.seen) || {}; s[id] = 1; write(K.seen, s); window.dispatchEvent(new CustomEvent('mail-changed')); }
     async function react(id, value) {
@@ -88,8 +103,10 @@ const Social = (() => {
             if (typeof Vault === 'undefined' || !Vault.state || Vault.devTest) return;
             try { await publish(false); } catch { /* not signed in: fine */ }
             try { await mail(false); } catch { /* not signed in: fine */ }
+            // Nov 1 2026 (Craft): gifts from friends, at most hourly too.
+            try { const g = read('bizzybee_item_gifts'); if (!g || stale(g.at)) { await itemGifts(); window.dispatchEvent(new CustomEvent('mail-changed')); } } catch { /* not signed in: fine */ }
         }, 4000);
     });
 
-    return { card, publish, myCode, friends, cachedFriends, add, remove, sharing, mail, cachedMail, unread, markRead, react, send, del, HOUR };
+    return { card, publish, myCode, friends, cachedFriends, add, remove, sharing, mail, cachedMail, unread, markRead, react, send, del, gift, itemGifts, cachedItemGifts, acceptGift, HOUR };
 })();

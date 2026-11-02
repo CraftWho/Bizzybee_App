@@ -157,22 +157,36 @@ function renderReadyEggs() {
     el.innerHTML = `<span class="home-help-ic" aria-hidden="true">🥚</span><span class="home-help-t"><b>${eggs.length} egg${eggs.length === 1 ? ' is' : 's are'} ready to hatch!</b><small>Tap to crack ${eggs.length === 1 ? 'it' : 'the first one'} open.</small></span><span class="home-help-go" aria-hidden="true">›</span>`;
 }
 
+// Nov 1 2026 (Craft; approved demo): no more "bees need help" card pushing
+// the Home apps down. Eve (Adam if your royal is a King) pops up in the
+// corner with one line, leaves after 5 seconds, and a tap takes you to
+// the bees that need help. At most once every 30 minutes for the same news.
 function renderBeeHelp() {
     renderReadyEggs();
-    const el = document.getElementById('home-help');
-    if (!el || typeof beeNeeds !== 'function') return;
-    // Oct 28 2026 (Craft): say exactly who needs what, and how to fix it.
+    const card = document.getElementById('home-help');
+    if (card) card.hidden = true;
+    if (typeof beeNeeds !== 'function') return;
     const list = Vault.getHiveBees().filter(b => b.rarity !== 'Royal')
         .map(b => ({ b, needs: beeNeeds(b) })).filter(x => x.needs.length);
-    el.hidden = !list.length;
     if (!list.length) return;
-    const shown = list.slice(0, 3);
-    el.setAttribute('aria-label', `${list.length} bee${list.length === 1 ? ' needs' : 's need'} help`);
-    el.innerHTML = `<span class="home-help-ic" aria-hidden="true">${list.some(x => x.needs[0].need === 'Fainted') ? '😵' : list.some(x => x.needs[0].need === 'No job') ? '😠' : '😢'}</span>
-        <span class="home-help-t"><b>${list.length} bee${list.length === 1 ? ' needs' : 's need'} help</b>
-        ${shown.map(({ b, needs }) => `<span class="home-help-bee"><i>${escapeHTML(b.name)}</i> ${needs.map(n => `<em>${escapeHTML(n.need)}</em> <small>${escapeHTML(n.value)}</small>`).join(' · ')}<small class="fix">→ ${escapeHTML(needs[0].fix)}</small></span>`).join('')}
-        ${list.length > 3 ? `<small>+${list.length - 3} more</small>` : ''}</span>
-        <span class="home-help-go" aria-hidden="true">›</span>`;
+    const line = list.slice(0, 2).map(({ b, needs }) => `${b.name}: ${needs[0].need.toLowerCase()}`).join(' · ') + (list.length > 2 ? ` · +${list.length - 2} more` : '');
+    try {
+        const last = JSON.parse(sessionStorage.getItem('bizzybee_eve_help') || 'null');
+        if (last && last.line === line && Date.now() - last.at < 30 * 60000) return;
+        sessionStorage.setItem('bizzybee_eve_help', JSON.stringify({ line, at: Date.now() }));
+    } catch { /* storage off: show it */ }
+    const royal = Vault.getHiveBees().find(b => b.rarity === 'Royal');
+    const who = royal && royal.royal === 'king' ? { name: 'Adam', face: '🤴' } : { name: 'Eve', face: '👸' };
+    setTimeout(() => {
+        const el = document.createElement('button');
+        el.type = 'button'; el.className = 'home-eve';
+        el.setAttribute('aria-label', `${who.name}: ${line}. Tap to check on them.`);
+        el.innerHTML = `<span class="home-eve-bub">${escapeHTML(line)}<small>${who.name} · tap to check on them</small></span><span class="home-eve-who" aria-hidden="true">${who.face}</span>`;
+        el.addEventListener('click', () => { location.href = '../hive-bees/hive-bees.html?show=help'; });
+        document.body.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('in'));
+        setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 450); }, 5000);
+    }, 1200);
 }
 
 // ---- Today ----
@@ -347,7 +361,7 @@ const APP_ICONS = {
 // screen. Hold any app to rearrange (apps wiggle), drag, then tap Done.
 // The order is kept in the save (state.homeAppOrder), so it follows you.
 const HOME_APPS = [
-    { key: 'hive-mind', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Store' },
+    { key: 'hive-mind', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Mart' },   // Nov 1 2026 (Craft): renamed
     { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
     { key: 'hive-archive', label: 'Hive Archive' }, { key: 'notifications', label: 'Notifications' }, { key: 'settings', label: 'Settings' }
@@ -364,13 +378,26 @@ function installedPluginApps() {
 }
 
 function hrefFor(app) {
+    if (app.path) return `../../../${app.path}`;   // Nov 1 2026 (Craft): a pinned menu page
     const d = app.dir || app.key;
     return app.base === 'plugins' ? `../../plugins/${d}/${d}.html` : `../${d}/${d}.html`;
 }
 
-// Saved order first, then any app the order doesn't know yet (new plugin).
-function orderedApps() {
+// Nov 1 2026 (Craft; from 1.0.7, approved demo): Home tiles you choose (HomeTiles in
+// core/ui/hive-mind/hive-mind.js). Pages from the menu show their emoji.
+function tileCatalog() {
     const all = [...HOME_APPS, ...installedPluginApps()];
+    const have = new Set(all.map(a => a.key));
+    const extra = typeof HomeTiles === 'undefined' ? [] : HomeTiles.menuPages()
+        .filter(p => !have.has(p.key) && !DOCK_PLUGINS.includes(p.key))
+        .map(p => ({ key: p.key, label: p.label, emoji: p.icon, path: p.path }));
+    return [...all, ...extra];
+}
+const tileOn = (key) => typeof HomeTiles === 'undefined' ? HOME_APPS.some(a => a.key === key) || installedPluginApps().some(a => a.key === key) : HomeTiles.isOn(key);
+
+// Saved order first, then any tile the order doesn't know yet (new plugin or pin).
+function orderedApps() {
+    const all = tileCatalog().filter(a => tileOn(a.key));
     const saved = (Vault.state && Array.isArray(Vault.state.homeAppOrder)) ? Vault.state.homeAppOrder : [];
     const byKey = new Map(all.map(a => [a.key, a]));
     const out = saved.filter(k => byKey.has(k)).map(k => byKey.get(k));
@@ -378,18 +405,45 @@ function orderedApps() {
     return out;
 }
 
+const tileIcon = (app) => APP_ICONS[app.key] ? `<svg viewBox="0 0 28 28">${APP_ICONS[app.key]}</svg>`
+    : app.emoji ? `<span class="home-app-emoji">${app.emoji}</span>` : `<svg viewBox="0 0 28 28">${APP_ICONS.plugin}</svg>`;
+
+let homeGridEditing = false;
 function renderAppGrid() {
     const section = document.getElementById('home-app-grid');
     section.innerHTML = `
-        <div class="home-apps-bar"><span class="home-apps-hint" id="home-apps-hint">Hold an app to move it</span>
-            <button type="button" class="home-apps-done" id="home-apps-done" hidden>Done</button></div>
-        <div class="home-app-grid" id="home-app-list">${orderedApps().map(app => `
+        <div class="home-apps-bar"><span class="home-apps-hint" id="home-apps-hint">${homeGridEditing ? 'Drag to move · ✕ to remove' : 'Hold an app to edit Home'}</span>
+            <span class="home-apps-btns"><button type="button" class="home-apps-reset" id="home-apps-reset"${homeGridEditing ? '' : ' hidden'}>Reset Home</button>
+            <button type="button" class="home-apps-done" id="home-apps-done"${homeGridEditing ? '' : ' hidden'}>Done</button></span></div>
+        <div class="home-app-grid${homeGridEditing ? ' editing' : ''}" id="home-app-list">${orderedApps().map(app => `
             <a class="home-app" data-key="${app.key}" href="${hrefFor(app)}" draggable="false">
-                <span class="home-app-ic" aria-hidden="true"><svg viewBox="0 0 28 28">${APP_ICONS[app.key] || APP_ICONS.plugin}</svg></span>
+                <span class="home-app-ic" aria-hidden="true">${tileIcon(app)}</span>
                 <span class="home-app-label">${escapeHTML(app.label)}</span>
+                <button type="button" class="home-app-x" data-remove="${app.key}" aria-label="Remove ${escapeHTML(app.label)} from Home">✕</button>
             </a>`).join('')}
+            <button type="button" class="home-app home-app-add" id="home-app-add" aria-label="Add a page to Home">
+                <span class="home-app-ic" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M14 8v12M8 14h12"/></svg></span>
+                <span class="home-app-label">Add</span></button>
         </div>`;
     setupAppGridEditing();
+}
+
+// ＋ tile: every page that isn't on Home yet.
+function openAddTile() {
+    const off = tileCatalog().filter(a => !tileOn(a.key));
+    const el = document.createElement('div');
+    el.className = 'app-create-sheet';
+    el.innerHTML = `<div class="acs-card" role="dialog" aria-modal="true" aria-label="Add to Home"><h3>Add to Home</h3>
+        ${off.length ? `<div class="acs-grid home-add-grid">${off.map(a => `<button type="button" class="acs-opt" data-add="${a.key}">${APP_ICONS[a.key] ? `<svg viewBox="0 0 28 28">${APP_ICONS[a.key]}</svg>` : `<span class="home-add-emoji">${a.emoji || '🧩'}</span>`}<span>${escapeHTML(a.label)}</span></button>`).join('')}</div>`
+            : '<p class="home-add-none">Every page is already on Home.</p>'}
+        <p class="home-add-tip">You can also hold a page in the menu to pin it.</p></div>`;
+    const close = () => el.remove();
+    el.addEventListener('click', e => {
+        const b = e.target.closest('[data-add]');
+        if (b) { HomeTiles.set(b.dataset.add, true); close(); renderAppGrid(); return; }
+        if (e.target === el) close();
+    });
+    document.body.appendChild(el);
 }
 
 // Hold (0.45s) -> edit mode; drag to move (the others slide over); Done saves.
@@ -397,27 +451,37 @@ function setupAppGridEditing() {
     const grid = document.getElementById('home-app-list');
     const done = document.getElementById('home-apps-done');
     const hint = document.getElementById('home-apps-hint');
-    let editing = false, holdTimer = null, drag = null, held = false;
+    let editing = homeGridEditing, holdTimer = null, drag = null, held = false;
+    const reset = document.getElementById('home-apps-reset');
 
     const save = () => {
-        Vault.state.homeAppOrder = [...grid.children].map(a => a.dataset.key);
+        Vault.state.homeAppOrder = [...grid.querySelectorAll('.home-app[data-key]')].map(a => a.dataset.key);
         Vault.save();
     };
     const startEditing = () => {
-        editing = true;
+        editing = homeGridEditing = true;
         grid.classList.add('editing');
-        done.hidden = false;
-        hint.textContent = 'Drag apps to move them';
+        done.hidden = false; reset.hidden = false;
+        hint.textContent = 'Drag to move · ✕ to remove';
         if (navigator.vibrate) navigator.vibrate(15);
     };
     const stopEditing = () => {
-        editing = false;
+        editing = homeGridEditing = false;
         grid.classList.remove('editing');
-        done.hidden = true;
-        hint.textContent = 'Hold an app to move it';
+        done.hidden = true; reset.hidden = true;
+        hint.textContent = 'Hold an app to edit Home';
         save();
     };
     done.addEventListener('click', stopEditing);
+    // Nov 1 2026 (Craft): remove a tile, add one, or go back to the default Home.
+    reset.addEventListener('click', () => { HomeTiles.reset(); homeGridEditing = false; renderAppGrid(); if (typeof Toast !== 'undefined') Toast.show('Home is back to the default tiles.', 'neutral'); });
+    document.getElementById('home-app-add').addEventListener('click', openAddTile);
+    grid.addEventListener('click', e => {
+        const x = e.target.closest('[data-remove]');
+        if (!x) return;
+        e.preventDefault(); e.stopPropagation();
+        save(); HomeTiles.set(x.dataset.remove, false); renderAppGrid();
+    }, true);
 
     // In edit mode (or right after a hold) a tap doesn't open the app.
     grid.addEventListener('click', e => { if ((editing || held) && e.target.closest('.home-app')) { e.preventDefault(); held = false; } });
@@ -426,8 +490,8 @@ function setupAppGridEditing() {
     document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
 
     grid.addEventListener('pointerdown', e => {
-        const app = e.target.closest('.home-app');
-        if (!app) return;
+        const app = e.target.closest('.home-app[data-key]');
+        if (!app || e.target.closest('[data-remove]')) return;
         held = false;
         if (editing) { beginDrag(app, e); return; }
         const start = { x: e.clientX, y: e.clientY };
@@ -455,7 +519,7 @@ function setupAppGridEditing() {
         if (!drag) return;
         drag.ghost.style.left = `${e.clientX}px`; drag.ghost.style.top = `${e.clientY}px`;
         const over = document.elementFromPoint(e.clientX, e.clientY);
-        const target = over && over.closest('#home-app-list .home-app');
+        const target = over && over.closest('#home-app-list .home-app[data-key]');
         if (!target || target === drag.app) return;
         const apps = [...grid.children];
         const before = new Map(apps.map(a => [a, a.getBoundingClientRect()]));
@@ -484,6 +548,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderBeeHelp();
     renderToday();
     renderAppGrid();
+    window.addEventListener('home-tiles-changed', () => renderAppGrid());   // Nov 1 2026 (Craft): pinned from the menu
     if (new URLSearchParams(location.search).get('devdone') === '1') setTimeout(openDoneToday, 600);   // dev tools
     setupToday();
 

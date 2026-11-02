@@ -9,7 +9,7 @@
 // stays available as "Classic" (hive-mind.js).
 const HiveLife = (() => {
     const COMBS = [
-        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34.5, y: 1, text: 'Your Queen lives here. Attendants groom her. Drones wait to mate with her.' },
+        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34.5, y: 1, text: 'Your Queen lives here.' },
         { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse'], x: 3, y: 17, text: 'New bees start as eggs here. What hatches is a surprise. Nurses speed hatching and healing.' },
         { id: 'honey', icon: '🍯', name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'], x: 66, y: 17, text: 'Food for the hive. Honey Makers make Honey Drops. Water Carriers keep workers fresh.' },
         { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner'], x: 34.5, y: 33, text: 'Comb Builders add quest loot. Cleaners soften lost raids.' },
@@ -72,6 +72,7 @@ const HiveLife = (() => {
             walkers.push(w); place(w);
         };
 
+        const needy = [];
         COMBS.forEach(c => {
             const list = byRoom[c.id];
             const eggs = list.filter(beeIsBrood);
@@ -84,9 +85,24 @@ const HiveLife = (() => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'hl-cell' + (unhappy ? ' alert' : '');
+            btn.dataset.comb = c.id;   // Nov 1 2026 (Craft): each comb has its own color
             btn.style.left = c.x + '%'; btn.style.top = c.y + '%';
             btn.setAttribute('aria-label', `${c.name}, ${count}${unhappy ? `, ${unhappy} need${unhappy === 1 ? 's' : ''} help` : ''}. Tap to manage.`);
-            btn.innerHTML = `<span class="hl-in"><span class="hl-ic">${c.icon}</span><span class="hl-nm">${c.name}</span><span class="hl-ct">${count}</span></span>${unhappy ? `<span class="hl-dot">${unhappy}</span>` : ''}`;
+            // Nov 1 2026 (Craft): a comb opens with your level. Locked: a black
+            // outline, nothing else. A red dot = an open job with nobody in it.
+            const openIn = c.jobs.filter(j => Vault.hiveOpenJobs().includes(j));
+            if (c.jobs.length && !openIn.length) {
+                const lock = document.createElement('div');
+                lock.className = 'hl-cell is-locked';
+                lock.setAttribute('aria-hidden', 'true');
+                lock.style.left = c.x + '%'; lock.style.top = c.y + '%';
+                hive.appendChild(lock);
+                return;
+            }
+            const empty = openIn.some(j => !Vault.jobHolder(j));
+            if (empty) needy.push(c.name);
+            btn.innerHTML = `<span class="hl-in"><span class="hl-ic">${c.icon}</span><span class="hl-nm">${c.name}</span><span class="hl-ct">${count}</span></span>${unhappy ? `<span class="hl-dot">${unhappy}</span>` : ''}${empty ? '<span class="hl-need" title="Needs workers"></span>' : ''}`;
+            if (empty) btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' Needs workers.');
             btn.addEventListener('click', () => openRoom(c.id, { onBeeClick, onChange }));
             hive.appendChild(btn);
             // Bees wander in the lower half of their comb.
@@ -102,6 +118,15 @@ const HiveLife = (() => {
             }
         });
 
+        // Nov 1 2026 (Craft): "The Hive is Buzzing" banner + the auto-manage panel.
+        if (needy.length) {
+            const bz = document.createElement('div');
+            bz.className = 'hl-buzz';
+            bz.innerHTML = '🐝 <b>The Hive is Buzzing!</b>';
+            host.prepend(bz);
+        }
+        host.prepend(autoPanel());
+        lastMount = { onBeeClick, onChange };
         timers.push(setInterval(() => { walkers.forEach(w => { if (!w.still && Math.random() < 0.7) place(w); }); }, 1700));
 
         // Faces pop out of the bees you can see.
@@ -136,7 +161,7 @@ const HiveLife = (() => {
             }, 2300);
         };
         if (flyers.length) { timers.push(setTimeout(trip, 800)); timers.push(setInterval(trip, 4800)); }
-        else {
+        else if (Vault.hiveOpenJobs().includes('collector')) {   // Nov 1 2026 (Craft): no hint before Foragers open
             const note = document.createElement('span');
             note.className = 'hl-label hl-meadow-note'; note.textContent = 'No Foragers out. Tap the Entrance to give a bee the Forager job.';
             hive.appendChild(note);
@@ -145,7 +170,25 @@ const HiveLife = (() => {
     }
 
     // ---- a comb's pop-up ---------------------------------------------------
-    let sheet = null;
+    let sheet = null, backTo = null, lastMount = null;
+    // Nov 1 2026 (Craft): after a bee's card closes, reopen the comb it came from.
+    function reopenLast() {
+        const id = backTo; backTo = null;
+        if (id && lastMount) openRoom(id, lastMount);
+    }
+    // Auto-manage panel (Nov 1 2026, Craft; approved demo).
+    function autoPanel() {
+        const el = document.createElement('div');
+        const st = Vault.hiveAutoStatus && Vault.hiveAutoStatus();
+        if (!st) return el;
+        const L = st.leader;
+        if (!st.on && !st.filled) return el;   // nothing to show yet
+        el.className = 'hl-auto' + (st.running ? ' on' : '');
+        el.innerHTML = !st.on ? `<b>🔒 Auto-manage</b> <span class="hl-chk"><span class="${st.filled === st.open ? 'y' : ''}">${st.filled}/${st.open}</span><span class="${L ? 'y' : ''}">🎖 ${L ? esc(L.name) : '?'}</span></span>`
+            : st.running ? `<b>🤖 Auto-manage</b> · 🎖 ${esc(L.name)}`
+            : `<b>⏸ Auto-manage</b> · ${st.stuck ? `${esc(st.stuck.name)} is tired` : 'no Leader'}`;
+        return el;
+    }
     function closeRoom() {
         if (!sheet) return;
         sheet.remove(); sheet = null;
@@ -167,7 +210,8 @@ const HiveLife = (() => {
         }
         if (c.id === 'royal') {
             const drone = !!(Vault.state.hive && Vault.state.hive.droneBoost);
-            return `<p class="hl-note">♂️ Drone boost: ${drone ? '<b>ready</b> for your next pull' : 'not yet'}. Each working Attendant gives +1 ✨ Royal Nectar when you level up.</p>`;
+            // Nov 1 2026 (Craft): say nothing about Drones until that job opens.
+            return Vault.hiveOpenJobs().includes('drone') ? `<p class="hl-note">♂️ Drone boost: ${drone ? '<b>ready</b> for your next pull' : 'not yet'}.</p>` : '';
         }
         if (c.id === 'workshop') {
             const rolls = Math.min(3, Vault._workers('architect').length);
@@ -189,14 +233,22 @@ const HiveLife = (() => {
         return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="Job for ${esc(bee.name)}">
             <option value="">${blank}</option><option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
     }
+    // Nov 1 2026 (Craft): the moment auto-manage unlocks.
+    function unlockedToast() {
+        if (!Vault.autoJustUnlocked) return;
+        Vault.autoJustUnlocked = false;
+        const L = Vault.hiveLeader();
+        if (typeof Toast !== 'undefined') Toast.show(`🤖 Auto-manage unlocked! ${L ? L.name + ' leads the hive.' : ''}`, 'positive');
+    }
     function beeRow(bee, c, today) {
         const f = beeFeeling(bee, today);
+        const lead = Vault.hiveLeader && Vault.hiveLeader();
         const L = bee.life || {};
         const where = isOut(bee) ? ' · out foraging' : '';
         return `<div class="hl-row"><span class="hl-rface" title="${esc(f.key)}">${f.face}</span>
-            <button type="button" class="hl-who-btn" data-card="${esc(bee.id)}"><b>${esc(bee.name)}${bee.sex === 'm' ? ' ♂' : ''}</b><small>${esc(f.why)}${where} · 🍯${Math.round(L.fullness ?? 0)} ⚡${Math.round(L.stamina ?? 0)} ❤️${Math.round(L.health ?? 0)}</small></button>
+            <button type="button" class="hl-who-btn" data-card="${esc(bee.id)}"><b>${esc(bee.name)}${bee.sex === 'm' ? ' ♂' : ''}${lead && lead.id === bee.id ? ' <span class="wk-lead">🎖 Leader</span>' : ''}</b><small>${esc(f.why)}${where} · 🍯${Math.round(L.fullness ?? 0)} ⚡${Math.round(L.stamina ?? 0)} ❤️${Math.round(L.health ?? 0)}</small></button>
             <button type="button" class="hl-ren" data-ren="${esc(bee.id)}" aria-label="Rename ${esc(bee.name)}">✏️</button>
-            ${jobSelect(bee, jobsFor(bee), { mark: c.jobs })}</div>`;
+            ${jobSelect(bee, jobsFor(bee).filter(j => bee.class === j || !Vault.jobBlock(bee, j)), { mark: c.jobs })}</div>`;   // Nov 1 2026 (Craft): open, talent, free
     }
 
     function openRoom(id, opts = {}) {
@@ -206,7 +258,6 @@ const HiveLife = (() => {
         const all = Vault.getHiveBees().filter(b => b.rarity !== 'Royal');
         const list = all.filter(b => roomOf(b) === id && !beeIsBrood(b));
         const eggs = id === 'nursery' ? all.filter(beeIsBrood) : [];
-        const idle = c.jobs.length ? all.filter(b => roomOf(b) === 'rest' && !b.class && !beeIsBrood(b) && !(b.life && b.life.faintedAt) && jobsFor(b, c.jobs).length) : [];
         const n = nurseCount();
 
         let html = `<div class="hl-sheet" role="dialog" aria-modal="true" aria-label="${esc(c.name)}">
@@ -225,16 +276,28 @@ const HiveLife = (() => {
                 + (typeof Plugins === 'undefined' || Plugins.isEnabled('incubator') ? `<a class="hl-inc-link" href="../../plugins/incubator/incubator.html">🥚 Egg Incubator: hatch eggs faster with your steps ›</a>` : '')
                 : '<p class="hl-note">No eggs right now. New bees from the Pollination Chamber, level-ups and skills start here.</p>';
         }
-        html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
-        html += list.length ? list.map(b => beeRow(b, c, today)).join('') : `<p class="hl-note">${id === 'rest' ? 'Nobody is resting. Every bee has work.' : 'No bees here yet.'}</p>`;
-        if (idle.length) {
-            html += `<h3 class="hl-sub">Add a resting bee</h3>` + idle.map(b => {
-                const f = beeFeeling(b, today);
-                return `<div class="hl-row"><span class="hl-rface">${f.face}</span><button type="button" class="hl-who-btn" data-card="${esc(b.id)}"><b>${esc(b.name)}${b.sex === 'm' ? ' ♂' : ''}</b><small>${esc(f.why)}</small></button>
-                    ${jobSelect(b, jobsFor(b, c.jobs), { blank: 'Assign…' })}</div>`;
+        // Nov 1 2026 (Craft; approved demo): job slots. One bee per open job,
+        // talent only. Locked jobs are black outlines: there's more to find.
+        const WC = typeof WorkerCard !== 'undefined' ? WorkerCard : null;
+        if (c.jobs.length && WC) {
+            const open = Vault.hiveOpenJobs();
+            const holders = c.jobs.map(j => Vault.jobHolder(j)).filter(Boolean);
+            const power = combPower(holders, c.jobs);
+            html += `<div class="hl-meter"><span>Comb strength${Vault.combIsRare(id) ? ' · 💎' : ''}</span><span>${power}%</span></div><span class="hl-bar"><i style="width:${power}%;background:${power >= 70 ? '#5fd38a' : power >= 35 ? '#ffcc00' : '#ff5a5a'}"></i></span>`;
+            const lead = Vault.hiveLeader();
+            html += c.jobs.map(j => {
+                if (!open.includes(j)) return '<div class="hl-slot-lock" aria-label="Locked"></div>';
+                const info = BEE_CLASSES[j];
+                const h = Vault.jobHolder(j);
+                if (h) return `<h3 class="hl-sub">${info.icon} ${esc(info.label)}</h3>` + WC.html(h, { job: j, action: 'rest', label: 'Rest', leader: lead && lead.id === h.id });
+                const fits = all.filter(b => !b.class && !beeIsBrood(b) && !(b.life && b.life.faintedAt) && Vault.beeFitsJob(b, j)).sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
+                return `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="hl-empty">empty</span></h3>`
+                    + (fits.length ? fits.map(b => { const after = combPower([...holders, { ...b, class: j }], c.jobs); return WC.html(b, { job: j, effect: `+${after - power}%`, action: 'add', label: 'Add' }); }).join('') : '<p class="hl-note">—</p>');
             }).join('');
+        } else {
+            html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
+            html += list.length ? list.map(b => beeRow(b, c, today)).join('') : `<p class="hl-note">${id === 'rest' ? 'Nobody is resting.' : 'No bees here yet.'}</p>`;
         }
-        if (c.jobs.length) html += '<p class="hl-note">★ = jobs done in this comb. ⭐ = the bee\'s natural talent (+20% at it). 🔒 = a Named Beast, its title sets its job.</p>';
         html += '</div>';
 
         const fresh = !sheet;
@@ -259,9 +322,10 @@ const HiveLife = (() => {
             const job = sel.value || null;
             const r = Vault.assignBeeClass(sel.dataset.bee, job);
             if (typeof Toast !== 'undefined' && bee) {
-                if (!r) Toast.show("That bee can't do that job.", 'negative');
+                if (!r) Toast.show(Vault.lastJobError || "That bee can't do that job.", 'negative');
                 else Toast.show(job === 'recuperate' ? `💤 ${r.name} is recuperating.` : job ? `${beeIsBrood(r) ? '🥚' : BEE_CLASSES[job].icon} ${r.name} ${beeIsBrood(r) ? 'will be a' : 'is now a'} ${BEE_CLASSES[job].label}.` : `${r.name} has no job.`, 'positive');
             }
+            unlockedToast();
             if (opts.onChange) opts.onChange();
             openRoom(id, opts);
         }));
@@ -279,9 +343,18 @@ const HiveLife = (() => {
             BeeName.mount(box, bee, { compact: true, onSaved: () => { if (opts.onChange) opts.onChange(); openRoom(id, opts); } });
             box.querySelector('.bn-in').focus();
         }));
+        sheet.querySelectorAll('[data-wk="add"], [data-wk="rest"]').forEach(btn => btn.addEventListener('click', () => {
+            const rest = btn.dataset.wk === 'rest';
+            const r = Vault.assignBeeClass(btn.dataset.bee, rest ? null : btn.dataset.job);
+            if (typeof Toast !== 'undefined') Toast.show(r ? (rest ? `💤 ${r.name} is resting.` : `${BEE_CLASSES[btn.dataset.job].icon} ${r.name} is now a ${BEE_CLASSES[btn.dataset.job].label}.`) : (Vault.lastJobError || "That bee can't do that job."), r ? 'positive' : 'negative');
+            unlockedToast();
+            if (opts.onChange) opts.onChange();
+            openRoom(id, opts);
+        }));
         sheet.querySelectorAll('[data-card]').forEach(btn => btn.addEventListener('click', () => {
             const bee = Vault.getHiveBees().find(b => b.id === btn.dataset.card);
             if (!bee || !opts.onBeeClick) return;
+            backTo = id;   // Nov 1 2026 (Craft): closing the bee brings you back to this comb
             closeRoom();
             opts.onBeeClick(bee);
         }));
@@ -363,5 +436,5 @@ const HiveLife = (() => {
         });
     }
 
-    return { mountComb, renderPanel, renderNews, zoneOf, roomOf, openRoom, closeRoom, popFace, wantsFace };
+    return { mountComb, renderPanel, renderNews, zoneOf, roomOf, openRoom, closeRoom, reopenLast, popFace, wantsFace };
 })();
