@@ -609,7 +609,7 @@
 
     // A test save stays reachable even if the owner check can't run (so
     // you can always switch back). Otherwise: this computer, or the owner.
-    const allowed = localDev || testOn() ? Promise.resolve(true) : isOwner();
+    const allowed = localDev || window.BB_PERSONAL || testOn() ? Promise.resolve(true) : isOwner();   // Nov 2 2026 (Craft): + BizzyBee Dev
     // Settings asks this to show its Developer section (Oct 2026).
     window.BizzyDev = { allowed: () => allowed };
     const start = () => allowed.then(ok => ok ? ready().then(build) : null).catch(() => {});

@@ -19,6 +19,10 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 1 2026 (Craft): Batch 14.
+        { icon: '📯', title: 'Something new in the Honey Mart', text: 'Look in the Special pocket.', href: 'features/honey-store/honey-store.html' },
+        { icon: '📅', title: 'Quest deadlines remind you', text: 'Smart Notifications now cover Quests with a deadline.' },
+        { icon: '👸', title: 'Eve and Adam, for real', text: 'Your own Queen or King pops up on Home.' },
         { icon: '🍯', title: 'Honey Mart', text: 'The store is a real shop now: Buy, Sell, pockets and a quantity box. Send bee items to friends; gifts arrive in the Mailbox.', href: 'features/honey-store/honey-store.html' },
         { icon: '👸', title: 'Eve on Home', text: 'Bees that need help no longer push your Home apps down. Eve pops up instead.' },
         { icon: '📌', title: 'Your Home, your tiles', text: 'Hold a tile to remove or add pages. Hold a page in the menu to pin it.', href: 'features/home/home.html' },
@@ -241,6 +245,7 @@ const BizzyUpdates = (() => {
     const buildOf = (tag, version) => { const b = String(tag).match(/-b(\d+)$/); return b ? Number(b[1]) : Number(String(version).split('.').pop()) || 0; };
     async function check({ quiet } = {}) {
         if (!isApp) return { state: 'web' };
+        if (window.BB_PERSONAL) return { state: 'none' };   // Nov 2 2026 (Craft): BizzyBee Dev is rebuilt by hand
         const tk = token();
         const headers = { Accept: 'application/vnd.github+json' };
         if (tk) headers.Authorization = `Bearer ${tk}`;

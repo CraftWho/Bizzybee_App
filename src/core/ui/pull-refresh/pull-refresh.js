@@ -3,6 +3,7 @@
 // then reloads the page. Loaded on every app page by app.js.
 (() => {
     const MAX = 110, GO = 72;
+    const NO_PULL = '.no-pull, [data-no-pull], .cf-stage, .cf-wheel, .cf-scrub, .app-dock, .tp-pad, .dev-fab';   // Nov 1 2026 (Craft)
     let startY = null, pull = 0, busy = false;
     const el = document.createElement('div');
     el.className = 'ptr';
@@ -15,6 +16,10 @@
     function blocked(target) {
         if (window.scrollY > 0 || document.scrollingElement.scrollTop > 0) return true;
         if (document.querySelector('.lvr, .gfx.on, dialog[open], .hn-tip, [role="dialog"]:not([hidden])')) return true;
+        // Nov 1 2026 (Craft): anything marked .no-pull (or data-no-pull) never
+        // starts a refresh: Cover Flow, the click wheel, the dock ＋, the thumb
+        // pad, dev buttons. Add the class to any new swipe/drag control.
+        if (target && target.closest && target.closest(NO_PULL)) return true;
         for (let n = target; n && n !== document.body; n = n.parentElement) {
             if (n.scrollTop > 0) return true;
             if (/^(INPUT|TEXTAREA|SELECT)$/.test(n.tagName)) return true;

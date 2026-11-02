@@ -41,6 +41,7 @@ let w3On = false;
 (async () => {
     try {
         const C = window.Capacitor;
+        if (window.BB_PERSONAL) { w3On = true; return; }   // Nov 2 2026 (Craft): always on in BizzyBee Dev
         if (!(C && typeof C.isNativePlatform === 'function' && C.isNativePlatform())) return;
         if (typeof Vault !== 'undefined' && Vault.pcLocal) return;
         if (localStorage.getItem('bizzybee_session') !== 'identity' || !window.crypto || !crypto.subtle) return;

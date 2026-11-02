@@ -176,7 +176,10 @@ function renderBeeHelp() {
         sessionStorage.setItem('bizzybee_eve_help', JSON.stringify({ line, at: Date.now() }));
     } catch { /* storage off: show it */ }
     const royal = Vault.getHiveBees().find(b => b.rarity === 'Royal');
-    const who = royal && royal.royal === 'king' ? { name: 'Adam', face: '🤴' } : { name: 'Eve', face: '👸' };
+    // Nov 1 2026 (Craft): Eve is your Queen, Adam your King, drawn with their real art.
+    const king = !!(royal && royal.royal === 'king');
+    const art = AppShell.url(`src/assets/bees/${king ? 'king/king' : 'queen/queen'}-body.webp`);
+    const who = { name: king ? 'Adam' : 'Eve', face: `<img src="${art}" alt="" draggable="false">` };
     setTimeout(() => {
         const el = document.createElement('button');
         el.type = 'button'; el.className = 'home-eve';
