@@ -19,6 +19,8 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 3 2026 (Craft): Batch 19.
+        { icon: '🐝', title: 'More bees at work', text: 'Each job takes more bees as your hive grows. Merges can bring a talent your hive is missing.', href: 'features/hive-mind/hive-mind.html' },
         // Nov 2 2026 (Craft): Batch 18.
         { icon: '🔢', title: 'Website version updates itself', text: 'Settings › About shows the date, batch and code of the version you are on.', href: 'features/settings/settings.html' },
         // Nov 2 2026 (Craft): Batch 17.
