@@ -311,19 +311,27 @@ const HiveLife = (() => {
         const WC = typeof WorkerCard !== 'undefined' ? WorkerCard : null;
         if (c.jobs.length && WC) {
             const open = Vault.hiveOpenJobs();
-            const holders = c.jobs.map(j => Vault.jobHolder(j)).filter(Boolean);
+            const holders = c.jobs.flatMap(j => Vault.jobHolders(j));
             const power = combPower(holders, c.jobs);
             html += `<div class="hl-meter"><span>Comb strength${Vault.combIsRare(id) ? ' · 💎' : ''}</span><span>${power}%</span></div><span class="hl-bar"><i style="width:${power}%;background:${power >= 70 ? '#5fd38a' : power >= 35 ? '#ffcc00' : '#ff5a5a'}"></i></span>`;
             const lead = Vault.hiveLeader();
             html += c.jobs.map(j => {
                 if (!open.includes(j)) return '<div class="hl-slot-lock" aria-label="Locked"></div>';
                 const info = BEE_CLASSES[j];
-                const h = Vault.jobHolder(j);
-                const ls = Vault.state.hive.lastSwap, fresh = ls && ls.in === (h && h.id) && ls.job === j && Date.now() - Date.parse(ls.at) < 6 * 3600000;
-                if (h) return `<h3 class="hl-sub">${info.icon} ${esc(info.label)}</h3>` + WC.html(h, { job: j, action: 'rest', label: 'Rest', leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
+                // Nov 3 2026 (Craft; approved demo): a job takes several bees,
+                // more as your hive grows. Hexes show filled and empty slots.
+                const hs = Vault.jobHolders(j), n = Vault.jobSlots(j);
+                const ls = Vault.state.hive.lastSwap;
+                const slots = `<span class="hl-slots" aria-label="${hs.length} of ${n}">${Array.from({ length: Math.max(n, hs.length) }, (_, i) => `<i class="${i < hs.length ? 'on' : ''}"></i>`).join('')}</span>`;
+                let out = `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="${hs.length ? 'hl-count' : 'hl-empty'}">${hs.length}/${n}</span></h3>${slots}`;
+                out += hs.map(h => {
+                    const fresh = ls && ls.in === h.id && ls.job === j && Date.now() - Date.parse(ls.at) < 6 * 3600000;
+                    return WC.html(h, { job: j, action: 'rest', label: 'Rest', leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
+                }).join('');
+                if (hs.length >= n) return out;
                 const fits = all.filter(b => !b.class && !beeIsBrood(b) && !(b.life && b.life.faintedAt) && Vault.beeFitsJob(b, j)).sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
-                return `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="hl-empty">empty</span></h3>`
-                    + (fits.length ? fits.map(b => { const after = combPower([...holders, { ...b, class: j }], c.jobs); return WC.html(b, { job: j, effect: `+${after - power}%`, action: 'add', label: 'Add' }); }).join('') : '<p class="hl-note">—</p>');
+                if (fits.length) return out + fits.map(b => { const after = combPower([...holders, { ...b, class: j }], c.jobs); return WC.html(b, { job: j, effect: `+${after - power}%`, action: 'add', label: 'Add' }); }).join('');
+                return out + (hs.length ? '' : '<p class="hl-note">No bee for this job yet.</p>');
             }).join('');
         } else {
             html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;

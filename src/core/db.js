@@ -746,7 +746,11 @@ function beeTalentBoost(bee) {
 function pickBeeTalent(bee, rand = Math.random) {
     if (bee.sex === 'm') return 'drone';
     const jobs = Object.keys(BEE_CLASSES).filter(k => !BEE_CLASSES[k].maleOnly);
-    return jobs[Math.floor(rand() * jobs.length)];
+    // Nov 3 2026 (Craft): random, with real-hive odds (more Collectors and Nurses).
+    const w = k => (typeof HIVE_JOB_SHARES !== 'undefined' && HIVE_JOB_SHARES[k]) || 1;
+    let r = rand() * jobs.reduce((n, k) => n + w(k), 0);
+    for (const k of jobs) { r -= w(k); if (r < 0) return k; }
+    return jobs[jobs.length - 1];
 }
 // Bee Models keys this bee counts toward (see Vault.getSeenModels).
 function beeModelKeys(bee) {
@@ -1644,6 +1648,12 @@ const REST_RATES = {
 // Nov 1 2026 (Craft): the hive grows with your level. One new job slot
 // every 1-2 levels (the Lv 1 job becomes your first bee's talent).
 let HIVE_JOB_RULES = true;   // tests of the older job mechanics turn this off
+// Nov 3 2026 (Craft; approved demo): like a real colony. About 4 in 5
+// adult bees work; each open job takes its share of them (at least 1).
+// The same shares are the odds of a new bee's talent. Drones: every male.
+const HIVE_JOB_SHARES = { collector: 22, nurse: 18, honeymaker: 14, cleaner: 12, architect: 10, watercarrier: 8, scout: 6, guardian: 6, attendant: 4, barrier: 3, undertaker: 3 };
+const HIVE_WORK_SHARE = 0.8;
+const MERGE_GAP_CHANCE = 0.35;   // a merged bee may get a talent the hive is missing
 const HIVE_JOB_LADDER = [
     { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 4, job: 'collector' }, { lv: 5, job: 'guardian' },
     { lv: 7, job: 'watercarrier' }, { lv: 8, job: 'architect' }, { lv: 10, job: 'attendant' }, { lv: 11, job: 'cleaner' },
@@ -4214,6 +4224,18 @@ class DatabaseManager {
             stats[k] = Math.min(beeStatCap(resultRarity, k), best + boost);
         });
 
+        // Nov 3 2026 (Craft; approved demo): the merged bee's talent. Two
+        // males make a male (Drone). Otherwise a 35% chance of a talent the
+        // hive is missing (an open job no bee can do), else a parent's.
+        const male = beeA.sex === 'm' && beeB.sex === 'm';
+        let talent = 'drone';
+        if (!male) {
+            const has = new Set(bees.filter(b => b.id !== beeIdA && b.id !== beeIdB && b.talent).map(b => b.talent));
+            const missing = HIVE_JOB_RULES ? this.hiveOpenJobs().filter(j => j !== 'drone' && !has.has(j)) : [];
+            const parents = [beeA, beeB].map(b => b.talent).filter(t => t && t !== 'drone');
+            talent = missing.length && Math.random() < MERGE_GAP_CHANCE ? missing[Math.floor(Math.random() * missing.length)]
+                : parents.length ? parents[Math.floor(Math.random() * parents.length)] : pickBeeTalent({ sex: 'f' });
+        }
         this.state.hive.bees = bees.filter(b => b.id !== beeIdA && b.id !== beeIdB);
 
         const dexNumber = this.getHiveBees().filter(b => b.rarity !== 'Royal').length + 1;
@@ -4222,7 +4244,7 @@ class DatabaseManager {
             id: generateBeeId(),
             name: keepName ? lead.name : randomBeeName(this.getHiveBees().map(b => b.name)),
             rarity: resultRarity,
-            class: lead.class || null,
+            class: null,   // Nov 3 2026 (Craft): starts resting; its talent may differ from its parents'
             obtainedAt: new Date().toISOString(),
             source: 'combine',
             stats,
@@ -4231,6 +4253,8 @@ class DatabaseManager {
             element: lead.element || rollBeeElement(),
             traits: [...new Set([...(beeA.traits || []), ...(beeB.traits || [])])],
             merges: (Number(beeA.merges) || 0) + (Number(beeB.merges) || 0) + 1,
+            sex: male ? 'm' : 'f',
+            talent,
             customNamed: !!keepName
         };
 
@@ -6113,9 +6137,25 @@ Object.assign(DatabaseManager.prototype, {
         const lv = (this.getUser() || {}).level || 1;
         return this.hiveJobLadder().filter(x => x.lv <= lv).map(x => x.job);
     },
-    // The bee in a job slot (alive, not an egg), or null.
+    // Every bee in a job (alive, not an egg).
+    jobHolders(job) {
+        return this._lifeBees().filter(b => b.class === job && !beeIsBrood(b) && !b.life.faintedAt);
+    },
+    // The first bee in a job, or null.
     jobHolder(job) {
-        return this._lifeBees().find(b => b.class === job && !beeIsBrood(b) && !b.life.faintedAt) || null;
+        return this.jobHolders(job)[0] || null;
+    },
+    // Nov 3 2026 (Craft; approved demo): how many bees a job takes. Grows
+    // with your adult bees: about 80% work, split by HIVE_JOB_SHARES over the
+    // open jobs, at least 1 each. Drones: every adult male.
+    jobSlots(job) {
+        const open = this.hiveOpenJobs();
+        if (!open.includes(job)) return 0;
+        const adults = this._lifeBees().filter(b => !beeIsBrood(b));
+        if (job === 'drone') return Math.max(1, adults.filter(b => b.sex === 'm').length);
+        const females = adults.filter(b => b.sex !== 'm').length;
+        const sum = open.reduce((n, j) => n + (HIVE_JOB_SHARES[j] || 0), 0) || 1;
+        return Math.max(1, Math.round((HIVE_JOB_SHARES[job] || 0) / sum * females * HIVE_WORK_SHARE));
     },
     beeFitsJob(bee, job) {
         const locked = beeLockedJob(bee);
@@ -6126,8 +6166,8 @@ Object.assign(DatabaseManager.prototype, {
         if (!job || job === 'recuperate' || !HIVE_JOB_RULES) return '';
         if (!this.hiveOpenJobs().includes(job)) return 'That job isn\'t open yet.';
         if (!this.beeFitsJob(bee, job)) return 'Only a bee with that talent can do this job.';
-        const h = this.jobHolder(job);
-        if (h && h.id !== bee.id) return `${h.name} already has this job.`;
+        const hs = this.jobHolders(job);
+        if (!hs.some(h => h.id === bee.id) && hs.length >= this.jobSlots(job)) return 'This job is full.';
         return '';
     },
     // Every worker in this comb is Rare or better: they tire and get hungry 50% slower.
@@ -6149,7 +6189,7 @@ Object.assign(DatabaseManager.prototype, {
         let moved = 0;
         const keep = {};
         this._lifeBees().filter(b => b.class && !beeIsBrood(b)).sort((a, b) => beeJobScore(b, b.class) - beeJobScore(a, a.class)).forEach(b => {
-            if (open.includes(b.class) && this.beeFitsJob(b, b.class) && !keep[b.class]) { keep[b.class] = b.id; return; }
+            if (open.includes(b.class) && this.beeFitsJob(b, b.class) && (keep[b.class] || 0) < this.jobSlots(b.class)) { keep[b.class] = (keep[b.class] || 0) + 1; return; }   // Nov 3 2026 (Craft): up to the job's slots
             b.class = null; b.jobSince = todayISO(); b.life.idleSince = todayISO(); moved++;
         });
         if (moved) this._lifeEvent('auto', `🐝 The hive reorganized. ${moved} bee${moved === 1 ? '' : 's'} went to rest.`);
@@ -6168,6 +6208,7 @@ Object.assign(DatabaseManager.prototype, {
     _autoReady(b) {
         return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery;
     },
+    // Nov 3 2026 (Craft): "filled" = open jobs with at least one bee.
     hiveAutoStatus() {
         if (!this.state || !this.state.hive) return null;
         const open = this.hiveOpenJobs();
@@ -6175,7 +6216,7 @@ Object.assign(DatabaseManager.prototype, {
         const leader = this.hiveLeader();
         // A tired worker with nobody free to take its place pauses it.
         const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b));
-        const stuck = open.map(j => this.jobHolder(j)).find(b => b && b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
+        const stuck = open.flatMap(j => this.jobHolders(j)).find(b => b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
         const on = !!(this.state.hive.autoManage && this.state.hive.autoManage.on);
         return { on, running: on && !!leader && !stuck, leader, stuck, open: open.length, filled };
     },
@@ -6212,9 +6253,8 @@ Object.assign(DatabaseManager.prototype, {
         const P = this.autoSwapPrefs();
         if (!P.on) return [];
         const notes = [];
-        this.hiveOpenJobs().forEach(j => {
-            const h = this.jobHolder(j);
-            if (!h || h.life.stamina >= P.pct || beeLockedJob(h)) return;
+        this.hiveOpenJobs().forEach(j => this.jobHolders(j).forEach(h => {
+            if (h.life.stamina >= P.pct || beeLockedJob(h)) return;
             const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && b.life.stamina >= P.pct + 20 && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
@@ -6224,21 +6264,25 @@ Object.assign(DatabaseManager.prototype, {
             const text = `🔄 ${pick.name} took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
             this._lifeEvent('auto', text, { beeId: pick.id });
             notes.push(text);
-        });
+        }));
         return notes;
     },
     _autoManageHour() {
         const st = this.hiveAutoStatus();
         if (!st || !st.running) return [];
         const notes = [];
-        this.hiveOpenJobs().filter(j => !this.jobHolder(j)).forEach(j => {
-            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && this.beeFitsJob(b, j))
-                .sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j))[0];
-            if (!pick) return;
-            pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
-            const text = `🐝 ${pick.name} took the ${BEE_CLASSES[j].label} job.`;
-            this._lifeEvent('auto', text, { beeId: pick.id });
-            notes.push(text);
+        this.hiveOpenJobs().forEach(j => {
+            // Nov 3 2026 (Craft): fill every open slot, not just the first.
+            let gap = this.jobSlots(j) - this.jobHolders(j).length;
+            const picks = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && this.beeFitsJob(b, j))
+                .sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
+            for (const pick of picks) {
+                if (gap-- <= 0) break;
+                pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
+                const text = `🐝 ${pick.name} took the ${BEE_CLASSES[j].label} job.`;
+                this._lifeEvent('auto', text, { beeId: pick.id });
+                notes.push(text);
+            }
         });
         return notes;
     },
