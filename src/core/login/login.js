@@ -84,6 +84,38 @@ function friendlyAuthError(error, fallback) {
     return fallback + (raw ? ` (${raw})` : '');
 }
 
+// Nov 2 2026 (Craft): a new device (or the BizzyBee Dev app, which has its
+// own storage) has no save yet. Load the cloud save HERE, before Home, so
+// the egg never shows for an account that already has a hive. Returns
+// 'have' (already on this device), 'loaded', 'none' (new account) or
+// 'error' (couldn't reach the cloud: don't open the app on a blank save).
+async function pullCloudSave(user) {
+    if (typeof Vault === 'undefined' || Vault.devTest || Vault.pcLocal) return 'have';
+    const key = 'bizzybee_user_data:' + user.id;
+    if (localStorage.getItem(key)) return 'have';
+    try {
+        const token = await user.jwt();
+        const response = await fetch(((window.BB_SITE) || '') + '/.netlify/functions/load-state', {
+            method: 'GET', cache: 'no-store',
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(20000)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok) return 'error';
+        if (!result.data) return 'none';
+        const before = Vault.storageKey;
+        Vault.storageKey = key;
+        const imported = Vault.importFullState(result.data, { fromCloud: true, backup: false });
+        if (!imported.ok) { Vault.storageKey = before; return 'error'; }
+        localStorage.setItem(key + ':revision', JSON.stringify(result.revision ?? null));
+        return 'loaded';
+    } catch (error) {
+        console.warn('Cloud save load failed', error && error.message);
+        return 'error';
+    }
+}
+const CLOUD_LOAD_ERROR = "🐝 Couldn't load your hive from the cloud. Check your connection and try again.";
+
 function finishSignedIn(user, { welcome = false } = {}) {
     localStorage.setItem('bizzybee_cloud_owner', user.id);
     localStorage.setItem('bizzybee_session', 'identity');
@@ -145,9 +177,15 @@ function setupAuthForms() {
         if (!gotrue) { showError('Sign-in is unavailable right now. Check your connection.'); return; }
         const btn = document.getElementById('auth-submit-btn');
         btn.disabled = true; btn.textContent = 'Entering…';
-        try { finishSignedIn(await gotrue.login(email, password, true)); }
-        catch (error) { showError(friendlyAuthError(error, 'Sign-in didn\'t go through.')); }
-        finally { btn.disabled = false; btn.textContent = 'Enter the Hive'; }
+        let user;
+        try { user = await gotrue.login(email, password, true); }
+        catch (error) { showError(friendlyAuthError(error, 'Sign-in didn\'t go through.')); btn.disabled = false; btn.textContent = 'Enter the Hive'; return; }
+        // Nov 2 2026 (Craft): your hive first, then Home. Never the egg on a blank save.
+        btn.textContent = 'Loading your hive…';
+        const got = await pullCloudSave(user);
+        if (got === 'error') { showError(CLOUD_LOAD_ERROR); try { await user.logout(); } catch { /* fine */ } }
+        else finishSignedIn(user);
+        btn.disabled = false; btn.textContent = 'Enter the Hive';
     });
 
     // Invite: set a password, then the welcome card.
@@ -231,6 +269,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // touches what happens when you land back on the root/login page.
     if (localStorage.getItem('bizzybee_session')) {
         document.getElementById('welcome-loading-text').textContent = '✅ Welcome back! Entering the Hive...';
+        // Nov 2 2026 (Craft): signed in but this device has no save yet: load it first.
+        const owner = localStorage.getItem('bizzybee_cloud_owner');
+        if (localStorage.getItem('bizzybee_session') === 'identity' && owner && !localStorage.getItem('bizzybee_user_data:' + owner)) {
+            const gotrue = identityClient();
+            const user = gotrue && gotrue.currentUser();
+            const got = user ? await pullCloudSave(user) : 'error';
+            if (got === 'error') {
+                await settleWelcome();
+                document.getElementById('welcome-loading').hidden = true;
+                document.getElementById('login-content').hidden = false;
+                showError(CLOUD_LOAD_ERROR);
+                return;
+            }
+        }
         await settleWelcome();
         goHome();
         return;
