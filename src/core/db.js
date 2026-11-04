@@ -6157,6 +6157,16 @@ Object.assign(DatabaseManager.prototype, {
         const sum = open.reduce((n, j) => n + (HIVE_JOB_SHARES[j] || 0), 0) || 1;
         return Math.max(1, Math.round((HIVE_JOB_SHARES[job] || 0) / sum * females * HIVE_WORK_SHARE));
     },
+    // Nov 3 2026 (Craft; approved demo): for the merge picker. 'work' = in a
+    // job; 'spare' = resting while its job is full or not open; 'idle' = a
+    // slot in its job is free; null = can't be merged (Queen, limited, egg).
+    beeMergeStatus(bee) {
+        if (!bee || bee.rarity === 'Royal' || beeIsLimited(bee) || beeIsBrood(bee)) return null;
+        if (bee.class) return 'work';
+        const job = beeLockedJob(bee) || bee.talent;
+        if (!job || !this.hiveOpenJobs().includes(job)) return 'spare';
+        return this.jobHolders(job).length >= this.jobSlots(job) ? 'spare' : 'idle';
+    },
     beeFitsJob(bee, job) {
         const locked = beeLockedJob(bee);
         return locked ? locked === job : bee.talent === job;
