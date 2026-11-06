@@ -336,6 +336,7 @@ const HiveLife = (() => {
         } else {
             html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
             html += list.length ? list.map(b => beeRow(b, c, today)).join('') : `<p class="hl-note">${id === 'rest' ? 'Nobody is resting.' : 'No bees here yet.'}</p>`;
+            if (id === 'rest' && list.length > 1) html += `<a class="hl-inc-link" href="../gacha/gacha.html#merge">🧬 Merge spares ›</a>`;   // Nov 3 2026 (Craft)
         }
         html += '</div>';
 
