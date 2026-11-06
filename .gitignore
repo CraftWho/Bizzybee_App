@@ -55,3 +55,6 @@ repomix-output.xml
 version.json
 # Nov 1 2026 (Craft): written by the deploy (tools/stamp-version.mjs)
 app-files.json
+
+# Nov 4 2026 (Craft): private notes for Claude Code (never shared with the contributor).
+CLAUDE.local.md

@@ -191,6 +191,63 @@ function beeOptionsHTML(bees) {
     return bees.map(b => `<option value="${b.id}">${b.name} (${b.rarity})</option>`).join('');
 }
 
+// Nov 3 2026 (Craft; approved demo): merge picker. Groups bees by talent with
+// the job's status (Full, free slots, opens at Lv), tags each bee Working /
+// Spare / No job, weakest first. Tapping sets the two hidden selects that
+// handleCombine reads.
+let mpFilter = 'spare';
+let mpPicked = [];
+function mpEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function renderMergePicker() {
+    const list = document.getElementById('mp-list');
+    if (!list || typeof Vault.beeMergeStatus !== 'function') return;
+    const bees = Vault.getHiveBees().map(b => ({ b, s: Vault.beeMergeStatus(b) })).filter(x => x.s);
+    const count = s => bees.filter(x => x.s === s).length;
+    document.getElementById('mp-c-spare').textContent = count('spare');
+    document.getElementById('mp-c-idle').textContent = count('idle');
+    document.getElementById('mp-c-all').textContent = bees.length;
+    mpPicked = mpPicked.filter(id => bees.some(x => x.b.id === id));
+    const shown = bees.filter(x => mpFilter === 'all' || x.s === mpFilter);
+    const open = Vault.hiveOpenJobs();
+    const ladder = Vault.hiveJobLadder();
+    const groups = {};
+    shown.forEach(x => { const t = (typeof beeLockedJob === 'function' && beeLockedJob(x.b)) || x.b.talent || 'other'; (groups[t] = groups[t] || []).push(x); });
+    const power = (b, t) => (typeof beeJobScore === 'function' && BEE_CLASSES[t]) ? beeJobScore(b, t) : 0;
+    const tag = (t) => {
+        if (!BEE_CLASSES[t]) return '';
+        if (!open.includes(t)) { const l = ladder.find(x => x.job === t); return `<span class="mp-tag is-lock">${l ? 'Opens Lv ' + l.lv : 'Locked'}</span>`; }
+        const n = Vault.jobSlots(t), w = Vault.jobHolders(t).length;
+        return w >= n ? `<span class="mp-tag is-full">Full${w === n ? ` ${w}/${n}` : ''}</span>` : `<span class="mp-tag is-open">${n - w} free · ${w}/${n}</span>`;
+    };
+    const LABEL = { work: 'Working', spare: 'Spare', idle: 'No job' };
+    list.innerHTML = Object.keys(groups).sort((a, z) => groups[z].length - groups[a].length).map(t => {
+        const info = BEE_CLASSES[t];
+        const rows = groups[t].sort((a, z) => power(a.b, t) - power(z.b, t)).map(x => `<button type="button" class="mp-bee" data-mp="${mpEsc(x.b.id)}" aria-pressed="${mpPicked.includes(x.b.id)}"><span class="mid"><b>${mpEsc(x.b.name)}${x.b.sex === 'm' ? ' ♂' : ''}</b><small>${mpEsc(x.b.rarity)}</small></span><span class="mp-st is-${x.s}">${LABEL[x.s]}</span><span class="mp-pw">⚡${power(x.b, t)}</span></button>`).join('');
+        return `<div class="mp-grp"><h3><span>${info ? info.icon + ' ' + mpEsc(info.label) : 'Other'} · ${groups[t].length}</span>${tag(t)}</h3>${rows}</div>`;
+    }).join('') || '<p class="mp-key">Nothing here.</p>';
+    const [a, b] = mpPicked.map(id => Vault.getHiveBees().find(x => x.id === id));
+    const pick = document.getElementById('mp-pick');
+    pick.innerHTML = !a ? 'Pick two bees.' : !b ? `<b>${mpEsc(a.name)}</b> + …` : `<b>${mpEsc(a.name)}</b> + <b>${mpEsc(b.name)}</b>${a.talent && a.talent === b.talent ? ' · same talent' : ''}`;
+    document.getElementById('gacha-combine-select-a').value = a ? a.id : '';
+    document.getElementById('gacha-combine-select-b').value = b ? b.id : '';
+    document.getElementById('gacha-combine-btn').disabled = !(a && b);
+}
+function setupMergePicker() {
+    const block = document.getElementById('merge');
+    if (!block) return;
+    block.addEventListener('click', (e) => {
+        const f = e.target.closest('[data-mpf]');
+        if (f) { mpFilter = f.dataset.mpf; block.querySelectorAll('[data-mpf]').forEach(x => x.setAttribute('aria-pressed', String(x === f))); renderMergePicker(); return; }
+        const c = e.target.closest('[data-mp]');
+        if (c) { const id = c.dataset.mp; mpPicked = mpPicked.includes(id) ? mpPicked.filter(x => x !== id) : [...mpPicked, id].slice(-2); renderMergePicker(); }
+    });
+    // Bees can change after the page opens (eggs hatch, jobs change): keep it current.
+    window.addEventListener('vault-saved', () => renderMergePicker());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') renderMergePicker(); });
+    setTimeout(renderMergePicker, 1500);
+    if (location.hash === '#merge') setTimeout(() => block.scrollIntoView({ block: 'start' }), 300);
+}
+
 function renderRefineSelects() {
     const bees = Vault.getHiveBees().slice().reverse();
     const destroySelect = document.getElementById('gacha-destroy-select');
@@ -213,6 +270,8 @@ function renderRefineSelects() {
     comboA.disabled = bees.length < 2;
     comboB.disabled = bees.length < 2;
     combineBtn.disabled = bees.length < 2;
+    mpPicked = [];   // Nov 3 2026 (Craft): fresh picks after every refine
+    renderMergePicker();
 }
 
 function lootSummaryHTML(loot) {
@@ -253,8 +312,9 @@ async function handleDestroy() {
 }
 
 function handleCombine() {
-    const idA = document.getElementById('gacha-combine-select-a').value;
-    const idB = document.getElementById('gacha-combine-select-b').value;
+    // Nov 3 2026 (Craft): the merge picker's two picks, else the old selects.
+    const idA = mpPicked.length === 2 ? mpPicked[0] : document.getElementById('gacha-combine-select-a').value;
+    const idB = mpPicked.length === 2 ? mpPicked[1] : document.getElementById('gacha-combine-select-b').value;
 
     if (!idA || !idB) {
         Toast.show('Pick two bees to combine.', 'negative');
@@ -296,6 +356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderCollectionCounters();
     renderTicketPanel();
     renderRefineSelects();
+    setupMergePicker();
     setupFoilCard();
 
     document.getElementById('gacha-pollinate-btn').addEventListener('click', pollinateForNewBee);

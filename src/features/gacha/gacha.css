@@ -379,3 +379,27 @@
 .ga2 .ga-result { margin: 8px 0 0; color: var(--muted); font-size: .78rem; }
 .ga2 .ga-result:empty { display: none; }
 .ga2 .ga-links { margin-top: 18px; }
+
+/* Nov 3 2026 (Craft; approved demo): merge picker. */
+.ga2 .mp-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.ga2 .mp-chip { border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: rgba(255, 255, 255, .04); color: inherit; border-radius: 99px; padding: 7px 12px; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
+.ga2 .mp-chip[aria-pressed="true"] { border-color: transparent; background: var(--gold, #ffcc00); color: #1a1000; }
+.ga2 .mp-chip small { font-weight: 400; opacity: .8; }
+.ga2 .mp-key { margin: 0 0 8px; color: var(--muted); font-size: .74rem; line-height: 1.4; }
+.ga2 .mp-list { display: grid; gap: 8px; max-height: 60vh; overflow-y: auto; }
+.ga2 .mp-grp { display: grid; gap: 5px; padding: 8px; border-radius: 10px; background: rgba(255, 255, 255, .03); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .12); }
+.ga2 .mp-grp h3 { margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .78rem; letter-spacing: .04em; }
+.ga2 .mp-tag { font-size: .66rem; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
+.ga2 .mp-tag.is-full { background: rgba(255, 204, 0, .15); color: var(--gold, #ffcc00); }
+.ga2 .mp-tag.is-open { background: rgba(127, 224, 138, .15); color: #7fe08a; }
+.ga2 .mp-tag.is-lock { background: #000; color: #888; border: 1px solid #333; }
+.ga2 .mp-bee { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 7px 9px; border-radius: 9px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .12); background: rgba(0, 0, 0, .2); color: inherit; font: inherit; cursor: pointer; }
+.ga2 .mp-bee[aria-pressed="true"] { border-color: var(--gold, #ffcc00); background: rgba(255, 204, 0, .12); }
+.ga2 .mp-bee .mid { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.ga2 .mp-bee small { color: var(--muted); font-size: .7rem; }
+.ga2 .mp-st { font-size: .66rem; padding: 2px 6px; border-radius: 6px; }
+.ga2 .mp-st.is-work { background: rgba(127, 224, 138, .15); color: #7fe08a; }
+.ga2 .mp-st.is-spare { background: rgba(159, 201, 255, .15); color: #9fc9ff; }
+.ga2 .mp-st.is-idle { background: rgba(255, 138, 150, .15); color: #ff8a96; }
+.ga2 .mp-pw { font-weight: 700; color: var(--gold, #ffcc00); font-variant-numeric: tabular-nums; font-size: .8rem; }
+.ga2 .mp-pick { margin: 8px 0 4px; font-size: .8rem; }
