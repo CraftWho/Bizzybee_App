@@ -19,6 +19,8 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 7 2026 (Craft): Batch 23.
+        { icon: '🛟', title: 'Recover my account', text: 'On the egg screen, a small link opens Settings so you can get your cloud save back. It does not hatch or skip the egg.', href: 'features/settings/settings.html' },
         // Nov 6 2026 (Craft): Batch 21.
         { icon: '🃏', title: 'Skills back on cards', text: 'Resting bees show their talent\'s skill again, dimmed until they work.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '⚔️', title: 'Hive Defense (practice)', text: 'A new plugin: a hex battle with your own bees. Turn it on in the Plugin Hub.', href: 'plugins/hive-defense/hive-defense.html' },
