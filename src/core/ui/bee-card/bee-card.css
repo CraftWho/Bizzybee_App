@@ -634,6 +634,7 @@
 .bc-v2 .bc-title-ab .bc-ic { background: linear-gradient(160deg, var(--bb-t-mid, #e8b84a), #7a4a06); }
 .bc-v2 .bc-title-ab h4 { color: var(--bb-t-hi, #ffd977); }
 .bc-v2 .bc-title-ab.bc-off { opacity: .6; }
+.bc-v2 .bc-ab.bc-off { opacity: .6; }   /* Nov 6 2026 (Craft): a resting bee's skill */
 .bc-v2.bc-titled .bee-card-flavor { font-family: Georgia, "Times New Roman", serif; color: #e9d8b0; }
 .bc-v2.bc-titled .bee-card-front::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 6; mix-blend-mode: screen;
     background: linear-gradient(115deg, transparent 30%, rgba(255, 230, 160, .16) 45%, rgba(255, 120, 220, .1) 52%, transparent 65%) 150% 0 / 250% 100% no-repeat; animation: bc-holo 4.5s linear infinite; }

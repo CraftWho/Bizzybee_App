@@ -80,6 +80,14 @@ const PLUGIN_CATALOG = [
         description: 'Hatch eggs faster with your steps (Android app) or finished dailies. Buy incubators with Honey coins. Better tiers hold more eggs and give hatchlings a head start.'
     },
     {
+        // Nov 6 2026 (Craft; approved demo v2): practice mode for now.
+        id: 'hive-defense',
+        icon: '⚔️',
+        label: 'Hive Defense',
+        status: 'available',
+        description: 'A turn-based hex battle with your own bees. Climb hills, claim hive points for honey, call bees at your base and take the wasp nest. Practice mode: it never changes your hive.'
+    },
+    {
         id: 'fitness',
         icon: '💪',
         label: 'Fitness & Health',

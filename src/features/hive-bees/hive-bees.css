@@ -83,6 +83,13 @@
 .cf-stage { --cf-w: 190px; --cf-s: .73; position: relative; height: calc(var(--cf-w) * 1.4 + 40px); margin: 6px -16px 0; perspective: 900px; touch-action: pan-y; user-select: none; -webkit-user-select: none; overflow: hidden; outline: none; }
 .cf-card { position: absolute; left: 50%; top: 16px; width: var(--cf-w); height: calc(var(--cf-w) * 1.4); margin: 0 0 0 calc(var(--cf-w) / -2); padding: 0; border: 0; background: none; box-shadow: none; cursor: pointer; transform-style: preserve-3d; transition: transform .38s cubic-bezier(.2, .8, .2, 1); -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(255, 255, 255, .14)); }
 .cf-card.dragging { transition: none; }
+/* Nov 6 2026 (Craft): smoother Cover Flow on phones. Each card is its own
+   layer; the costly reflection only shows on the middle cards and never
+   mid-drag; side cards don't run their sparkle or glare animations. */
+.cf-card { will-change: transform; backface-visibility: hidden; contain: layout style; transform-style: flat; }
+.cf-card:not(.is-near), .cf-card.dragging { -webkit-box-reflect: none; }
+.cf-card:not(.is-center) .bc-spk, .cf-card:not(.is-center) .bc-glare { animation: none; display: none; }
+.cf-card[hidden] { display: none; }
 .cf-card:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 4px; border-radius: 12px; }
 .cf-scale { position: absolute; top: 0; left: 0; width: 260px; transform: scale(var(--cf-s)); transform-origin: top left; pointer-events: none; }
 .cf-scale .bee-card-flip-hint { display: none; }

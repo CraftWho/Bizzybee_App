@@ -12,6 +12,7 @@ const WAGGLE_MENU = [
         { icon: '🐝', label: 'Hive Bees', path: 'src/features/hive-bees/hive-bees.html' },
         { icon: '🎒', label: 'Inventory', path: 'src/features/inventory/inventory.html' },
         { icon: '🥚', label: 'Egg Incubator', path: 'src/plugins/incubator/incubator.html', plugin: 'incubator' },
+        { icon: '⚔️', label: 'Hive Defense', path: 'src/plugins/hive-defense/hive-defense.html', plugin: 'hive-defense' },   // Nov 6 2026 (Craft)
         { icon: '📘', label: 'KeeperDex', path: 'src/features/keeperdex/keeperdex.html' },
         { icon: '🤝', label: "Friends' hives", path: 'src/features/friends/friends.html' }
     ]],
