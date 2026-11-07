@@ -495,8 +495,12 @@ const AppShell = {
         document.documentElement.style.setProperty('--lv-a', lvA);
         document.documentElement.style.setProperty('--lv-b', lvB);
         q('.ah-bar i').style.width = `${Math.max(0, Math.min(100, bar.percentage))}%`;
-        q('.ah-xp').innerHTML = `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
-        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to ${levelName(bar.level + 1)}`;
+        // Nov 6 2026 (Craft): XP debt shows as a red stretch and its own line.
+        const debt = bar.debt || 0;
+        q('.ah-bar').classList.toggle('in-debt', debt > 0);
+        q('.ah-bar').style.setProperty('--debt', `${Math.min(100, debt / bar.cap * 100)}%`);
+        q('.ah-xp').innerHTML = debt > 0 ? `<b class="ah-debt">−${debt} XP</b> to recover` : `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
+        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : debt > 0 ? `then ${bar.cap} XP to ${levelName(bar.level + 1)}` : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to ${levelName(bar.level + 1)}`;
         q('.ah-chip').classList.toggle('ready', !!bar.maxed);
         const qs = typeof Vault.getQueenStats === 'function' ? Vault.getQueenStats() : null;
         if (qs) {

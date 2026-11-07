@@ -12,7 +12,7 @@ sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closes
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
 
 // Honeycomb (Oct 29 2026, approved demo): each skill is a hex cell in its own
-// color with a bar inside. Tap a cell for real vs estimated time, XP, how it
+// color with a bar inside. Tap a cell for real time (planned time only feeds XP), XP, how it
 // counts, recent check-offs, Level up and Merge. Rows go 3-2-3.
 const fmtM = (m) => m >= 60 ? (m % 60 ? `${Math.floor(m / 60)} h ${Math.round(m % 60)} m` : `${m / 60} h`) : `${Math.round(m)} m`;
 function renderMastery() {
@@ -35,11 +35,11 @@ function renderMastery() {
     host.innerHTML = `<div class="sk-comb">${rows.map(c => `<div class="sk-crow">${c.join('')}</div>`).join('')}</div>`;
 }
 
+// Nov 7 2026 (Craft): recent REAL time for this skill, from the time log.
 function recentFor(cat) {
-    const S = Vault.state;
-    return computeSkillContributions(S.dailyTasks, S.dictionary, S.quests, S.habits, S.todos)
-        .filter(c => c.category === cat && c.source !== 'history')
-        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 6);
+    return ((Vault.state && Vault.state.timeLog) || []).filter(e => (e.cats || []).includes(cat))
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 6)
+        .map(e => ({ label: e.label, minutes: e.min, date: e.date, real: true, xp: 0, source: e.kind }));
 }
 function pathHtml(m) {
     const P = Vault.getSkillPath(m.category, m), times = P.measure === 'times';
@@ -56,7 +56,7 @@ function pathHtml(m) {
             <small>${x.reached ? `Reached · ${unit(x.need)}` : i === cur ? `${shown} / ${unit(x.need)}` : unit(x.need)}</small>${i === cur ? '<span class="sk-mbar"><i></i></span>' : ''}</span>${right}</div>`;
     }).join('');
     return `<p><b>Path</b>${P.from ? ` <span class="sk-note">· from ${esc(P.from)}</span>` : ''}</p><div class="sk-path" style="--c:${m.color}">${rows}</div>
-        <p class="sk-note">${times ? 'Milestones count check-offs.' : 'Milestones count hours, real and estimated.'} Switch "Counts by" and the path switches too.</p>`;
+        <p class="sk-note">${times ? 'Milestones count check-offs.' : 'Milestones count real hours only.'} Switch "Counts by" and the path switches too.</p>`;
 }
 async function celebrateMilestone(r) {
     const loot = r.bees.map(bee => ({ bee }));
@@ -72,7 +72,7 @@ function openSkill(cat) {
     const times = m.measure === 'times';
     const stats = times
         ? `<div><b>✔ ${m.count}</b><small>times done</small></div><div><b>${fmtH(m.realHours)} h</b><small>real time logged</small></div><div><b>${m.xp.toLocaleString()}</b><small>XP</small></div>`
-        : `<div><b>${fmtH(m.realHours)} h</b><small>real</small></div><div><b>≈ ${fmtH(m.estHours)} h</b><small>estimated</small></div><div><b>${m.xp.toLocaleString()}</b><small>XP</small></div>`;
+        : `<div><b>${fmtH(m.realHours)} h</b><small>real</small></div><div><b>${fmtH(m.plannedHours || 0)} h</b><small>planned (XP only)</small></div><div><b>${m.xp.toLocaleString()}</b><small>XP</small></div>`;
     const left = m.hoursCap - m.hoursIntoLevel;
     const cap = m.maxed ? `Level ${m.level + 1} is ready` : times ? `About ${Math.max(1, Math.ceil(left * 6))} more easy check-offs to level ${m.level + 1}` : `${fmtH(left)} h to level ${m.level + 1}`;
     const day = d => { if (!d) return ''; const k = String(d).slice(0, 10), t = new Date(); const iso = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;

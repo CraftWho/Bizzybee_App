@@ -320,6 +320,8 @@ function initHints() {
 function initTimeTracking() {
     const toggle = document.getElementById('timelog-toggle');
     if (!toggle) return;
+    // Nov 7 2026 (Craft): it always asks now (real hours), so no switch.
+    const row = toggle.closest('.row'); if (row) { row.querySelector('small').textContent = 'Always on: log real minutes, or fill them in later from the 🔴 list.'; toggle.closest('label').hidden = true; }
     toggle.checked = localStorage.getItem('bizzybee_ask_time') !== 'off';
     toggle.addEventListener('change', () => {
         localStorage.setItem('bizzybee_ask_time', toggle.checked ? 'on' : 'off');
