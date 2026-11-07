@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>⚔️ Hive Defense</title>
+    <!-- Nov 6 2026 (Craft; approved demo v2): Hive Defense, a hex battle with your real bees. Practice mode: it doesn't change your save yet. -->
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="./hive-defense.css">
+</head>
+<body>
+    <main class="hdv" id="hd-main" hidden>
+        <section class="hd-head">
+            <h1>⚔️ HIVE DEFENSE</h1>
+            <p>Practice mode. Your bees fight, but battles don't change your hive yet.</p>
+            <details class="hd-how"><summary>How to play</summary>
+                Tap a bee: blue = move, red = sting, green = heal. You can sting and then keep moving with what's left. Tap the bee again to finish it.
+                Hills go up to 3 floors: climbing costs 1 more, and you can only step up 1 floor at a time. From higher ground you hit harder, and ranged bees reach 1 further.
+                🍯 Hive points: end a turn on one to claim it (+3 honey a turn). Tap your 🏠 base to call bees with honey.
+                Win by taking the wasp nest 🪺 or clearing every raider. Lose if they take your base.
+                Your squad comes from your hive: Guardian, Scout, Nurse and Barrier talents fight as themselves, and Collectors are Snipers.
+            </details>
+        </section>
+        <div class="hd-bar"><span class="hd-pill" id="hd-honey">🍯 0</span><span id="hd-turn">Turn 1</span><span class="hd-pill" id="hd-who">Your turn</span></div>
+        <svg id="hd-map" class="hd-map no-pull" role="application" aria-label="Battle map"></svg>
+        <div class="hd-panel" id="hd-panel"></div>
+        <div class="hd-log" id="hd-log" aria-live="polite"></div>
+        <div class="hd-ctl"><button type="button" class="hd-btn ghost" id="hd-restart">↺ Restart</button><button type="button" class="hd-btn" id="hd-endturn">End turn ›</button></div>
+    </main>
+
+    <div id="hd-not-installed" class="panel dictionary-not-installed" hidden>
+        <p>The Hive Defense plugin isn't installed.</p>
+        <a href="../../features/plugin-hub/plugin-hub.html" class="dictionary-install-link">🧩 Go to Plugin Hub →</a>
+    </div>
+
+    <div class="hd-end" id="hd-end" hidden><div class="hd-card"><b id="hd-endT"></b><div class="hd-stars" id="hd-stars"></div><small id="hd-endS"></small><button type="button" class="hd-btn" id="hd-again">Play again</button></div></div>
+
+    <script src="../../core/boot.js"></script>
+    <script src="./hive-defense.js"></script>
+</body>
+</html>

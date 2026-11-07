@@ -1,0 +1,34 @@
+/* Hive Defense plugin (Nov 6 2026, approved demo v2). Black and gold, one phone column. */
+.hdv { max-width: 480px; margin: 0 auto; padding: 8px 14px 120px; color: #f1ede2; display: grid; gap: 10px; }
+.hd-head { padding: 14px; border-radius: 18px; background: linear-gradient(#1a130a, #0d0904); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); }
+.hd-head h1 { margin: 0; color: var(--bb-accent, #ffcc00); font: 800 1.05rem var(--font-main, ui-monospace, monospace); letter-spacing: .12em; }
+.hd-head p { margin: 4px 0 8px; color: #c2b48f; font-size: .82rem; }
+.hd-how { color: #c2b48f; font-size: .8rem; line-height: 1.45; }
+.hd-how summary { cursor: pointer; color: #f1ede2; }
+.hd-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font: 700 .8rem var(--font-main, ui-monospace, monospace); }
+.hd-pill { padding: 4px 10px; border-radius: 99px; background: rgba(255, 204, 0, .15); color: var(--bb-accent, #ffcc00); font-variant-numeric: tabular-nums; }
+.hd-pill.enemy { background: rgba(255, 80, 90, .18); color: #ff8a96; }
+.hd-map { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.hd-map .hex { cursor: pointer; }
+.hd-pop { font: 700 15px var(--font-main, ui-monospace, monospace); paint-order: stroke; stroke: #000; stroke-width: 3px; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) { .hd-pop { animation: hdRise .9s ease-out forwards; } }
+@keyframes hdRise { to { transform: translateY(-22px); opacity: 0; } }
+.hd-panel { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: #16120a; border: 1px solid #3a2a0a; min-height: 70px; }
+.hd-panel b { font-size: .9rem; }
+.hd-panel small { color: #c2b48f; font-size: .76rem; line-height: 1.4; }
+.hd-stats { display: flex; gap: 10px; flex-wrap: wrap; font: 700 .76rem var(--font-main, ui-monospace, monospace); color: var(--bb-accent, #ffcc00); font-variant-numeric: tabular-nums; }
+.hd-shop { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.hd-buy { display: grid; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid #3a2a0a; background: #1a140b; color: inherit; font: inherit; font-size: .78rem; cursor: pointer; }
+.hd-buy span { color: var(--bb-accent, #ffcc00); font: 700 .74rem var(--font-main, ui-monospace, monospace); }
+.hd-buy:disabled { opacity: .4; cursor: default; }
+.hd-log { font-size: .78rem; color: #c2b48f; min-height: 18px; }
+.hd-ctl { display: flex; gap: 8px; }
+.hd-btn { flex: 1; border: 0; border-radius: 12px; padding: 12px; font: 700 .88rem var(--font-main, ui-monospace, monospace); cursor: pointer; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; }
+.hd-btn.ghost { background: #1a140b; color: #f1ede2; border: 1px solid #3a2a0a; }
+.hd-btn:disabled { opacity: .4; cursor: default; }
+.hd-end { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, .7); padding: 16px; }
+.hd-end[hidden] { display: none; }
+.hd-card { max-width: 340px; width: 100%; padding: 20px; border-radius: 16px; background: #16120a; border: 1px solid var(--bb-accent, #ffcc00); text-align: center; display: grid; gap: 10px; color: #f1ede2; }
+.hd-card b { font-size: 1.1rem; }
+.hd-card small { color: #c2b48f; }
+.hd-stars { font-size: 34px; letter-spacing: 4px; }
