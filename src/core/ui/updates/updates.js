@@ -19,6 +19,8 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 7 2026 (Craft): Nursery by Lv 5.
+        { icon: '🛏️', title: 'Nursery opens by Lv 5', text: 'The Nursery used to open late if your first bee had a different talent. Now it always opens by Lv 5.' },
         // Nov 7 2026 (Craft): Batch 24.
         { icon: '🎨', title: 'XP buffs and debuffs', text: 'No more negative XP. A fainted Queen now means −20% XP for 1 hour, and the whole XP bar changes color until it ends. No coins or XP are lost.', href: 'features/home/home.html' },
         // Nov 7 2026 (Craft): Batch 23.
