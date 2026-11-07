@@ -69,10 +69,19 @@
                 <div class="btns"><button type="button" class="btn danger" id="gacha-destroy-btn">Destroy for loot</button></div>
                 <p class="ga-result" id="gacha-destroy-result"></p>
             </div>
-            <div class="ga-block">
+            <div class="ga-block" id="merge">
                 <b>🧬 Combine</b>
                 <small>Fuse two bees into one. It keeps the best stats of both plus a small boost, with a tiny chance to go up a rarity.</small>
-                <div class="ga-two">
+                <!-- Nov 3 2026 (Craft; approved demo): merge picker. Bees grouped by talent; tap two. -->
+                <div class="mp-chips" role="group" aria-label="Show">
+                    <button type="button" class="mp-chip" data-mpf="spare" aria-pressed="true">Spares <small id="mp-c-spare"></small></button>
+                    <button type="button" class="mp-chip" data-mpf="idle" aria-pressed="false">No job <small id="mp-c-idle"></small></button>
+                    <button type="button" class="mp-chip" data-mpf="all" aria-pressed="false">All <small id="mp-c-all"></small></button>
+                </div>
+                <p class="mp-key">🔵 Spare: its job is full or not open. 🔴 No job: a slot is free. 🟢 Working.</p>
+                <div class="mp-list" id="mp-list"></div>
+                <p class="mp-pick" id="mp-pick" aria-live="polite">Pick two bees.</p>
+                <div class="ga-two" hidden>
                     <select id="gacha-combine-select-a" class="ga-sel" aria-label="First bee"></select>
                     <span>+</span>
                     <select id="gacha-combine-select-b" class="ga-sel" aria-label="Second bee"></select>
