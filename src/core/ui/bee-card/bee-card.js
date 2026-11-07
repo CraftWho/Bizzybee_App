@@ -469,7 +469,7 @@ const BeeCard = {
             : '';
         const abilitiesHTML = titleHTML + (ability
             ? `<div class="bc-ab${skillOn ? '' : ' bc-off'}"><span class="bc-ic">${skillInfo.icon}</span><h4>${ability.name} <small>Ability${skillOn ? '' : ' · resting'}</small></h4><p>${ability.text}</p></div>`
-            : '')   // Nov 1 2026 (Craft): no job = no ability row (unknown things stay hidden)
+            : `<div class="bc-ab bc-locked"><span class="bc-ic">🔒</span><h4>No ability <small>Ability</small></h4><p>Assign this bee a job to unlock its ability.</p></div>`)   // Nov 6 2026 (Craft): Nov 1's "hide it" was meant for Hive Mind only; cards keep the locked row
             + traits.map(trait => `<div class="bc-ab" title="${trait.description}"><span class="bc-ic">${trait.icon}</span><h4>${trait.label} <small>Trait</small></h4><p>${trait.description}</p></div>`).join('');
 
         container.innerHTML = `
