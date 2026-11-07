@@ -495,12 +495,22 @@ const AppShell = {
         document.documentElement.style.setProperty('--lv-a', lvA);
         document.documentElement.style.setProperty('--lv-b', lvB);
         q('.ah-bar i').style.width = `${Math.max(0, Math.min(100, bar.percentage))}%`;
-        // Nov 6 2026 (Craft): XP debt shows as a red stretch and its own line.
-        const debt = bar.debt || 0;
-        q('.ah-bar').classList.toggle('in-debt', debt > 0);
-        q('.ah-bar').style.setProperty('--debt', `${Math.min(100, debt / bar.cap * 100)}%`);
-        q('.ah-xp').innerHTML = debt > 0 ? `<b class="ah-debt">−${debt} XP</b> to recover` : `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
-        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : debt > 0 ? `then ${bar.cap} XP to ${levelName(bar.level + 1)}` : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to ${levelName(bar.level + 1)}`;
+        // Nov 7 2026 (Craft): Batch 24. No XP debt any more. An active XP buff or debuff colours
+        // the WHOLE bar (and goes back to the level colour when it ends). The first one
+        // active decides the colour. Today: the faint debuff, crimson, -20% XP.
+        const buffs = typeof Vault.getXPBuffs === 'function' ? Vault.getXPBuffs() : [];
+        const buff = buffs[0] || null;
+        const BUFF_COLORS = { debuff: ['#e0405a', '#8e1630'], buff: ['#4fd18b', '#17744a'] };
+        if (buff) { const [ba, bb] = BUFF_COLORS[buff.kind] || BUFF_COLORS.debuff; document.documentElement.style.setProperty('--lv-a', ba); document.documentElement.style.setProperty('--lv-b', bb); }
+        q('.ah-bar').dataset.buff = buff ? buff.kind : '';
+        // Redraw every minute while one is active, and the moment it ends, so the colour goes back.
+        clearTimeout(this._buffTimer);
+        if (buff) this._buffTimer = setTimeout(() => this.refresh(), Math.min(60000, buff.msLeft + 500));
+        const mins = buff ? Math.max(1, Math.ceil(buff.msLeft / 60000)) : 0;
+        q('.ah-xp').innerHTML = buff
+            ? `<b class="ah-buff-${buff.kind}">${buff.pct > 0 ? '+' : '−'}${Math.abs(buff.pct)}% XP</b> · ${mins} min · ${bar.xpIntoLevel} / ${bar.cap}`
+            : `<b>${bar.xpIntoLevel}</b> / ${bar.cap} XP`;
+        q('.ah-next').textContent = bar.maxed ? 'Ready to level up!' : `${Math.max(0, bar.cap - bar.xpIntoLevel)} XP to ${levelName(bar.level + 1)}`;
         q('.ah-chip').classList.toggle('ready', !!bar.maxed);
         const qs = typeof Vault.getQueenStats === 'function' ? Vault.getQueenStats() : null;
         if (qs) {
