@@ -86,6 +86,26 @@ function renderStreaks() {
     document.getElementById('db-streaks').innerHTML = streaks.map(d => `<div class="row"><span class="hx">🔥</span><div class="mid"><b>${esc(d.label)}</b><small>${d.completedToday ? 'done today' : 'not done yet today'}</small></div><span class="val">${d.streak}d</span></div>`).join('') || '<p class="sub">Check off a Daily to start a streak.</p>';
 }
 
+// ---- Real hours (Nov 7 2026, Craft; approved demo v2) ----
+// Only minutes you actually logged. Deleting, editing or penalties never
+// lower it. Planned time is what the plan said (it's what XP uses).
+function renderRealTime() {
+    const real = Vault.getRealMinutes() / 60, week = Vault.getRealMinutes({ since: shiftISODate(todayISO(), -6) }) / 60;
+    const planned = Vault.getPlannedMinutes() / 60;
+    const pct = Math.max(.4, Math.min(100, real / GOAL_H * 100));
+    document.getElementById('db-real').innerHTML = `<p class="sub">🎯 Real hours toward mastery</p>
+        <div class="rt-big">${fmtH(real)} <small>/ 10,000 h</small></div>
+        <div class="bar rt-bar"><i style="width:${pct}%"></i></div>
+        <div class="m-sum"><div><b>${fmtH(week)} h</b><small>this week</small></div><div><b>${fmtH(planned)} h</b><small>planned time</small></div><div><b>${planned > 0 ? Math.round(real / planned * 100) : 0}%</b><small>logged vs planned</small></div></div>`;
+    const todo = Vault.getTimePending();
+    const box = document.getElementById('time');
+    box.hidden = !todo.length;
+    box.innerHTML = `<h2 class="rt-h">🔴 Time not filled in</h2><p class="sub">These won't count toward your real hours until you add their minutes.</p>` + todo.map(p => {
+        const when = p.date === todayISO() ? 'Today' : p.date === shiftISODate(todayISO(), -1) ? 'Yesterday' : new Date(p.date + 'T12:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return `<div class="rt-pend"><span class="mid"><b>${esc(p.label)}</b><small>${when} · planned ${p.planned || '?'} min</small></span><input type="number" inputmode="numeric" min="1" max="1440" placeholder="min" aria-label="Minutes for ${esc(p.label)}" data-min="${esc(p.key)}"><button type="button" class="rt-log" data-log="${esc(p.key)}">Log</button><button type="button" class="rt-x" data-drop="${esc(p.key)}" aria-label="Skip it: no real time for this one">✕</button></div>`;
+    }).join('');
+}
+
 // ---- Skill mastery: hours on the road to 10,000 ----
 const roadPos = (h) => Math.max(0, Math.min(100, Math.log10(Math.max(1, h)) / 4 * 100));
 function renderMastery(S) {
@@ -96,7 +116,8 @@ function renderMastery(S) {
     computeSkillContributions(S.dailyTasks, S.dictionary, S.quests, S.habits, S.todos).forEach(c => {
         if (c.date && dayKey(c.date) >= sinceKey && c.source !== 'history') recent[c.category] = (recent[c.category] || 0) + c.minutes;
     });
-    const totalH = computeTotalPracticeMinutes(S.dailyTasks, S.quests, S.habits, S.todos) / 60;
+    const totalH = Vault.getRealMinutes() / 60;   // Nov 7 2026 (Craft): real time only
+    const realBy = Vault.getRealBySkill(), realH = (c) => (realBy[c] || 0) / 60;
     const recentH = Object.values(recent).reduce((a, x) => a + x, 0) / 60;
     const eta = (s) => {
         if (s.hours >= GOAL_H) return 'Mastered';
@@ -105,7 +126,7 @@ function renderMastery(S) {
         const days = (GOAL_H - s.hours) / perDay, years = days / 365;
         return `At your 30-day pace (${Math.round(perDay * 60)} min/day): ~${years >= 1 ? Math.round(years).toLocaleString() + ' years' : Math.round(days) + ' days'} to 10,000 h`;
     };
-    let html = `<div class="m-sum"><div><b>${fmtH(totalH)} h</b><small>practice logged</small></div><div><b>${fmtH(recentH)} h</b><small>last 30 days</small></div><div><b>${list.length}</b><small>skills</small></div></div>`;
+    let html = `<div class="m-sum"><div><b>${fmtH(totalH)} h</b><small>real time logged</small></div><div><b>${fmtH(recentH)} h</b><small>last 30 days</small></div><div><b>${list.length}</b><small>skills</small></div></div>`;
     html += list.map(s => {
         const ticks = [10, 100, 1000].map(t => `<span class="tick${s.hours >= t ? ' on' : ''}" style="left:${roadPos(t)}%"></span>`).join('');
         const src = Object.entries(s.bySource || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${SOURCE_NAMES[k] || k} ${fmtH(v / 60)} h`).join(' · ');
@@ -113,7 +134,7 @@ function renderMastery(S) {
         return `<div class="sk" style="--skc:${s.color}">
             <div class="sk-top"><span class="hx" style="--c:${s.stageColor}">${s.level}</span>
                 <div class="mid"><b>${s.icon} ${esc(s.category)}</b><span class="stage" style="--sc:${s.stageColor}">${s.stage}</span></div>
-                <div class="hrs"><b>${s.measure === 'times' ? `✔ ${s.count}` : `${fmtH(s.realHours)} h`}</b><small>${(s.hours / GOAL_H * 100).toFixed(s.hours < 100 ? 2 : 1)}% of 10,000</small></div></div>
+                <div class="hrs"><b>${s.measure === 'times' ? `✔ ${s.count}` : `${fmtH(realH(s.category))} h`}</b><small>${(realH(s.category) / GOAL_H * 100).toFixed(realH(s.category) < 100 ? 2 : 1)}% of 10,000 · real</small></div></div>
             <div class="bar" role="img" aria-label="${s.stage}: ${Math.round(stagePct)}% to ${s.nextStage || 'done'}"><i style="width:${stagePct}%"></i></div>
             <div class="cap"><span>${s.nextStage ? `${fmtH(s.hoursToNextStage)} h to <b>${s.nextStage}</b>` : 'Top stage'}</span><span>Level ${s.level}</span></div>
             ${s.maxed ? `<button type="button" class="sk-up" data-cat="${esc(s.category)}"><span>⬆ Level up</span><small>Level ${s.level + 1} is ready · tap for rewards</small></button>` : ''}
@@ -147,6 +168,7 @@ function renderStarter() {
 function render() {
     const S = Vault.state;
     renderStarter();
+    renderRealTime();   // Nov 7 2026 (Craft)
     const m = xpByDay(S);
     renderTiles(S);
     renderMastery(S);
@@ -156,6 +178,20 @@ function render() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Nov 7 2026 (Craft): fill in a check-off's minutes, or drop it.
+    document.addEventListener('click', (e) => {
+        const log = e.target.closest('[data-log]'), drop = e.target.closest('[data-drop]');
+        if (log) {
+            const inp = document.querySelector(`[data-min="${CSS.escape(log.dataset.log)}"]`);
+            const m = Number(inp && inp.value);
+            if (!(m > 0)) { if (inp) inp.focus(); return; }
+            if (Vault.fillTimePending(log.dataset.log, m) && typeof Toast !== 'undefined') Toast.show(`⏱️ ${m} min added to your real hours`, 'positive');
+            render(); if (typeof Waggle !== 'undefined' && Waggle.updateDot) Waggle.updateDot();
+        } else if (drop) {
+            Vault.dropTimePending(drop.dataset.drop);
+            render(); if (typeof Waggle !== 'undefined' && Waggle.updateDot) Waggle.updateDot();
+        }
+    });
     await Vault.init();
     render();
     window.addEventListener('time-logged', render);

@@ -17,3 +17,29 @@ a.hi-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; }
 .hi-xp { color: #34c77b; font: 800 .85rem var(--font-main, monospace); }
 .hi-xp.neg { color: #ff6b6b; }
 .hi-empty { padding: 18px 4px; color: #a69a80; text-align: center; }
+
+/* Nov 7 2026 (Craft): Archive + Change log */
+.hi-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+.hi-tab { border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: rgba(20, 14, 5, .9); color: #f1ede2; border-radius: 99px; padding: 7px 14px; font: 700 .8rem system-ui, sans-serif; cursor: pointer; }
+.hi-tab[aria-selected="true"] { background: var(--bb-accent, #ffcc00); color: #1a1000; border-color: transparent; }
+.hi-tab small { opacity: .75; }
+.hi-note { color: #a69a80; font-size: .78rem; line-height: 1.45; margin: 0 0 10px; }
+.hi-arc-list { display: grid; gap: 8px; }
+.hi-arc { padding: 10px; border-radius: 12px; background: #120d05; border: 1px dashed #4a3a1a; opacity: .62; }
+.hi-arc.open { opacity: 1; }
+.hi-arc-top { display: flex; align-items: center; gap: 8px; }
+.hi-arc-top .mid { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.hi-arc-top .mid b { font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hi-arc-top small { color: #a69a80; font-size: .72rem; }
+.hi-arc-top button { border: 1px solid #3a2a0a; background: #1a140b; color: #f1ede2; border-radius: 8px; padding: 6px 9px; font-size: .76rem; cursor: pointer; }
+.hi-arc-hist { display: grid; gap: 3px; margin-top: 8px; font-size: .76rem; color: #c2b48f; max-height: 240px; overflow-y: auto; }
+.hi-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hi-ev { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 9px 10px; border-radius: 10px; background: #120d05; border: 1px solid #3a2a0a; font-size: .82rem; }
+.hi-ev time { color: #a69a80; font: 700 .68rem var(--font-main, monospace); text-align: center; }
+.hi-ev small { display: block; color: #a69a80; font-size: .74rem; margin-top: 2px; }
+.hi-tag { font: 700 .62rem var(--font-main, monospace); padding: 2px 6px; border-radius: 6px; }
+.t-del { background: rgba(255, 107, 125, .15); color: #ff6b7d; }
+.t-edit { background: rgba(159, 201, 255, .15); color: #9fc9ff; }
+.t-un { background: rgba(255, 204, 0, .15); color: #ffcc00; }
+.t-res, .t-fill { background: rgba(127, 224, 138, .15); color: #7fe08a; }
+.hi-flag { color: #ff6b7d; }

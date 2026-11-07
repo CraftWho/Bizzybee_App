@@ -17,3 +17,6 @@
 .tl-skip { background: transparent; color: #a69a80; border: 1px solid rgba(255, 255, 255, .15); }
 .tl-save { background: var(--bb-accent, #ffcc00); color: #1a1000; border: 0; }
 .tl-never { display: block; margin: 12px auto 0; padding: 4px 8px; border: 0; background: none; color: #7d725b; font: 500 .72rem system-ui, sans-serif; text-decoration: underline; box-shadow: none; transform: none; cursor: pointer; }
+
+/* Nov 7 2026 (Craft): fill in later note */
+.tl-later { margin: 8px 0 0; color: #a69a80; font-size: .74rem; text-align: center; }

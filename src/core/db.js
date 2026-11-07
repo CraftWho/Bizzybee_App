@@ -7358,4 +7358,270 @@ function mergeSaves(a, b) {
     return out;
 }
 
+// ============================================================================
+// REAL TIME, ARCHIVE AND CHANGE LOG (Nov 7 2026, Craft; approved demo v2)
+// - Real time: only minutes you actually log (the check-off pop-up, a quest
+//   timer, imported history). Kept in state.timeLog, its own ledger, so
+//   deleting or editing a task, bad habits or a fainted Queen never take it
+//   away. Unchecking the SAME day removes that completion's time (you didn't
+//   do it). This is the "10,000 hours" number.
+// - "Fill in later": state.timePending, a red-dot list. Its time isn't real
+//   until you add the minutes.
+// - Planned time: what the plan said for every completion (for XP).
+// - Archive: deleted habits, dailies, To-Dos, quests and quest tasks, with
+//   their whole history. Restore puts them back.
+// - Change log: every uncheck, edit, delete, restore and late fill-in that
+//   touched your stats. Big after-the-fact changes get a flag. Can't be
+//   edited or cleared.
+// ============================================================================
+const TIME_FLAG_MIN = 120;   // a logged-time change this big (or on another day) gets a ⚑
+const CHANGE_LOG_MAX = 1000;
+(() => {
+    if (typeof DatabaseManager === 'undefined') return;   // tests that load only part of this file
+    const P = DatabaseManager.prototype;
+    const orig = {};
+    ['logCompletionMinutes', 'toggleDailyTask', 'toggleTodoComplete', 'toggleTask', 'removeDailyTask', 'removeHabit', 'removeTodo',
+        'removeTask', 'removeQuest', 'updateDailyTask', 'updateHabit', 'updateTodo', 'updateTask'].forEach(k => { orig[k] = P[k]; });
+    const uid = (p) => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    const fmtMin = (m) => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m} min`;
+
+    Object.assign(P, {
+        _rt() {
+            const s = this.state;
+            if (!s) return null;
+            if (!Array.isArray(s.timeLog)) s.timeLog = [];
+            if (!Array.isArray(s.timePending)) s.timePending = [];
+            if (!Array.isArray(s.archive)) s.archive = [];
+            if (!Array.isArray(s.changeLog)) s.changeLog = [];
+            if (!s.timeLogV1) { s.timeLogV1 = new Date().toISOString(); this._seedTimeLog(); }
+            return s;
+        },
+        _taskCats(task, quest) {
+            try { return skillsForTask(task, this.getDictionaryTerms ? this.getDictionaryTerms() : (this.state.dictionary || []), quest).map(x => x.category); }
+            catch { return []; }
+        },
+        _changeLog(type, text, note = '', flag = false) {
+            const s = this.state;
+            if (!s) return;
+            if (!Array.isArray(s.changeLog)) s.changeLog = [];
+            s.changeLog.unshift({ at: new Date().toISOString(), type, text, note, flag: !!flag });
+            if (s.changeLog.length > CHANGE_LOG_MAX) s.changeLog.length = CHANGE_LOG_MAX;
+        },
+        // One-time: real time you already logged before the time log existed.
+        _seedTimeLog() {
+            const s = this.state, out = s.timeLog;
+            const add = (key, kind, task, quest, date, min) => {
+                if (!(min > 0)) return;
+                out.push({ id: uid('t'), key, kind, taskId: task.id, questId: quest ? quest.id : null, label: task.label, date: String(date || '').slice(0, 10) || null, min: Math.round(min), cats: this._taskCats(task, quest), at: new Date().toISOString(), seeded: true });
+            };
+            (s.dailyTasks || []).forEach(t => { const log = t.minutesLog || {}; (t.completedDates || []).forEach(d => add(`daily:${t.id}:${d}`, 'daily', t, null, d, Number(log[d]))); });
+            (s.habits || []).forEach(h => (h.history || []).filter(x => x.direction === 'positive').forEach(x => add(`habit:${h.id}:${x.id}`, 'habit', h, null, x.date, Number(x.minutes))));
+            (s.todos || []).filter(t => t.completed).forEach(t => add(`todo:${t.id}`, 'todo', t, null, t.completedDate, Number(t.minutesSpent)));
+            (s.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed).forEach(t => {
+                const m = Number(t.minutesSpent) > 0 ? Number(t.minutesSpent) : Number(t.durSec) > 0 ? Number(t.durSec) / 60 : Number(t.historyXP) > 0 ? Number(t.historyXP) : 0;
+                add(`quest:${q.id}:${t.id}`, 'quest', t, q, t.dateCompleted, m);
+            }));
+        },
+        _findTask(kind, id, questId) {
+            const s = this.state || {};
+            if (kind === 'daily') return { task: (s.dailyTasks || []).find(t => t.id === id) };
+            if (kind === 'habit') return { task: (s.habits || []).find(t => t.id === id) };
+            if (kind === 'todo') return { task: (s.todos || []).find(t => t.id === id) };
+            const quest = (s.quests || []).find(q => q.id === questId);
+            return { task: quest && (quest.tasks || []).find(t => t.id === id), quest };
+        },
+        // Which completion a check-off is: the key the time log uses.
+        _completionKey(kind, task, questId, date = todayISO()) {
+            if (kind === 'daily') return `daily:${task.id}:${date}`;
+            if (kind === 'habit') { const last = [...(task.history || [])].reverse().find(h => h.direction === 'positive'); return last ? `habit:${task.id}:${last.id}` : null; }
+            if (kind === 'todo') return `todo:${task.id}`;
+            return `quest:${questId}:${task.id}`;
+        },
+        _putRealTime({ key, kind, task, quest, date, min, late = false }) {
+            const s = this._rt();
+            if (!s || !key || !(min > 0)) return;
+            const m = Math.round(min);
+            const was = s.timeLog.find(e => e.key === key);
+            if (was) {
+                if (was.min !== m) {
+                    const big = Math.abs(was.min - m) >= TIME_FLAG_MIN || (was.date && was.date !== todayISO());
+                    this._changeLog('edit', `Logged time on "${task.label}" ${fmtMin(was.min)} → ${fmtMin(m)}`, big ? 'Big change after the fact' : 'Real time updated', big);
+                    was.min = m; was.edited = new Date().toISOString();
+                }
+            } else {
+                s.timeLog.push({ id: uid('t'), key, kind, taskId: task.id, questId: quest ? quest.id : null, label: task.label, date: date || todayISO(), min: m, cats: this._taskCats(task, quest), at: new Date().toISOString() });
+                if (late) this._changeLog('fill', `Filled in "${task.label}" ${fmtMin(m)}`, `${date === todayISO() ? "Today's" : date + "'s"} time, now in your real hours`, m >= TIME_FLAG_MIN * 2);
+            }
+            s.timePending = s.timePending.filter(p => p.key !== key);
+        },
+        _dropRealTime(key, label) {
+            const s = this._rt();
+            if (!s || !key) return 0;
+            const e = s.timeLog.find(x => x.key === key);
+            s.timePending = s.timePending.filter(p => p.key !== key);
+            if (!e) return 0;
+            if (e.date !== todayISO()) {
+                this._changeLog('uncheck', `Unchecked "${label}"`, `Kept ${fmtMin(e.min)} real time: it was logged on ${e.date}`);
+                return 0;
+            }
+            s.timeLog = s.timeLog.filter(x => x !== e);
+            this._changeLog('uncheck', `Unchecked "${label}"`, `−${fmtMin(e.min)} real time (same day, so it comes off)`);
+            return e.min;
+        },
+
+        // ---- check-off pop-up ----
+        logCompletionMinutes(kind, id, minutes, opts = {}) {
+            const xp = orig.logCompletionMinutes.call(this, kind, id, minutes, opts);
+            if (xp == null) return xp;
+            const { task, quest } = this._findTask(kind, id, opts.questId);
+            if (task) this._putRealTime({ key: this._completionKey(kind, task, opts.questId), kind, task, quest, date: todayISO(), min: Math.max(1, Math.min(1440, Math.round(Number(minutes) || 0))) });
+            this.save();
+            return xp;
+        },
+        // "Fill in later": a red-dot list until you add the minutes.
+        timeLater(kind, id, { questId } = {}) {
+            const s = this._rt();
+            const { task, quest } = this._findTask(kind, id, questId);
+            if (!s || !task) return false;
+            const key = this._completionKey(kind, task, questId);
+            if (!key || s.timeLog.some(e => e.key === key) || s.timePending.some(p => p.key === key)) return false;
+            s.timePending.unshift({ key, kind, taskId: task.id, questId: questId || null, label: task.label, date: todayISO(), planned: plannedMinutes(task), cats: this._taskCats(task, quest), at: new Date().toISOString() });
+            this.save();
+            return true;
+        },
+        getTimePending() { const s = this._rt(); return s ? s.timePending.slice() : []; },
+        fillTimePending(key, minutes) {
+            const s = this._rt();
+            const p = s && s.timePending.find(x => x.key === key);
+            const m = Math.max(1, Math.min(1440, Math.round(Number(minutes) || 0)));
+            if (!p || !m) return false;
+            const { task, quest } = this._findTask(p.kind, p.taskId, p.questId);
+            // XP side: the completion's own minutes, if the task still exists.
+            if (task) {
+                if (p.kind === 'daily') task.minutesLog = { ...(task.minutesLog || {}), [p.date]: m };
+                else if (p.kind === 'habit') { const bump = (task.history || []).find(h => key.endsWith(':' + h.id)); if (bump) bump.minutes = m; }
+                else task.minutesSpent = m;
+            }
+            this._putRealTime({ key, kind: p.kind, task: task || { id: p.taskId, label: p.label }, quest, date: p.date, min: m, late: true });
+            if (!task) { const e = s.timeLog.find(x => x.key === key); if (e) e.cats = p.cats || []; }
+            this.save();
+            this._syncLevelUpBees();
+            return true;
+        },
+        dropTimePending(key) {
+            const s = this._rt();
+            if (!s) return;
+            s.timePending = s.timePending.filter(p => p.key !== key);
+            this.save();
+        },
+
+        // ---- totals ----
+        getRealMinutes({ since } = {}) {
+            const s = this._rt();
+            return s ? s.timeLog.filter(e => !since || (e.date && e.date >= since)).reduce((n, e) => n + (e.min || 0), 0) : 0;
+        },
+        getRealBySkill() {
+            const s = this._rt(), by = {};
+            if (s) s.timeLog.forEach(e => (e.cats || []).forEach(c => { by[c] = (by[c] || 0) + (e.min || 0); }));
+            return by;   // { category: minutes }
+        },
+        // What the plan said for every completion you have now (XP's time).
+        getPlannedMinutes() {
+            const s = this.state;
+            if (!s) return 0;
+            let m = 0;
+            (s.dailyTasks || []).forEach(t => { m += (t.completedDates || []).length * plannedMinutes(t); });
+            (s.habits || []).forEach(h => { m += (h.history || []).filter(x => x.direction === 'positive').length * plannedMinutes(h); });
+            (s.todos || []).filter(t => t.completed).forEach(t => { m += plannedMinutes(t); });
+            (s.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed).forEach(t => { m += plannedMinutes(t); }));
+            return m;
+        },
+        getArchive() { const s = this._rt(); return s ? s.archive.slice() : []; },
+        getChangeLog() { const s = this._rt(); return s ? s.changeLog.slice() : []; },
+        realMinutesFor(taskId) { const s = this._rt(); return s ? s.timeLog.filter(e => e.taskId === taskId).reduce((n, e) => n + e.min, 0) : 0; },
+
+        // ---- unchecking ----
+        toggleDailyTask(taskId) {
+            const t = (this.state && this.state.dailyTasks || []).find(x => x.id === taskId);
+            const wasDone = !!(t && (t.completedDates || []).includes(todayISO()));
+            const r = orig.toggleDailyTask.call(this, taskId);
+            if (r && wasDone) { this._dropRealTime(`daily:${taskId}:${todayISO()}`, t.label); this.save(); }
+            return r;
+        },
+        toggleTodoComplete(todoId) {
+            const t = (this.state && this.state.todos || []).find(x => x.id === todoId);
+            const wasDone = !!(t && t.completed);
+            const r = orig.toggleTodoComplete.call(this, todoId);
+            if (r && wasDone) { this._dropRealTime(`todo:${todoId}`, t.label); this.save(); }
+            return r;
+        },
+        toggleTask(questId, taskId) {
+            const { task } = this._findTask('quest', taskId, questId);
+            const wasDone = !!(task && task.completed);
+            const r = orig.toggleTask.call(this, questId, taskId);
+            if (!r || !task) return r;
+            if (wasDone) { this._dropRealTime(`quest:${questId}:${taskId}`, task.label); this.save(); }
+            else if (Number(task.durSec) > 0) { this._putRealTime({ key: `quest:${questId}:${taskId}`, kind: 'quest', task, quest: r, date: todayISO(), min: Number(task.durSec) / 60 }); this.save(); }   // the quest timer is real time
+            return r;
+        },
+
+        // ---- deleting: into the Archive, real time kept ----
+        _archive(kind, item, extra = {}) {
+            const s = this._rt();
+            if (!s || !item) return;
+            s.archive.unshift({ id: uid('arc'), kind, item: clone(item), deletedAt: new Date().toISOString(), ...extra });
+            const kept = kind === 'quest' ? (item.tasks || []).reduce((n, t) => n + this.realMinutesFor(t.id), 0) : this.realMinutesFor(item.id);
+            const NAMES = { daily: 'Daily', habit: 'Habit', todo: 'To-Do', quest: 'Quest', task: 'Quest task' };
+            this._changeLog('delete', `Deleted ${NAMES[kind]} "${item.label || item.title}"`, `${fmtMin(kept)} real time kept · in the Archive`);
+        },
+        removeDailyTask(id) { const it = (this.state && this.state.dailyTasks || []).find(x => x.id === id); const r = orig.removeDailyTask.call(this, id); if (r && it) { this._archive('daily', it); this.save(); } return r; },
+        removeHabit(id) { const it = (this.state && this.state.habits || []).find(x => x.id === id); const r = orig.removeHabit.call(this, id); if (r && it) { this._archive('habit', it); this.save(); } return r; },
+        removeTodo(id) { const it = (this.state && this.state.todos || []).find(x => x.id === id); const r = orig.removeTodo.call(this, id); if (r && it) { this._archive('todo', it); this.save(); } return r; },
+        removeTask(questId, taskId) {
+            const { task, quest } = this._findTask('quest', taskId, questId);
+            const r = orig.removeTask.call(this, questId, taskId);
+            if (r && task) { this._archive('task', task, { questId, questTitle: quest && quest.title }); this.save(); }
+            return r;
+        },
+        removeQuest(id) { const it = (this.state && this.state.quests || []).find(x => x.id === id); const r = orig.removeQuest.call(this, id); if (r && it) { this._archive('quest', it); this.save(); } return r; },
+        restoreArchived(arcId) {
+            const s = this._rt();
+            const a = s && s.archive.find(x => x.id === arcId);
+            if (!a) return { ok: false, error: 'Not in the Archive.' };
+            const LIST = { daily: 'dailyTasks', habit: 'habits', todo: 'todos', quest: 'quests' };
+            if (a.kind === 'task') {
+                const q = (s.quests || []).find(x => x.id === a.questId);
+                if (!q) return { ok: false, error: 'Its quest was deleted. Restore the quest first.' };
+                q.tasks = q.tasks || [];
+                if (!q.tasks.some(t => t.id === a.item.id)) q.tasks.push(a.item);
+                this._updateQuestCompletionState && this._updateQuestCompletionState(q);
+            } else {
+                const k = LIST[a.kind];
+                s[k] = s[k] || [];
+                if (!s[k].some(x => x.id === a.item.id)) s[k].push(a.item);
+            }
+            s.archive = s.archive.filter(x => x !== a);
+            this._changeLog('restore', `Restored "${a.item.label || a.item.title}" from the Archive`, 'Back on your lists with its history');
+            this.save();
+            this._syncLevelUpBees();
+            return { ok: true };
+        },
+
+        // ---- edits that change XP (never real time) ----
+        _noteEdit(task, before) {
+            if (!task) return;
+            const bits = [];
+            if (before.label !== task.label) bits.push(`renamed "${before.label}" → "${task.label}"`);
+            if ((before.minutes || null) !== (task.minutes || null)) bits.push(`planned ${before.minutes ? fmtMin(before.minutes) : 'auto'} → ${task.minutes ? fmtMin(task.minutes) : 'auto'}`);
+            if ((before.difficulty || null) !== (task.difficulty || null)) bits.push(`difficulty ${before.difficulty || '—'} → ${task.difficulty || '—'}`);
+            if (bits.length) this._changeLog('edit', `Edited "${task.label}": ${bits.join(', ')}`, 'Planned XP changed. Real time not touched.');
+        },
+        updateDailyTask(id, patch) { const t = (this.state && this.state.dailyTasks || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateDailyTask.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
+        updateHabit(id, patch) { const t = (this.state && this.state.habits || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateHabit.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
+        updateTodo(id, patch) { const t = (this.state && this.state.todos || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateTodo.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
+        updateTask(questId, taskId, patch) { const { task } = this._findTask('quest', taskId, questId); const b = task && { label: task.label, minutes: task.minutes, difficulty: task.difficulty }; const r = orig.updateTask.call(this, questId, taskId, patch); if (r && b) { this._noteEdit(task, b); this.save(); } return r; },
+    });
+})();
+
 const Vault = new DatabaseManager();
