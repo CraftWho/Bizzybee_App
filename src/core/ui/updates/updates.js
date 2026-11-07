@@ -19,6 +19,10 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 6 2026 (Craft): Batch 22.
+        { icon: '🎯', title: 'Real hours toward 10,000', text: 'Only time you log counts, everywhere: skills, levels, paths and titles. Nothing takes it away. Fill in later, an Archive for deleted tasks and a Change log in History.', href: 'features/dashboard/dashboard.html' },
+        { icon: '🟥', title: 'XP debt shows on the bar', text: 'If penalties drop you below your level\'s start, the bar shows it in red with how much to recover.', href: 'features/home/home.html' },
+        { icon: '🧬', title: 'Merge stuck bees first', text: 'The merge list puts bees that can\'t get a job first, weakest first. Tap 🧬 next to a stuck bee in the Rest Comb.', href: 'features/gacha/gacha.html' },
         // Nov 6 2026 (Craft): Batch 21.
         { icon: '🃏', title: 'Skills back on cards', text: 'Resting bees show their talent\'s skill again, dimmed until they work.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '⚔️', title: 'Hive Defense (practice)', text: 'A new plugin: a hex battle with your own bees. Turn it on in the Plugin Hub.', href: 'plugins/hive-defense/hive-defense.html' },
