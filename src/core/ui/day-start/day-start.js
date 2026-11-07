@@ -140,7 +140,7 @@ const DayStart = (() => {
             <p class="ds-sub">Dailies you missed yesterday, and what happened.</p>
             ${r.saves.map((s, i) => line(s).replace('class="ds-save', `style="animation-delay:${i * 0.25}s" class="ds-save`)).join('')}
             ${planHTML(plan)}
-            ${r.damage ? `<div class="ds-save lost ds-hp"><span>👑</span><div><b>Your Queen took −${r.damage} ❤️</b><small>${r.fainted ? '😵 She fainted! You lost some coins and this level\'s XP. Health is back to half.' : 'Saved streaks still count as missed for health. Finish tasks to heal.'}</small></div></div>` : ''}
+            ${r.damage ? `<div class="ds-save lost ds-hp"><span>👑</span><div><b>Your Queen took −${r.damage} ❤️</b><small>${r.fainted ? '😵 She fainted! XP is −20% for 1 hour. Health is back to half.' : 'Saved streaks still count as missed for health. Finish tasks to heal.'}</small></div></div>` : ''}
             <button type="button" class="ds-go" data-done>START MY DAY</button>`;
         pop.querySelector('.ds-step1').hidden = true;
         step2.hidden = false;

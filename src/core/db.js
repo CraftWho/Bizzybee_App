@@ -1486,10 +1486,6 @@ function computeCharacterLevelBandState(totalXP, acknowledgedLevel) {
     return {
         level,
         xpIntoLevel,
-        // Nov 6 2026 (Craft): XP below this level's start (bad habits, unchecked
-        // tasks, a fainted Queen, deleted tasks). Your level never drops, so new
-        // XP pays this back first. The top bar shows it in red.
-        debt: Math.max(0, Math.round(from - totalXP)),
         cap,
         percentage: Math.min(100, (xpIntoLevel / cap) * 100),
         maxed: totalXP >= from + cap
@@ -1603,7 +1599,10 @@ const QUEEN = {
     maxHp: 50,
     hit: { Trivial: 1, Easy: 2, Medium: 4, Hard: 7 },
     coin: { Trivial: 1, Easy: 2, Medium: 3, Hard: 5 },
-    heal: 1, faintCoinLoss: 0.1, guardSaves: 2, guardDays: 3, charmMinStreak: 2
+    heal: 1, guardSaves: 2, guardDays: 3, charmMinStreak: 2,
+    // Nov 7 2026 (Craft): Batch 24. A faint no longer takes coins or XP. It gives a
+    // timed XP debuff instead: -20% XP for 1 hour. A second faint resets the timer.
+    debuffMs: 60 * 60 * 1000, debuffMult: 0.8
 };
 function queenDifficulty(task) {
     const d = String((task && task.difficulty) || '').toLowerCase();
@@ -2564,16 +2563,24 @@ class DatabaseManager {
         return xpForMinutes(m, task && task.difficulty);
     }
 
+    // Nov 7 2026 (Craft): Batch 24. Total XP before any floor: tasks + streak bonuses
+    // + the debuff and floor entries kept in state.bonusXP.
+    _rawXP() {
+        if (!this.state) return 0;
+        return computeTotalXP(this.state.quests)
+            + computeDailyXP(this.state.dailyTasks)
+            + computeHabitXP(this.state.habits)
+            + computeTodoXP(this.state.todos)
+            + (this.state.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0);
+    }
+
     // 4. Getters
     getUser() {
         if (!this.state) return null;
 
-        const totalXP = Math.max(0, computeTotalXP(this.state.quests)
-            + computeDailyXP(this.state.dailyTasks)
-            + computeHabitXP(this.state.habits)
-            + computeTodoXP(this.state.todos)
-            + (this.state.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0)   // streak bonuses
-            - ((this.state.queen && this.state.queen.xpLost) || 0));   // lost when the Queen faints
+        // Nov 7 2026 (Craft): Batch 24. XP never goes below 0 (see _floorXP), and a faint no
+        // longer takes XP, so the old "lost when the Queen faints" subtraction is gone.
+        const totalXP = Math.max(0, this._rawXP());
         const { level, currentXP, nextLevelXP } = computeLevelProgress(totalXP);
 
         return {
@@ -2906,7 +2913,38 @@ class DatabaseManager {
             this.state.characterLevelBar = { acknowledgedLevel: this.getUser().level, leveledUpAt: null };
             this.save();
         }
+        this._floorXP();
         return computeCharacterLevelBandState(this.getUser().totalXP, this.state.characterLevelBar.acknowledgedLevel);
+    }
+
+    // Nov 7 2026 (Craft): Batch 24. No XP debt. If bad habits, unchecks or deleting a task
+    // would push XP below where this level starts, a small bonusXP entry lifts it back to
+    // exactly the level start. Your level never drops and you never have to "catch up".
+    // It also clears any debt already in a save.
+    _floorXP() {
+        const S = this.state;
+        if (!S || !S.characterLevelBar) return false;
+        const from = characterXPToReach(S.characterLevelBar.acknowledgedLevel || 1);
+        const gap = Math.round(from - this._rawXP());
+        if (!(gap > 0)) return false;
+        if (!Array.isArray(S.bonusXP)) S.bonusXP = [];
+        S.bonusXP.push({ key: `xp-floor:${Date.now()}`, date: todayISO(), xp: gap, why: 'floor' });
+        this.save();
+        return true;
+    }
+
+    // Nov 7 2026 (Craft): Batch 24. XP buffs and debuffs that are active right now, for the
+    // bar colour. Today only the faint debuff exists; more can be added here later.
+    // [{ id, kind: 'debuff'|'buff', label, pct, until, msLeft }]
+    getXPBuffs() {
+        const q = this.state && this.state.queen;
+        const out = [];
+        if (q && q.debuff) {
+            const left = Number(q.debuff.until) - Date.now();
+            if (left > 0) out.push({ id: q.debuff.id || 'faint', kind: 'debuff', label: 'Queen fainted', pct: Math.round((q.debuff.mult - 1) * 100), until: q.debuff.until, msLeft: left });
+            else { delete q.debuff; this.save(); }
+        }
+        return out;
     }
 
     // Backfills state.plugins onto any save from before the plugin toggle
@@ -6790,18 +6828,14 @@ Object.assign(DatabaseManager.prototype, {
         q.hp = Math.max(0, (q.hp || 0) - n);
         if (typeof Toast !== 'undefined' && why) Toast.show(`❤️ −${n} · ${why}`, 'negative');
         if (q.hp > 0) return false;
-        // Faint: lose 10% of coins and this level's XP progress (never a level).
-        const coins = this.getCoins();
-        const bar = this.getCharacterLevelBar ? this.getCharacterLevelBar() : null;
-        const lostCoins = Math.floor(coins * QUEEN.faintCoinLoss);
-        const lostXP = bar && !bar.maxed ? bar.xpIntoLevel : 0;
-        q.lost = (q.lost || 0) + lostCoins;
-        q.xpLost = (q.xpLost || 0) + lostXP;
+        // Nov 7 2026 (Craft): Batch 24. A faint costs no coins and no XP. It gives a timed
+        // XP debuff (-20% for 1 hour). A faint while it runs resets the timer, it never stacks.
+        q.debuff = { id: 'faint', until: Date.now() + QUEEN.debuffMs, mult: QUEEN.debuffMult };
         q.hp = Math.round(QUEEN.maxHp / 2);
         q.faintedOn = todayISO();
         this._lifeBees().forEach(b => { if (b.life) b.life.happiness = clampVital(b.life.happiness - 15); });
-        this._lifeEvent('queen-faint', `😵 Your Queen fainted! Lost ${lostCoins} 🪙 and ${lostXP} XP. Your bees are sad.`);
-        if (typeof Toast !== 'undefined') Toast.show(`😵 Your Queen fainted! −${lostCoins} 🪙 · −${lostXP} XP. Health is back to half.`, 'negative');
+        this._lifeEvent('queen-faint', '😵 Your Queen fainted! XP is −20% for 1 hour. Your bees are sad.');
+        if (typeof Toast !== 'undefined') Toast.show('😵 Your Queen fainted! XP −20% for 1 hour. Health is back to half.', 'negative');
         return true;
     },
 
@@ -7640,6 +7674,45 @@ const CHANGE_LOG_MAX = 1000;
         updateHabit(id, patch) { const t = (this.state && this.state.habits || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateHabit.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
         updateTodo(id, patch) { const t = (this.state && this.state.todos || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateTodo.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
         updateTask(questId, taskId, patch) { const { task } = this._findTask('quest', taskId, questId); const b = task && { label: task.label, minutes: task.minutes, difficulty: task.difficulty }; const r = orig.updateTask.call(this, questId, taskId, patch); if (r && b) { this._noteEdit(task, b); this.save(); } return r; },
+    });
+})();
+
+// ============================================================================
+// XP DEBUFF (Nov 7 2026, Craft; Batch 24)
+// While the Queen's faint debuff is active, XP you earn is cut by 20%. XP is worked
+// out from your tasks, so the cut is kept as a small negative entry in state.bonusXP
+// (key "debuff:..."), one per check-off. Unchecking that same check-off takes its
+// entry away again. Wraps the four check-off methods; nothing else changes.
+// ============================================================================
+(() => {
+    if (typeof DatabaseManager === 'undefined') return;   // tests that load only part of this file
+    const P = DatabaseManager.prototype;
+    ['toggleDailyTask', 'toggleTodoComplete', 'toggleTask', 'bumpHabit'].forEach(name => {
+        const orig = P[name];
+        if (typeof orig !== 'function') return;
+        P[name] = function (...args) {
+            if (!this.state) return orig.apply(this, args);
+            const before = this._rawXP();
+            const result = orig.apply(this, args);
+            try {
+                const gain = this._rawXP() - before;
+                const src = `${name}:${args.join(':')}`;
+                const list = Array.isArray(this.state.bonusXP) ? this.state.bonusXP : (this.state.bonusXP = []);
+                if (gain > 0) {
+                    const buff = this.getXPBuffs().find(b => b.kind === 'debuff');
+                    if (buff) {
+                        const cut = Math.round(gain * (-buff.pct / 100));
+                        if (cut > 0) { list.push({ key: `debuff:${Date.now()}:${list.length}`, src, date: todayISO(), xp: -cut, why: buff.id }); this.save(); }
+                    }
+                } else if (gain < 0) {
+                    // Unchecked: give back the cut that check-off paid.
+                    for (let i = list.length - 1; i >= 0; i--) {
+                        if (String(list[i].key).startsWith('debuff:') && list[i].src === src) { list.splice(i, 1); this.save(); break; }
+                    }
+                }
+            } catch (error) { console.error('XP debuff failed', error); }
+            return result;
+        };
     });
 })();
 

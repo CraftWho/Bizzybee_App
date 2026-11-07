@@ -749,9 +749,10 @@ button:hover {
     animation: ahShine 3.2s ease-in-out infinite;
 }
 @keyframes ahShine { 0% { background-position: 160% 0; } 60%, 100% { background-position: -60% 0; } }
-/* Nov 6 2026 (Craft): XP debt. A red stretch from the left; new XP pays it back first. */
-.ah-bar.in-debt::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--debt, 0%); border-radius: inherit; background: repeating-linear-gradient(135deg, #b3192e 0 6px, #7a0f1f 6px 12px); box-shadow: 0 0 10px rgba(220, 20, 60, .5); }
-.ah-debt { color: #ff6b7d !important; }
+/* Nov 7 2026 (Craft): Batch 24. The whole bar takes the colour of an active XP buff or debuff
+   (set in app.js through --lv-a / --lv-b). These are just the label colours. */
+.ah-buff-debuff { color: #ff6b7d !important; }
+.ah-buff-buff { color: #6fe3a5 !important; }
 .ah-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 7px; font-size: .76rem; color: var(--shell-muted); white-space: nowrap; }
 .ah-meta b { color: var(--shell-text); font-weight: 600; }
 .ah-levelup {

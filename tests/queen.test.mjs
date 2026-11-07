@@ -33,7 +33,8 @@ test('queen: coins come from tasks finished since the start, health heals once p
     assert.equal(v.getQueenStats().coins, 5);
 });
 
-test('queen: bad habit hurts; at 0 she faints and loses 10% coins, never a level', async () => {
+// Nov 7 2026 (Craft): Batch 24. A faint no longer costs coins or XP. It gives -20% XP for 1 hour.
+test('queen: bad habit hurts; at 0 she faints, no coins or XP lost, -20% XP for 1 hour', async () => {
     const { v } = harness({ habits: [{ id: 'h', label: 'Snack', xp: 5, difficulty: 'Hard', positive: true, negative: true, history: [] }] });
     await v.init();
     v.state.queen.hp = 3;
@@ -41,8 +42,43 @@ test('queen: bad habit hurts; at 0 she faints and loses 10% coins, never a level
     v.bumpHabit('h', 'negative');                               // Hard/2 = 4 -> faint
     const s = v.getQueenStats();
     assert.equal(s.hp, 25);
-    assert.equal(s.coins, 90);
+    assert.equal(s.coins, 100);                                 // nothing taken
     assert.ok(s.fainted);
+    const buffs = v.getXPBuffs();
+    assert.equal(buffs.length, 1);
+    assert.equal(buffs[0].pct, -20);
+    assert.ok(buffs[0].msLeft > 59 * 60 * 1000 && buffs[0].msLeft <= 60 * 60 * 1000);
+});
+
+test('xp debuff: check-offs earn 20% less while it runs, un-checking gives the cut back, it ends after the hour', async () => {
+    const { v } = harness({ dailyTasks: [daily('a', { xp: 10 })] });
+    await v.init();
+    const base = v.getUser().totalXP;
+    v.toggleDailyTask('a'); const full = v.getUser().totalXP - base; v.toggleDailyTask('a');   // what it pays with no debuff
+    assert.ok(full > 0);
+    assert.equal(v.getUser().totalXP, base);
+    v.state.queen.debuff = { id: 'faint', until: Date.now() + 3600000, mult: 0.8 };
+    v.toggleDailyTask('a');
+    const cut = v.getUser().totalXP - base;
+    assert.ok(Math.abs(cut - full * 0.8) <= 1, `full ${full}, with debuff ${cut}`);
+    v.toggleDailyTask('a');                                     // un-checked the same day
+    assert.equal(v.getUser().totalXP, base);
+    assert.equal((v.state.bonusXP || []).filter(b => String(b.key).startsWith('debuff:')).length, 0);
+    v.state.queen.debuff.until = Date.now() - 1;                // an hour later
+    assert.equal(v.getXPBuffs().length, 0);
+    v.toggleDailyTask('a');
+    assert.equal(v.getUser().totalXP - base, full);             // full XP again
+});
+
+test('xp floor: XP never drops below where the level starts, and old debt is cleared', async () => {
+    const { v, g } = harness({});
+    await v.init();
+    v.state.characterLevelBar = { acknowledgedLevel: 3, leveledUpAt: null };
+    v.state.bonusXP = [{ key: 'test-penalty', xp: -100000 }];   // a huge penalty / old debt
+    const bar = v.getCharacterLevelBar();
+    assert.equal(bar.xpIntoLevel, 0);
+    assert.equal(v._rawXP(), g('characterXPToReach(3)'));       // lifted to exactly the level start
+    assert.equal(bar.level, 3);                                 // the level never drops
 });
 
 test('start my day: credits yesterday, Guard Bee and Streak Charm save streaks, misses hurt', async () => {
