@@ -397,9 +397,9 @@
 .ga2 .mp-bee[aria-pressed="true"] { border-color: var(--gold, #ffcc00); background: rgba(255, 204, 0, .12); }
 .ga2 .mp-bee .mid { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .ga2 .mp-bee small { color: var(--muted); font-size: .7rem; }
-.ga2 .mp-st { font-size: .66rem; padding: 2px 6px; border-radius: 6px; }
-.ga2 .mp-st.is-work { background: rgba(127, 224, 138, .15); color: #7fe08a; }
+.ga2 .mp-st { font-size: .66rem; padding: 2px 6px; border-radius: 6px; white-space: nowrap; }
+.ga2 .mp-st.is-work { background: rgba(255, 204, 0, .14); color: var(--gold, #ffcc00); }
 .ga2 .mp-st.is-spare { background: rgba(159, 201, 255, .15); color: #9fc9ff; }
-.ga2 .mp-st.is-idle { background: rgba(255, 138, 150, .15); color: #ff8a96; }
+.ga2 .mp-st.is-idle { background: rgba(127, 224, 138, .12); color: #7fe08a; }
 .ga2 .mp-pw { font-weight: 700; color: var(--gold, #ffcc00); font-variant-numeric: tabular-nums; font-size: .8rem; }
 .ga2 .mp-pick { margin: 8px 0 4px; font-size: .8rem; }
