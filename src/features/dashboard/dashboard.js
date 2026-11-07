@@ -113,9 +113,11 @@ function renderMastery(S) {
     const since = new Date(); since.setDate(since.getDate() - 30);
     const sinceKey = isoLocal(since);
     const recent = {};
-    computeSkillContributions(S.dailyTasks, S.dictionary, S.quests, S.habits, S.todos).forEach(c => {
-        if (c.date && dayKey(c.date) >= sinceKey && c.source !== 'history') recent[c.category] = (recent[c.category] || 0) + c.minutes;
-    });
+    const fromBy = {};   // Nov 7 2026 (Craft): pace and sources from REAL time only
+    (S.timeLog || []).forEach(e => (e.cats || []).forEach(c => {
+        if (e.date && e.date >= sinceKey) recent[c] = (recent[c] || 0) + e.min;
+        (fromBy[c] = fromBy[c] || {})[e.kind === 'quest' && e.seeded && !e.at ? 'history' : e.kind] = ((fromBy[c] || {})[e.kind] || 0) + e.min;
+    }));
     const totalH = Vault.getRealMinutes() / 60;   // Nov 7 2026 (Craft): real time only
     const realBy = Vault.getRealBySkill(), realH = (c) => (realBy[c] || 0) / 60;
     const recentH = Object.values(recent).reduce((a, x) => a + x, 0) / 60;
@@ -129,7 +131,7 @@ function renderMastery(S) {
     let html = `<div class="m-sum"><div><b>${fmtH(totalH)} h</b><small>real time logged</small></div><div><b>${fmtH(recentH)} h</b><small>last 30 days</small></div><div><b>${list.length}</b><small>skills</small></div></div>`;
     html += list.map(s => {
         const ticks = [10, 100, 1000].map(t => `<span class="tick${s.hours >= t ? ' on' : ''}" style="left:${roadPos(t)}%"></span>`).join('');
-        const src = Object.entries(s.bySource || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${SOURCE_NAMES[k] || k} ${fmtH(v / 60)} h`).join(' · ');
+        const src = Object.entries(fromBy[s.category] || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${SOURCE_NAMES[k] || k} ${fmtH(v / 60)} h`).join(' · ') || 'nothing logged yet';
         const stagePct = s.nextStage ? Math.min(100, 100 - s.hoursToNextStage / (s.hours + s.hoursToNextStage - SKILL_STAGES.find(x => x.name === s.stage).from) * 100) : 100;
         return `<div class="sk" style="--skc:${s.color}">
             <div class="sk-top"><span class="hx" style="--c:${s.stageColor}">${s.level}</span>
@@ -150,7 +152,7 @@ function renderMastery(S) {
         <tr><td>Medium / Hard</td><td>45 min ×1.25 / 90 min ×1.5</td></tr>
         <tr><td>Which skill</td><td>tags, or Dictionary words in the task</td></tr>
         ${SKILL_STAGES.map(s => `<tr><td><span class="stage" style="--sc:${s.color};margin:0">${s.name}</span></td><td>${s.to === Infinity ? '10,000 h +' : `${s.from.toLocaleString()} - ${s.to.toLocaleString()} h`}</td></tr>`).join('')}
-    </table><p>Hours are real minutes (no effort bonus). The road under each bar is a log scale, so the first hours show.</p></details>`;
+    </table><p>Hours are REAL minutes only: what you log on check-off, quest timers and imported history. Planned time only gives XP. The road under each bar is a log scale, so the first hours show.</p></details>`;
     document.getElementById('db-mastery').innerHTML = html;
 }
 
