@@ -3884,8 +3884,9 @@ class DatabaseManager {
         const done = this.state.skillsMastered;
         const s = this.state;
         const hoursBy = {};
-        computeSkillMatrixXP(s.dailyTasks, s.dictionary, s.quests, s.habits, s.todos).forEach(e => { hoursBy[e.category.toLowerCase()] = e.hours; });
-        const totalHours = computeTotalPracticeMinutes(s.dailyTasks, s.quests, s.habits, s.todos) / 60;
+        // Nov 7 2026 (Craft): real hours only.
+        Object.entries(this.getRealBySkill()).forEach(([c, m]) => { hoursBy[c.toLowerCase()] = m / 60; });
+        const totalHours = this.getRealMinutes() / 60;
         const fresh = [];
         const out = [];
         const byId = {};
@@ -5279,17 +5280,35 @@ class DatabaseManager {
         return true;
     }
 
+    // Nov 7 2026 (Craft): a skill's hours, level, stage and path count REAL
+    // minutes only (the time log: what you logged, quest timers, imported
+    // history). Planned time is kept as plannedHours, and XP still uses it.
+    // Levels can drop when this switches over; Craft OK'd that.
     getSkillMatrix() {
         if (!this.state) return [];
         if (!this.state.skillLevels) this.state.skillLevels = {};
-
-        return computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
+        const realBy = typeof this.getRealBySkill === 'function' ? this.getRealBySkill() : {};
+        // One time: skill levels earned on planned time drop to what your real
+        // hours reach (Craft: "if I lose levels, it is what it is").
+        if (!this.state.skillRealV1) {
+            this.state.skillRealV1 = new Date().toISOString();
+            Object.entries(this.state.skillLevels).forEach(([cat, st]) => {
+                if (!st || this.skillMeta(cat).measure === 'times') return;
+                const lv = skillLevelFromHours((realBy[cat] || 0) / 60);
+                if ((st.level || 1) > lv) { this._changeLog && this._changeLog('edit', `Skill "${cat}" level ${st.level} → ${lv}`, 'Skills now count real hours only'); st.level = lv; }
+            });
+        }
+        const rows = computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos);
+        const seen = new Set(rows.map(r => r.category.toLowerCase()));
+        Object.keys(realBy).forEach(c => { if (!seen.has(c.toLowerCase())) rows.push({ category: c, xp: 0, minutes: 0, bySource: {}, count: 0, realMinutes: 0, estMinutes: 0, timesMinutes: 0, hours: 0 }); });
+        return rows.map(entry => {
+            const real = realBy[entry.category] || 0;
             const stored = this.state.skillLevels[entry.category];
             const meta = this.skillMeta(entry.category);
             // "Times done" skills level up by how often, not how long (Oct 29 2026).
-            const levelState = computeSkillLevelState(meta.measure === 'times' ? entry.timesMinutes : entry.minutes, stored ? stored.level : 1);
-            return { ...entry, ...levelState, ...meta, realHours: entry.realMinutes / 60, estHours: entry.estMinutes / 60, timeHours: entry.minutes / 60 };
-        });
+            const levelState = computeSkillLevelState(meta.measure === 'times' ? entry.timesMinutes : real, stored ? stored.level : 1);
+            return { ...entry, ...levelState, ...meta, plannedHours: entry.minutes / 60, minutes: real, hours: real / 60, realHours: real / 60, estHours: 0, timeHours: real / 60 };
+        }).sort((a, b) => b.minutes - a.minutes);
     }
 
     // Every contribution toward `category` completed on or after `sinceISO`
@@ -5332,8 +5351,8 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
-        const matrixEntry = computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
-            .find(entry => entry.category === category);
+        // Nov 7 2026 (Craft): real minutes (getSkillMatrix), same as the bar.
+        const matrixEntry = this.getSkillMatrix().find(entry => entry.category === category);
         // Oct 31 2026 (Craft): a "times done" skill levels by count, same as its bar.
         const minutes = matrixEntry ? (this.skillMeta(category).measure === 'times' ? matrixEntry.timesMinutes : matrixEntry.minutes) : 0;
 
