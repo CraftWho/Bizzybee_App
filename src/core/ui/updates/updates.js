@@ -19,6 +19,10 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 3 2026 (Craft): Batch 20.
+        { icon: '🧬', title: 'Merge picker', text: 'Combine shows bees by talent, marks spares and full jobs, weakest first. Rest Comb links straight to it.', href: 'features/gacha/gacha.html' },
+        // Nov 3 2026 (Craft): Batch 19.
+        { icon: '🐝', title: 'More bees at work', text: 'Each job takes more bees as your hive grows. Merges can bring a talent your hive is missing.', href: 'features/hive-mind/hive-mind.html' },
         // Nov 2 2026 (Craft): Batch 18.
         { icon: '🔢', title: 'Website version updates itself', text: 'Settings › About shows the date, batch and code of the version you are on.', href: 'features/settings/settings.html' },
         // Nov 2 2026 (Craft): Batch 17.
@@ -100,6 +104,8 @@ const WHATS_NEW = [
         { icon: '🧹', title: 'Clear today', text: 'Terminal: type clear today to undo today\'s check-offs, XP and level.', href: 'plugins/terminal/terminal.html' },
       ],
       fixed: [
+        // Nov 2 2026 (Craft): Batch 19.
+        { icon: '🔐', title: 'Signing in on a new phone', text: 'Your hive loads before anything else. No more egg for an account that already has a hive.' },
         { icon: '👣', title: 'Steps', text: 'Now counts your whole day.' },
         // Oct 31 2026 (Craft): Batch 2.
         { icon: '🌙', title: 'Evening quest tasks', text: 'Quest tasks done after 8 PM now count on today, not tomorrow.' },
