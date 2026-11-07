@@ -26,5 +26,12 @@ if (process.env.BB_PERSONAL === '1') {
     console.log('BizzyBee Dev: BB_PERSONAL on');
 }
 writeFileSync(join(out, 'app-files.json'), JSON.stringify(buildManifest(out, version)));
-writeFileSync(join(out, 'version.json'), JSON.stringify({ version, builtAt: new Date().toISOString() }) + '\n');
+// Nov 6 2026 (Craft): same fields as the website's version.json (tools/stamp-version.mjs),
+// so Settings › About shows date · batch · commit in a fresh install too.
+let batch = null;
+try {
+    const nums = [...readFileSync(join(root, 'src/core/ui/updates/updates.js'), 'utf8').matchAll(/Batch (\d+)/g)].map(m => Number(m[1]));
+    if (nums.length) batch = 'Batch ' + Math.max(...nums);
+} catch { /* no batch, fine */ }
+writeFileSync(join(out, 'version.json'), JSON.stringify({ version, commit: process.env.GITHUB_SHA || null, batch, builtAt: new Date().toISOString() }) + '\n');
 console.log('App copy:', out, version);
