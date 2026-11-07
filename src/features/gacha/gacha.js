@@ -191,40 +191,45 @@ function beeOptionsHTML(bees) {
     return bees.map(b => `<option value="${b.id}">${b.name} (${b.rarity})</option>`).join('');
 }
 
-// Nov 3 2026 (Craft; approved demo): merge picker. Groups bees by talent with
-// the job's status (Full, free slots, opens at Lv), tags each bee Working /
-// Spare / No job, weakest first. Tapping sets the two hidden selects that
-// handleCombine reads.
+// Nov 3 2026 (Craft; approved demo): merge picker.
+// Nov 6 2026 (Craft; approved demo v2): one list, best to merge first.
+// 1) bees that can't get a job (its job is locked or full), 2) bees with a
+// free slot, 3) working bees. Weakest first inside each part, so your
+// strongest bees sit at the very bottom. Tapping sets the two hidden
+// selects that handleCombine reads. ?pick=<id> (from the Rest Comb's 🧬)
+// starts with that bee picked.
 let mpFilter = 'spare';
 let mpPicked = [];
 function mpEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const MP_RANK = { spare: 0, idle: 1, work: 2 };
+const MP_HEAD = ['Merge these first', 'Could work: a slot is free', 'Working'];
+function mpJob(b) { return (typeof beeLockedJob === 'function' && beeLockedJob(b)) || b.talent || null; }
+function mpPower(b) { const j = mpJob(b); return (typeof beeJobScore === 'function' && BEE_CLASSES[j]) ? beeJobScore(b, j) : 0; }
+function mpWhy(b, s) {
+    if (s === 'work') return ['Working', 'is-work'];
+    const j = mpJob(b);
+    if (s === 'idle') return ['Slot free', 'is-idle'];
+    if (!j || !BEE_CLASSES[j]) return ['No job', 'is-spare'];
+    if (!Vault.hiveOpenJobs().includes(j)) { const l = Vault.hiveJobLadder().find(x => x.job === j); return [`🔒 Opens Lv ${l ? l.lv : '?'}`, 'is-spare']; }
+    return [`Job full ${Vault.jobHolders(j).length}/${Vault.jobSlots(j)}`, 'is-spare'];
+}
 function renderMergePicker() {
     const list = document.getElementById('mp-list');
     if (!list || typeof Vault.beeMergeStatus !== 'function') return;
     const bees = Vault.getHiveBees().map(b => ({ b, s: Vault.beeMergeStatus(b) })).filter(x => x.s);
-    const count = s => bees.filter(x => x.s === s).length;
-    document.getElementById('mp-c-spare').textContent = count('spare');
-    document.getElementById('mp-c-idle').textContent = count('idle');
+    document.getElementById('mp-c-spare').textContent = bees.filter(x => x.s === 'spare').length;
     document.getElementById('mp-c-all').textContent = bees.length;
     mpPicked = mpPicked.filter(id => bees.some(x => x.b.id === id));
-    const shown = bees.filter(x => mpFilter === 'all' || x.s === mpFilter);
-    const open = Vault.hiveOpenJobs();
-    const ladder = Vault.hiveJobLadder();
-    const groups = {};
-    shown.forEach(x => { const t = (typeof beeLockedJob === 'function' && beeLockedJob(x.b)) || x.b.talent || 'other'; (groups[t] = groups[t] || []).push(x); });
-    const power = (b, t) => (typeof beeJobScore === 'function' && BEE_CLASSES[t]) ? beeJobScore(b, t) : 0;
-    const tag = (t) => {
-        if (!BEE_CLASSES[t]) return '';
-        if (!open.includes(t)) { const l = ladder.find(x => x.job === t); return `<span class="mp-tag is-lock">${l ? 'Opens Lv ' + l.lv : 'Locked'}</span>`; }
-        const n = Vault.jobSlots(t), w = Vault.jobHolders(t).length;
-        return w >= n ? `<span class="mp-tag is-full">Full${w === n ? ` ${w}/${n}` : ''}</span>` : `<span class="mp-tag is-open">${n - w} free · ${w}/${n}</span>`;
-    };
-    const LABEL = { work: 'Working', spare: 'Spare', idle: 'No job' };
-    list.innerHTML = Object.keys(groups).sort((a, z) => groups[z].length - groups[a].length).map(t => {
-        const info = BEE_CLASSES[t];
-        const rows = groups[t].sort((a, z) => power(a.b, t) - power(z.b, t)).map(x => `<button type="button" class="mp-bee" data-mp="${mpEsc(x.b.id)}" aria-pressed="${mpPicked.includes(x.b.id)}"><span class="mid"><b>${mpEsc(x.b.name)}${x.b.sex === 'm' ? ' ♂' : ''}</b><small>${mpEsc(x.b.rarity)}</small></span><span class="mp-st is-${x.s}">${LABEL[x.s]}</span><span class="mp-pw">⚡${power(x.b, t)}</span></button>`).join('');
-        return `<div class="mp-grp"><h3><span>${info ? info.icon + ' ' + mpEsc(info.label) : 'Other'} · ${groups[t].length}</span>${tag(t)}</h3>${rows}</div>`;
-    }).join('') || '<p class="mp-key">Nothing here.</p>';
+    const shown = bees.filter(x => mpFilter === 'all' || x.s === 'spare' || mpPicked.includes(x.b.id))
+        .map(x => ({ ...x, p: mpPower(x.b) }))
+        .sort((a, z) => MP_RANK[a.s] - MP_RANK[z.s] || a.p - z.p);
+    let last = -1;
+    list.innerHTML = shown.length ? '<div class="mp-grp">' + shown.map(x => {
+        const r = MP_RANK[x.s], [why, cls] = mpWhy(x.b, x.s), info = BEE_CLASSES[mpJob(x.b)];
+        const head = r !== last ? `<h3><span>${MP_HEAD[r]}</span></h3>` : '';
+        last = r;
+        return head + `<button type="button" class="mp-bee" data-mp="${mpEsc(x.b.id)}" aria-pressed="${mpPicked.includes(x.b.id)}"><span class="mid"><b>${info ? info.icon + ' ' : ''}${mpEsc(x.b.name)}${x.b.sex === 'm' ? ' ♂' : ''}</b><small>${info ? mpEsc(info.label) + ' · ' : ''}${mpEsc(x.b.rarity)}</small></span><span class="mp-st ${cls}">${why}</span><span class="mp-pw">⚡${x.p}</span></button>`;
+    }).join('') + '</div>' : '<p class="mp-key">Nothing here.</p>';
     const [a, b] = mpPicked.map(id => Vault.getHiveBees().find(x => x.id === id));
     const pick = document.getElementById('mp-pick');
     pick.innerHTML = !a ? 'Pick two bees.' : !b ? `<b>${mpEsc(a.name)}</b> + …` : `<b>${mpEsc(a.name)}</b> + <b>${mpEsc(b.name)}</b>${a.talent && a.talent === b.talent ? ' · same talent' : ''}`;
@@ -245,6 +250,8 @@ function setupMergePicker() {
     window.addEventListener('vault-saved', () => renderMergePicker());
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') renderMergePicker(); });
     setTimeout(renderMergePicker, 1500);
+    const pre = new URLSearchParams(location.search).get('pick');   // Nov 6 2026 (Craft): from the Rest Comb's 🧬
+    if (pre) { mpPicked = [pre]; renderMergePicker(); }
     if (location.hash === '#merge') setTimeout(() => block.scrollIntoView({ block: 'start' }), 300);
 }
 
@@ -270,7 +277,7 @@ function renderRefineSelects() {
     comboA.disabled = bees.length < 2;
     comboB.disabled = bees.length < 2;
     combineBtn.disabled = bees.length < 2;
-    mpPicked = [];   // Nov 3 2026 (Craft): fresh picks after every refine
+    if (mpPicked.length === 2) mpPicked = [];   // Nov 3 2026 (Craft): fresh picks after a merge
     renderMergePicker();
 }
 
