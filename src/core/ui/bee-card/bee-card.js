@@ -456,12 +456,19 @@ const BeeCard = {
 
         const isLegendary = rarityKey === 'legendary' || rarityKey === 'royal';
         const rivets = '<i class="bc-rv bc-tl"></i><i class="bc-rv bc-tr"></i><i class="bc-rv bc-bl"></i><i class="bc-rv bc-br"></i>';
-        const ability = classInfo ? beeCardAbility(bee.class, classInfo) : null;
+        // Nov 6 2026 (Craft): since bees only work their talent's job (Batch 19),
+        // most bees rest and their cards showed no skill. The card now shows the
+        // skill of the job it works, else its talent's (or title's) job, dimmed
+        // with "· resting". The talent is already on the card, so nothing leaks.
+        const skillKey = bee.class || (typeof beeLockedJob === 'function' && beeLockedJob(bee)) || bee.talent || null;
+        const skillInfo = skillKey && typeof BEE_CLASSES !== 'undefined' ? BEE_CLASSES[skillKey] : null;
+        const skillOn = !!bee.class;
+        const ability = skillInfo ? beeCardAbility(skillKey, skillInfo) : null;
         const titleHTML = title
             ? `<div class="bc-ab bc-title-ab${titleOn ? '' : ' bc-off'}" title="${titleOn ? 'Active' : 'Works on the matching job'}"><span class="bc-ic">${title.icon}</span><h4>${title.power} <small>Title${titleOn ? '' : ' · off'}</small></h4><p>${title.text}</p></div>`
             : '';
         const abilitiesHTML = titleHTML + (ability
-            ? `<div class="bc-ab"><span class="bc-ic">${classInfo.icon}</span><h4>${ability.name} <small>Ability</small></h4><p>${ability.text}</p></div>`
+            ? `<div class="bc-ab${skillOn ? '' : ' bc-off'}"><span class="bc-ic">${skillInfo.icon}</span><h4>${ability.name} <small>Ability${skillOn ? '' : ' · resting'}</small></h4><p>${ability.text}</p></div>`
             : '')   // Nov 1 2026 (Craft): no job = no ability row (unknown things stay hidden)
             + traits.map(trait => `<div class="bc-ab" title="${trait.description}"><span class="bc-ic">${trait.icon}</span><h4>${trait.label} <small>Trait</small></h4><p>${trait.description}</p></div>`).join('');
 
