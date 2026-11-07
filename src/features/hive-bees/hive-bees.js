@@ -197,12 +197,18 @@ function cfNode(b) {
     cf.nodes.set(b.id, n);
     return n;
 }
-// Only the cards near the middle exist, so a big binder stays smooth.
+// Only the cards near the middle are shown, so a big binder stays smooth.
+// Nov 6 2026 (Craft): Cover Flow was slow on the phone. Now: 7 cards on
+// screen (was 11), built cards are kept and hidden instead of rebuilt, the
+// reflection and card sparkle only run on the middle cards, and dragging
+// redraws once per frame. The name line only changes when the card does.
+const CF_SHOW = 3.5, CF_CACHE = 24;
+let cfNowIdx = -1, cfNowLen = -1;
 function cfLayout() {
     const W = cf.w, keep = new Set();
     cf.bees.forEach((b, i) => {
         const off = i - cf.idx + cf.drag, a = Math.abs(off);
-        if (a > 5.5) return;
+        if (a > CF_SHOW) return;
         keep.add(b.id);
         const n = cfNode(b), sign = Math.sign(off);
         const x = sign * (Math.min(a, 1) * W * .48 + Math.max(a - 1, 0) * W * .21);
@@ -210,16 +216,39 @@ function cfLayout() {
         n.style.transform = `translateX(${x.toFixed(1)}px) translateZ(${(-40 + near * 90).toFixed(1)}px) rotateY(${rot.toFixed(1)}deg)`;
         n.style.zIndex = String(Math.round(100 - a * 10));
         n.classList.toggle('is-center', i === cf.idx && !cf.dragging);
+        n.classList.toggle('is-near', a < 1.5);
         n.classList.toggle('dragging', cf.dragging);
+        n.hidden = false;
         n.tabIndex = i === cf.idx ? 0 : -1;
     });
-    cf.nodes.forEach((n, id) => { if (!keep.has(id)) { n.remove(); cf.nodes.delete(id); } });
+    let extra = cf.nodes.size - CF_CACHE;
+    cf.nodes.forEach((n, id) => {
+        if (keep.has(id)) return;
+        if (extra-- > 0) { n.remove(); cf.nodes.delete(id); } else n.hidden = true;
+    });
+    if (!cf.dragging) cfPrewarm();
+    if (cfNowIdx === cf.idx && cfNowLen === cf.bees.length) return;
+    cfNowIdx = cf.idx; cfNowLen = cf.bees.length;
     const b = cf.bees[cf.idx];
     document.getElementById('cf-now').innerHTML = b
         ? `<b>${PV2.esc(b.name)}</b><small>No.${b.rarity === 'Royal' ? 'R' : pad3(cfKd(b))} · ${PV2.esc(b.rarity)}${b.element && BEE_ELEMENTS[b.element] ? ' ' + PV2.esc(BEE_ELEMENTS[b.element].label) : ''} · tap the middle card to look closer</small>` : '';
     const r = document.getElementById('cf-range');
     r.max = String(Math.max(0, cf.bees.length - 1)); r.value = String(cf.idx);
     document.getElementById('cf-pos').textContent = cf.bees.length ? `${cf.idx + 1}/${cf.bees.length}` : '0/0';
+}
+// Build the next few cards while the phone is idle, so a swipe doesn't
+// stop to draw a new card (Nov 6 2026, Craft).
+let cfWarm = 0;
+function cfPrewarm() {
+    if (cfWarm) return;
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 120));
+    cfWarm = idle(() => {
+        cfWarm = 0;
+        for (let d = 4; d <= 6; d++) for (const i of [cf.idx + d, cf.idx - d]) {
+            const b = cf.bees[i];
+            if (b && !cf.nodes.has(b.id) && cf.nodes.size < CF_CACHE) { const n = cfNode(b); n.hidden = true; }
+        }
+    });
 }
 function cfGo(i, bubble) {
     if (!cf.bees.length) return;
@@ -250,7 +279,7 @@ function cfStep(dir) {
 }
 function cfRefresh(keepId) {
     const id = keepId || (cf.bees[cf.idx] && cf.bees[cf.idx].id);
-    cf.nodes.forEach(n => n.remove()); cf.nodes.clear();
+    cf.nodes.forEach(n => n.remove()); cf.nodes.clear(); cfNowIdx = -1;
     cf.bees = cfList();
     const at = cf.bees.findIndex(b => b.id === id);
     cf.idx = at >= 0 ? at : Math.min(cf.idx, Math.max(0, cf.bees.length - 1));
@@ -365,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setWheel();
 
     // Drag: the row moves with your finger, then snaps. A fast flick jumps a group.
-    let sx = null, lx = 0, lt = 0, vx = 0, justDragged = false;
+    let sx = null, lx = 0, lt = 0, vx = 0, justDragged = false, cfFrame = 0;
     stage.addEventListener('pointerdown', (e) => { sx = e.clientX; lx = e.clientX; lt = Date.now(); vx = 0; });
     stage.addEventListener('pointermove', (e) => {
         if (sx === null) return;
@@ -375,13 +404,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const n = cf.bees.length;
         cf.drag = Math.max(cf.idx - (n - 1), Math.min(cf.idx, dx / (cf.w * .42)));
         const now = Date.now(); vx = (e.clientX - lx) / Math.max(1, now - lt); lx = e.clientX; lt = now;
-        cfLayout();
+        if (!cfFrame) cfFrame = requestAnimationFrame(() => { cfFrame = 0; cfLayout(); });
     });
     const end = () => {
         if (sx === null) return;
         sx = null;
         if (!cf.dragging) return;
         justDragged = true; setTimeout(() => { justDragged = false; }, 80);
+        if (cfFrame) { cancelAnimationFrame(cfFrame); cfFrame = 0; }
         const target = Math.round(cf.idx - cf.drag);
         cf.drag = 0; cf.dragging = false;
         if (Math.abs(vx) > 1.4) { cf.idx = Math.max(0, Math.min(cf.bees.length - 1, target)); cfJump(vx > 0 ? -1 : 1); }
