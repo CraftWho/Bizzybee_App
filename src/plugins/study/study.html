@@ -31,6 +31,40 @@
         </section>
 
         <div id="study-app" hidden>
+            <div class="chips sd-tabs" role="tablist" aria-label="Study sections">
+                <button type="button" class="chip" role="tab" data-tab="focus" aria-pressed="true">Focus</button>
+                <button type="button" class="chip" role="tab" data-tab="topics" aria-pressed="false">Topics</button>
+                <button type="button" class="chip" role="tab" data-tab="tips" aria-pressed="false">Tips</button>
+            </div>
+
+            <section id="sd-focus">
+                <div class="card sd-stage" id="sd-stage">
+                    <div class="sd-subject"><div><small>Studying</small><b id="sd-subj">Anything</b></div><button type="button" class="chip" id="sd-subj-btn">Change</button></div>
+                    <div class="sd-phase" id="sd-phase">Focus 1 of 4</div>
+                    <div class="sd-glass" id="sd-glass"></div>
+                    <div class="sd-time" id="sd-time">25:00</div>
+                    <div class="sd-dots" id="sd-dots"></div>
+                    <div class="sd-ctl"><button type="button" class="btn solid" id="sd-go">START</button><button type="button" class="btn" id="sd-reset">RESET</button></div>
+                </div>
+                <div class="card sd-break" id="sd-break" hidden>
+                    <div class="sd-nudge"><span id="sd-nudge-ic" aria-hidden="true">💧</span><div><b id="sd-nudge-t"></b><p id="sd-nudge-p"></p></div></div>
+                    <small class="sd-lbl">How is your energy?</small>
+                    <div class="chips" id="sd-energy"><button type="button" class="chip" aria-pressed="false" data-e="low">Low</button><button type="button" class="chip" aria-pressed="false" data-e="ok">Okay</button><button type="button" class="chip" aria-pressed="false" data-e="high">Sharp</button></div>
+                    <p class="sd-say" id="sd-say"></p>
+                    <button type="button" class="btn" id="sd-nudge-next">ANOTHER IDEA</button>
+                </div>
+                <h2 class="sec">Session</h2>
+                <div class="card sd-set">
+                    <div class="chips" id="sd-lens"><button type="button" class="chip" aria-pressed="true" data-f="25" data-b="5">25 / 5</button><button type="button" class="chip" aria-pressed="false" data-f="50" data-b="10">50 / 10</button><button type="button" class="chip" aria-pressed="false" data-f="15" data-b="3">15 / 3</button></div>
+                    <div class="chips" id="sd-styles"><button type="button" class="chip" aria-pressed="true" data-s="glass">Hourglass</button><button type="button" class="chip" aria-pressed="false" data-s="ring">Ring</button></div>
+                </div>
+                <div class="stats"><div><b id="sd-s-today">0 min</b><small>Focus today</small></div><div><b id="sd-s-week">0 min</b><small>This week</small></div><div><b id="sd-s-fill">0</b><small>To fill in</small></div></div>
+                <div id="sd-fill-list"></div>
+            </section>
+
+            <section id="sd-tips" hidden></section>
+
+            <section id="sd-topics" hidden>
             <details class="card sd-add">
                 <summary class="row"><span class="hx">➕</span><span class="mid"><b>Add a topic</b><small>Video, article, course, book…</small></span><span class="chev">›</span></summary>
                 <div class="sd-form">
@@ -48,7 +82,10 @@
                 </div>
             </details>
             <div id="study-list"></div>
+            </section>
         </div>
+
+        <div class="sd-scrim" id="sd-scrim" hidden><div class="card sd-sheet" id="sd-sheet"></div></div>
     </main>
 
     <script src="../../core/boot.js"></script>
@@ -56,5 +93,6 @@
 
     <script src="../../core/ui/page-v2/page-v2.js"></script>
     <script src="./study.js"></script>
+    <script src="./study-focus.js"></script>
 </body>
 </html>
