@@ -1486,6 +1486,10 @@ function computeCharacterLevelBandState(totalXP, acknowledgedLevel) {
     return {
         level,
         xpIntoLevel,
+        // Nov 6 2026 (Craft): XP below this level's start (bad habits, unchecked
+        // tasks, a fainted Queen, deleted tasks). Your level never drops, so new
+        // XP pays this back first. The top bar shows it in red.
+        debt: Math.max(0, Math.round(from - totalXP)),
         cap,
         percentage: Math.min(100, (xpIntoLevel / cap) * 100),
         maxed: totalXP >= from + cap

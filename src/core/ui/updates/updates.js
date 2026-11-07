@@ -20,6 +20,7 @@ const WHATS_NEW = [
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
         // Nov 6 2026 (Craft): Batch 22.
+        { icon: '🟥', title: 'XP debt shows on the bar', text: 'If penalties drop you below your level\'s start, the bar shows it in red with how much to recover.', href: 'features/home/home.html' },
         { icon: '🧬', title: 'Merge stuck bees first', text: 'The merge list puts bees that can\'t get a job first, weakest first. Tap 🧬 next to a stuck bee in the Rest Comb.', href: 'features/gacha/gacha.html' },
         // Nov 6 2026 (Craft): Batch 21.
         { icon: '🃏', title: 'Skills back on cards', text: 'Resting bees show their talent\'s skill again, dimmed until they work.', href: 'features/hive-bees/hive-bees.html' },
