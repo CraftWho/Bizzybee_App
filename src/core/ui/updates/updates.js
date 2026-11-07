@@ -21,6 +21,10 @@ const WHATS_NEW = [
         // Nov 1 2026 (Craft): Batch 13 (B).
         // Nov 7 2026 (Craft): Batch 23.
         { icon: '🛟', title: 'Recover my account', text: 'On the egg screen, a small link opens Settings so you can get your cloud save back. It does not hatch or skip the egg.', href: 'features/settings/settings.html' },
+        // Nov 6 2026 (Craft): Batch 22.
+        { icon: '🎯', title: 'Real hours toward 10,000', text: 'Only time you log counts, everywhere: skills, levels, paths and titles. Nothing takes it away. Fill in later, an Archive for deleted tasks and a Change log in History.', href: 'features/dashboard/dashboard.html' },
+        { icon: '🟥', title: 'XP debt shows on the bar', text: 'If penalties drop you below your level\'s start, the bar shows it in red with how much to recover.', href: 'features/home/home.html' },
+        { icon: '🧬', title: 'Merge stuck bees first', text: 'The merge list puts bees that can\'t get a job first, weakest first. Tap 🧬 next to a stuck bee in the Rest Comb.', href: 'features/gacha/gacha.html' },
         // Nov 6 2026 (Craft): Batch 21.
         { icon: '🃏', title: 'Skills back on cards', text: 'Resting bees show their talent\'s skill again, dimmed until they work.', href: 'features/hive-bees/hive-bees.html' },
         { icon: '⚔️', title: 'Hive Defense (practice)', text: 'A new plugin: a hex battle with your own bees. Turn it on in the Plugin Hub.', href: 'plugins/hive-defense/hive-defense.html' },
