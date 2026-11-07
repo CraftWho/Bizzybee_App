@@ -4938,6 +4938,28 @@ class DatabaseManager {
     // status, link }. Purely user-authored local content, same reasoning
     // as calendarEvents/dictionary above - ships empty, real entries only
     // ever come from adding them through the Study page itself.
+    // 5m. Study focus sessions (Nov 2026 draft): { id, date, min, topic, logged }.
+    // "logged" false = FILL IN LATER. Own ledger for now; not yet in Real Hours.
+    getStudySessions() {
+        return this.state ? (this.state.studySessions || []) : [];
+    }
+
+    addStudySession({ min, topic, logged }) {
+        if (!this.state || !(Number(min) > 0)) return null;
+        if (!this.state.studySessions) this.state.studySessions = [];
+        const e = { id: `ss-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, date: todayISO(), min: Math.round(Number(min)), topic: String(topic || '').slice(0, 80), logged: !!logged };
+        this.state.studySessions.push(e);
+        if (this.state.studySessions.length > 500) this.state.studySessions.splice(0, this.state.studySessions.length - 500);
+        this.save();
+        return e;
+    }
+
+    fillStudySession(id) {
+        const e = this.getStudySessions().find(x => x.id === id);
+        if (!e) return null;
+        e.logged = true; this.save(); return e;
+    }
+
     getStudyQueue() {
         return this.state ? (this.state.studyQueue || []) : [];
     }
