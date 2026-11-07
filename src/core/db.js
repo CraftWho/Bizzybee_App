@@ -1714,6 +1714,7 @@ function beeFatigueFactor(bee) {
     const n = beeProblems(bee);
     return n >= 2 ? 3 : n === 1 ? 2 : 1;
 }
+const NURSERY_OPEN_LV = 5;          // Nov 7 2026: the Nursery (Nurse job) opens by this level
 const NURSERY_BEDS = 2;               // + 1 per working Nurse
 // Held item slots: Common 0, Rare and Epic 1, Legendary and Named 2.
 function beeItemSlots(bee) {
@@ -6211,10 +6212,19 @@ Object.assign(DatabaseManager.prototype, {
             if (first) c.firstJob = first.talent;
         }
         const f = c.firstJob;
-        if (!f || f === HIVE_JOB_LADDER[0].job) return HIVE_JOB_LADDER.slice();
-        const lv1 = HIVE_JOB_LADDER[0], other = HIVE_JOB_LADDER.find(x => x.job === f);
-        if (!other) return HIVE_JOB_LADDER.slice();
-        return HIVE_JOB_LADDER.map(x => x.job === f ? { lv: lv1.lv, job: f } : x === lv1 ? { lv: other.lv, job: lv1.job } : x).sort((a, b) => a.lv - b.lv);
+        let out;
+        const lv1 = HIVE_JOB_LADDER[0], other = f && HIVE_JOB_LADDER.find(x => x.job === f);
+        if (!f || f === lv1.job || !other) out = HIVE_JOB_LADDER.slice();
+        else out = HIVE_JOB_LADDER.map(x => x.job === f ? { lv: lv1.lv, job: f } : x === lv1 ? { lv: other.lv, job: lv1.job } : x).sort((a, b) => a.lv - b.lv);
+        // Nov 7 2026 (Craft): the Nursery always opens by Lv 5. If the first-bee swap
+        // pushed the Nurse later, it trades places with the job that opens at Lv 5.
+        out = out.map(x => ({ ...x }));   // copies: never edit the shared ladder
+        const nurse = out.find(x => x.job === 'nurse');
+        if (nurse && nurse.lv > NURSERY_OPEN_LV) {
+            const at5 = out.find(x => x.lv === NURSERY_OPEN_LV);
+            if (at5) { at5.lv = nurse.lv; nurse.lv = NURSERY_OPEN_LV; out.sort((a, b) => a.lv - b.lv); }
+        }
+        return out;
     },
     hiveOpenJobs() {
         const lv = (this.getUser() || {}).level || 1;
