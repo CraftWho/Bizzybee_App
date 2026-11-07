@@ -148,6 +148,8 @@ const Hints = (() => {
     // stay a secret until reached). New feature = add an entry here.
     const GUIDE = [
         { id: "onboarding", icon: "🥚", title: "The egg gift", cat: "Getting started", text: "Your first run. Hold the egg, then raise it by learning Habits, To-Dos, Dailies and Quests on their real pages. Each dock tab unlocks in turn. Then name your King or Queen and the egg hatches.", v: "1.0.0", page: F + 'onboarding/onboarding.html' },
+        // Nov 7 2026 (Craft): Batch 23.
+        { id: "recover-egg", icon: "🛟", title: "Recover my account", cat: "Getting started", text: "Signed in but only see the egg? Tap \"Recover my account\" at the top right of the egg screen. It opens Settings, where you can restore a cloud backup. It never skips or hatches the egg.", v: "1.0.8", page: F + 'settings/settings.html' },
         { id: "start-day", icon: "🌅", title: "Start My Day", cat: "Getting started", text: "Opens the first time you open the app each day. Tell it which of yesterday's unfinished tasks you really did. Then see which streaks were saved or lost, and today's plan.", v: "1.0.5", intro: true, page: F + 'home/home.html' },
         { id: "top-bar", icon: "👑", title: "Top bar", cat: "Getting started", text: "Your royal, name, rank, level bar, Queen health and coins. Full size on Home, slim elsewhere. Tap it to go Home.", v: "1.0.0", page: F + 'home/home.html' },
         { id: "dock-create", icon: "➕", title: "The dock and the gold +", cat: "Getting started", text: "The dock has Habits, Dailies, To-Dos and Quests. The gold + makes whatever the current tab makes. On other pages it asks what to make.", v: "1.0.0", page: F + 'home/home.html' },

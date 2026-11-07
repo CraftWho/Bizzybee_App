@@ -947,6 +947,11 @@ function showGift() {
     next();
 }
 
+// Nov 7 2026 (Craft): Batch 23. "Recover my account" shows on the real egg (not in practice).
+// It only opens Settings, which stays open during the egg. It never hatches or skips anything.
+function setupRecoverLink() { const a = $('recoverLink'); if (a) a.hidden = PRACTICE; }
+setupRecoverLink();
+
 function setupPractice() {
     $('practiceBar').hidden = false;
     $('practiceExit').onclick = () => { location.href = '../settings/settings.html'; };
