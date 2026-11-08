@@ -993,6 +993,10 @@ const STORE_ITEM_CATALOG = [
     // automatically. Paid in Honey coins, not materials.
     // Nov 1 2026 (Craft): unlocks Auto-swap for good (it also comes with auto-manage). One per hive.
     { id: 'queens-whistle', label: "Queen's Whistle", icon: '📯', kind: 'unlock', rarity: 'Legendary', price: { currency: 'coins', amount: 600 }, description: 'One blow and your hive swaps tired bees out by itself. Yours for good.' },
+    // Nov 7 2026 (Craft): Honey Balm: free, one per hive, used automatically at the first faint.
+    { id: 'honey-balm', label: 'Honey Balm', icon: '🍯', kind: 'unlock', rarity: 'Epic', price: { currency: 'coins', amount: 0 }, description: 'Free, once per hive. Used automatically the first time any bee or the Queen would faint: it heals your whole hive to full, Queen included.' },
+    // Nov 7 2026 (Craft): wakes a fainted bee from its card (medium health).
+    { id: 'wake-tonic', label: 'Wake-up Tonic', icon: '🫗', kind: 'charm', rarity: 'Common', price: { materialId: 'pollen', amount: 15 }, description: 'Wakes a fainted bee at medium health. Use it from the bee\'s card in the Hive Mind.' },
     { id: 'streak-charm', label: 'Streak Charm', icon: '🎁', kind: 'charm', rarity: 'Rare', price: { currency: 'coins', amount: 25 }, description: "Saves one daily's streak when you miss it. Used up automatically in the morning, after your Guard Bees, and only on streaks of 2 days or more." },
     // Held items (Oct 28 2026, approved demo): Rare and up hold them (see
     // beeItemSlots). 'use' items fire on their own when needed and are used
@@ -1538,7 +1542,7 @@ const LIFE = {
     // death, old age and Royal Jelly back - all the code is still here.
     deathEnabled: false,
     lifespan: 42, jellyLifespan: 120, faintDays: 3, maxCatchUp: 14,
-    reviveCost: 10, jellyCost: 5, maleChance: 0.1, traitChance: 0.08,
+    reviveCost: 5, pollenReviveCost: 15, coinReviveCost: 50, wakeDays: 2, jellyCost: 5, maleChance: 0.1, traitChance: 0.08,
     hungerPerDay: 15, feedPerTask: 4, eventsKept: 30,
     // Oct 27 2026 (Craft): missed tasks hurt the whole hive, and a Fatigue
     // stat makes worn-out bees rest. Fatigue climbs while working and drops
@@ -1719,7 +1723,7 @@ const NURSERY_BEDS = 2;               // + 1 per working Nurse
 // Held item slots: Common 0, Rare and Epic 1, Legendary and Named 2.
 function beeItemSlots(bee) {
     const r = bee && bee.rarity;
-    return r === 'Legendary' || r === 'Named' ? 2 : r === 'Rare' || r === 'Epic' ? 1 : 0;
+    return r === 'Legendary' || r === 'Named' ? 2 : 1;   // Nov 7 2026: Common bees get 1 slot (use-items only, see giveBeeItem)
 }
 // Gear multiplier for a stat ('combat' | 'defense' | 'speed'), 1 = none.
 function beeGear(bee, key) {
@@ -3863,7 +3867,8 @@ class DatabaseManager {
         const it = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
         if (!bee || !it) return { ok: false, error: 'Unknown item.' };
         const slots = beeItemSlots(bee);
-        if (!slots) return { ok: false, error: 'Only Rare bees and up can hold items.' };
+        if (!slots) return { ok: false, error: 'This bee can\'t hold items.' };
+        if (bee.rarity === 'Common' && it.hold && it.hold.type !== 'use') return { ok: false, error: 'Common bees can only hold use-items (food, bandage, tonic). Gear needs a Rare bee.' };
         if (slot < 0 || slot >= slots) return { ok: false, error: 'No such slot.' };
         const items = this.state.inventory.items;
         if (!(items[itemId] > 0)) return { ok: false, error: `You don't have a ${it.label}. Make one in the Honey Store.` };
@@ -6167,6 +6172,7 @@ Object.assign(DatabaseManager.prototype, {
             L.health = clampVital(L.health - out.hp);
             L.happiness = clampVital(L.happiness - 4 * misses);
             L.fatigue = clampVital((L.fatigue || 0) + 5 * misses);
+            if (L.health <= 0 && this._useHoneyBalm()) return;
             if (L.health <= 0) { L.faintedAt = today; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); return; }
             if (!beeOutOfAction(b, today) && lifeRand() < Math.min(0.35, 0.06 * misses)) { L.sickUntil = shiftISODate(today, LIFE.sickDays); out.sick.push(b.name); }
             else if (b.class && !beeOutOfAction(b, today) && lifeRand() < Math.min(0.25, 0.04 * misses)) { L.health = clampVital(L.health - 20); out.injured.push(b.name); }   // hurt (Oct 28 2026: no more "Injured")
@@ -6552,6 +6558,8 @@ Object.assign(DatabaseManager.prototype, {
             L.happiness = clampVital(L.happiness + (streak > 0 ? 4 : streak < 0 ? -6 : 0) + stoutBonus);
         });
 
+        this._wakeFainted(bees, day);
+
         // Faint too long, or too old -> the bee dies (only while death is on).
         if (LIFE.deathEnabled) bees.slice().forEach(b => {
             const L = b.life;
@@ -6648,16 +6656,58 @@ Object.assign(DatabaseManager.prototype, {
         return { ok: true, won, ours, theirs, team: team.map(b => b.name), text };
     },
 
-    reviveBee(beeId) {
+    // Nov 7 2026 (Craft): revives. how = 'drops' (5 Honey Drops, strong), 'pollen' (15), 'coins' (50),
+    // 'tonic' (a Wake-up Tonic from the Honey Mart). The last three bring it back at medium health.
+    reviveBee(beeId, how = 'drops') {
         const bee = this.getHiveBees().find(b => b.id === beeId);
         if (!bee || !bee.life || !bee.life.faintedAt) return { ok: false, error: 'That bee is not fainted.' };
-        const have = (this.state.inventory && this.state.inventory.materials && this.state.inventory.materials['honey-drop']) || 0;
-        if (have < LIFE.reviveCost) return { ok: false, error: `Reviving costs ${LIFE.reviveCost} Honey Drops. You have ${have}.` };
-        this._addMaterial('honey-drop', -LIFE.reviveCost);
-        Object.assign(bee.life, { faintedAt: null, health: 40, stamina: 20, fullness: Math.max(bee.life.fullness, 40) });
+        const mats = (this.state.inventory && this.state.inventory.materials) || {};
+        const items = (this.state.inventory && this.state.inventory.items) || {};
+        let hp = 40, st = 20;
+        if (how === 'pollen') {
+            if ((mats.pollen || 0) < LIFE.pollenReviveCost) return { ok: false, error: `Reviving with Pollen costs ${LIFE.pollenReviveCost}. You have ${mats.pollen || 0}.` };
+            this._addMaterial('pollen', -LIFE.pollenReviveCost);
+        } else if (how === 'coins') {
+            if (!this.spendCoins(LIFE.coinReviveCost)) return { ok: false, error: `Reviving with coins costs ${LIFE.coinReviveCost} Honey coins.` };
+        } else if (how === 'tonic') {
+            if (!(items['wake-tonic'] > 0)) return { ok: false, error: 'You have no Wake-up Tonic. Buy one in the Honey Mart.' };
+            items['wake-tonic'] -= 1;
+        } else {
+            const have = mats['honey-drop'] || 0;
+            if (have < LIFE.reviveCost) return { ok: false, error: `Reviving costs ${LIFE.reviveCost} Honey Drops. You have ${have}.` };
+            this._addMaterial('honey-drop', -LIFE.reviveCost);
+            hp = 70; st = 40;
+        }
+        Object.assign(bee.life, { faintedAt: null, health: hp, stamina: st, fullness: Math.max(bee.life.fullness, 40) });
         this._lifeEvent('revive', `💛 ${bee.name} was revived.`, { beeId });
         this.save();
         return { ok: true, bee };
+    },
+
+    // Nov 7 2026 (Craft): nobody is stuck fainted. A fainted bee wakes by itself after
+    // LIFE.wakeDays (low health). Each working Nurse wakes one fainted bee a day.
+    _wakeFainted(bees, day) {
+        const woke = [];
+        const wake = (b, hp, st, why) => { Object.assign(b.life, { faintedAt: null, health: hp, stamina: st, fullness: Math.max(b.life.fullness || 0, 30) }); woke.push(b.name); this._lifeEvent('revive', `💛 ${b.name} ${why}.`, { beeId: b.id }); };
+        let nurses = this._workers('nurse').length;
+        bees.filter(b => b.life && b.life.faintedAt).sort((a, b) => String(a.life.faintedAt).localeCompare(String(b.life.faintedAt))).forEach(b => {
+            const d = daysBetween(b.life.faintedAt, day) || 0;
+            if (nurses > 0 && d >= 1) { nurses--; wake(b, 30, 20, 'was nursed back by a Nurse'); }
+            else if (d >= LIFE.wakeDays) wake(b, 20, 10, 'woke up on its own');
+        });
+        return woke;
+    },
+
+    // Nov 7 2026 (Craft): the Honey Balm. Free, once per hive, used by itself the first time any
+    // bee or the Queen would faint: it heals every bee and the Queen to full instead.
+    _useHoneyBalm() {
+        if (!this.ownsUnlock('honey-balm') || (this.state.unlocks && this.state.unlocks['honey-balm-used'])) return false;
+        this.state.unlocks['honey-balm-used'] = new Date().toISOString();
+        this._lifeBees().forEach(b => { if (b.life && !b.life.hatchOn) { b.life.faintedAt = null; b.life.health = 100; b.life.stamina = 100; b.life.sickUntil = null; } });
+        if (this.state.queen) this.state.queen.hp = QUEEN.maxHp;
+        this._lifeEvent('balm', '🍯 The Honey Balm healed your whole hive, Queen included.');
+        if (typeof Toast !== 'undefined') Toast.show('🍯 The Honey Balm healed everyone, Queen included!', 'positive');
+        return true;
     },
 
     craftRoyalJelly() {
@@ -6860,6 +6910,7 @@ Object.assign(DatabaseManager.prototype, {
         q.hp = Math.max(0, (q.hp || 0) - n);
         if (typeof Toast !== 'undefined' && why) Toast.show(`❤️ −${n} · ${why}`, 'negative');
         if (q.hp > 0) return false;
+        if (this._useHoneyBalm()) return true;
         // Nov 7 2026 (Craft): Batch 24. A faint costs no coins and no XP. It gives a timed
         // XP debuff (-20% for 1 hour). A faint while it runs resets the timer, it never stacks.
         q.debuff = { id: 'faint', until: Date.now() + QUEEN.debuffMs, mult: QUEEN.debuffMult };

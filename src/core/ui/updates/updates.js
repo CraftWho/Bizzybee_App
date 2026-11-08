@@ -19,6 +19,9 @@ const WHATS_NEW = [
         { icon: '🤝', title: "Friends' hives", text: 'Swap hive codes and visit each other\'s Hive Mind. Look only.', href: 'features/friends/friends.html' },
         { icon: '📬', title: 'Mailbox', text: 'Letters from the creator. React and connect.', href: 'features/mailbox/mailbox.html' },
         // Nov 1 2026 (Craft): Batch 13 (B).
+        // Nov 7 2026 (Craft): Revives and Honey Balm.
+        { icon: '💛', title: 'Easier revives', text: 'Fainted bees now wake by themselves after 2 days, or after 1 day with a working Nurse. Quick revives cost 5 Honey Drops, 15 Pollen or 50 coins. The Honey Mart sells a Wake-up Tonic.' },
+        { icon: '🍯', title: 'Free Honey Balm', text: 'Get it free in the Honey Mart (Special). The first time any bee or your Queen would faint, it heals your whole hive to full. One per hive. Common bees can now hold one food or healing item.' },
         // Nov 7 2026 (Craft): Nursery by Lv 5.
         { icon: '🛏️', title: 'Nursery opens by Lv 5', text: 'The Nursery used to open late if your first bee had a different talent. Now it always opens by Lv 5.' },
         // Nov 7 2026 (Craft): Batch 24.

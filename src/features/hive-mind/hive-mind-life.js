@@ -435,15 +435,19 @@ const HiveLife = (() => {
                 : `<div class="hl-age">Age: ${age} day${age === 1 ? '' : 's'}</div>`}
             ${trait ? `<p class="hl-trait">✨ ${trait.label}: ${trait.text}</p>` : ''}
             ${L.faintedAt ? `<div class="hl-revive"><p><b>😵 Fainted ${faintDays === 0 ? 'today' : faintDays + ' day' + (faintDays === 1 ? '' : 's') + ' ago'}.</b> ${LIFE.deathEnabled ? `After ${LIFE.faintDays} days fainted, ${esc(bee.name)} dies for good.` : `${esc(bee.name)} can't work until revived.`}</p>
-                <button type="button" class="hl-btn solid" data-act="revive"${drops < LIFE.reviveCost ? ' disabled' : ''}>Revive · 🍯 ×${LIFE.reviveCost} Honey Drops</button><small>You have ${drops}.</small></div>` : ''}
+                <button type="button" class="hl-btn solid" data-act="revive"${drops < LIFE.reviveCost ? ' disabled' : ''}>Revive · 🍯 ×${LIFE.reviveCost} Honey Drops</button>
+                <button type="button" class="hl-btn" data-act="revive-pollen"${(mats.pollen || 0) < LIFE.pollenReviveCost ? ' disabled' : ''}>Revive · 🌼 ×${LIFE.pollenReviveCost} Pollen</button>
+                <button type="button" class="hl-btn" data-act="revive-coins"${Vault.getCoins() < LIFE.coinReviveCost ? ' disabled' : ''}>Revive · 🪙 ${LIFE.coinReviveCost} coins</button>
+                ${((Vault.getItems() || {})['wake-tonic'] || 0) > 0 ? '<button type="button" class="hl-btn" data-act="revive-tonic">Use a Wake-up Tonic</button>' : ''}
+                <small>You have ${drops} Honey Drops. It also wakes up by itself after ${LIFE.wakeDays} days, or sooner with a Nurse.</small></div>` : ''}
             ${LIFE.deathEnabled && !L.royalJelly && !L.faintedAt ? `<div class="hl-actions">${jelly > 0 ? `<button type="button" class="hl-btn" data-act="jelly">👑 Give Royal Jelly (${jelly})</button>` : `<button type="button" class="hl-btn" data-act="craft"${drops < LIFE.jellyCost ? ' disabled' : ''}>👑 Make Royal Jelly · 🍯 ×${LIFE.jellyCost}</button>`}</div>` : ''}
             <p class="hl-hint">Finishing tasks feeds your bees. A good daily streak makes them happy.</p>
         </div>`;
         host.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const act = btn.dataset.act;
-            const r = act === 'revive' ? Vault.reviveBee(bee.id) : act === 'jelly' ? Vault.giveRoyalJelly(bee.id) : Vault.craftRoyalJelly();
-            if (typeof Toast !== 'undefined') Toast.show(r.ok ? (act === 'revive' ? `💛 ${bee.name} is back on ${bee.sex === 'm' ? 'his' : 'her'} feet.` : act === 'jelly' ? `👑 ${bee.name} will live far longer now.` : '👑 Royal Jelly made.') : r.error, r.ok ? 'positive' : 'negative');
+            const r = act.startsWith('revive') ? Vault.reviveBee(bee.id, act === 'revive' ? 'drops' : act.slice(7)) : act === 'jelly' ? Vault.giveRoyalJelly(bee.id) : Vault.craftRoyalJelly();
+            if (typeof Toast !== 'undefined') Toast.show(r.ok ? (act.startsWith('revive') ? `💛 ${bee.name} is back on ${bee.sex === 'm' ? 'his' : 'her'} feet.` : act === 'jelly' ? `👑 ${bee.name} will live far longer now.` : '👑 Royal Jelly made.') : r.error, r.ok ? 'positive' : 'negative');
             const fresh = Vault.getHiveBees().find(b => b.id === bee.id);
             renderPanel(host, fresh, onChange);
             if (onChange) onChange();
