@@ -283,7 +283,8 @@ const CloudSyncAuto = (() => {
     }
     let hiddenAt = 0;
     document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+        // Nov 10 2026 (Craft): leaving the app sends unsent changes right away (a phone can freeze the app before the timer fires).
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); if (enabled() && dirty() && ready && !inactive) pushNow(); return; }
         if (enabled() && dirty()) { pushNow(); return; }
         if (!enabled() || Date.now() - hiddenAt < 20000) return;
         if (document.querySelector('.lvr, .gfx.on, dialog[open], .pj-sheet-bg:not([hidden]), .dc-sheet-bg:not([hidden])')) return;

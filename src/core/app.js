@@ -561,8 +561,24 @@ const AppShell = {
             const review = Vault.getDayReview();
             // Nov 1 2026 (Craft): the Daily bonus comes after Start My Day.
             if (!review) { this.dailyBonus(); return; }
-            document.addEventListener('bb-daystart-closed', () => this.dailyBonus(), { once: true });
-            const show = () => setTimeout(() => { if (typeof DayStart !== 'undefined') DayStart.open(Vault.getDayReview()); }, 900);
+            // Nov 10 2026 (Craft): wait for the cloud copy first (up to 5 s), so a device with an old
+            // copy does not ask you to review a day you already did on another device.
+            const whenCloud = (cb) => {
+                const cs = typeof CloudSyncAuto !== 'undefined' ? CloudSyncAuto : null;
+                let on = false;
+                try { on = localStorage.getItem('bizzybee_session') === 'identity' && localStorage.getItem('bizzybee_auto_sync') !== 'false' && !Vault.devTest; } catch { /* storage off */ }
+                if (!on || (cs && cs.isReady())) return cb();
+                let done = false;
+                const f = () => { if (done) return; done = true; cb(); };
+                window.addEventListener('cloud-sync-ready', f, { once: true });
+                setTimeout(f, 5000);
+            };
+            const show = () => whenCloud(() => setTimeout(() => {
+                const r = Vault.getDayReview();
+                if (!r) { this.dailyBonus(); return; }
+                document.addEventListener('bb-daystart-closed', () => this.dailyBonus(), { once: true });
+                if (typeof DayStart !== 'undefined') DayStart.open(r);
+            }, 900));
             if (typeof DayStart !== 'undefined') { show(); return; }
             if (this._dayStartLoading) return;   // already on its way (it used to load twice)
             this._dayStartLoading = true;
