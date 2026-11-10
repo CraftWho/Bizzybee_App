@@ -213,6 +213,18 @@ function mpWhy(b, s) {
     if (!Vault.hiveOpenJobs().includes(j)) { const l = Vault.hiveJobLadder().find(x => x.job === j); return [`🔒 Opens Lv ${l ? l.lv : '?'}`, 'is-spare']; }
     return [`Job full ${Vault.jobHolders(j).length}/${Vault.jobSlots(j)}`, 'is-spare'];
 }
+// Nov 9 2026 (Craft; approved demo): every row says the sex, the job the bee can
+// work, and WHY it is spare. The old power number is gone.
+function mpReason(b, s) {
+    const j = mpJob(b), info = BEE_CLASSES[j], lab = info ? info.label : '';
+    if (s === 'work') return `Working as ${BEE_CLASSES[b.class] ? BEE_CLASSES[b.class].label : 'a worker'}`;
+    if (!info) return 'No job matches its talent';
+    if (s === 'idle') return `${lab} slot is free (${Vault.jobHolders(j).length}/${Vault.jobSlots(j)})`;
+    if (!Vault.hiveOpenJobs().includes(j)) { const l = Vault.hiveJobLadder().find(x => x.job === j); return `${lab} opens Lv ${l ? l.lv : '?'}`; }
+    return `${lab} is full (${Vault.jobHolders(j).length}/${Vault.jobSlots(j)})`;
+}
+const mpSex = (b) => b.sex === 'f' ? '<i class="mp-sx f" title="Female">♀</i>' : b.sex === 'm' ? '<i class="mp-sx m" title="Male">♂</i>' : '';
+const mpSexTxt = (b) => b.sex === 'f' ? '♀' : b.sex === 'm' ? '♂' : '';
 function renderMergePicker() {
     const list = document.getElementById('mp-list');
     if (!list || typeof Vault.beeMergeStatus !== 'function') return;
@@ -228,14 +240,51 @@ function renderMergePicker() {
         const r = MP_RANK[x.s], [why, cls] = mpWhy(x.b, x.s), info = BEE_CLASSES[mpJob(x.b)];
         const head = r !== last ? `<h3><span>${MP_HEAD[r]}</span></h3>` : '';
         last = r;
-        return head + `<button type="button" class="mp-bee" data-mp="${mpEsc(x.b.id)}" aria-pressed="${mpPicked.includes(x.b.id)}"><span class="mid"><b>${info ? info.icon + ' ' : ''}${mpEsc(x.b.name)}${x.b.sex === 'm' ? ' ♂' : ''}</b><small>${info ? mpEsc(info.label) + ' · ' : ''}${mpEsc(x.b.rarity)}</small></span><span class="mp-st ${cls}">${why}</span><span class="mp-pw">⚡${x.p}</span></button>`;
+        return head + `<div class="mp-row"><button type="button" class="mp-bee" data-mp="${mpEsc(x.b.id)}" aria-pressed="${mpPicked.includes(x.b.id)}"><span class="mid"><span class="mp-top"><span class="mp-nm" data-mpcard="${mpEsc(x.b.id)}">${mpEsc(x.b.name)}</span>${mpSex(x.b)}<small class="mp-rar">${mpEsc(x.b.rarity)}</small></span><small class="mp-meta">${info ? info.icon + ' ' + mpEsc(info.label) : 'No talent'} · <span class="mp-why ${cls}">${mpEsc(mpReason(x.b, x.s))}</span></small></span><span class="mp-st ${cls}">${mpEsc(why)}</span></button><button type="button" class="mp-card" data-mpcard="${mpEsc(x.b.id)}" aria-label="Open ${mpEsc(x.b.name)}'s card">Card ›</button></div>`;
     }).join('') + '</div>' : '<p class="mp-key">Nothing here.</p>';
     const [a, b] = mpPicked.map(id => Vault.getHiveBees().find(x => x.id === id));
     const pick = document.getElementById('mp-pick');
-    pick.innerHTML = !a ? 'Pick two bees.' : !b ? `<b>${mpEsc(a.name)}</b> + …` : `<b>${mpEsc(a.name)}</b> + <b>${mpEsc(b.name)}</b>${a.talent && a.talent === b.talent ? ' · same talent' : ''}`;
+    const jl = (x) => { const i = BEE_CLASSES[mpJob(x)]; return i ? ` ${i.icon} ${mpEsc(i.label)}` : ''; };
+    pick.innerHTML = !a ? 'Pick two bees.' : !b ? `<b>${mpEsc(a.name)}</b> ${mpSexTxt(a)}${jl(a)} + …` : `<b>${mpEsc(a.name)}</b> ${mpSexTxt(a)}${jl(a)} + <b>${mpEsc(b.name)}</b> ${mpSexTxt(b)}${jl(b)}${a.talent && a.talent === b.talent ? ' · same talent' : ''}<br><small>The new bee is always female. 1 in 10 is a Rare male Drone.</small>`;
     document.getElementById('gacha-combine-select-a').value = a ? a.id : '';
     document.getElementById('gacha-combine-select-b').value = b ? b.id : '';
     document.getElementById('gacha-combine-btn').disabled = !(a && b);
+}
+// A quick sheet for one bee: the things that matter when you choose what to merge.
+// "Full card" shows the real collectible card.
+function mpOpenSheet(id) {
+    const b = Vault.getHiveBees().find(x => x.id === id);
+    if (!b) return;
+    const st = Vault.beeMergeStatus(b), j = mpJob(b), info = BEE_CLASSES[j];
+    const L = b.life || {};
+    const now = L.faintedAt ? 'Fainted' : L.nursery ? 'In a Nursery bed' : L.recuperate ? 'Recuperating' : st === 'work' ? mpReason(b, 'work') : st === 'idle' ? 'No job. ' + mpReason(b, 'idle') : 'Spare. ' + mpReason(b, st);
+    document.querySelectorAll('.mp-sheet-bg').forEach(n => n.remove());
+    const bg = document.createElement('div');
+    bg.className = 'mp-sheet-bg';
+    const close = () => bg.remove();
+    const basic = () => {
+        bg.innerHTML = `<div class="mp-sheet" role="dialog" aria-label="${mpEsc(b.name)}">
+            <h2>${mpEsc(b.name)} ${mpSex(b)} <small class="mp-rar">${mpEsc(b.rarity)}</small></h2>
+            <dl class="mp-kv">
+                <div><dt>Can work as</dt><dd><b>${info ? info.icon + ' ' + mpEsc(info.label) : 'No talent'}</b>${info ? `<small>${mpEsc(info.description)}</small>` : ''}</dd></div>
+                <div><dt>Sex</dt><dd>${b.sex === 'm' ? '♂ Male. Can only be a Drone.' : b.sex === 'f' ? '♀ Female' : '—'}</dd></div>
+                <div><dt>Right now</dt><dd>${mpEsc(now)}</dd></div>
+                <div><dt>Level</dt><dd class="mp-soon">Bee levels come later. This line fills in then.</dd></div>
+            </dl>
+            <div class="mp-sheet-btns"><button type="button" class="mp-full">Full card</button><button type="button" class="mp-close">Close</button></div>
+        </div>`;
+        bg.querySelector('.mp-close').onclick = close;
+        bg.querySelector('.mp-full').onclick = full;
+    };
+    const full = () => {
+        bg.innerHTML = `<div class="mp-sheet mp-sheet--card" role="dialog" aria-label="${mpEsc(b.name)} card"><div class="mp-cardhost"></div><div class="mp-sheet-btns"><button type="button" class="mp-back">Back</button><button type="button" class="mp-close">Close</button></div></div>`;
+        if (typeof BeeCard !== 'undefined') BeeCard.render(bg.querySelector('.mp-cardhost'), b, { editable: false });
+        bg.querySelector('.mp-back').onclick = basic;
+        bg.querySelector('.mp-close').onclick = close;
+    };
+    bg.onclick = (e) => { if (e.target === bg) close(); };
+    basic();
+    document.body.appendChild(bg);
 }
 function setupMergePicker() {
     const block = document.getElementById('merge');
@@ -243,6 +292,8 @@ function setupMergePicker() {
     block.addEventListener('click', (e) => {
         const f = e.target.closest('[data-mpf]');
         if (f) { mpFilter = f.dataset.mpf; block.querySelectorAll('[data-mpf]').forEach(x => x.setAttribute('aria-pressed', String(x === f))); renderMergePicker(); return; }
+        const cd = e.target.closest('[data-mpcard]');
+        if (cd) { e.stopPropagation(); mpOpenSheet(cd.dataset.mpcard); return; }
         const c = e.target.closest('[data-mp]');
         if (c) { const id = c.dataset.mp; mpPicked = mpPicked.includes(id) ? mpPicked.filter(x => x !== id) : [...mpPicked, id].slice(-2); renderMergePicker(); }
     });

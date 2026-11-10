@@ -22,6 +22,13 @@ const WHATS_NEW = [
         // Nov 7 2026 (Craft): Revives and Honey Balm.
         { icon: '💛', title: 'Easier revives', text: 'Fainted bees now wake by themselves after 2 days, or after 1 day with a working Nurse. Quick revives cost 5 Honey Drops, 15 Pollen or 50 coins. The Honey Mart sells a Wake-up Tonic.' },
         { icon: '🍯', title: 'Free Honey Balm', text: 'Get it free in the Honey Mart (Special). The first time any bee or your Queen would faint, it heals your whole hive to full. One per hive. Common bees can now hold one food or healing item.' },
+        // Nov 9 2026 (Craft): Hive jobs overhaul.
+        { icon: '🐝', title: 'Every job opens by Lv 5', text: 'Only the Undertaker waits for Lv 17. Every job has at least 2 slots, then 3 at Lv 10, 4 at Lv 20 and 5 at Lv 35. Every adult female can work.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '🚑', title: 'Four new jobs', text: 'Rescue Team carries hurt bees to Nursery beds. Fanner and Wax Maker help the Honey Factory and Workshop. Receiver runs the Cafeteria.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '🍽️', title: 'Cafeteria, No Job and Fainted', text: 'Hungry bees eat at the Cafeteria for 1 stored honey. Rest sends a bee to Recuperate, then to No Job when healed. Fainted bees have their own comb.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '🍯', title: 'Honey Factory', text: 'Honey Store is now Honey Factory. Its bar is Stored honey, a real stock that Honey Makers and Fanners fill.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '🧬', title: 'Clearer Combine', text: 'Rows show sex, job and why a bee is spare. Tap a name or Card for a quick info sheet. A merge is always female, with a 1 in 10 chance of a Rare male Drone.', href: 'features/gacha/gacha.html' },
+        { icon: '🎃', title: 'Claim your Grimzy', text: 'The Halloween bee is open again in the Mailbox until Nov 16. One each.', href: 'features/mailbox/mailbox.html' },
         // Nov 7 2026 (Craft): Nursery by Lv 5.
         { icon: '🛏️', title: 'Nursery opens by Lv 5', text: 'The Nursery used to open late if your first bee had a different talent. Now it always opens by Lv 5.' },
         // Nov 7 2026 (Craft): Batch 24.
