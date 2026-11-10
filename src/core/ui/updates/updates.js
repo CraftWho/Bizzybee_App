@@ -29,6 +29,8 @@ const WHATS_NEW = [
         { icon: '🍯', title: 'Honey Factory', text: 'Honey Store is now Honey Factory. Its bar is Stored honey, a real stock that Honey Makers and Fanners fill.', href: 'features/hive-mind/hive-mind.html' },
         { icon: '🧬', title: 'Clearer Combine', text: 'Rows show sex, job and why a bee is spare. Tap a name or Card for a quick info sheet. A merge is always female, with a 1 in 10 chance of a Rare male Drone.', href: 'features/gacha/gacha.html' },
         { icon: '🎃', title: 'Claim your Grimzy', text: 'The Halloween bee is open again in the Mailbox until Nov 16. One each.', href: 'features/mailbox/mailbox.html' },
+        { icon: '🛏️', title: 'Smart Rest button', text: 'Heal sends a hurt bee to the Nursery, Eat sends a hungry one to the Cafeteria, Rest sends a tired one to Recuperate. Recuperate no longer feeds bees.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '🍯', title: 'Connected combs', text: 'The hive combs now touch, like the Skills tree.', href: 'features/hive-mind/hive-mind.html' },
         // Nov 7 2026 (Craft): Nursery by Lv 5.
         { icon: '🛏️', title: 'Nursery opens by Lv 5', text: 'The Nursery used to open late if your first bee had a different talent. Now it always opens by Lv 5.' },
         // Nov 7 2026 (Craft): Batch 24.
