@@ -8,22 +8,22 @@
 // Up to 3 bees are drawn per comb, then a +N badge. The old inside view
 // stays available as "Classic" (hive-mind.js).
 const HiveLife = (() => {
-    // Nov 10 2026 (Craft): the combs touch like the Skills tree (no gaps). Each cell is 36% wide,
+    // Nov 10 2026 (Craft): the combs touch like the Skills tree (no gaps). Rows of 3-2-3-1. Each cell is 32% wide,
     // odd rows sit half a cell over, rows step 0.75 of a cell height. T(row) = top in the old scale.
-    const YK = 0.633;   // an offset inside a cell, as % of the map height
-    const XK = 36 / 31;  // an offset inside a cell, scaled for the wider cell
+    const YK = 0.853;   // an offset inside a cell, as % of the map height
+    const XK = 32 / 31;  // an offset inside a cell, scaled for the wider cell
     const XO = (v) => v * XK;
-    const T = (r) => (1 + 14.17 * r) / YK;
+    const T = (r) => (1 + 19.1 * r) / YK;
     const COMBS = [
-        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 32, y: T(0), text: 'Your Queen lives here.' },
-        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse', 'rescue'], x: 14, y: T(1), text: 'New bees start as eggs here. Nurses speed hatching and healing. The Rescue Team carries hurt and sick bees to a bed.' },
-        { id: 'honey', icon: '🍯', name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'], x: 50, y: T(1), text: 'Honey Makers make Honey Drops and stored honey. Fanners dry nectar faster. Water Carriers keep workers fresh.' },
-        { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'], x: 32, y: T(2), text: 'Comb Builders add quest loot. Wax Makers raise the loot limit. Cleaners soften lost raids.' },
-        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 14, y: T(3), text: 'Recuperating bees sleep and heal slowly. They do not eat here, and they do not get hungrier. When fully healed they move to No Job.' },
-        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 50, y: T(3), text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' },
-        { id: 'cafeteria', icon: '🍽️', name: 'Cafeteria', jobs: ['receiver'], x: 32, y: T(4), text: 'Hungry bees walk here, eat, and go back to what they were doing. Each meal costs stored honey. Receivers keep it cheap.' },
-        { id: 'nojob', icon: '🪧', name: 'No Job', jobs: [], x: 14, y: T(5), text: 'Healed bees with no job wait here. With Auto-manage on, they go back to work when a job opens. Bees get upset after 3 days without work.' },
-        { id: 'fainted', icon: '😵', name: 'Fainted', jobs: [], x: 50, y: T(5), text: 'Bees that fainted. They wake by themselves after 2 days, or a Nurse wakes one a day. Tap one to revive it faster.' }
+        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34, y: T(0), text: 'Your Queen lives here.' },
+        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse', 'rescue'], x: 2, y: T(0), text: 'New bees start as eggs here. Nurses speed hatching and healing. The Rescue Team carries hurt and sick bees to a bed.' },
+        { id: 'honey', icon: '🍯', name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'], x: 66, y: T(0), text: 'Honey Makers make Honey Drops and stored honey. Fanners dry nectar faster. Water Carriers keep workers fresh.' },
+        { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'], x: 50, y: T(1), text: 'Comb Builders add quest loot. Wax Makers raise the loot limit. Cleaners soften lost raids.' },
+        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 18, y: T(1), text: 'Recuperating bees sleep and heal slowly. They do not eat here, and they do not get hungrier. When fully healed they move to No Job.' },
+        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 66, y: T(2), text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' },
+        { id: 'cafeteria', icon: '🍽️', name: 'Cafeteria', jobs: ['receiver'], x: 34, y: T(2), text: 'Hungry bees walk here, eat, and go back to what they were doing. Each meal costs stored honey. Receivers keep it cheap.' },
+        { id: 'nojob', icon: '🪧', name: 'No Job', jobs: [], x: 2, y: T(2), text: 'Healed bees with no job wait here. With Auto-manage on, they go back to work when a job opens. Bees get upset after 3 days without work.' },
+        { id: 'fainted', icon: '😵', name: 'Fainted', jobs: [], x: 18, y: T(3), text: 'Bees that fainted. They wake by themselves after 2 days, or a Nurse wakes one a day. Tap one to revive it faster.' }
     ];
     // Nov 9 2026 (Craft): the map has 9 combs now, so it is taller. Every y below is
     // written on the old scale and scaled by YK.
