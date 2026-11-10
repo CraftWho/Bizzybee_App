@@ -800,6 +800,11 @@ const BEE_CLASSES = {
     undertaker: { label: 'Undertaker', icon: '⚰️', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Carries fallen bees out of the hive. Each fallen bee leaves a little Pollen behind.' },
     architect: { label: 'Comb Builder', icon: '🏗️', category: 'Hive Management', zone: 'comb', stat: 'power', description: 'Builds new comb from wax. +1 loot roll when a quest finishes (max 3).' },
     cleaner: { label: 'Cleaner', icon: '🧹', category: 'Hive Management', zone: 'comb', stat: 'defense', description: 'Cleans cells and other bees. A lost raid hurts happiness less.' },
+    // Nov 9 2026 (Craft): small teams inside each comb, from real hive work.
+    rescue: { label: 'Rescue Team', icon: '🚑', category: 'Hive Management', zone: 'brood', stat: 'speed', description: 'Finds hurt or sick bees and carries them to a free Nursery bed. They go back to their job when healed.' },
+    fanner: { label: 'Fanner', icon: '🌬️', category: 'Hive Management', zone: 'honey', stat: 'speed', description: 'Fans the nectar dry so it turns to honey faster. More stored honey every hour.' },
+    waxmaker: { label: 'Wax Maker', icon: '🕯️', category: 'Hive Management', zone: 'comb', stat: 'power', description: 'Makes wax for the Comb Builders. Each one raises the quest loot limit by 1 (up to +2).' },
+    receiver: { label: 'Receiver', icon: '🍽️', category: 'Hive Management', zone: 'cafe', stat: 'speed', description: 'Takes nectar from Foragers and feeds the hive. Some Cafeteria meals cost no honey.' },
     honeymaker: { label: 'Honey Maker', icon: '🍯', category: 'Hive Management', zone: 'honey', stat: 'power', description: 'Ripens nectar into honey. Some days turns 3 Pollen into 1 Honey Drop.' },
     watercarrier: { label: 'Water Carrier', icon: '💧', category: 'Hive Management', zone: 'honey', stat: 'speed', description: 'Brings water to cool the hive. Working bees tire more slowly.' },
     nurse: { label: 'Nurse Bee', icon: '🥚', category: 'Hive Management', zone: 'brood', stat: 'offense', description: 'Feeds the young and the sick. Every bee heals a little faster.' },
@@ -1642,7 +1647,8 @@ const BIRTH_TRAITS = {
 const JOB_RATES = {
     collector: [-6, -4, -1, 3], scout: [-7, -4, 0, 3.5], guardian: [-4, -3, -1.5, 2.5], barrier: [-4, -3, -1, 2],
     undertaker: [-3, -2, -2, 2], architect: [-5, -4, -1, 3], cleaner: [-3, -2, -1, 1.5], honeymaker: [-3, -3, 0.5, 2],
-    watercarrier: [-5, -3, -0.5, 2.5], nurse: [-3, -2, 0.5, 2], attendant: [-2, -2, 1, 1.5], drone: [-1, -3, 0, 0.5]
+    watercarrier: [-5, -3, -0.5, 2.5], nurse: [-3, -2, 0.5, 2], attendant: [-2, -2, 1, 1.5], drone: [-1, -3, 0, 0.5],
+    rescue: [-4, -3, -0.5, 2.5], fanner: [-4, -3, 0, 2.5], waxmaker: [-4, -3, -1, 2.5], receiver: [-2, -2, 0.5, 1.5]
 };
 // Per hour not working: [stamina, fullness, happiness, fatigue, health (if fullness 50+)].
 const REST_RATES = {
@@ -1658,19 +1664,39 @@ let HIVE_JOB_RULES = true;   // tests of the older job mechanics turn this off
 // Nov 3 2026 (Craft; approved demo): like a real colony. About 4 in 5
 // adult bees work; each open job takes its share of them (at least 1).
 // The same shares are the odds of a new bee's talent. Drones: every male.
-const HIVE_JOB_SHARES = { collector: 22, nurse: 18, honeymaker: 14, cleaner: 12, architect: 10, watercarrier: 8, scout: 6, guardian: 6, attendant: 4, barrier: 3, undertaker: 3 };
-const HIVE_WORK_SHARE = 0.8;
-const MERGE_GAP_CHANCE = 0.35;   // a merged bee may get a talent the hive is missing
+const HIVE_JOB_SHARES = { collector: 22, nurse: 18, honeymaker: 14, cleaner: 12, architect: 10, watercarrier: 8, scout: 6, guardian: 6, attendant: 4, barrier: 3, undertaker: 3,
+    rescue: 6, fanner: 8, waxmaker: 6, receiver: 8 };
+// Nov 9 2026 (Craft): every adult female bee can work (it was 80%).
+const HIVE_WORK_SHARE = 1;
+// Nov 9 2026 (Craft): a job never starts with zero room. Each open job has at
+// least this many slots, growing with the nest (Lv 5 / 10 / 20 / 35). A new
+// job that is level-locked must ALSO start with a slot, so a player is never
+// set back by not having reached its level.
+const JOB_MIN_SLOTS = [[35, 5], [20, 4], [10, 3], [1, 2]];
+const jobMinSlots = (lv) => (JOB_MIN_SLOTS.find(x => lv >= x[0]) || [0, 2])[1];
+const MERGE_GAP_CHANCE = 0.35;
+const MERGE_MALE_CHANCE = 0.1;   // Nov 9 2026 (Craft)
+// Nov 9 2026 (Craft): Stored honey + the Cafeteria. Honey Makers (and Fanners)
+// fill the stock; a hungry bee walks to the Cafeteria, eats and walks back.
+// Each meal costs honey (a working Receiver may make it free).
+const HONEY_CAP = 100, HONEY_START = 40, HONEY_PER_DAY = 10, HONEY_PER_TASK = 1;
+const CAFE = { below: 40, meal: 40, cost: 1, freeBase: 0.1, freeMax: 0.5, stayMin: 45 };
+const RESCUE_BELOW = 60;   // health under this (or sick): the Rescue Team carries it to a bed   // a merged bee may get a talent the hive is missing
+// Nov 9 2026 (Craft): every hive job opens by Lv 5 (the hive teams are a core
+// part of the game). Only the Undertaker waits: death is paused.
 const HIVE_JOB_LADDER = [
     { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 4, job: 'collector' }, { lv: 5, job: 'guardian' },
-    { lv: 7, job: 'watercarrier' }, { lv: 8, job: 'architect' }, { lv: 10, job: 'attendant' }, { lv: 11, job: 'cleaner' },
-    { lv: 13, job: 'scout' }, { lv: 14, job: 'drone' }, { lv: 16, job: 'barrier' }, { lv: 17, job: 'undertaker' }
+    { lv: 5, job: 'watercarrier' }, { lv: 5, job: 'architect' }, { lv: 5, job: 'attendant' }, { lv: 5, job: 'cleaner' },
+    { lv: 5, job: 'scout' }, { lv: 5, job: 'drone' }, { lv: 5, job: 'barrier' },
+    { lv: 5, job: 'rescue' }, { lv: 5, job: 'fanner' }, { lv: 5, job: 'waxmaker' }, { lv: 5, job: 'receiver' },
+    { lv: 17, job: 'undertaker' }
 ];
 const HIVE_COMB_JOBS = {
     royal: { name: 'Royal Chamber', jobs: ['attendant', 'drone'] },
-    nursery: { name: 'Nursery', jobs: ['nurse'] },
-    honey: { name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'] },
-    workshop: { name: 'Workshop', jobs: ['architect', 'cleaner'] },
+    nursery: { name: 'Nursery', jobs: ['nurse', 'rescue'] },
+    honey: { name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'] },
+    workshop: { name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'] },
+    cafeteria: { name: 'Cafeteria', jobs: ['receiver'] },
     entrance: { name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'] }
 };
 // How good a bee is at a job, about 1-100 (from 1.0.7's WorkerCard). The
@@ -3201,7 +3227,7 @@ class DatabaseManager {
             else if (daysElapsed <= QUEST_SPEED_FAST_DAYS) speedBonusRolls = QUEST_SPEED_FAST_BONUS_ROLLS;
         }
 
-        const totalRolls = baseRolls + speedBonusRolls + Math.min(3, this._workers('architect').reduce((n, b) => n + (beeTitlePower(b, 'architect') ? 2 : 1), 0));
+        const totalRolls = baseRolls + speedBonusRolls + Math.min(3 + Math.min(2, this._workers('waxmaker').length), this._workers('architect').reduce((n, b) => n + (beeTitlePower(b, 'architect') ? 2 : 1), 0));   // Nov 9 2026 (Craft): Wax Makers raise the limit
         const materialsDropped = [];
         for (let i = 0; i < totalRolls; i++) {
             const materialId = rollMaterialDrop();
@@ -4258,8 +4284,13 @@ class DatabaseManager {
         const baseIndex = Math.max(indexOf(beeA.rarity), indexOf(beeB.rarity));
 
         const baseRarity = RARITY_ORDER[baseIndex];
-        const upgraded = baseIndex < RARITY_ORDER.length - 1 && Math.random() < (COMBINE_UPGRADE_CHANCE[baseRarity] || 0);
-        const resultRarity = RARITY_ORDER[upgraded ? baseIndex + 1 : baseIndex];
+        // Nov 9 2026 (Craft): a merged bee is always female, with a MERGE_MALE_CHANCE
+        // chance of a male. A male is always Rare or better (and a Drone).
+        const male = Math.random() < MERGE_MALE_CHANCE;
+        let upgraded = baseIndex < RARITY_ORDER.length - 1 && Math.random() < (COMBINE_UPGRADE_CHANCE[baseRarity] || 0);
+        let resultIndex = upgraded ? baseIndex + 1 : baseIndex;
+        if (male && resultIndex < RARITY_ORDER.indexOf('Rare')) { resultIndex = RARITY_ORDER.indexOf('Rare'); upgraded = true; }
+        const resultRarity = RARITY_ORDER[resultIndex];
 
         const sa = beeA.stats || {}, sb = beeB.stats || {};
         const total = s => BEE_SKILL_STATS.reduce((n, k) => n + (Number(s[k]) || 0), 0) + (Number(s.hp) || 0) / 4;
@@ -4276,7 +4307,6 @@ class DatabaseManager {
         // Nov 3 2026 (Craft; approved demo): the merged bee's talent. Two
         // males make a male (Drone). Otherwise a 35% chance of a talent the
         // hive is missing (an open job no bee can do), else a parent's.
-        const male = beeA.sex === 'm' && beeB.sex === 'm';
         let talent = 'drone';
         if (!male) {
             const has = new Set(bees.filter(b => b.id !== beeIdA && b.id !== beeIdB && b.talent).map(b => b.talent));
@@ -6254,7 +6284,8 @@ Object.assign(DatabaseManager.prototype, {
         if (job === 'drone') return Math.max(1, adults.filter(b => b.sex === 'm').length);
         const females = adults.filter(b => b.sex !== 'm').length;
         const sum = open.reduce((n, j) => n + (HIVE_JOB_SHARES[j] || 0), 0) || 1;
-        return Math.max(1, Math.round((HIVE_JOB_SHARES[job] || 0) / sum * females * HIVE_WORK_SHARE));
+        const lv = (this.getUser() || {}).level || 1;   // Nov 9 2026 (Craft): at least the nest's minimum
+        return Math.max(jobMinSlots(lv), Math.round((HIVE_JOB_SHARES[job] || 0) / sum * females * HIVE_WORK_SHARE));
     },
     // Nov 3 2026 (Craft; approved demo): for the merge picker. 'work' = in a
     // job; 'spare' = resting while its job is full or not open; 'idle' = a
@@ -6321,13 +6352,15 @@ Object.assign(DatabaseManager.prototype, {
     hiveAutoStatus() {
         if (!this.state || !this.state.hive) return null;
         const open = this.hiveOpenJobs();
-        const filled = open.filter(j => this.jobHolder(j)).length;
+        // Nov 9 2026 (Craft): a job nobody in the hive has the talent for can't be filled yet, so it doesn't hold auto-manage back.
+        const fillable = open.filter(j => this.jobHolder(j) || this._lifeBees().some(b => !beeIsBrood(b) && this.beeFitsJob(b, j)));
+        const filled = fillable.filter(j => this.jobHolder(j)).length;
         const leader = this.hiveLeader();
         // A tired worker with nobody free to take its place pauses it.
         const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b));
         const stuck = open.flatMap(j => this.jobHolders(j)).find(b => b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
         const on = !!(this.state.hive.autoManage && this.state.hive.autoManage.on);
-        return { on, running: on && !!leader && !stuck, leader, stuck, open: open.length, filled };
+        return { on, running: on && !!leader && !stuck, leader, stuck, open: fillable.length, filled };
     },
     // Called after a job change and every hour. Returns true when it just unlocked.
     _autoUnlockCheck() {
@@ -6367,7 +6400,7 @@ Object.assign(DatabaseManager.prototype, {
             const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && b.life.stamina >= P.pct + 20 && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
-            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince;   // resting, not upset
+            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true;   // Nov 9 2026 (Craft): resting = recuperating, not upset
             pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince;
             this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
             const text = `🔄 ${pick.name} took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
@@ -6403,6 +6436,7 @@ Object.assign(DatabaseManager.prototype, {
         const c = this.state.hive;
         const HOUR = 3600000;
         this._talentJobsMigrate();   // Nov 1 2026 (Craft): once
+        this._newJobTalents();       // Nov 9 2026 (Craft): once
         if (!c.vitalsAt) { c.vitalsAt = now; return 0; }
         const hours = Math.min(14 * 24, Math.floor((now - c.vitalsAt) / HOUR));
         if (hours <= 0) return 0;
@@ -6425,6 +6459,11 @@ Object.assign(DatabaseManager.prototype, {
         const bees = this._lifeBees();
         const nurses = this._workers('nurse').length;
         const water = this._workers('watercarrier').length;
+        // Nov 9 2026 (Craft): stored honey. Made by day.
+        const hv = this.state.hive;
+        if (typeof hv.honey !== 'number') hv.honey = HONEY_START;
+        if (!night) hv.honey = Math.min(HONEY_CAP, hv.honey + this._workers('honeymaker').length * 1.5 + this._workers('fanner').length * 0.75);
+        const receivers = this._workers('receiver').length;
         bees.forEach(b => {
             const L = b.life;
             if (!L || L.faintedAt || L.hatchOn) return;
@@ -6462,12 +6501,64 @@ Object.assign(DatabaseManager.prototype, {
             if (L.fullness <= 0) L.health = clampVital(L.health - 1, true);
             this._useHeldItems(b);
             if (L.stamina <= 0) L.health = clampVital(L.health - 0.2, true);
-            // Healed: leave the Nursery and go back to the old job.
+            // Healed: leave the Nursery and go back to the old job (a bee with no job stays in No Job).
             if (L.nursery && !L.sickUntil && L.health >= 90) {
                 delete L.nursery; delete L.sickProgress;
-                this._lifeEvent('heal', `💗 ${b.name} is healed and left the Nursery.`, { beeId: b.id });
+                this._lifeEvent('heal', `💗 ${b.name} is healed and left the Nursery${b.class ? ' for its old job' : ''}.`, { beeId: b.id });
             }
-            if (L.health <= 0) { L.faintedAt = day; delete L.nursery; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
+            // Nov 9 2026 (Craft): hungry? Walk to the Cafeteria, eat, walk back.
+            if (!night && L.fullness < CAFE.below && L.health > 0) this._cafeMeal(b, at, receivers);
+            // Nov 9 2026 (Craft): Recuperate ends when fully healed and rested. The bee then
+            // waits in the No Job comb (auto-manage can send it back to work).
+            if (L.recuperate && !L.nursery && !L.sickUntil && L.health >= 100 && L.stamina >= 100 && L.fatigue <= 0) {
+                delete L.recuperate;
+                if (!b.class) L.idleSince = day;
+                this._lifeEvent('rested', `✨ ${b.name} is fully rested${b.class ? '' : ' and waiting for a job'}.`, { beeId: b.id });
+            }
+            if (L.health <= 0) { L.faintedAt = day; delete L.nursery; delete L.recuperate; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
+        });
+        this._rescueHour(day);   // Nov 9 2026 (Craft)
+    },
+
+    // Nov 9 2026 (Craft): one meal at the Cafeteria. Needs stored honey.
+    _cafeMeal(b, at, receivers = 0) {
+        const hv = this.state.hive, L = b.life;
+        if (!(hv.honey >= CAFE.cost)) return false;
+        const free = receivers > 0 && lifeRand() < Math.min(CAFE.freeMax, CAFE.freeBase * receivers);
+        if (!free) hv.honey = Math.max(0, hv.honey - CAFE.cost);
+        L.fullness = clampVital(L.fullness + CAFE.meal, true);
+        L.cafeAt = at.toISOString();
+        return true;
+    },
+    // Nov 9 2026 (Craft): each working Rescue Team bee carries one hurt or sick bee an hour
+    // to a free Nursery bed. The patient keeps its job slot and goes back when healed.
+    _rescueHour(day) {
+        const team = this._workers('rescue');
+        if (!team.length) return;
+        let free = this.nurseryBeds().free;
+        for (const r of team) {
+            if (free <= 0) break;
+            const p = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && b.class !== 'rescue' && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
+                .sort((a, z) => a.life.health - z.life.health)[0];
+            if (!p) break;
+            p.life.nursery = true; p.life.rescuedAt = day; free--;
+            this._lifeEvent('rescue', `🚑 ${r.name} carried ${p.name} to the Nursery.`, { beeId: p.id });
+        }
+    },
+    // Once: the four new jobs each get one spare bee with that talent, so
+    // nobody waits on a lucky hatch to use them.
+    _newJobTalents() {
+        const c = this.state && this.state.hive;
+        if (!c || c.newJobsV1) return;
+        c.newJobsV1 = true;
+        ['rescue', 'fanner', 'waxmaker', 'receiver'].forEach(job => {
+            const bees = this._lifeBees().filter(b => !beeIsBrood(b));
+            if (bees.some(b => b.talent === job)) return;
+            const rank = (b) => this.beeMergeStatus(b) === 'spare' ? 0 : 1;
+            // A spare Common bee, and never the last bee with its old talent.
+            const pick = bees.filter(b => b.sex !== 'm' && !b.class && b.rarity === 'Common' && !beeIsLimited(b) && b.talent && b.talent !== 'drone' && bees.filter(x => x.talent === b.talent).length > 1)
+                .sort((a, z) => rank(a) - rank(z))[0];
+            if (pick) { pick.talent = job; this._lifeEvent('talent', `🌟 ${pick.name} found a talent for ${BEE_CLASSES[job].label}.`, { beeId: pick.id }); }
         });
     },
 
@@ -6534,6 +6625,7 @@ Object.assign(DatabaseManager.prototype, {
         const streak = this.getHiveStreak();
         const bees = this._lifeBees();
         if (!bees.length) return;
+        c.honey = Math.min(HONEY_CAP, (typeof c.honey === 'number' ? c.honey : HONEY_START) + HONEY_PER_DAY);   // Nov 9 2026 (Craft): the hive's own comb
         const nurses = this._workers('nurse').reduce((n, b) => n + (beeTitlePower(b, 'healer') ? 2 : 1) * beeTalentBoost(b), 0);
         const water = this._workers('watercarrier').length;
         const avgFull = bees.reduce((n, b) => n + b.life.fullness, 0) / bees.length;
@@ -6623,6 +6715,7 @@ Object.assign(DatabaseManager.prototype, {
 
     // Finishing a task or daily feeds the hive.
     _feedHive() {
+        if (this.state.hive) this.state.hive.honey = Math.min(HONEY_CAP, (typeof this.state.hive.honey === 'number' ? this.state.hive.honey : HONEY_START) + HONEY_PER_TASK);   // Nov 9 2026 (Craft)
         this._lifeBees().forEach(b => {
             if (b.life.faintedAt) return;
             b.life.fullness = clampVital(b.life.fullness + LIFE.feedPerTask);

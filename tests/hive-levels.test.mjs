@@ -9,6 +9,7 @@ const life = (o = {}) => ({ health: 100, stamina: 100, fullness: 80, happiness: 
 const bee = (id, talent, extra = {}) => ({ id, name: id, rarity: 'Common', class: null, sex: 'f', talent, obtainedAt: `2026-10-0${extra.n || 5}T00:00:00Z`, stats: { level: 1, hp: 30, offense: 10, defense: 10, speed: 10, power: 10 }, element: 'fire', dexNumber: 1, weight: 1, customNamed: false, life: life(), ...extra });
 function harness(state) {
     const save = { schemaVersion: 8, user: { name: 'T', level: 1 }, quests: [], hive: { bees: [], tickets: 0, vitalsAt: Date.now() }, ...state };
+    if (save.hive.newJobsV1 === undefined) save.hive.newJobsV1 = true;   // Nov 9 2026: these tests are about the old talents
     const data = new Map([['bizzybee_user_data', JSON.stringify(save)]]);
     const localStorage = { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, String(v)), removeItem: k => data.delete(k) };
     const context = vm.createContext({ localStorage, console: { log() {}, error() {} }, Event,
@@ -18,18 +19,17 @@ function harness(state) {
 }
 
 test('hive levels: Lv 1 opens your first bee\'s talent; talent only; slots per job', async () => {
-    const v = harness({ hive: { bees: [bee('first', 'honeymaker', { n: 1 }), bee('two', 'honeymaker', { n: 2 }), bee('nurse', 'nurse', { n: 3 })], tickets: 0, vitalsAt: Date.now() } });
+    const v = harness({ hive: { bees: [bee('first', 'honeymaker', { n: 1 }), bee('two', 'honeymaker', { n: 2 }), bee('three', 'honeymaker', { n: 4 }), bee('nurse', 'nurse', { n: 3 })], tickets: 0, vitalsAt: Date.now() } });
     await v.init();
     assert.deepEqual([...v.hiveOpenJobs()], ['honeymaker']);
     assert.equal(v.assignBeeClass('nurse', 'nurse'), null);        // not open yet
-    assert.equal(v.jobSlots('honeymaker'), 2);                      // 3 adults, about 80% work
+    assert.equal(v.jobSlots('honeymaker'), 4);                      // Nov 9 2026: 4 adults, every adult female can work
     assert.ok(v.assignBeeClass('first', 'honeymaker'));
     assert.ok(v.assignBeeClass('two', 'honeymaker'));
-    v.state.bonusXP = [{ xp: 150 }];                                // Lv 2: Nurse opens, Honey Maker's share shrinks
+    v.state.bonusXP = [{ xp: 150 }];                                // Lv 2: Nurse opens, Honey Maker's share shrinks to the minimum of 2
     assert.ok(v.hiveOpenJobs().includes('nurse'));
-    assert.equal(v.jobSlots('honeymaker'), 1);
-    v.assignBeeClass('two', null);
-    assert.equal(v.assignBeeClass('two', 'honeymaker'), null);     // full now
+    assert.equal(v.jobSlots('honeymaker'), 2);
+    assert.equal(v.assignBeeClass('three', 'honeymaker'), null);   // full now
     assert.equal(v.assignBeeClass('first', 'nurse'), null);         // wrong talent
     assert.ok(v.assignBeeClass('nurse', 'nurse'));
 });
@@ -49,8 +49,9 @@ test('real hive: slots grow with the hive, talents use real-hive odds, merges ca
     await v.init();
     const open = [...v.hiveOpenJobs()];
     const total = open.filter(j => j !== 'drone').reduce((n, j) => n + v.jobSlots(j), 0);
-    assert.ok(total >= 18 && total <= 24, 'about 80% of 25 females work: ' + total);
-    assert.ok(v.jobSlots('collector') > v.jobSlots('attendant'));
+    assert.ok(total >= 25, 'every one of the 25 females can work: ' + total);   // Nov 9 2026: floors only add room
+    open.filter(j => j !== 'drone').forEach(j => assert.ok(v.jobSlots(j) >= 2, j + ' keeps its minimum'));
+    assert.ok(v.jobSlots('collector') >= v.jobSlots('attendant'));
     if (open.includes('drone')) assert.equal(v.jobSlots('drone'), 2);
     // Odds: Collector (22) far more often than Undertaker (3).
     let seed = 1; const counts = {};
@@ -60,14 +61,16 @@ test('real hive: slots grow with the hive, talents use real-hive odds, merges ca
     const r1 = v.combineBees('b0', 'b1');
     assert.equal(r1.newBee.talent, 'collector');
     assert.equal(r1.newBee.class, null);
+    assert.equal(r1.newBee.sex, 'f');                              // Nov 9 2026: a merge is female unless the 10% roll hits
     // A 35% roll gives a talent no bee has yet (here: anything but collector, nurse, drone).
     v.__run('Math.random = () => 0.1');
     const r3 = v.combineBees('b2', 'b3');
     assert.ok(!['collector', 'nurse', 'drone'].includes(r3.newBee.talent), r3.newBee.talent);
-    v.__run('Math.random = () => 0.99');
+    v.__run('Math.random = () => 0.05');                            // the 10% male roll hits
     const r2 = v.combineBees('m1', 'm2');
     assert.equal(r2.newBee.talent, 'drone');
     assert.equal(r2.newBee.sex, 'm');
+    assert.notEqual(r2.newBee.rarity, 'Common');                    // a merged male is always Rare or better
 });
 test('hive levels: all-Rare comb, auto-manage unlocks, fills, and pauses when stuck', async () => {
     const v = harness({ bonusXP: [{ xp: 150 }], hive: { bees: [

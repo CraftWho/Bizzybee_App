@@ -71,7 +71,7 @@ const Gifts = (() => {
             const s = step(`<p class="gf-note" aria-live="polite">Opening…</p>`);
             let bee = null, serial = g.serial;
             try {
-                const r = await call({ action: 'accept', edition: g.edition });
+                const r = await call(g.claim ? { action: 'claim', edition: g.edition } : { action: 'accept', edition: g.edition });   // Nov 9 2026 (Craft): a claim or a gift
                 serial = Number(r.serial);
                 bee = Vault.addLimitedBee(g.edition, serial);
                 write(KEY, { at: Date.now(), gifts: cached().filter(x => x.edition !== g.edition) });
@@ -125,5 +125,7 @@ const Gifts = (() => {
     // Creator: send one (Mailbox › Send a gift).
     const send = (body) => call({ action: 'gift', ...body });
     const sent = () => call({ action: 'gifts' });
-    return { open, check, inbox, cached, send, sent, close };
+    // Nov 9 2026 (Craft): the Grimzy claim is open to everyone signed in, until Nov 16 or until all 50 are taken.
+    const claimInfo = () => call({ action: 'status', edition: 'grimzy-2026' });
+    return { open, check, inbox, cached, send, sent, close, claimInfo };
 })();
