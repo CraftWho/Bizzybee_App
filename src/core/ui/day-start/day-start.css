@@ -40,7 +40,8 @@ body.ds-open { overflow: hidden; }
 
 /* Every morning (Oct 28 2026): done yesterday + today */
 .ds-list { margin: 12px 0 0; padding: 10px 12px; border-radius: 14px; background: #0b0803; border: 1px solid #3a2a0a; text-align: left; font-size: .84rem; }
-.ds-list > div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; }
-.ds-list small { color: #a69a80; white-space: nowrap; }
+.ds-list > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 4px 0; }
+.ds-list > div > span { flex: none; white-space: nowrap; }
+.ds-list small { color: #a69a80; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ds-list-h { display: block; margin-bottom: 2px; color: var(--bb-accent, #ffcc00); font: 800 .7rem var(--font-main, monospace); letter-spacing: .1em; }
 .ds-list-h.ok { color: #3ddc84; }

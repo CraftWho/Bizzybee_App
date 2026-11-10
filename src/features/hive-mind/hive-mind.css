@@ -780,9 +780,9 @@ body.hive-life .hive-mind-hud { display: none; }
 @media (min-height: 900px) { .hive-mind-card-overlay { justify-content: center; } }
 
 /* ---- Hive Life comb rooms (Oct 2026, approved demo) ---- */
-.hl-hive { height: auto; aspect-ratio: 1 / 1.65; background: radial-gradient(circle at 50% 38%, #2a1c06, #0b0803 72%); }
-.hl-meadow { height: 12%; }
-.hl-cell { position: absolute; z-index: 2; width: 31%; aspect-ratio: 1 / 1.1547; margin: 0; padding: 0; border: 0; box-shadow: none; cursor: pointer; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(160deg, var(--bb-t-lo, #d99a1e), var(--bb-accent-deep, #8a5a0c)); transition: transform .2s, filter .2s; }
+.hl-hive { height: auto; aspect-ratio: 1 / 2.2; background: radial-gradient(circle at 50% 38%, #2a1c06, #0b0803 72%); }
+.hl-meadow { height: 9%; }
+.hl-cell { position: absolute; z-index: 2; width: 36%; aspect-ratio: 1 / 1.1547; margin: 0; padding: 0; border: 0; box-shadow: none; cursor: pointer; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(160deg, var(--bb-t-lo, #d99a1e), var(--bb-accent-deep, #8a5a0c)); transition: transform .2s, filter .2s; }
 .hl-cell:hover { transform: scale(1.03); filter: brightness(1.12); background: linear-gradient(160deg, var(--bb-t-lo, #d99a1e), var(--bb-accent-deep, #8a5a0c)); }
 .hl-cell:focus-visible { outline: none; filter: brightness(1.3); }
 .hl-in { position: absolute; inset: 3px; clip-path: inherit; background: linear-gradient(160deg, #3b2808, #1a1104); display: flex; flex-direction: column; align-items: center; padding-top: 22%; gap: 1px; }

@@ -78,3 +78,17 @@ test('stored honey + Cafeteria: Honey Makers and Fanners fill it, a hungry bee e
     assert.ok(bee1(v, 'h').life.fullness < 40);
     assert.equal(bee1(v, 'h').life.cafeAt, undefined);
 });
+
+test('rest button: Nursery first, then Cafeteria, else Recuperate; Recuperate does not change hunger', async () => {
+    const v = harness([bee('h', 'collector', { life: { health: 40, fullness: 20 } }), bee('g', 'collector', { life: { fullness: 20 } }), bee('t', 'collector', { life: { stamina: 20 } })]);
+    await v.init();
+    v.state.hive.honey = 10;
+    assert.equal(v.beeNeed(bee1(v, 'h')), 'nursery');
+    assert.equal(v.sendBeeToNeed('h').to, 'nursery');
+    assert.equal(v.sendBeeToNeed('g').to, 'cafe');
+    assert.ok(bee1(v, 'g').life.fullness >= 60);
+    assert.equal(v.sendBeeToNeed('t').to, 'rest');
+    Object.assign(bee1(v, 't').life, { fullness: 70 });
+    v._lifeHour(DAY());
+    assert.equal(bee1(v, 't').life.fullness, 70);
+});

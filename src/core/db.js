@@ -1893,7 +1893,7 @@ function beeNeeds(bee, today = todayISO()) {
     if (L.sickUntil) out.push({ need: 'Sick', value: `until ${L.sickUntil}`, fix: inBed ? 'In the Nursery: it heals 2× faster.' : 'Send it to the Nursery to heal 2× faster.' });
     const hurt = beeHurtLevel(bee);
     if (hurt) out.push({ need: HURT_LEVELS[hurt].label, value: `health ${Math.round(L.health)}/100`, fix: inBed ? 'In the Nursery: +4 health an hour.' : hurt === 3 ? 'Can\'t work. Send it to the Nursery (+4 an hour) or set it to Recuperate (+1 an hour).' : 'Nursery: +4 health an hour. Recuperate: +1 an hour.' });
-    if (L.fullness < 40) out.push({ need: 'Hungry', value: `fullness ${Math.round(L.fullness)}/100`, fix: 'Finish tasks (+4 each), or let it recuperate (eats +2.5 an hour).' });
+    if (L.fullness < 40) out.push({ need: 'Hungry', value: `fullness ${Math.round(L.fullness)}/100`, fix: 'Finish tasks (+4 each), or send it to the Cafeteria.' });
     if (L.stamina < 30) out.push({ need: 'Tired', value: `stamina ${Math.round(L.stamina)}/100`, fix: 'Recuperate: +4 an hour by day, +7 asleep at night.' });
     if ((L.fatigue || 0) >= 80) out.push({ need: 'Worn out', value: `fatigue ${Math.round(L.fatigue)}/100`, fix: 'Recuperate: −3 an hour by day, −6 at night. At 100 it must rest 2 days.' });
     if (L.happiness < 30) out.push({ need: 'Unhappy', value: `happiness ${Math.round(L.happiness)}/100`, fix: 'Finish all your dailies. A streak cheers the hive up.' });
@@ -6484,7 +6484,9 @@ Object.assign(DatabaseManager.prototype, {
                     this._lifeEvent('rest', `😴 ${b.name} is exhausted and must rest for ${LIFE.restDays} days.`, { beeId: b.id });
                 }
             } else {
-                const r = L.nursery ? REST_RATES.nursery : night ? REST_RATES.night : REST_RATES.day;
+                let r = L.nursery ? REST_RATES.nursery : night ? REST_RATES.night : REST_RATES.day;
+                // Nov 10 2026 (Craft): Recuperate does not feed a bee, and it does not get hungrier there.
+                if (L.recuperate && !L.nursery) r = [r[0], 0, r[2], r[3], r[4]];
                 L.stamina = clampVital(L.stamina + r[0], true);
                 L.fullness = clampVital(L.fullness + r[1], true);
                 L.happiness = clampVital(L.happiness + r[2], true);
@@ -6529,6 +6531,31 @@ Object.assign(DatabaseManager.prototype, {
         L.fullness = clampVital(L.fullness + CAFE.meal, true);
         L.cafeAt = at.toISOString();
         return true;
+    },
+    // Nov 10 2026 (Craft): the Rest button adapts. Hurt or sick -> Nursery bed, hungry -> Cafeteria,
+    // anything else (tired, or just resting) -> Recuperate. The Nursery comes first.
+    beeNeed(bee) {
+        const L = bee && bee.life; if (!L) return 'rest';
+        if (!L.nursery && (L.sickUntil || L.health < RESCUE_BELOW)) return 'nursery';
+        if (L.fullness < CAFE.below) return 'cafe';
+        return 'rest';
+    },
+    sendBeeToNeed(id) {
+        const b = this.getHiveBees().find(x => x.id === id);
+        if (!b || !b.life || b.life.faintedAt || beeIsBrood(b)) return null;
+        const need = this.beeNeed(b), L = b.life;
+        if (need === 'nursery' && this.nurseryBeds().free > 0) {
+            L.nursery = true; L.rescuedAt = todayISO(); delete L.recuperate;
+            this._lifeEvent('rescue', `🛏️ ${b.name} went to a Nursery bed.`, { beeId: b.id });
+            this.save(); return { to: 'nursery', bee: b };
+        }
+        if ((need === 'cafe' || need === 'nursery') && L.fullness < CAFE.below && this.state.hive.honey >= CAFE.cost) {
+            this._cafeMeal(b, new Date(), this._workers('receiver').length);
+            this.save(); return { to: 'cafe', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : '' };
+        }
+        const r = this.assignBeeClass(id, 'recuperate');
+        if (!r) return null;
+        return { to: 'rest', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : need === 'cafe' ? 'No stored honey for a meal.' : '' };
     },
     // Nov 9 2026 (Craft): each working Rescue Team bee carries one hurt or sick bee an hour
     // to a free Nursery bed. The patient keeps its job slot and goes back when healed.

@@ -8,20 +8,25 @@
 // Up to 3 bees are drawn per comb, then a +N badge. The old inside view
 // stays available as "Classic" (hive-mind.js).
 const HiveLife = (() => {
+    // Nov 10 2026 (Craft): the combs touch like the Skills tree (no gaps). Each cell is 36% wide,
+    // odd rows sit half a cell over, rows step 0.75 of a cell height. T(row) = top in the old scale.
+    const YK = 0.633;   // an offset inside a cell, as % of the map height
+    const XK = 36 / 31;  // an offset inside a cell, scaled for the wider cell
+    const XO = (v) => v * XK;
+    const T = (r) => (1 + 14.17 * r) / YK;
     const COMBS = [
-        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34.5, y: 1, text: 'Your Queen lives here.' },
-        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse', 'rescue'], x: 3, y: 17, text: 'New bees start as eggs here. Nurses speed hatching and healing. The Rescue Team carries hurt and sick bees to a bed.' },
-        { id: 'honey', icon: '🍯', name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'], x: 66, y: 17, text: 'Honey Makers make Honey Drops and stored honey. Fanners dry nectar faster. Water Carriers keep workers fresh.' },
-        { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'], x: 34.5, y: 33, text: 'Comb Builders add quest loot. Wax Makers raise the loot limit. Cleaners soften lost raids.' },
-        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 3, y: 49, text: 'Recuperating bees eat, sleep and heal slowly. When fully healed they move to No Job.' },
-        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 66, y: 49, text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' },
-        { id: 'cafeteria', icon: '🍽️', name: 'Cafeteria', jobs: ['receiver'], x: 34.5, y: 65, text: 'Hungry bees walk here, eat, and go back to what they were doing. Each meal costs stored honey. Receivers keep it cheap.' },
-        { id: 'nojob', icon: '🪧', name: 'No Job', jobs: [], x: 3, y: 81, text: 'Healed bees with no job wait here. With Auto-manage on, they go back to work when a job opens. Bees get upset after 3 days without work.' },
-        { id: 'fainted', icon: '😵', name: 'Fainted', jobs: [], x: 66, y: 81, text: 'Bees that fainted. They wake by themselves after 2 days, or a Nurse wakes one a day. Tap one to revive it faster.' }
+        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 32, y: T(0), text: 'Your Queen lives here.' },
+        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse', 'rescue'], x: 14, y: T(1), text: 'New bees start as eggs here. Nurses speed hatching and healing. The Rescue Team carries hurt and sick bees to a bed.' },
+        { id: 'honey', icon: '🍯', name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'], x: 50, y: T(1), text: 'Honey Makers make Honey Drops and stored honey. Fanners dry nectar faster. Water Carriers keep workers fresh.' },
+        { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'], x: 32, y: T(2), text: 'Comb Builders add quest loot. Wax Makers raise the loot limit. Cleaners soften lost raids.' },
+        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 14, y: T(3), text: 'Recuperating bees sleep and heal slowly. They do not eat here, and they do not get hungrier. When fully healed they move to No Job.' },
+        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 50, y: T(3), text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' },
+        { id: 'cafeteria', icon: '🍽️', name: 'Cafeteria', jobs: ['receiver'], x: 32, y: T(4), text: 'Hungry bees walk here, eat, and go back to what they were doing. Each meal costs stored honey. Receivers keep it cheap.' },
+        { id: 'nojob', icon: '🪧', name: 'No Job', jobs: [], x: 14, y: T(5), text: 'Healed bees with no job wait here. With Auto-manage on, they go back to work when a job opens. Bees get upset after 3 days without work.' },
+        { id: 'fainted', icon: '😵', name: 'Fainted', jobs: [], x: 50, y: T(5), text: 'Bees that fainted. They wake by themselves after 2 days, or a Nurse wakes one a day. Tap one to revive it faster.' }
     ];
     // Nov 9 2026 (Craft): the map has 9 combs now, so it is taller. Every y below is
     // written on the old scale and scaled by YK.
-    const YK = 1.2 / 1.65;
     const Y = (v) => v * YK;
     const ZONE_ROOM = { royal: 'royal', brood: 'nursery', honey: 'honey', comb: 'workshop', entrance: 'entrance', outside: 'entrance', cafe: 'cafeteria' };
     const CAP = 3;
@@ -125,14 +130,14 @@ const HiveLife = (() => {
             btn.addEventListener('click', () => openRoom(c.id, { onBeeClick, onChange }));
             hive.appendChild(btn);
             // Bees wander in the lower half of their comb.
-            const box = [c.x + 8, Y(c.y + 19), c.x + 23, Y(c.y + 25)];
-            if (c.id === 'royal') addWalker(null, [c.x + 13, Y(c.y + 19), c.x + 18, Y(c.y + 22)], ' is-queen');
-            if (c.id === 'nursery') eggs.slice(0, CAP).forEach((b, i) => addWalker(b, [c.x + 7 + i * 6, Y(c.y + 6), c.x + 7 + i * 6, Y(c.y + 6)], ' is-egg'));
+            const box = [c.x + XO(8), Y(c.y + 19), c.x + XO(23), Y(c.y + 25)];
+            if (c.id === 'royal') addWalker(null, [c.x + XO(13), Y(c.y + 19), c.x + XO(18), Y(c.y + 22)], ' is-queen');
+            if (c.id === 'nursery') eggs.slice(0, CAP).forEach((b, i) => addWalker(b, [c.x + XO(7 + i * 6), Y(c.y + 6), c.x + XO(7 + i * 6), Y(c.y + 6)], ' is-egg'));
             shown.slice(0, CAP).forEach(b => addWalker(b, box));
             if (shown.length > CAP) {
                 const more = document.createElement('span');
                 more.className = 'hl-more'; more.textContent = '+' + (shown.length - CAP);
-                more.style.left = (c.x + 24) + '%'; more.style.top = Y(c.y + 17) + '%';
+                more.style.left = (c.x + XO(24)) + '%'; more.style.top = Y(c.y + 17) + '%';
                 hive.appendChild(more);
             }
         });
@@ -171,10 +176,10 @@ const HiveLife = (() => {
             f.innerHTML = `<span class="hl-b">🐝</span><span class="hl-name">${esc(bee.name)}</span>`;
             f.style.left = rand(5, 90) + '%'; f.style.top = '96%';
             hive.appendChild(f);
-            requestAnimationFrame(() => requestAnimationFrame(() => { f.style.left = (door.x + 15) + '%'; f.style.top = (door.y + 26) + '%'; }));
+            requestAnimationFrame(() => requestAnimationFrame(() => { f.style.left = (door.x + XO(15)) + '%'; f.style.top = Y(door.y + 26) + '%'; }));
             setTimeout(() => {
                 const fe = beeFeeling(bee, todayISO());
-                popFace(hive, wantsFace(fe) && fe.key !== 'happy' ? fe.face : (bee.class === 'scout' ? '💃' : '🌼'), door.x + 13, door.y + 20);
+                popFace(hive, wantsFace(fe) && fe.key !== 'happy' ? fe.face : (bee.class === 'scout' ? '💃' : '🌼'), door.x + XO(13), Y(door.y + 20));
                 f.style.left = rand(5, 90) + '%'; f.style.top = '106%';
                 setTimeout(() => f.remove(), 2300);
             }, 2300);
@@ -366,7 +371,7 @@ const HiveLife = (() => {
                 let out = `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="${hs.length ? 'hl-count' : 'hl-empty'}">${hs.length}/${n}</span></h3>${slots}`;
                 out += hs.map(h => {
                     const fresh = ls && ls.in === h.id && ls.job === j && Date.now() - Date.parse(ls.at) < 6 * 3600000;
-                    return WC.html(h, { job: j, action: 'rest', label: 'Rest', leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
+                    return WC.html(h, { job: j, action: 'rest', label: ({ nursery: '🛏️ Heal', cafe: '🍽️ Eat', rest: 'Rest' })[Vault.beeNeed(h)], leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
                 }).join('');
                 if (hs.length >= n) return out;
                 const fits = all.filter(b => !b.class && !beeIsBrood(b) && !(b.life && b.life.faintedAt) && Vault.beeFitsJob(b, j)).sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
@@ -426,8 +431,16 @@ const HiveLife = (() => {
         }));
         sheet.querySelectorAll('[data-wk="add"], [data-wk="rest"]').forEach(btn => btn.addEventListener('click', () => {
             const rest = btn.dataset.wk === 'rest';
-            const r = Vault.assignBeeClass(btn.dataset.bee, rest ? 'recuperate' : btn.dataset.job);   // Nov 9 2026 (Craft): Rest goes straight to Recuperate
-            if (typeof Toast !== 'undefined') Toast.show(r ? (rest ? `💤 ${r.name} is recuperating. It moves to No Job when healed.` : `${BEE_CLASSES[btn.dataset.job].icon} ${r.name} is now a ${BEE_CLASSES[btn.dataset.job].label}.`) : (Vault.lastJobError || "That bee can't do that job."), r ? 'positive' : 'negative');
+            if (rest) {   // Nov 10 2026 (Craft): Heal / Eat / Rest, by what the bee needs. Nursery first.
+                const g = Vault.sendBeeToNeed(btn.dataset.bee);
+                if (typeof Toast !== 'undefined') Toast.show(!g ? 'That bee cannot move right now.' : g.to === 'nursery' ? `🛏️ ${g.bee.name} is in a Nursery bed.` : g.to === 'cafe' ? `🍽️ ${g.bee.name} ate at the Cafeteria. ${g.note || ''}`.trim() : `💤 ${g.bee.name} is recuperating. ${g.note || 'It moves to No Job when healed.'}`, g ? 'positive' : 'negative');
+                unlockedToast();
+                if (opts.onChange) opts.onChange();
+                openRoom(id, opts);
+                return;
+            }
+            const r = Vault.assignBeeClass(btn.dataset.bee, btn.dataset.job);
+            if (typeof Toast !== 'undefined') Toast.show(r ? `${BEE_CLASSES[btn.dataset.job].icon} ${r.name} is now a ${BEE_CLASSES[btn.dataset.job].label}.` : (Vault.lastJobError || "That bee can't do that job."), r ? 'positive' : 'negative');
             unlockedToast();
             if (opts.onChange) opts.onChange();
             openRoom(id, opts);
