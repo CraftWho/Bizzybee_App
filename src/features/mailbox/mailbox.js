@@ -6,12 +6,16 @@ const when = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'shor
 const ago = (at) => { const m = Math.round((Date.now() - at) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`; };
 let seenBefore = {};
 
-// Nov 1 2026 (Craft): Craft's Halloween letter, the default for gifts.
+// Nov 1 2026 (Craft): Craft's Halloween letter, the default for gifts. Nov 10: reworded for the late release.
 const GIFT_LETTER = `Happy Halloween! 🎃
 
-Thank you for being one of the very first Hive in BizzyBee. Happy Halloween! A gift for you.
+Sorry this is late. Your Halloween bee never made it out on the day, and that was my miss.
 
-Craft 🐝`;
+Thank you for being one of the very first in BizzyBee. This is Grimzy, a numbered bee made only for you. There are just 50 in the whole world.
+
+Take care of it. 🐝
+
+Craft`;
 
 // Your gifts waiting to be added (Grimzy...). Tap to open.
 function renderGifts() {
