@@ -36,6 +36,13 @@ const PLUGIN_CATALOG = [
         description: 'Your own glossary of terms. Terms feed the Skill Mastery matrix on your Dashboard - matched against your Dailies\' tags and any completed Quest that mentions them.'
     },
     {
+        id: 'gaming',
+        icon: '🎮',
+        label: 'Gaming',
+        status: 'available',
+        description: 'Link your Steam Deck with a QR code. Hours played and achievements become XP, and the Deck can check off your dailies, to-dos and habits.'
+    },
+    {
         id: 'study',
         icon: '🎓',
         label: 'Study',

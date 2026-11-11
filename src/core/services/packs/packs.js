@@ -12,6 +12,8 @@ const PACKS = [
       files: ['src/plugins/calendar/calendar.html', 'src/plugins/calendar/calendar.css', 'src/plugins/calendar/calendar.js'] },
     { id: 'dictionary', kind: 'plugin', icon: '📖', label: 'Dictionary', kb: 17,
       files: ['src/plugins/dictionary/dictionary.html', 'src/plugins/dictionary/dictionary.css', 'src/plugins/dictionary/dictionary.js'] },
+    { id: 'gaming', kind: 'plugin', icon: '🎮', label: 'Gaming', kb: 6,
+      files: ['src/plugins/gaming/gaming.html', 'src/plugins/gaming/gaming.css', 'src/plugins/gaming/gaming.js'] },
     { id: 'study', kind: 'plugin', icon: '🎓', label: 'Study', kb: 12,
       files: ['src/plugins/study/study.html', 'src/plugins/study/study.css', 'src/plugins/study/study.js'] },
     { id: 'projects', kind: 'plugin', icon: '🛠️', label: 'Projects', kb: 12,

@@ -1,0 +1,18 @@
+{
+  "name": "bizzybee-decky",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": { "build": "rollup -c" },
+  "dependencies": {
+    "@decky/api": "^1.1.2",
+    "qrcode-generator": "^1.4.4"
+  },
+  "devDependencies": {
+    "@decky/rollup": "^1.0.1",
+    "@decky/ui": "^4.7.2",
+    "@types/react": "18.3.3",
+    "react": "18.3.1",
+    "rollup": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}

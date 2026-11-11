@@ -1,0 +1,10 @@
+{
+  "name": "BizzyBee",
+  "author": "CraftWho",
+  "flags": [],
+  "publish": {
+    "tags": ["productivity", "tasks"],
+    "description": "Check off BizzyBee dailies, to-dos and habits from your Deck. Hours played and achievements become XP.",
+    "image": ""
+  }
+}
