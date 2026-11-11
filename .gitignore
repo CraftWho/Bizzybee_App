@@ -61,3 +61,5 @@ CLAUDE.local.md
 decky-plugin/node_modules/
 decky-plugin/dist/
 decky-plugin/out/
+deck-app/node_modules/
+deck-app/dist/

@@ -13,6 +13,7 @@
 [build]
   command = "node tools/stamp-version.mjs"
   publish = "."
+  ignore = "exit 0"   # deck-appimage branch: never deploy
 
 # Oct 31 2026 (Craft): caching.
 # Images, icons, fonts, 3D: phones keep them 7 days (give new art a NEW file
