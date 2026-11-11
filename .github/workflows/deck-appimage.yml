@@ -1,0 +1,20 @@
+name: Deck AppImage
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund
+        working-directory: deck-app
+      - run: npm run dist
+        working-directory: deck-app
+      - uses: actions/upload-artifact@v4
+        with: { name: BizzyBee-Deck-AppImage, path: deck-app/dist/BizzyBee-Deck.AppImage }
+      - name: Publish release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release create "deck-${{ github.run_number }}" deck-app/dist/BizzyBee-Deck.AppImage decky-plugin/BizzyBee-decky.zip --title "BizzyBee for Steam Deck" --notes "AppImage + Decky plugin zip" || gh release upload "deck-${{ github.run_number }}" deck-app/dist/BizzyBee-Deck.AppImage --clobber

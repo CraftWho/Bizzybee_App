@@ -1,0 +1,16 @@
+{
+  "name": "bizzybee-deck",
+  "productName": "BizzyBee",
+  "version": "1.0.0",
+  "description": "BizzyBee for Steam Deck (AppImage). Opens the live app.",
+  "main": "main.js",
+  "author": "CraftWho",
+  "scripts": { "dist": "electron-builder --linux AppImage" },
+  "devDependencies": { "electron": "^33.2.0", "electron-builder": "^25.1.8" },
+  "build": {
+    "appId": "app.bizzybee.deck",
+    "productName": "BizzyBee",
+    "files": ["main.js", "icon.png"],
+    "linux": { "target": "AppImage", "category": "Utility", "icon": "icon.png", "artifactName": "BizzyBee-Deck.AppImage" }
+  }
+}
