@@ -1679,6 +1679,8 @@ const MERGE_MALE_CHANCE = 0.1;   // Nov 9 2026 (Craft)
 // Nov 9 2026 (Craft): Stored honey + the Cafeteria. Honey Makers (and Fanners)
 // fill the stock; a hungry bee walks to the Cafeteria, eats and walks back.
 // Each meal costs honey (a working Receiver may make it free).
+// Steam Deck game XP (Nov 11 2026, Craft).
+const GAME_XP = { blockMin: 30, perBlock: 2, dayCapMin: 20, perAch: 10, dayCapAch: 50 };
 const HONEY_CAP = 100, HONEY_START = 40, HONEY_PER_DAY = 10, HONEY_PER_TASK = 1;
 const CAFE = { below: 40, meal: 40, cost: 1, freeBase: 0.1, freeMax: 0.5, stayMin: 45 };
 const RESCUE_BELOW = 60;   // health under this (or sick): the Rescue Team carries it to a bed   // a merged bee may get a talent the hive is missing
@@ -6531,6 +6533,75 @@ Object.assign(DatabaseManager.prototype, {
         L.fullness = clampVital(L.fullness + CAFE.meal, true);
         L.cafeAt = at.toISOString();
         return true;
+    },
+    // Nov 11 2026 (Craft): Steam Deck companion (the Decky plugin). The Deck shows today's tasks,
+    // sends check-offs through the server, and reads hours played + achievements. Game XP:
+    // GAME_XP.perBlock for each 30 minutes played, GAME_XP.perAch per achievement, with a daily
+    // cap for each. The first time a game is seen only sets a starting point (no XP for old hours).
+    deckLinked() { return !!(this.state && this.state.deck && this.state.deck.linked); },
+    setDeckLinked(on) {
+        if (!this.state) return;
+        this.state.deck = { ...(this.state.deck || {}), linked: !!on };
+        this.save();
+    },
+    deckSnapshot() {
+        const day = todayISO(), u = this.getUser() || {};
+        return {
+            level: u.level || 1,
+            xpToNext: Math.max(0, Math.round((u.nextLevelXP || 0) - (u.currentXP || 0))),
+            dailies: this.getDailyTasks().filter(d => d.dueToday && (!d.startDate || d.startDate <= day)).map(d => ({ id: d.id, title: d.label, done: !!d.completedToday })),
+            todos: this.getTodos().filter(t => !t.completed).map(t => ({ id: t.id, title: t.label, done: false, due: t.dueDate || '' })),
+            habits: this.getHabits().filter(h => h.positive !== false).map(h => ({ id: h.id, title: h.label, positive: true }))
+        };
+    },
+    // Applies check-offs that waited in the server inbox. Returns the event ids it handled.
+    deckApply(events) {
+        if (!this.state || !Array.isArray(events)) return [];
+        const D = this.state.deck = this.state.deck || {};
+        const seen = new Set(D.applied || []), day = todayISO(), done = [];
+        for (const e of events) {
+            if (!e || !e.eid || seen.has(e.eid)) { if (e && e.eid) done.push(e.eid); continue; }
+            if (e.kind === 'daily') {
+                const t = (this.state.dailyTasks || []).find(x => x.id === e.id);
+                if (t && !(t.completedDates || []).includes(day)) this.toggleDailyTask(t.id);
+            } else if (e.kind === 'todo') {
+                const t = (this.state.todos || []).find(x => x.id === e.id);
+                if (t && !t.completed) this.toggleTodoComplete(t.id);
+            } else if (e.kind === 'habit') this.bumpHabit(e.id, 'positive');
+            seen.add(e.eid); done.push(e.eid);
+        }
+        D.applied = [...seen].slice(-200);
+        this.save();
+        return done;
+    },
+    getGaming() { return (this.state && this.state.gaming) || { games: {}, xp: 0 }; },
+    deckApplyGames(list) {
+        if (!this.state || !Array.isArray(list)) return false;
+        const G = this.state.gaming = this.state.gaming || { games: {}, xp: 0 };
+        if (!Array.isArray(this.state.bonusXP)) this.state.bonusXP = [];
+        const day = todayISO();
+        const used = (why) => this.state.bonusXP.filter(b => b.date === day && b.why === why).reduce((n, b) => n + (Number(b.xp) || 0), 0);
+        let changed = false;
+        for (const g of list) {
+            if (!g || !g.appid) continue;
+            const p = G.games[g.appid];
+            const base = { name: g.name || (p && p.name) || 'Game', minutes: g.minutes || 0, ach: g.ach || 0, achTotal: g.achTotal || 0, lastPlayed: g.lastPlayed || 0 };
+            if (!p) { G.games[g.appid] = { ...base, baseMin: base.minutes, baseAch: base.ach, paidBlocks: 0, paidAch: 0 }; changed = true; continue; }
+            const next = { ...p, ...base };
+            const blocks = Math.floor(Math.max(0, base.minutes - p.baseMin) / GAME_XP.blockMin) - p.paidBlocks;
+            if (blocks > 0) {
+                const room = Math.floor(Math.max(0, GAME_XP.dayCapMin - used('game-min')) / GAME_XP.perBlock), grant = Math.min(blocks, room);
+                if (grant > 0) { this.state.bonusXP.push({ key: `game-min:${g.appid}:${Date.now()}:${p.paidBlocks}`, date: day, xp: grant * GAME_XP.perBlock, why: 'game-min' }); next.paidBlocks = p.paidBlocks + grant; G.xp = (G.xp || 0) + grant * GAME_XP.perBlock; }
+            }
+            const newAch = Math.max(0, base.ach - p.baseAch) - p.paidAch;
+            if (newAch > 0) {
+                const room = Math.floor(Math.max(0, GAME_XP.dayCapAch - used('game-ach')) / GAME_XP.perAch), grant = Math.min(newAch, room);
+                if (grant > 0) { this.state.bonusXP.push({ key: `game-ach:${g.appid}:${Date.now()}:${p.paidAch}`, date: day, xp: grant * GAME_XP.perAch, why: 'game-ach' }); next.paidAch = p.paidAch + grant; G.xp = (G.xp || 0) + grant * GAME_XP.perAch; }
+            }
+            if (JSON.stringify(next) !== JSON.stringify(p)) { G.games[g.appid] = next; changed = true; }
+        }
+        if (changed) this.save();
+        return changed;
     },
     // Nov 10 2026 (Craft): the Rest button adapts. Hurt or sick -> Nursery bed, hungry -> Cafeteria,
     // anything else (tired, or just resting) -> Recuperate. The Nursery comes first.

@@ -27,6 +27,7 @@ const WAGGLE_MENU = [
     ['Tools', [
         { icon: '📅', label: 'Calendar', path: 'src/plugins/calendar/calendar.html', plugin: 'calendar' },
         { icon: '📖', label: 'Dictionary', path: 'src/plugins/dictionary/dictionary.html', plugin: 'dictionary' },
+        { icon: '🎮', label: 'Gaming', path: 'src/plugins/gaming/gaming.html', plugin: 'gaming' },
         { icon: '🎓', label: 'Study', path: 'src/plugins/study/study.html', plugin: 'study' },
         { icon: '💻', label: 'Terminal', path: 'src/plugins/terminal/terminal.html', plugin: 'terminal' },
         { icon: '🧩', label: 'Plugins & Packs', path: 'src/features/plugin-hub/plugin-hub.html' }

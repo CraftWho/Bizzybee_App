@@ -58,3 +58,6 @@ app-files.json
 
 # Nov 4 2026 (Craft): private notes for Claude Code (never shared with the contributor).
 CLAUDE.local.md
+decky-plugin/node_modules/
+decky-plugin/dist/
+decky-plugin/out/
