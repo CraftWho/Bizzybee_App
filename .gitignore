@@ -61,3 +61,4 @@ CLAUDE.local.md
 decky-plugin/node_modules/
 decky-plugin/dist/
 decky-plugin/out/
+decky-plugin/build.json

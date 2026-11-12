@@ -9,6 +9,8 @@ const pollPair = callable<[], any>('poll_pair');
 const getSnapshot = callable<[], any>('snapshot');
 const complete = callable<[string, string], any>('complete');
 const pushGames = callable<[any[]], any>('push_games');
+const checkUpdate = callable<[], any>('check_update');
+const installUpdate = callable<[], any>('install_update');
 const unlink = callable<[], boolean>('unlink');
 
 // ---- Games: hours played + achievements, read from the Steam client (best effort) ----
@@ -47,6 +49,9 @@ function Content() {
   const [pairUrl, setPairUrl] = useState('');
   const [snap, setSnap] = useState<any>(null);
   const [msg, setMsg] = useState('');
+  const [upd, setUpd] = useState<any>(null);
+  useEffect(() => { checkUpdate().then(r => { if (r?.available) setUpd(r); }).catch(() => {}); }, []);
+  const updateRow = upd ? (<PanelSection title="Update ready"><PanelSectionRow><ButtonItem layout="below" onClick={async () => { setMsg('Updating…'); const r = await installUpdate(); setMsg(r?.ok ? 'Restarting Decky…' : (r?.error || 'Failed')); }}>Install {upd.latest}</ButtonItem></PanelSectionRow></PanelSection>) : null;
 
   const load = async () => {
     const l = await isLinked(); setLinked(l);
@@ -77,7 +82,7 @@ function Content() {
   if (linked === null) return <PanelSection title="BizzyBee"><PanelSectionRow>Loading…</PanelSectionRow></PanelSection>;
 
   if (!linked) return (
-    <PanelSection title="BizzyBee">
+    <><PanelSection title="BizzyBee">
       {pairUrl ? (
         <>
           <PanelSectionRow><div style={{ padding: 4 }}><Qr text={pairUrl} /></div></PanelSectionRow>
@@ -90,7 +95,7 @@ function Content() {
         </PanelSectionRow>
       )}
       {msg && <PanelSectionRow><div style={{ fontSize: 12 }}>{msg}</div></PanelSectionRow>}
-    </PanelSection>
+    </PanelSection>{updateRow}</>
   );
 
   const group = (title: string, kind: string, list: any[], habit = false) => (
@@ -108,6 +113,7 @@ function Content() {
 
   return (
     <>
+      {updateRow}
       <PanelSection title={snap ? `BizzyBee · Lv ${snap.level}` : 'BizzyBee'}>
         {snap && <PanelSectionRow><div style={{ fontSize: 12 }}>{snap.xpToNext} XP to next level</div></PanelSectionRow>}
         {msg && <PanelSectionRow><div style={{ fontSize: 12 }}>{msg}</div></PanelSectionRow>}
