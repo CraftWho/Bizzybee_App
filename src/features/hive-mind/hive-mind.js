@@ -208,6 +208,8 @@ function openHiveBeeCard(bee) {
 
 // ---- Hive Life vs Classic (Oct 2026) ----------------------------------
 const HIVE_MIND_VIEW_KEY = 'bizzybee_hive_view';
+// Nov 13 2026 (Craft): the Home shortcut opens Hive Life (?view=life), even if you last used Classic.
+try { if (new URLSearchParams(location.search).get('view') === 'life') localStorage.setItem(HIVE_MIND_VIEW_KEY, 'life'); } catch { /* storage off */ }
 let hiveMindLifeView = null;
 function hiveMindHiveView() {
     try { return localStorage.getItem(HIVE_MIND_VIEW_KEY) === 'classic' ? 'classic' : 'life'; } catch { return 'life'; }
