@@ -433,6 +433,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 1150);
     });
 
+    // Nov 13 2026 (Craft): the Home shortcut (?view=life) goes straight inside.
+    try { if (new URLSearchParams(location.search).get('view') === 'life') setTimeout(() => document.getElementById('enter-hive-btn').click(), 600); } catch { /* ignore */ }
+
     document.getElementById('leave-hive-btn').addEventListener('click', () => {
         if (hiveMindInterior) { hiveMindInterior.destroy(); hiveMindInterior = null; }
         if (hiveMindLifeView) { hiveMindLifeView.destroy(); hiveMindLifeView = null; }
