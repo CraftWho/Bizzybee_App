@@ -1774,6 +1774,9 @@ const INCUBATORS = {
 };
 const INCUBATOR_ORDER = ['basic', 'warm', 'honey', 'royal'];
 const INCUBATOR_DAILIES = 4;
+// Step goal (Nov 13 2026, Craft): your own daily goal. Reaching it gives XP and a little real
+// time for Fitness + Health, plus a random small reward. Steps also warm the incubator (tiers above).
+const STEP_GOAL = { def: 8000, min: 1000, max: 50000, xp: 15, minutes: 20, cats: ['Fitness', 'Health'] };
 
 const RAID_ENEMIES = [
     { id: 'hornets', label: 'Hornet raid', icon: '🦟', power: 1.2 },
@@ -7073,6 +7076,55 @@ Object.assign(DatabaseManager.prototype, {
         });
         Object.keys(i.applied).forEach(id => { if (!i.slots.includes(id)) delete i.applied[id]; });
         return moved;
+    },
+    // ---- Step goal (Nov 13 2026, Craft) ----
+    getStepGoal() { const g = Math.round(Number(this.state && this.state.stepGoal)); return g >= STEP_GOAL.min && g <= STEP_GOAL.max ? g : STEP_GOAL.def; },
+    setStepGoal(n) {
+        const g = Math.round(Number(n));
+        if (!this.state || !(g >= STEP_GOAL.min && g <= STEP_GOAL.max)) return { ok: false, error: `Pick between ${STEP_GOAL.min.toLocaleString()} and ${STEP_GOAL.max.toLocaleString()} steps.` };
+        this.state.stepGoal = g; this.save(); return { ok: true, goal: g };
+    },
+    // Paid once per day at the goal, and again (a random small reward) at double the goal.
+    // Returns the rewards given now (for a toast), or null.
+    stepGoalTick(today = todayISO()) {
+        const S = this.state; if (!S) return null;
+        const steps = Number(S.steps && S.steps[today]) || 0, goal = this.getStepGoal();
+        S.stepRewards = S.stepRewards || {};
+        const r = S.stepRewards[today] = S.stepRewards[today] || {};
+        const out = []; let xpNow = 0;
+        const give = (x) => {
+            if (x.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + x.qty; }
+            else if (x.kind === 'ticket') { if (S.hive) S.hive.tickets = (S.hive.tickets || 0) + x.qty; }
+            else this._addMaterial(x.kind, x.qty);
+            out.push(x);
+        };
+        const roll = (bigger) => {
+            const n = Math.random();
+            if (n < 0.08) return { kind: 'ticket', qty: 1, icon: '🎟️', name: 'Gacha ticket' };
+            if (n < 0.28) return { kind: 'pollen', qty: bigger ? 3 : 2, icon: '🌼', name: 'Pollen' };
+            return { kind: 'coins', qty: (bigger ? 4 : 2) + Math.floor(Math.random() * (bigger ? 5 : 5)), icon: '🪙', name: 'Honey coins' };
+        };
+        if (steps >= goal && !r.goal) {
+            r.goal = true;
+            if (!Array.isArray(S.bonusXP)) S.bonusXP = [];
+            S.bonusXP.push({ key: `steps:${today}`, date: today, xp: STEP_GOAL.xp, why: 'Step goal' });
+            if (typeof this._rt === 'function' && this._rt()) S.timeLog.push({ id: `t-steps-${today}`, key: `steps:${today}`, kind: 'steps', taskId: null, questId: null, label: `Step goal (${goal.toLocaleString()} steps)`, date: today, min: STEP_GOAL.minutes, cats: STEP_GOAL.cats.slice(), at: new Date().toISOString() });
+            r.xp = xpNow = STEP_GOAL.xp; give(roll(false));
+        }
+        if (steps >= goal * 2 && !r.x2) { r.x2 = true; give(roll(true)); }
+        r.gave = (r.gave || []).concat(out.map(x => `${x.qty} ${x.name}`));
+        Object.keys(S.stepRewards).sort().slice(0, -60).forEach(k => delete S.stepRewards[k]);
+        return out.length ? { xp: xpNow, minutes: xpNow ? STEP_GOAL.minutes : 0, gave: out } : null;
+    },
+    // Step stats for the Incubator page: last 7 days, goal streak, best day.
+    getStepStats(today = todayISO()) {
+        const S = this.state || {}, st = S.steps || {}, goal = this.getStepGoal();
+        const week = []; for (let i = 6; i >= 0; i--) { const d = shiftISODate(today, -i); week.push({ day: d, steps: Number(st[d]) || 0 }); }
+        let streak = 0; for (let i = (Number(st[today]) || 0) >= goal ? 0 : 1; i < 60; i++) { if ((Number(st[shiftISODate(today, -i)]) || 0) >= goal) streak++; else break; }
+        const all = Object.entries(st).map(([d, n]) => ({ day: d, steps: Number(n) || 0 }));
+        const best = all.reduce((b, x) => x.steps > b.steps ? x : b, { day: '', steps: 0 });
+        const r = (S.stepRewards || {})[today] || {};
+        return { goal, today: Number(st[today]) || 0, week, weekTotal: week.reduce((n, x) => n + x.steps, 0), streak, best, daysHit: all.filter(x => x.steps >= goal).length, gaveToday: r.gave || [], xpToday: r.xp || 0, stepXP: STEP_GOAL.xp, stepMin: STEP_GOAL.minutes };
     },
     spendCoins(n) {
         const q = this._ensureQueen();
