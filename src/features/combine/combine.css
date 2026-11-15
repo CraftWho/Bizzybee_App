@@ -1,0 +1,59 @@
+/* Combine page (Nov 2026). Shared look: core/ui/page-v2/page-v2.css. */
+.cmb .cmb-stage { display: grid; grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); gap: 6px; align-items: center; margin: 10px 0 4px; }
+.cmb .cmb-slot { display: grid; justify-items: center; gap: 6px; min-width: 0; text-align: center; font-size: .78rem; color: var(--muted); }
+.cmb-big { position: relative; width: 156px; height: 218px; border-radius: 12px; overflow: hidden; }
+.cmb-big > div { position: absolute; top: 0; left: 0; width: 260px; transform: scale(.6); transform-origin: top left; pointer-events: none; }
+.cmb-big .bee-card-flip-hint { display: none; }
+.cmb-empty { display: grid; place-items: center; width: 156px; height: 218px; border-radius: 12px; border: 2px dashed rgba(var(--bb-accent-rgb, 255, 204, 0), .35); color: var(--gold); font: 700 2.4rem var(--font-main, monospace); }
+.cmb-nm { font: 700 .86rem var(--font-main, monospace); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmb .cmb-mid { text-align: center; font: 700 1.5rem var(--font-main, monospace); color: var(--gold); }
+.cmb .cmb-stage.ready .cmb-mid span { display: inline-block; animation: cmb-pulse 1.2s ease-in-out infinite; text-shadow: 0 0 12px var(--gold); }
+@keyframes cmb-pulse { 50% { transform: scale(1.35) rotate(90deg); } }
+.cmb .drop { animation: cmb-drop .45s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes cmb-drop { from { transform: translateY(-26px) scale(.85); opacity: 0; } }
+.cmb .cmb-stage.ready .cmb-big { box-shadow: 0 0 0 2px var(--cmb-glow, #ffcc00), 0 0 22px var(--cmb-glow, #ffcc00); animation: cmb-glow 1.6s ease-in-out infinite; }
+@keyframes cmb-glow { 50% { box-shadow: 0 0 0 2px var(--cmb-glow, #ffcc00), 0 0 34px var(--cmb-glow, #ffcc00); } }
+/* The slam: both cards fly together before the full-screen effect. */
+.cmb .cmb-stage.slam .cmb-slot:first-child { animation: cmb-slam-l .55s ease-in forwards; }
+.cmb .cmb-stage.slam .cmb-slot:last-child { animation: cmb-slam-r .55s ease-in forwards; }
+@keyframes cmb-slam-l { to { transform: translateX(calc(50% + 18px)) rotate(8deg) scale(.9); filter: brightness(2); } }
+@keyframes cmb-slam-r { to { transform: translateX(calc(-50% - 18px)) rotate(-8deg) scale(.9); filter: brightness(2); } }
+.cmb .cmb-info { margin: 8px 4px; text-align: center; color: var(--muted); font-size: .82rem; min-height: 1.3em; }
+.cmb .cmb-info b { color: var(--gold); }
+.cmb .cmb-go { display: flex; justify-content: center; }
+.cmb .cmb-go .btn { min-width: 220px; padding: 12px 18px; font-size: .92rem; }
+.cmb .cmb-grp { margin: 14px 4px 6px; font: 700 .66rem var(--font-main, monospace); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.cmb .cmb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px; }
+.cmb .cmb-opt { display: grid; justify-items: center; gap: 4px; padding: 6px 4px; border-radius: 12px; border: 1px solid transparent; background: none; color: var(--ink); cursor: pointer; min-width: 0; }
+.cmb .cmb-opt[aria-pressed="true"] { border-color: var(--gold); background: rgba(var(--bb-accent-rgb, 255, 204, 0), .08); }
+.cmb .cmb-opt:disabled { opacity: .4; cursor: default; }
+.cmb-sm { position: relative; width: 78px; height: 109px; overflow: hidden; border-radius: 8px; }
+.cmb-sm > div { position: absolute; top: 0; left: 0; width: 260px; transform: scale(.3); transform-origin: top left; pointer-events: none; }
+.cmb-sm .bee-card-flip-hint { display: none; }
+.cmb .cmb-opt .cmb-nm { font-size: .68rem; }
+.cmb .cmb-opt small { font-size: .62rem; color: var(--muted); }
+.cmb .cmb-foot { margin: 18px 4px 0; color: var(--muted); font-size: .8rem; }
+.cmb .cmb-foot a { color: var(--gold); }
+/* Result */
+.cmb-over { position: fixed; inset: 0; z-index: 3000; background: rgba(0, 0, 0, .9); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 16px; overflow: auto; }
+.cmb-over[hidden], .cmb-res[hidden] { display: none; }
+.cmb-res { display: grid; justify-items: center; gap: 12px; width: min(92vw, 340px); animation: cmb-in .45s ease; }
+@keyframes cmb-in { from { opacity: 0; transform: translateY(14px); } }
+.cmb-res-title { margin: 0; text-align: center; font-weight: 700; color: var(--gold); font-size: 1.05rem; }
+.cmb-res-card { width: min(70vw, 250px); }
+.cmb-res-card.ring { animation: cmb-ring 1.4s ease-out; }
+@keyframes cmb-ring { from { filter: drop-shadow(0 0 0 var(--rc)); } 30% { filter: drop-shadow(0 0 40px var(--rc)); } }
+.cmb-gains { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; }
+.cmb-gains div { display: grid; justify-items: center; padding: 6px 2px; border-radius: 10px; background: rgba(255, 255, 255, .05); font-size: .64rem; color: var(--muted); }
+.cmb-gains b { font: 700 .95rem var(--font-main, monospace); color: var(--ink); }
+.cmb-gains .up b { color: #3ddc84; }
+.cmb-gains .up i { font-style: normal; color: #3ddc84; font-size: .62rem; opacity: 0; animation: cmb-up .5s .6s forwards; }
+@keyframes cmb-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.cmb-res-name { width: 100%; }
+.cmb-res-btns { display: flex; gap: 8px; }
+@media (prefers-reduced-motion: reduce) {
+    .cmb .drop, .cmb .cmb-stage.ready .cmb-big, .cmb .cmb-stage.ready .cmb-mid span, .cmb-res, .cmb-res-card.ring, .cmb-gains .up i { animation: none; }
+    .cmb-gains .up i { opacity: 1; }
+    .cmb .cmb-stage.slam .cmb-slot { animation: none; }
+}
+.cmb-over a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: var(--gold); padding: 10px 18px; background: #1a1205; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .4); border-radius: 10px; font: 700 .8rem var(--font-main, monospace); }

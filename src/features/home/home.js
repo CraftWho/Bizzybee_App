@@ -195,7 +195,7 @@ function renderBeeHelp() {
         el.type = 'button'; el.className = 'home-eve';
         el.setAttribute('aria-label', `${who.name}: ${line}. Tap to check on them.`);
         el.innerHTML = `<span class="home-eve-bub">${escapeHTML(line)}<small>${who.name} · tap to check on them</small></span><span class="home-eve-who" aria-hidden="true">${who.face}</span>`;
-        el.addEventListener('click', () => { location.href = '../hive-bees/hive-bees.html?show=help'; });
+        el.addEventListener('click', () => { location.href = '../bee-care/bee-care.html'; });
         document.body.appendChild(el);
         requestAnimationFrame(() => el.classList.add('in'));
         setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 450); }, 5000);
@@ -354,6 +354,7 @@ function setupToday() {
 
 // ---- app grid: everything that isn't in the bottom dock ----
 const APP_ICONS = {
+    'hive-life': '<ellipse cx="14" cy="16.5" rx="5" ry="7"/><path d="M9.3 14.5h9.4M9.3 18.5h9.4"/><path d="M10 11C6 6 3 8.5 5 12s5 3 5 3M18 11c4-5 7-2.5 5 1s-5 3-5 3"/><path d="M12.5 9.5 11 6M15.5 9.5 17 6"/>',
     'hive-mind': '<path d="M14 3.5 20.5 7.2v7.6L14 18.5l-6.5-3.7V7.2z"/><path d="M7.5 14.8 1.8 18v6.6l5.7 3.2 5.7-3.2V18M20.5 14.8l5.7 3.2v6.6l-5.7 3.2-5.7-3.2V18"/>',
     models: '<path d="M9 3c0 6 10 8 10 14S9 19 9 25M19 3c0 6-10 8-10 14s10 2 10 8"/><path d="M10.5 7h7M10.5 21h7M12 11.5h4M12 16.5h4"/>',
     'honey-store': '<path d="M9 6h10M10 6v2.5C6.5 10 5.5 13 5.5 16.5c0 5 3.6 8 8.5 8s8.5-3 8.5-8c0-3.5-1-6.5-4.5-8V6"/><path d="M8 15c2 1.5 4 1.5 6 0s4-1.5 6 0"/><path d="M11 3.5h6"/>',
@@ -374,7 +375,7 @@ const APP_ICONS = {
 // screen. Hold any app to rearrange (apps wiggle), drag, then tap Done.
 // The order is kept in the save (state.homeAppOrder), so it follows you.
 const HOME_APPS = [
-    { key: 'hive-mind', label: 'Hive Mind' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Mart' },   // Nov 1 2026 (Craft): renamed
+    { key: 'hive-mind', label: 'Hive Mind' }, { key: 'hive-life', label: 'Hive Life', href: '../hive-mind/hive-mind.html?view=life' }, { key: 'models', label: 'Bee Models' }, { key: 'honey-store', label: 'Honey Mart' },   // Nov 1 2026 (Craft): renamed
     { key: 'skills', label: 'Skills' }, { key: 'map', label: 'Map' },
     { key: 'dashboard', label: 'Dashboard' }, { key: 'profile', label: 'Profile' }, { key: 'plugin-hub', label: 'Plugins' },
     { key: 'hive-archive', label: 'Hive Archive' }, { key: 'notifications', label: 'Notifications' }, { key: 'settings', label: 'Settings' }
@@ -391,6 +392,7 @@ function installedPluginApps() {
 }
 
 function hrefFor(app) {
+    if (app.href) return app.href;   // Nov 2026 (Craft): Hive Life opens inside the hive
     if (app.path) return `../../../${app.path}`;   // Nov 1 2026 (Craft): a pinned menu page
     const d = app.dir || app.key;
     return app.base === 'plugins' ? `../../plugins/${d}/${d}.html` : `../${d}/${d}.html`;
@@ -414,7 +416,7 @@ function orderedApps() {
     const saved = (Vault.state && Array.isArray(Vault.state.homeAppOrder)) ? Vault.state.homeAppOrder : [];
     const byKey = new Map(all.map(a => [a.key, a]));
     const out = saved.filter(k => byKey.has(k)).map(k => byKey.get(k));
-    all.forEach(a => { if (!saved.includes(a.key)) out.push(a); });
+    all.forEach(a => { if (!saved.includes(a.key)) { const at = a.key === 'hive-life' ? out.findIndex(x => x.key === 'hive-mind') : -1; if (at >= 0) out.splice(at + 1, 0, a); else out.push(a); } });
     return out;
 }
 

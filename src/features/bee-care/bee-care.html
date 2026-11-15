@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <title>🐝 Bee Care</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
+    <link rel="stylesheet" href="./bee-care.css">
+</head>
+<body>
+    <!-- Nov 2026 (Craft; approved demo "Bee Care"): where Eve's bubble leads.
+         Real bee cards in small form, what each bee needs, and one tap to fix it:
+         smart Heal / Eat / Rest button, a Job picker, Rest, and Combine (its own page). -->
+    <main class="pv2 bcare">
+        <header class="pv2-head">
+            <h1 class="pv2-title">🐝 BEE CARE</h1>
+            <p class="pv2-lead" id="bc-lead">Checking on the hive…</p>
+        </header>
+        <div class="chips" role="group" aria-label="Show" id="bc-filter">
+            <button type="button" class="chip" data-f="help" aria-pressed="true">Needs help</button>
+            <button type="button" class="chip" data-f="all" aria-pressed="false">All bees</button>
+        </div>
+        <div class="bc-list" id="bc-list"></div>
+        <p class="bc-foot">Need more? <a href="../hive-bees/hive-bees.html">Open the card binder</a> or <a href="../hive-mind/hive-mind.html?view=life">go inside the hive</a>.</p>
+    </main>
+
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
+    <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="./bee-care.js"></script>
+</body>
+</html>
