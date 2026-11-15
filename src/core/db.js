@@ -1949,6 +1949,8 @@ function isPcLocalHost() {
     if (location.protocol === 'file:') return true;
     // Nov 1 2026 (Craft): https://localhost with no port is the Android app's own copy, not PC LOCAL.
     if (location.protocol === 'https:' && host === 'localhost' && !location.port) return false;
+    // Nov 15 2026 (Craft): the free beta copy on GitHub Pages is a test copy too (own test save, no cloud).
+    if (host.endsWith('.github.io')) return true;
     return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')
         || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 }

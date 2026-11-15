@@ -1,0 +1,37 @@
+# Free beta copy (Nov 15 2026, Craft). Every push to the `beta` branch publishes the app to
+# GitHub Pages, with no Netlify build. Address: https://craftwho.github.io/Bizzybee_App/
+# It runs as a test copy (own test save, no sign-in, no cloud), so it can't touch real data.
+# One-time setup: repo Settings > Pages > Source: "GitHub Actions". Note: Pages on a PRIVATE
+# repo needs a paid GitHub plan (Pro or higher).
+name: Beta copy
+on:
+  push:
+    branches: [beta]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency: { group: pages, cancel-in-progress: true }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: '${{ steps.deployment.outputs.page_url }}' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Copy only the app files
+        run: |
+          node -e "
+          import('./tools/app-files.mjs').then(async m => {
+            const fs = await import('node:fs'), path = await import('node:path');
+            const files = m.listAppFiles('.');
+            for (const f of files) { const rel = f.path || f.file || f; fs.mkdirSync(path.dirname('_site/' + rel), { recursive: true }); fs.copyFileSync(rel, '_site/' + rel); }
+            console.log(files.length + ' files');
+          });"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+      - id: deployment
+        uses: actions/deploy-pages@v4
