@@ -18,6 +18,7 @@ import { createHash } from 'node:crypto';
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json } from '../lib/cloud-store.mjs';
 import { withCors } from '../lib/cors.mjs';
+import { notify } from '../lib/discord.mjs';
 
 // Nov 9 2026 (Craft): open from Oct 30 until Nov 16 end of day Eastern (05:00 UTC Nov 17).
 export const EDITIONS = {
@@ -38,7 +39,7 @@ async function countTaken(s, edition) {
     return n;
 }
 
-export async function handle(req, { s = store(), user, creator = isCreator(user), now = Date.now() } = {}) {
+export async function handle(req, { s = store(), user, creator = isCreator(user), now = Date.now(), env = process.env, fetchImpl = fetch } = {}) {
     let body;
     try { body = await req.json(); } catch { return json({ ok: false, error: 'Bad request.' }, 400); }
     const action = body.action;
@@ -85,6 +86,8 @@ export async function handle(req, { s = store(), user, creator = isCreator(user)
         else for (let n = 2; n <= ed.of && !serial; n++) if (await tryTake(n)) serial = n;
         if (!serial) return json({ ok: false, error: `All ${ed.of} have been claimed.`, left: 0 }, 410);
         await s.setJSON(mineKey, { serial, at: new Date(now).toISOString() });
+        const left = Math.max(0, ed.of - await countTaken(s, body.edition));
+        await notify('logs', { title: '🐝 Grimzy claimed', text: `#${pad(serial)} of ${ed.of}${creator ? ' (creator)' : ''}. ${left} left.`, fields: [['Account', String(user.id).slice(0, 8)]], color: 0xff2d78 }, { env, fetchImpl });
         return json({ ok: true, serial, left: Math.max(0, ed.of - await countTaken(s, body.edition)) });
     }
 

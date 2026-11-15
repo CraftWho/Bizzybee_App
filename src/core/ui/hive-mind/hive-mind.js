@@ -48,7 +48,7 @@ const WAGGLE_MENU = [
 // Hold a page in this menu to pin it to Home (or take it off). Home's edit
 // mode can remove tiles, add any page with ＋, and Reset Home. Saved as
 // state.homeTiles { hidden: [keys], extra: [keys] } so it follows the save.
-const HOME_DEFAULT_TILES = ['hive-mind', 'models', 'honey-store', 'skills', 'map', 'dashboard', 'profile', 'plugin-hub', 'hive-archive', 'notifications', 'settings'];
+const HOME_DEFAULT_TILES = ['hive-mind', 'hive-life', 'models', 'honey-store', 'skills', 'map', 'dashboard', 'profile', 'plugin-hub', 'hive-archive', 'notifications', 'settings'];
 const HomeTiles = {
     keyOf: (path) => path.split('#')[0].split('/').pop().replace(/\.html$/, ''),
     state() {

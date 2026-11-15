@@ -14,6 +14,7 @@ import { getStore } from '@netlify/blobs';
 import { authenticatedUser } from '../lib/auth.mjs';
 import { json } from '../lib/cloud-store.mjs';
 import { withCors } from '../lib/cors.mjs';
+import { notify } from '../lib/discord.mjs';
 
 export const PAIR_MINUTES = 10;
 export const MAX_INBOX = 100;
@@ -44,7 +45,7 @@ export function cleanGames(g) {
     })).filter(x => x.appid);
 }
 
-export async function handle(req, { s = store(), user = null, now = Date.now() } = {}) {
+export async function handle(req, { s = store(), user = null, now = Date.now(), env = process.env, fetchImpl = fetch } = {}) {
     let body = {};
     if (req.method === 'POST') { try { body = await req.json(); } catch { return json({ ok: false, error: 'Bad request' }, 400); } }
     const a = body.action;
@@ -99,6 +100,7 @@ export async function handle(req, { s = store(), user = null, now = Date.now() }
         const p = await s.get(`pending/${body.code}`, { type: 'json' });
         if (!p || !p.pollKey || now - p.at > PAIR_MINUTES * 60000) return json({ ok: false, error: 'This code expired. Show a new one on the Deck.' }, 410);
         await s.setJSON(`pending/${body.code}`, { ...p, userId: user.id, name: clip(body.name, 40) || 'Steam Deck' });
+        await notify('logs', { title: '🎮 Deck linked', text: `${clip(body.name, 40) || 'Steam Deck'} was linked to an account.`, fields: [['Account', String(user.id).slice(0, 8)]], color: 0x3ddc84 }, { env, fetchImpl });
         return json({ ok: true });
     }
     if (a === 'push-snapshot') { await s.setJSON(`snap/${user.id}`, cleanSnapshot(body.snapshot)); return json({ ok: true }); }
@@ -117,6 +119,7 @@ export async function handle(req, { s = store(), user = null, now = Date.now() }
         const list = (await s.get(`devices/${user.id}`, { type: 'json' })) || [];
         for (const d of list) if (d.h) await s.delete(`dev/${d.h}`);
         await s.setJSON(`devices/${user.id}`, []);
+        await notify('logs', { title: '🎮 Deck unlinked', text: `${list.length} Deck${list.length === 1 ? '' : 's'} unlinked.`, fields: [['Account', String(user.id).slice(0, 8)]], color: 0x888888 }, { env, fetchImpl });
         return json({ ok: true });
     }
     return json({ ok: false, error: 'Unknown action.' }, 400);

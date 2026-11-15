@@ -42,6 +42,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (site !== '/') opts.mode = 'no-cors';
             const r = await fetch(site, opts);
             if (site === '/' && !r.ok) throw new Error('http-' + r.status);
+            // Nov 2026 (Craft): a copy goes to the developer's Discord (netlify/functions/report.mjs).
+            // Best effort: the form above is the one that must work.
+            try {
+                const kind = $('sp-topic').value.startsWith('Something') ? 'bug' : 'other';
+                const logs = $('sp-logs') && $('sp-logs').checked && window.BBLog ? window.BBLog.get() : [];
+                await fetch((window.BB_SITE || '') + '/.netlify/functions/report', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kind, message: `${$('sp-topic').value}: ${msg}`, page: $('sp-page').value, app: $('sp-app').value, logs }), signal: AbortSignal.timeout(8000) });
+            } catch { /* the form already went out */ }
             try { localStorage.setItem('bb_support_email', mail); } catch { /* fine */ }
             form.hidden = true; form.style.display = 'none';
             $('sp-sent-mail').textContent = mail;
