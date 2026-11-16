@@ -2,6 +2,24 @@
 
 Known problems that are **not fixed**. Newest first.
 
+## Eve is off and can't reach Ollama on the PC (Nov 16 2026)
+
+**Status:** open, saved for later. Eve works on the PC browser only for now. The phone app uses the Eve skill instead (see `eve-add-quest`).
+
+**What was checked on the PC**
+- Ollama is the AMD AI bundle build (`...\AMD\ai_bundle\ollama\`). Its app opens on an Apps launcher, not a chat. It had stopped; opening the app brought it back.
+- It answers at `localhost:11434` and still has `qwen2.5:7b-instruct`. No new model is needed.
+- Chrome's "Local network access" for the BizzyBee site is now allowed.
+- A real request from the BizzyBee page still fails, so Ollama is refusing the site's address.
+
+**Steps to finish (for later)**
+1. In PowerShell: `setx OLLAMA_ORIGINS "https://bizzybeee.netlify.app,http://localhost:*"`
+2. Quit Ollama from the tray icon, then open it again from the Start menu.
+3. Rerun the check from the site (`fetch('http://localhost:11434/api/tags')` should list the model).
+4. Leave Ollama's "Expose Ollama to the network" switch off. It opens Ollama to the whole Wi-Fi.
+5. Then build, after approval: the new Eve and Adam persona, a Settings address field with a Test button that names the cause, Eve on for the PC only (`EEVEE_PAUSED` in `src/core/ui/llm-engine/llm-engine.js` hides "Chat with Eve" while true), and the live hive summary for her prompt.
+6. Data plan chosen: manual export plus `workshop/eve-notes.md`, the live hive summary, and a weekly Discord drop box.
+
 ## Web reminders and notifications — removed, not solved (Oct 31 2026)
 
 **Status:** open. Reminders only ring in the Android app (phone alarms, `src/core/services/native/native.js`).
