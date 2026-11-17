@@ -1787,7 +1787,9 @@ const RAID_ENEMIES = [
 // frac = keep one decimal (hourly changes like +0.2 add up); shown rounded.
 const clampVital = (n, frac) => Math.max(0, Math.min(100, frac ? Math.round(n * 10) / 10 : Math.round(n)));
 const isoLocalDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const lifeRand = () => Math.random();
+// Nov 17 2026 (Craft): while forecasting (hiveForecast) nothing is left to chance: no lucky free meals, no new sickness.
+let LIFE_FORECAST = false;
+const lifeRand = () => (LIFE_FORECAST ? 0.99 : Math.random());
 
 // Stable 1-in-10 for bees that existed before Hive Life, so a reload never
 // changes anyone's sex. A bee that already has a job stays female (only
@@ -1865,7 +1867,7 @@ function broodDaysLeft(bee, today = todayISO(), nurses = 0) {
 }
 // What pops out of a bee: happy (has a job, all good), sad (hungry, tired
 // or hurt), upset (no job for LIFE.idleUpsetDays+), calm (no job yet).
-function beeFeeling(bee, today = todayISO()) {
+function beeFeeling(bee, today = todayISO(), nowMs = Date.now()) {
     const L = bee && bee.life;
     if (!L) return { key: 'calm', face: '🙂', why: 'Doing fine' };
     if (L.hatchOn) return { key: 'egg', face: '🥚', why: 'Still an egg' };
@@ -1882,7 +1884,7 @@ function beeFeeling(bee, today = todayISO()) {
         return { key: 'asleep', face: '😴', why: 'Sleeping and healing' + (left ? ' (' + left + ')' : '') };
     }
     if (L.stamina != null && L.stamina < 10) return { key: 'asleep', face: '😴', why: `Too tired to work (⚡${Math.round(L.stamina)})` };
-    if (L.cafeAt && L.fullness >= CAFE.below && Date.now() - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return { key: 'eating', face: '😋', why: 'Eating at the Cafeteria' };
+    if (L.cafeAt && L.fullness >= CAFE.below && nowMs - Date.parse(L.cafeAt) >= 0 && nowMs - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return { key: 'eating', face: '😋', why: 'Eating at the Cafeteria' };
     const hurt = beeHurtLevel(bee);
     if (hurt) return { key: 'sad', face: HURT_LEVELS[hurt].icon, why: HURT_LEVELS[hurt].label + (hurt === 3 ? ', can\'t work' : '') };
     if (out === 'resting') return { key: 'calm', face: '😴', why: 'Exhausted, resting' };
@@ -6249,7 +6251,7 @@ Object.assign(DatabaseManager.prototype, {
     _lifeEvent(type, text, extra = {}) {
         const c = this.state.hive;
         if (!Array.isArray(c.lifeEvents)) c.lifeEvents = [];
-        c.lifeEvents.unshift({ id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, at: new Date().toISOString(), type, text, ...extra });
+        c.lifeEvents.unshift({ id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, at: (this._fcAt || new Date()).toISOString(), type, text, ...extra });
         c.lifeEvents = c.lifeEvents.slice(0, LIFE.eventsKept);
     },
     _addMaterial(id, n = 1) {
@@ -6611,6 +6613,62 @@ Object.assign(DatabaseManager.prototype, {
         this._autoSwapHour();   // Nov 1 2026 (Craft)
         this.saveQuiet();   // Oct 31 2026 (Craft): the clock isn't an edit
         return hours;
+    },
+
+    // Nov 17 2026 (Craft): HIVE FORECAST. Plays the hive forward on a COPY of the save, hour by hour, with the
+    // same rules as the real hourly step (vitals, meals, Nursery, resting, auto-manage and auto-swap).
+    // Nothing is random and nothing is saved, so the real hive is never touched. Returns the moments that
+    // matter, in time order, for the phone alerts and the status bar:
+    //   { from, to, events: [{ at, beeId, name, kind, face, why }], honeyOutAt }
+    // kinds: hungry, tired, worn, sick, hurt, rest (starts resting), rested, ate, faint, swap, healed, idle, honey-out.
+    hiveForecast(hours = 24, now = Date.now()) {
+        if (!this.state || !this.state.hive) return { from: new Date(now).toISOString(), to: new Date(now).toISOString(), events: [], honeyOutAt: null };
+        const HOUR = 3600000;
+        const realState = this.state;
+        const out = { from: new Date(now).toISOString(), to: new Date(now + hours * HOUR).toISOString(), events: [], honeyOutAt: null };
+        const kindOf = (f, b) => ({ upset: 'idle', fainted: 'faint', asleep: 'rest', eating: 'ate' })[f.key] || (f.key === 'sad' ? (/Hungry/.test(f.why) ? 'hungry' : /Tired|Worn/.test(f.why) ? (/Worn/.test(f.why) ? 'worn' : 'tired') : /Sick/.test(f.why) ? 'sick' : /hurt/i.test(f.why) ? 'hurt' : 'sad') : f.key === 'calm' && /Nursery/.test(f.why) ? 'bed' : null);
+        try {
+            this.state = JSON.parse(JSON.stringify(realState));
+            LIFE_FORECAST = true;
+            const hv = this.state.hive;
+            const start = hv.vitalsAt || now;
+            const last = {};
+            const feel = (b, at) => beeFeeling(b, isoLocalDate(at), at.getTime());
+            this._lifeBees().forEach(b => { last[b.id] = feel(b, new Date(Math.max(start, now))).key; });
+            const total = Math.ceil((now + hours * HOUR - start) / HOUR);
+            let honeyWas = hv.honey;
+            for (let k = 1; k <= total; k++) {
+                const at = new Date(start + k * HOUR);
+                this._fcAt = at;
+                const evBefore = (hv.lifeEvents || []).length;
+                this._lifeHour(at);
+                this._autoManageHour();
+                this._autoSwapHour();
+                if (at.getTime() <= now) { this._lifeBees().forEach(b => { last[b.id] = feel(b, at).key; }); honeyWas = hv.honey; continue; }   // already happened (the real tick applies it)
+                const t = at.toISOString();
+                this._lifeBees().forEach(b => {
+                    const f = feel(b, at);
+                    if (f.key !== last[b.id]) {
+                        const kind = kindOf(f, b);
+                        if (kind) out.events.push({ at: t, beeId: b.id, name: b.name, kind, face: f.face, why: f.why });
+                        last[b.id] = f.key;
+                    }
+                });
+                (hv.lifeEvents || []).slice(0, Math.max(0, (hv.lifeEvents || []).length - evBefore)).forEach(e => {
+                    if (e.type === 'auto') out.events.push({ at: t, beeId: e.beeId || null, name: '', kind: 'swap', face: '🔄', why: e.text.replace(/^[^\w]+/, '') });
+                    else if (e.type === 'rested') out.events.push({ at: t, beeId: e.beeId || null, name: '', kind: 'rested', face: '✨', why: e.text.replace(/^[^\w]+/, '') });
+                    else if (e.type === 'heal') out.events.push({ at: t, beeId: e.beeId || null, name: '', kind: 'healed', face: '💗', why: e.text.replace(/^[^\w]+/, '') });
+                });
+                if (honeyWas > 0 && hv.honey <= 0 && !out.honeyOutAt) { out.honeyOutAt = t; out.events.push({ at: t, beeId: null, name: '', kind: 'honey-out', face: '🍯', why: 'The stored honey runs out. Hungry bees cannot eat.' }); }
+                honeyWas = hv.honey;
+            }
+        } finally {
+            LIFE_FORECAST = false;
+            this._fcAt = null;
+            this.state = realState;
+        }
+        out.events.sort((a, z) => a.at.localeCompare(z.at));
+        return out;
     },
 
     _lifeHour(at) {
