@@ -6355,6 +6355,13 @@ Object.assign(DatabaseManager.prototype, {
     _autoReady(b) {
         return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery;
     },
+    // Nov 16 2026 (Craft): a bee on Recuperate is ready to go back to work once its stamina reaches
+    // the "Return at" %, for every resting bee (also the ones set to rest by hand). Needs Auto-swap on.
+    _returnReady(b) {
+        if (!b.life || !b.life.recuperate || b.class || beeIsBrood(b) || !this.autoSwapUnlocked()) return false;
+        const P = this.autoSwapPrefs();
+        return P.on && beeCanWork(b) && b.life.stamina >= P.returnPct && b.life.health >= 50 && !b.life.nursery && !b.life.sickUntil;
+    },
     // Nov 3 2026 (Craft): "filled" = open jobs with at least one bee.
     hiveAutoStatus() {
         if (!this.state || !this.state.hive) return null;
@@ -6364,7 +6371,7 @@ Object.assign(DatabaseManager.prototype, {
         const filled = fillable.filter(j => this.jobHolder(j)).length;
         const leader = this.hiveLeader();
         // A tired worker with nobody free to take its place pauses it.
-        const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b));
+        const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && (this._autoReady(b) || this._returnReady(b)));
         const stuck = open.flatMap(j => this.jobHolders(j)).find(b => b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
         const on = !!(this.state.hive.autoManage && this.state.hive.autoManage.on);
         return { on, running: on && !!leader && !stuck, leader, stuck, open: fillable.length, filled };
@@ -6389,7 +6396,8 @@ Object.assign(DatabaseManager.prototype, {
     autoSwapPrefs() {
         const c = this.state && this.state.hive;
         const a = (c && c.autoSwap) || {};
-        return { on: a.on !== false, pct: Math.max(10, Math.min(60, Number(a.pct) || 30)), mode: a.mode === 'pick' ? 'pick' : 'auto', pool: Array.isArray(a.pool) ? a.pool : [] };
+        // Nov 16 2026 (Craft): returnPct = how rested a resting bee must be (stamina) before auto sends it back to work. 100 = fully rested.
+        return { on: a.on !== false, pct: Math.max(10, Math.min(60, Number(a.pct) || 30)), returnPct: Math.max(50, Math.min(100, Number(a.returnPct) || 100)), mode: a.mode === 'pick' ? 'pick' : 'auto', pool: Array.isArray(a.pool) ? a.pool : [] };
     },
     setAutoSwap(patch) {
         if (!this.state || !this.state.hive) return null;
@@ -6404,13 +6412,15 @@ Object.assign(DatabaseManager.prototype, {
         const notes = [];
         this.hiveOpenJobs().forEach(j => this.jobHolders(j).forEach(h => {
             if (h.life.stamina >= P.pct || beeLockedJob(h)) return;
-            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && b.life.stamina >= P.pct + 20 && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
+            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
             h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true;   // Nov 9 2026 (Craft): resting = recuperating, not upset
+            const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft): came back from resting
+            delete pick.life.recuperate;
             pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince;
             this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
-            const text = `🔄 ${pick.name} took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
+            const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
             this._lifeEvent('auto', text, { beeId: pick.id });
             notes.push(text);
         }));
@@ -6423,12 +6433,14 @@ Object.assign(DatabaseManager.prototype, {
         this.hiveOpenJobs().forEach(j => {
             // Nov 3 2026 (Craft): fill every open slot, not just the first.
             let gap = this.jobSlots(j) - this.jobHolders(j).length;
-            const picks = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && this.beeFitsJob(b, j))
+            const picks = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && (this._autoReady(b) || this._returnReady(b)) && this.beeFitsJob(b, j))
                 .sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
             for (const pick of picks) {
                 if (gap-- <= 0) break;
+                const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft)
+                delete pick.life.recuperate;
                 pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
-                const text = `🐝 ${pick.name} took the ${BEE_CLASSES[j].label} job.`;
+                const text = `🐝 ${pick.name} ${returned ? 'returned from resting and ' : ''}took the ${BEE_CLASSES[j].label} job.`;
                 this._lifeEvent('auto', text, { beeId: pick.id });
                 notes.push(text);
             }
