@@ -98,6 +98,20 @@ public class BeeWebPlugin extends Plugin {
         return sb.toString();
     }
 
+    /** A page with the script Netlify adds at the end taken off, or null if it has none. */
+    private static byte[] stripNetlifyScript(byte[] data) {
+        try {
+            String t = new String(data, StandardCharsets.ISO_8859_1);
+            int i = t.lastIndexOf("<script async id=\"netlify-rum-container\"");
+            if (i < 0) return null;
+            int end = t.indexOf("</script>", i);
+            if (end < 0) return null;
+            end += "</script>".length();
+            if (end < t.length() && t.charAt(end) == '\n') end++;
+            return (t.substring(0, i) + t.substring(end)).getBytes(StandardCharsets.ISO_8859_1);
+        } catch (Exception e) { return null; }
+    }
+
     /** Only plain relative paths inside the app folder. */
     private static boolean safePath(String rel) {
         return rel != null && !rel.isEmpty() && !rel.startsWith("/") && !rel.contains("..") && !rel.contains("\\") && !rel.contains(":");
@@ -159,7 +173,14 @@ public class BeeWebPlugin extends Plugin {
                     }
                     if (data == null) {
                         data = get(site + "/" + encodePath(rel) + "?v=" + URLEncoder.encode(version, "UTF-8"));
-                        if (!hash.equals(sha256(data))) throw new Exception("File check failed: " + rel);
+                        // Nov 17 2026 (Craft): Netlify's Real User Monitoring adds a <script> to the end of every
+                        // page it serves, so the file no longer matched its fingerprint and every update failed.
+                        // Take that script off and check again; the saved copy is the original page.
+                        if (!hash.equals(sha256(data))) {
+                            byte[] clean = stripNetlifyScript(data);
+                            if (clean != null && hash.equals(sha256(clean))) data = clean;
+                            else throw new Exception("File check failed: " + rel);
+                        }
                         downloaded++;
                     }
                     File out = new File(tmp, rel);
