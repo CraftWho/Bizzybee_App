@@ -6428,7 +6428,8 @@ Object.assign(DatabaseManager.prototype, {
     },
     _autoManageHour() {
         const st = this.hiveAutoStatus();
-        if (!st || !st.running) return [];
+        // Nov 17 2026 (Craft): one tired worker with no spare only pauses the display, it no longer stops rested bees filling the other open jobs.
+        if (!st || !st.on || !st.leader) return [];
         const notes = [];
         this.hiveOpenJobs().forEach(j => {
             // Nov 3 2026 (Craft): fill every open slot, not just the first.
