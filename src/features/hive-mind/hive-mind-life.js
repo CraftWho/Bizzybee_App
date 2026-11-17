@@ -44,8 +44,8 @@ const HiveLife = (() => {
         const L = bee.life || {};
         if (L.faintedAt) return 'fainted';
         if (L.nursery) return 'nursery';
+        if (L.recuperate || (L.stamina != null && L.stamina < 10)) return 'rest';   // Nov 17 2026: sleeping beats a meal eaten earlier
         if (L.cafeAt && Date.now() - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return 'cafeteria';
-        if (L.recuperate || (L.stamina != null && L.stamina < 10)) return 'rest';
         if (!bee.class) return 'nojob';
         return ZONE_ROOM[zoneOf(bee)] || 'rest';
     };
@@ -64,7 +64,7 @@ const HiveLife = (() => {
         setTimeout(() => p.remove(), 2300);
     }
     // Who gets a face this round: every unhappy bee, some happy ones.
-    const wantsFace = (f) => f.key === 'sad' || f.key === 'upset' || (f.key === 'happy' && Math.random() < 0.4);
+    const wantsFace = (f) => f.key === 'sad' || f.key === 'upset' || ((f.key === 'happy' || f.key === 'asleep' || f.key === 'eating') && Math.random() < 0.4);
 
     // ---- the comb ----------------------------------------------------------
     function mountComb(host, { bees, onBeeClick, onChange }) {
