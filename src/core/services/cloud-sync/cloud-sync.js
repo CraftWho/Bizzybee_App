@@ -306,10 +306,48 @@ const CloudSyncAuto = (() => {
         if (document.querySelector('.lvr, .gfx.on, dialog[open], .pj-sheet-bg:not([hidden]), .dc-sheet-bg:not([hidden])')) return;
         try { if (await refreshFromCloud() === 'updated') window.location.reload(); } catch {}
     });
-    netlifyIdentity.on('init', start);
-    netlifyIdentity.on('login', start);
-    netlifyIdentity.on('logout', () => { ready = false; accountId = null; clearTimeout(timer); });
+    // ---- Keep the cloud login (Nov 17 2026, Craft) ----
+    // The login library (gotrue-js) deletes the saved login whenever refreshing it fails, even
+    // for a short network drop after the phone wakes. That is why Cloud "logged out" by itself.
+    // Fix: keep a copy of the saved login; if a refresh fails for a network/server reason, put it
+    // back; if the phone is offline, don't try the refresh at all. A real rejection (400/401) is
+    // left alone, so a truly expired login still asks you to sign in again.
+    const GT = 'gotrue.user', GT_BK = 'bizzybee_gotrue_backup', GT_EVT = 'bizzybee_cloud_event';
+    const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
+    const cloudEvent = msg => lsSet(GT_EVT, JSON.stringify({ at: new Date().toISOString(), msg }));
+    const backupLogin = () => { const v = lsGet(GT); if (v) lsSet(GT_BK, v); };
+    const restoreLogin = () => { const b = lsGet(GT_BK); if (b && !lsGet(GT)) { lsSet(GT, b); return true; } return false; };
+    const transientAuthError = e => !e || typeof e.status !== 'number' || e.status >= 500;
+    function guardLogin(user) {
+        const proto = user && Object.getPrototypeOf(user);
+        if (!proto || proto.bbGuarded || typeof proto.jwt !== 'function') return;
+        const orig = proto.jwt;
+        proto.bbGuarded = true;
+        proto.jwt = function (force) {
+            let d = null;
+            try { d = this.tokenDetails(); } catch { /* none */ }
+            const needsRefresh = force || !d || d.expires_at - 60000 < Date.now();
+            if (needsRefresh && navigator.onLine === false) { cloudEvent('Offline, so the cloud login was kept for later.'); return Promise.reject(new Error('You are offline. Cloud will reconnect when you are back online.')); }
+            backupLogin();
+            return orig.call(this, force).then(token => { backupLogin(); return token; }, err => {
+                if (transientAuthError(err)) { if (restoreLogin()) cloudEvent('Network problem while renewing the cloud login. Login kept.'); else cloudEvent('Network problem while renewing the cloud login.'); }
+                else cloudEvent('Cloud login was rejected (' + err.status + '). Sign in again.');
+                throw err;
+            });
+        };
+    }
+    // A login that was already lost (but backed up): bring it back before anything reads it.
+    if (!netlifyIdentity.currentUser() && lsGet('bizzybee_session') === 'identity' && restoreLogin()) {
+        if (netlifyIdentity.currentUser()) cloudEvent('Cloud login restored after it dropped.');
+        else { try { localStorage.removeItem(GT); } catch { /* fine */ } }
+    }
+    guardLogin(netlifyIdentity.currentUser());
+    setInterval(backupLogin, 60000);
+    netlifyIdentity.on('init', user => { guardLogin(user); start(user); });
+    netlifyIdentity.on('login', user => { guardLogin(user); backupLogin(); start(user); });
+    netlifyIdentity.on('logout', () => { try { localStorage.removeItem(GT_BK); } catch { /* fine */ } ready = false; accountId = null; clearTimeout(timer); });
     netlifyIdentity.init();
-    if (netlifyIdentity.currentUser()) start(netlifyIdentity.currentUser());
+    if (netlifyIdentity.currentUser()) { guardLogin(netlifyIdentity.currentUser()); start(netlifyIdentity.currentUser()); }
     return { request, isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, isInactive: () => inactive, continueHere, deviceId, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule, refreshFromCloud };
 })();
