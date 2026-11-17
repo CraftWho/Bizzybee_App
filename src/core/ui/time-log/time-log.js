@@ -1,15 +1,18 @@
 // "How long did it take?" (Oct 2026). Pops up after you check off a Daily,
 // To-Do, Quest task or good Habit, so XP and skill hours use your real
-// minutes. Skip = the planned time counts. Loaded on every app page by
-// app.js (loadTimeLog). Turn it off in Settings > Time tracking.
+// minutes. Loaded on every app page by app.js (loadTimeLog).
+// Nov 7 2026 (Craft; approved demo v2): it always asks now. Save = real time
+// (Vault.timeLog, toward 10,000 hours). "Fill in later" (or closing it) puts
+// the check-off on a red-dot list: XP still counts, real time waits until
+// you add the minutes. No more "Stop asking".
 const TimeLog = (() => {
     const OFF_KEY = 'bizzybee_ask_time';      // 'off' = never ask
     const HABIT_MIN = 10;                     // quick habits (under 10 min) never ask
-    let open = null;
+    let open = null, laterFn = null;
 
     const fmt = (m) => m >= 60 ? `${+(m / 60).toFixed(m % 60 ? 1 : 0)} h` : `${m} min`;
     const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const enabled = () => localStorage.getItem(OFF_KEY) !== 'off';
+    const enabled = () => true;   // Nov 7 2026 (Craft): always on
 
     function find(kind, id, questId) {
         const s = Vault.state || {};
@@ -54,8 +57,8 @@ const TimeLog = (() => {
                 <div class="tl-step"><button type="button" data-d="-5" aria-label="5 minutes less">−</button><b aria-live="polite">${fmt(m)}</b><button type="button" data-d="5" aria-label="5 minutes more">+</button></div>
                 <div class="tl-chips">${[5, 15, 30, 45, 60, 90, 120].map(x => `<button type="button" data-x="${x}" class="${x === m ? 'on' : ''}">${fmt(x)}</button>`).join('')}</div>
                 <div class="tl-gain">+<b>${xpForMinutes(m, task.difficulty)} XP</b>${skills.length ? ` · <b>+${fmt(m)}</b> to ${skills.map(esc).join(', ')}` : ''}</div>
-                <div class="tl-btns"><button type="button" class="tl-skip" data-skip>Skip (${fmt(planned)})</button><button type="button" class="tl-save" data-save>Save</button></div>
-                <button type="button" class="tl-never" data-never>Stop asking (turn back on in Settings)</button>`;
+                <div class="tl-btns"><button type="button" class="tl-skip" data-skip>Fill in later</button><button type="button" class="tl-save" data-save>Log time</button></div>
+                <p class="tl-later">Fill in later: XP counts now, real hours wait on your 🔴 list.</p>`;
         };
         draw();
         sheet.addEventListener('click', (e) => {
@@ -70,25 +73,29 @@ const TimeLog = (() => {
                     window.dispatchEvent(new CustomEvent('time-logged', { detail: { kind, id, minutes: m } }));
                 }
                 close();
-            } else if (b.hasAttribute('data-skip')) close();
-            else if (b.hasAttribute('data-never')) {
-                localStorage.setItem(OFF_KEY, 'off');
-                if (typeof Toast !== 'undefined') Toast.show('Okay - planned times will count. Turn it back on in Settings.', 'positive');
-                close();
-            }
+            } else if (b.hasAttribute('data-skip')) later();
         });
-        wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+        // Closing without logging = fill in later.
+        const later = () => {
+            if (typeof Vault.timeLater === 'function' && Vault.timeLater(kind, id, { questId }) && typeof Toast !== 'undefined')
+                Toast.show('🔴 Saved for later. Add its minutes from the menu.', 'neutral');
+            window.dispatchEvent(new CustomEvent('time-logged', { detail: { kind, id, later: true } }));
+            close();
+        };
+        laterFn = later;
+        wrap.addEventListener('click', (e) => { if (e.target === wrap) later(); });
         document.addEventListener('keydown', onKey);
         document.body.appendChild(wrap);
         open = wrap;
         const save = sheet.querySelector('[data-save]');
         if (save) save.focus({ preventScroll: true });
     }
-    function onKey(e) { if (e.key === 'Escape') close(); }
+    function onKey(e) { if (e.key === 'Escape') { if (laterFn) laterFn(); else close(); } }
     function close() {
         if (open) { open.remove(); open = null; }
+        laterFn = null;
         document.removeEventListener('keydown', onKey);
     }
 
-    return { ask, close, enabled, setEnabled(on) { localStorage.setItem(OFF_KEY, on ? 'on' : 'off'); } };
+    return { ask, close, enabled, setEnabled() { /* Nov 7 2026 (Craft): always on */ } };
 })();

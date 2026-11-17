@@ -231,9 +231,11 @@ const BizzyPhone = (() => {
                 Vault.toggleDailyTask(t.id);
                 toast(`👟 ${total.toLocaleString()} steps! "${t.label}" is done.`, 'positive');
             });
+            const goalHit = typeof Vault.stepGoalTick === 'function' ? Vault.stepGoalTick(day) : null;
+            if (goalHit) toast(`👟 Step goal reached! ${goalHit.xp ? `+${goalHit.xp} XP, +${goalHit.minutes} min Fitness & Health. ` : ''}${goalHit.gave.map(g => `${g.icon} ${g.qty} ${g.name}`).join(' · ')}`, 'positive');
             const hatched = typeof Vault.incubatorTick === 'function' ? Vault.incubatorTick() : 0;   // steps warm the Egg Incubator
             if (hatched) toast(`🥚 Your steps took a day off ${hatched} egg${hatched === 1 ? '' : 's'} in the incubator.`);
-            if (before !== total || hatched) Vault.save();
+            if (before !== total || hatched || goalHit) Vault.save();
             return total;
         },
     };

@@ -153,7 +153,7 @@ function renderHiveMindStats() {
     const user = Vault.getUser() || {};
     host.innerHTML = `<span><b>⭐ ${user.level || 1}</b><small>Level</small></span>
         <span><b>🐝 ${bees.length - eggs}</b><small>${eggs ? `+${eggs} egg${eggs === 1 ? '' : 's'}` : 'Bees'}</small></span>
-        <a href="../hive-bees/hive-bees.html?show=help" class="${help ? 'is-warn' : ''}"><b>${help ? '😢' : '😊'} ${help}</b><small>Need help</small></a>`;
+        <a href="../bee-care/bee-care.html" class="${help ? 'is-warn' : ''}"><b>${help ? '😢' : '😊'} ${help}</b><small>Need help</small></a>`;
 }
 
 // Hive Life faces over the bees flying outside (😊 / 😢 / 😠).
@@ -208,6 +208,8 @@ function openHiveBeeCard(bee) {
 
 // ---- Hive Life vs Classic (Oct 2026) ----------------------------------
 const HIVE_MIND_VIEW_KEY = 'bizzybee_hive_view';
+// Nov 13 2026 (Craft): the Home shortcut opens Hive Life (?view=life), even if you last used Classic.
+try { if (new URLSearchParams(location.search).get('view') === 'life') localStorage.setItem(HIVE_MIND_VIEW_KEY, 'life'); } catch { /* storage off */ }
 let hiveMindLifeView = null;
 function hiveMindHiveView() {
     try { return localStorage.getItem(HIVE_MIND_VIEW_KEY) === 'classic' ? 'classic' : 'life'; } catch { return 'life'; }
@@ -430,6 +432,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             hiveMindShowInside();
         }, 1150);
     });
+
+    // Nov 13 2026 (Craft): the Home shortcut (?view=life) goes straight inside.
+    try { if (new URLSearchParams(location.search).get('view') === 'life') setTimeout(() => document.getElementById('enter-hive-btn').click(), 600); } catch { /* ignore */ }
 
     document.getElementById('leave-hive-btn').addEventListener('click', () => {
         if (hiveMindInterior) { hiveMindInterior.destroy(); hiveMindInterior = null; }

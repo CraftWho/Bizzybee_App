@@ -123,3 +123,10 @@
   from = "/suggestions.html"
   to = "/src/features/suggestions/suggestions.html"
   status = 301
+
+# Nov 15 2026 (Craft): only the main branch deploys to Netlify. Test branches (like
+# `beta`, which GitHub Pages serves for free) and pull requests never cost credits.
+[context.branch-deploy]
+  ignore = "exit 0"
+[context.deploy-preview]
+  ignore = "exit 0"

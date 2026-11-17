@@ -247,6 +247,10 @@ textarea.ta:focus{outline:none;border-color:var(--honey)}
 .practice-bar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border-radius:999px;
  background:rgba(18,18,20,.9);border:1px solid #3a3326;color:#c9c5ba;font-size:.78rem;white-space:nowrap}
 .practice-bar[hidden]{display:none}
+/* Nov 7 2026 (Craft): Batch 23. Small gold-outline link, top left (the dev badge and tools button use the top right), black inside. */
+.recover-link{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;z-index:50;padding:6px 10px;border-radius:999px;background:#000;border:1px solid #6e4806;color:var(--bb-t-mid, #e8c25a);font-size:.72rem;text-decoration:none;letter-spacing:.02em}
+.recover-link[hidden]{display:none}
+.recover-link:focus-visible{outline:2px solid var(--bb-t-hi, #ffd76a);outline-offset:2px}
 .practice-bar b{color:var(--bb-t-hi, #ffd76a)}
 .practice-bar button{font:inherit;font-size:.75rem;padding:4px 10px;border-radius:999px;border:1px solid #6e4806;background:transparent;color:var(--bb-t-mid, #e8c25a);cursor:pointer}
 

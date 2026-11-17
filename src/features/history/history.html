@@ -25,12 +25,24 @@
             <h1 class="pv2-title">🕘 HISTORY</h1>
             <p class="pv2-lead">Everything you finished, day by day. Tap one to open it.</p>
         </header>
+        <!-- Nov 7 2026 (Craft; approved demo v2): Archive of deleted tasks + a change log that can't be edited -->
+        <div class="hi-tabs" role="tablist"><button type="button" class="hi-tab" role="tab" data-tab="days" aria-selected="true">Days</button><button type="button" class="hi-tab" role="tab" data-tab="archive" aria-selected="false">Archive <small id="hi-arc-n"></small></button><button type="button" class="hi-tab" role="tab" data-tab="log" aria-selected="false">Change log</button></div>
+        <div id="hi-v-days">
         <section class="card hi-day">
             <button type="button" class="hi-nav" id="hi-prev" aria-label="Day before">‹</button>
             <div class="hi-mid"><b id="hi-date"></b><small id="hi-total"></small></div>
             <button type="button" class="hi-nav" id="hi-next" aria-label="Day after">›</button>
         </section>
         <section class="card"><ul class="hi-list" id="hi-list"></ul></section>
+        </div>
+        <div id="hi-v-archive" hidden>
+            <p class="hi-note">Deleted habits, dailies, To-Dos and quests, with their whole history. Their real time stays counted. Restore puts one back on your lists, where you can edit it.</p>
+            <div id="hi-archive" class="hi-arc-list"></div>
+        </div>
+        <div id="hi-v-log" hidden>
+            <p class="hi-note">Every uncheck, edit, delete, restore and late fill-in that touched your stats. It can't be edited or cleared. ⚑ = a big change after the fact.</p>
+            <ul class="hi-log" id="hi-log"></ul>
+        </div>
     </main>
 
     <script src="../../core/boot.js"></script>

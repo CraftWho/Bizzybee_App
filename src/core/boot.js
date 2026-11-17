@@ -25,7 +25,7 @@
     const me = document.currentScript;
     const core = me.src.replace(/boot\.js(?:\?.*)?$/, '');
     const STYLES = ['global.css', 'ui/themes/themes.css', 'ui/hive-mind/hive-mind.css', 'ui/hive-mind/nano-bee.css', 'ui/toast/toast.css', 'ui/llm-engine/llm-engine.css', 'ui/thumb-pad/thumb-pad.css'];   // Nov 1 2026 (Craft): + thumb pad
-    const before = ['db.js', 'plugins.js', 'services/notify/notify.js'];
+    const before = ['services/log-buffer/log-buffer.js', 'db.js', 'plugins.js', 'services/notify/notify.js'];
     const after = ['app.js', 'ui/themes/themes.js', 'services/social/social.js', 'ui/skill-merge/skill-merge.js', 'ui/hive-mind/nano-bee.js', 'ui/hive-mind/hive-mind.js', 'ui/toast/toast.js', 'ui/llm-engine/llm-engine.js', 'ui/thumb-pad/thumb-pad.js'];
     const extra = (me.dataset.with || '').split(/\s+/).filter(Boolean);
     // Themes (Oct 28 2026): set the theme before anything paints, so there's

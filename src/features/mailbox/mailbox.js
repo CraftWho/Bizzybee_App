@@ -6,15 +6,20 @@ const when = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'shor
 const ago = (at) => { const m = Math.round((Date.now() - at) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`; };
 let seenBefore = {};
 
-// Nov 1 2026 (Craft): Craft's Halloween letter, the default for gifts.
+// Nov 1 2026 (Craft): Craft's Halloween letter, the default for gifts. Nov 10: reworded for the late release.
 const GIFT_LETTER = `Happy Halloween! 🎃
 
-Thank you for being one of the very first Hive in BizzyBee. Happy Halloween! A gift for you.
+Sorry this is late. Your Halloween bee never made it out on the day, and that was my miss.
 
-Craft 🐝`;
+Thank you for being one of the very first in BizzyBee. This is Grimzy, a numbered bee made only for you. There are just 50 in the whole world.
+
+Take care of it. 🐝
+
+Craft`;
 
 // Your gifts waiting to be added (Grimzy...). Tap to open.
 function renderGifts() {
+    renderClaim();
     const box = $('mb-gifts');
     const list = typeof Gifts !== 'undefined' ? Gifts.cached() : [];
     // Nov 1 2026 (Craft): items friends sent from the Honey Mart, as letters with the item attached.
@@ -35,6 +40,20 @@ function renderGifts() {
         try { const r = await Social.acceptGift(t.dataset.take); const it = STORE_ITEM_CATALOG.find(x => x.id === r.item); Toast.show(`🎁 ${it ? it.label : 'Gift'} is in your Bag.`, 'positive'); renderGifts(); }
         catch (err) { Toast.show(err.message || 'Could not take it.', 'negative'); t.disabled = false; t.textContent = 'Take'; }
     };
+}
+
+// Nov 9 2026 (Craft): Grimzy is open to claim again for everyone signed in, one each.
+// It closes on Nov 16 or when all 50 are taken. Shown at the top of the Mailbox.
+async function renderClaim() {
+    const box = $('mb-claim');
+    if (!box || typeof Gifts === 'undefined' || localStorage.getItem('bizzybee_session') !== 'identity') return;
+    let r;
+    try { r = await Gifts.claimInfo(); } catch { box.innerHTML = ''; return; }
+    if (r.mine) { box.innerHTML = `<article class="bb-box mb-letter"><div class="top"><h3 class="bb-title">🎃 Grimzy #${String(r.mine).padStart(3, '0')} is yours</h3></div><small>It is in your hive. Find it in your bees.</small></article>`; return; }
+    if (!r.open) { box.innerHTML = ''; return; }
+    const until = new Date(Date.parse(r.until) - 6 * 3600000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    box.innerHTML = `<button type="button" class="bb-box mb-letter unread mb-giftrow" id="mb-claim-btn"><div class="top"><h3 class="bb-title">🎃 Claim your Grimzy</h3><span class="new">OPEN</span></div><small>A numbered Halloween bee. ${r.left} of 50 left · one each · open until ${until}. Tap to claim.</small></button>`;
+    $('mb-claim-btn').onclick = () => Gifts.open({ edition: 'grimzy-2026', claim: true, from: 'Craft', of: 50, letter: GIFT_LETTER });
 }
 
 let giftFormReady = false;

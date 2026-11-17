@@ -1,5 +1,5 @@
 // HIVE LIFE view (Oct 2026, approved demos). The hive is six combs (rooms):
-// Royal Chamber, Nursery, Honey Store, Workshop, Rest Comb and Entrance.
+// Royal Chamber, Nursery, Honey Factory, Workshop, Cafeteria, Rest Comb, No Job, Fainted and Entrance.
 // Each bee sits on its job's comb (BEE_CLASSES zone in db.js); Foragers and
 // Scouts fly out from the Entrance to the meadow. Tap a comb to manage it:
 // see its bees, change jobs, add resting bees, and pick jobs for eggs that
@@ -8,15 +8,27 @@
 // Up to 3 bees are drawn per comb, then a +N badge. The old inside view
 // stays available as "Classic" (hive-mind.js).
 const HiveLife = (() => {
+    // Nov 10 2026 (Craft): the combs touch like the Skills tree (no gaps). Rows of 3-2-3-1. Each cell is 32% wide,
+    // odd rows sit half a cell over, rows step 0.75 of a cell height. T(row) = top in the old scale.
+    const YK = 0.853;   // an offset inside a cell, as % of the map height
+    const XK = 32 / 31;  // an offset inside a cell, scaled for the wider cell
+    const XO = (v) => v * XK;
+    const T = (r) => (1 + 19.1 * r) / YK;
     const COMBS = [
-        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34.5, y: 1, text: 'Your Queen lives here.' },
-        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse'], x: 3, y: 17, text: 'New bees start as eggs here. What hatches is a surprise. Nurses speed hatching and healing.' },
-        { id: 'honey', icon: '🍯', name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'], x: 66, y: 17, text: 'Food for the hive. Honey Makers make Honey Drops. Water Carriers keep workers fresh.' },
-        { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner'], x: 34.5, y: 33, text: 'Comb Builders add quest loot. Cleaners soften lost raids.' },
-        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 3, y: 49, text: 'Recuperating bees, bees with no job, and fainted bees. Recuperating bees eat, sleep and heal slowly. Bees with no job get upset after 3 days.' },
-        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 66, y: 49, text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' }
+        { id: 'royal', icon: '👑', name: 'Royal Chamber', jobs: ['attendant', 'drone'], x: 34, y: T(0), text: 'Your Queen lives here.' },
+        { id: 'nursery', icon: '🥚', name: 'Nursery', jobs: ['nurse', 'rescue'], x: 2, y: T(0), text: 'New bees start as eggs here. Nurses speed hatching and healing. The Rescue Team carries hurt and sick bees to a bed.' },
+        { id: 'honey', icon: '🍯', name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'], x: 66, y: T(0), text: 'Honey Makers make Honey Drops and stored honey. Fanners dry nectar faster. Water Carriers keep workers fresh.' },
+        { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'], x: 50, y: T(1), text: 'Comb Builders add quest loot. Wax Makers raise the loot limit. Cleaners soften lost raids.' },
+        { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 18, y: T(1), text: 'Recuperating bees sleep and heal slowly. They do not eat here, and they do not get hungrier. When fully healed they move to No Job.' },
+        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 66, y: T(2), text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' },
+        { id: 'cafeteria', icon: '🍽️', name: 'Cafeteria', jobs: ['receiver'], x: 34, y: T(2), text: 'Hungry bees walk here, eat, and go back to what they were doing. Each meal costs stored honey. Receivers keep it cheap.' },
+        { id: 'nojob', icon: '🪧', name: 'No Job', jobs: [], x: 2, y: T(2), text: 'Healed bees with no job wait here. With Auto-manage on, they go back to work when a job opens. Bees get upset after 3 days without work.' },
+        { id: 'fainted', icon: '😵', name: 'Fainted', jobs: [], x: 18, y: T(3), text: 'Bees that fainted. They wake by themselves after 2 days, or a Nurse wakes one a day. Tap one to revive it faster.' }
     ];
-    const ZONE_ROOM = { royal: 'royal', brood: 'nursery', honey: 'honey', comb: 'workshop', entrance: 'entrance', outside: 'entrance' };
+    // Nov 9 2026 (Craft): the map has 9 combs now, so it is taller. Every y below is
+    // written on the old scale and scaled by YK.
+    const Y = (v) => v * YK;
+    const ZONE_ROOM = { royal: 'royal', brood: 'nursery', honey: 'honey', comb: 'workshop', entrance: 'entrance', outside: 'entrance', cafe: 'cafeteria' };
     const CAP = 3;
     const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const rand = (a, b) => a + Math.random() * (b - a);
@@ -25,7 +37,18 @@ const HiveLife = (() => {
         const info = BEE_CLASSES[bee.class];
         return info && info.zone ? info.zone : 'rest';
     };
-    const roomOf = (bee) => beeIsBrood(bee) ? 'nursery' : (ZONE_ROOM[zoneOf(bee)] || 'rest');
+    // Nov 9 2026 (Craft): where a bee is right now. Fainted, in a Nursery bed, at the
+    // Cafeteria (a meal in the last CAFE.stayMin minutes), recuperating, no job, or at work.
+    const roomOf = (bee) => {
+        if (beeIsBrood(bee)) return 'nursery';
+        const L = bee.life || {};
+        if (L.faintedAt) return 'fainted';
+        if (L.nursery) return 'nursery';
+        if (L.cafeAt && Date.now() - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return 'cafeteria';
+        if (L.recuperate || (L.stamina != null && L.stamina < 10)) return 'rest';
+        if (!bee.class) return 'nojob';
+        return ZONE_ROOM[zoneOf(bee)] || 'rest';
+    };
     const nurseCount = () => Vault._workers('nurse').length;
     const jobsFor = (bee, list = Object.keys(BEE_CLASSES)) => list.filter(j => !!BEE_CLASSES[j].maleOnly === (bee.sex === 'm'));
     const isOut = (bee) => zoneOf(bee) === 'outside';
@@ -79,14 +102,15 @@ const HiveLife = (() => {
             const shown = list.filter(b => !beeIsBrood(b) && !isOut(b));
             const out = list.filter(isOut).length;
             const unhappy = list.filter(b => { const k = beeFeeling(b, today).key; return k === 'sad' || k === 'upset' || k === 'fainted'; }).length;
-            const count = c.id === 'nursery' ? `${shown.length} nurse${shown.length === 1 ? '' : 's'} · ${eggs.length} egg${eggs.length === 1 ? '' : 's'}`
+            const beds = list.filter(b => b.life && b.life.nursery && !beeIsBrood(b)).length;
+            const count = c.id === 'nursery' ? `${shown.length - beds} here · ${eggs.length} egg${eggs.length === 1 ? '' : 's'}${beds ? ` · ${beds} healing` : ''}`
                 : c.id === 'entrance' ? `${shown.length} here${out ? ` · ${out} out` : ''}`
                 : `${shown.length} bee${shown.length === 1 ? '' : 's'}`;
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'hl-cell' + (unhappy ? ' alert' : '');
             btn.dataset.comb = c.id;   // Nov 1 2026 (Craft): each comb has its own color
-            btn.style.left = c.x + '%'; btn.style.top = c.y + '%';
+            btn.style.left = c.x + '%'; btn.style.top = Y(c.y) + '%';
             btn.setAttribute('aria-label', `${c.name}, ${count}${unhappy ? `, ${unhappy} need${unhappy === 1 ? 's' : ''} help` : ''}. Tap to manage.`);
             // Nov 1 2026 (Craft): a comb opens with your level. Locked: a black
             // outline, nothing else. A red dot = an open job with nobody in it.
@@ -95,7 +119,7 @@ const HiveLife = (() => {
                 const lock = document.createElement('div');
                 lock.className = 'hl-cell is-locked';
                 lock.setAttribute('aria-hidden', 'true');
-                lock.style.left = c.x + '%'; lock.style.top = c.y + '%';
+                lock.style.left = c.x + '%'; lock.style.top = Y(c.y) + '%';
                 hive.appendChild(lock);
                 return;
             }
@@ -106,14 +130,14 @@ const HiveLife = (() => {
             btn.addEventListener('click', () => openRoom(c.id, { onBeeClick, onChange }));
             hive.appendChild(btn);
             // Bees wander in the lower half of their comb.
-            const box = [c.x + 8, c.y + 19, c.x + 23, c.y + 25];
-            if (c.id === 'royal') addWalker(null, [c.x + 13, c.y + 19, c.x + 18, c.y + 22], ' is-queen');
-            if (c.id === 'nursery') eggs.slice(0, CAP).forEach((b, i) => addWalker(b, [c.x + 7 + i * 6, c.y + 6, c.x + 7 + i * 6, c.y + 6], ' is-egg'));
+            const box = [c.x + XO(8), Y(c.y + 19), c.x + XO(23), Y(c.y + 25)];
+            if (c.id === 'royal') addWalker(null, [c.x + XO(13), Y(c.y + 19), c.x + XO(18), Y(c.y + 22)], ' is-queen');
+            if (c.id === 'nursery') eggs.slice(0, CAP).forEach((b, i) => addWalker(b, [c.x + XO(7 + i * 6), Y(c.y + 6), c.x + XO(7 + i * 6), Y(c.y + 6)], ' is-egg'));
             shown.slice(0, CAP).forEach(b => addWalker(b, box));
             if (shown.length > CAP) {
                 const more = document.createElement('span');
                 more.className = 'hl-more'; more.textContent = '+' + (shown.length - CAP);
-                more.style.left = (c.x + 24) + '%'; more.style.top = (c.y + 17) + '%';
+                more.style.left = (c.x + XO(24)) + '%'; more.style.top = Y(c.y + 17) + '%';
                 hive.appendChild(more);
             }
         });
@@ -152,10 +176,10 @@ const HiveLife = (() => {
             f.innerHTML = `<span class="hl-b">🐝</span><span class="hl-name">${esc(bee.name)}</span>`;
             f.style.left = rand(5, 90) + '%'; f.style.top = '96%';
             hive.appendChild(f);
-            requestAnimationFrame(() => requestAnimationFrame(() => { f.style.left = (door.x + 15) + '%'; f.style.top = (door.y + 26) + '%'; }));
+            requestAnimationFrame(() => requestAnimationFrame(() => { f.style.left = (door.x + XO(15)) + '%'; f.style.top = Y(door.y + 26) + '%'; }));
             setTimeout(() => {
                 const fe = beeFeeling(bee, todayISO());
-                popFace(hive, wantsFace(fe) && fe.key !== 'happy' ? fe.face : (bee.class === 'scout' ? '💃' : '🌼'), door.x + 13, door.y + 20);
+                popFace(hive, wantsFace(fe) && fe.key !== 'happy' ? fe.face : (bee.class === 'scout' ? '💃' : '🌼'), door.x + XO(13), Y(door.y + 20));
                 f.style.left = rand(5, 90) + '%'; f.style.top = '106%';
                 setTimeout(() => f.remove(), 2300);
             }, 2300);
@@ -197,6 +221,7 @@ const HiveLife = (() => {
             html += `<div class="hl-swap">
                 <div class="hl-swap-row"><b class="hl-swap-t">🔄 Auto-swap</b><button type="button" class="hl-sw" data-swap="toggle" role="switch" aria-checked="${P.on}" aria-label="Auto-swap"><i></i></button></div>
                 ${P.on ? `<div class="hl-swap-row"><span class="hl-swap-l">Swap below</span><input type="range" min="10" max="60" step="5" value="${P.pct}" data-swap="pct" aria-label="Swap a bee out below this stamina"><span class="hl-swap-p">${P.pct}%</span></div>
+                <div class="hl-swap-row"><span class="hl-swap-l">Return at</span><input type="range" min="50" max="100" step="5" value="${P.returnPct}" data-swap="ret" aria-label="A resting bee goes back to work at this stamina"><span class="hl-swap-p">${P.returnPct}%</span></div>
                 <div class="hl-seg"><button type="button" data-swap="auto" aria-pressed="${P.mode === 'auto'}">Automatic</button><button type="button" data-swap="pick" aria-pressed="${P.mode === 'pick'}">I choose</button></div>
                 ${P.mode === 'pick' ? `<div class="hl-pool">${bees.map(b => `<button type="button" class="hl-chip" data-pool="${esc(b.id)}" aria-pressed="${P.pool.includes(b.id)}">${esc(b.name)}</button>`).join('')}</div>` : ''}
                 ${lastLine}` : ''}</div>`;
@@ -212,10 +237,10 @@ const HiveLife = (() => {
             el.replaceWith(autoPanel());
         });
         el.addEventListener('input', (e) => {
-            if (e.target.dataset.swap !== 'pct') return;
+            if (e.target.dataset.swap !== 'pct' && e.target.dataset.swap !== 'ret') return;
             const v = Number(e.target.value);
             e.target.nextElementSibling.textContent = v + '%';
-            Vault.setAutoSwap({ pct: v });
+            Vault.setAutoSwap(e.target.dataset.swap === 'ret' ? { returnPct: v } : { pct: v });   // Nov 16 2026 (Craft): Return at
         });
         return el;
     }
@@ -229,14 +254,25 @@ const HiveLife = (() => {
     function roomStats(c, list) {
         const mats = (Vault.state.inventory && Vault.state.inventory.materials) || {};
         const live = Vault._lifeBees().filter(b => !beeIsBrood(b));
+        // Nov 9 2026 (Craft): the bar here is STORED HONEY (what the Cafeteria spends). Hunger moved to the Cafeteria.
+        const stock = Math.round((Vault.state.hive && typeof Vault.state.hive.honey === 'number') ? Vault.state.hive.honey : HONEY_START);
         if (c.id === 'honey') {
+            const pct = Math.round(stock / HONEY_CAP * 100);
+            const makers = Vault._workers('honeymaker').length, fans = Vault._workers('fanner').length;
+            return `<div class="hl-meter"><span>Stored honey</span><span>${stock}/${HONEY_CAP}</span></div><span class="hl-bar"><i style="width:${pct}%;background:#ffcc00"></i></span>
+                <p class="hl-note">🍯 ${mats['honey-drop'] || 0} Honey Drops · 🌼 ${mats.pollen || 0} Pollen. Honey Makers add 1.5 an hour${makers ? ` (${makers} working)` : ''}, Fanners add 0.75${fans ? ` (${fans} working)` : ''}. Each finished task adds 1 and each day adds ${HONEY_PER_DAY}.</p>`;
+        }
+        if (c.id === 'cafeteria') {
             const full = live.length ? Math.round(live.reduce((n, b) => n + b.life.fullness, 0) / live.length) : 0;
+            const recv = Vault._workers('receiver').length;
+            const diners = list.filter(b => b.life && b.life.cafeAt && roomOf(b) === 'cafeteria').length;
             return `<div class="hl-meter"><span>Hive fullness</span><span>${full}%</span></div><span class="hl-bar"><i style="width:${full}%;background:#ffcc00"></i></span>
-                <p class="hl-note">🍯 ${mats['honey-drop'] || 0} Honey Drops · 🌼 ${mats.pollen || 0} Pollen. Finishing tasks and dailies feeds every bee.</p>`;
+                <p class="hl-note">🍽️ A bee under ${CAFE.below} fullness eats here: +${CAFE.meal} fullness for ${CAFE.cost} stored honey (${stock} left). ${recv ? `${recv} Receiver${recv === 1 ? '' : 's'} working: some meals are free.` : 'A working Receiver makes some meals free.'} ${diners ? `${diners} eating now.` : ''}${stock < 1 ? ' <b>Out of honey!</b> Bees go hungry until the stock fills.' : ''}</p>`;
         }
         if (c.id === 'nursery') {
             const n = nurseCount();
-            return `<p class="hl-note">Eggs take ${LIFE.broodDays} days to hatch${n ? `. A Nurse is working, so it's ${LIFE.broodDays - 1} day` : '. A working Nurse Bee makes it 1 day faster'}.</p>`;
+            const bd = Vault.nurseryBeds();
+            return `<p class="hl-note">Eggs take ${LIFE.broodDays} days to hatch${n ? `. A Nurse is working, so it's ${LIFE.broodDays - 1} day` : '. A working Nurse Bee makes it 1 day faster'}. 🛏️ Beds ${bd.used}/${bd.total}. ${Vault._workers('rescue').length ? 'The Rescue Team is on watch.' : 'A Rescue Team bee would carry hurt bees here by itself.'}</p>`;
         }
         if (c.id === 'royal') {
             const drone = !!(Vault.state.hive && Vault.state.hive.droneBoost);
@@ -244,15 +280,18 @@ const HiveLife = (() => {
             return Vault.hiveOpenJobs().includes('drone') ? `<p class="hl-note">♂️ Drone boost: ${drone ? '<b>ready</b> for your next pull' : 'not yet'}.</p>` : '';
         }
         if (c.id === 'workshop') {
-            const rolls = Math.min(3, Vault._workers('architect').length);
-            return `<p class="hl-note">🔨 Quest loot: +${rolls} roll${rolls === 1 ? '' : 's'} (max 3). ${Vault._workers('cleaner').length ? 'Cleaners are keeping the hive tidy.' : 'No Cleaner yet.'}</p>`;
+            const cap = 3 + Math.min(2, Vault._workers('waxmaker').length);
+            const rolls = Math.min(cap, Vault._workers('architect').length);
+            return `<p class="hl-note">🔨 Quest loot: +${rolls} roll${rolls === 1 ? '' : 's'} (max ${cap}). ${Vault._workers('cleaner').length ? 'Cleaners are keeping the hive tidy.' : 'No Cleaner yet.'}</p>`;
         }
         if (c.id === 'entrance') {
             const def = 15 + Vault._workers('guardian').reduce((n, b) => n + (b.stats.defense || 0) + (b.life.birthTrait === 'iron-shell' ? 10 : 0), 0)
                 + Vault._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4), 0);
             return `<p class="hl-note">🛡️ Raid defense ${def} · ${Math.round(raidChance(Vault.getHiveStreak()) * 100)}% raid risk a day. ${list.filter(isOut).length} out foraging.</p>`;
         }
-        return `<p class="hl-note">Recuperating: +4 stamina and −3 fatigue an hour by day, more asleep at night. Tap a fainted bee to revive it.</p>`;
+        if (c.id === 'nojob') return `<p class="hl-note">Give a bee a job with its menu, or turn on Auto-manage and a job that opens is filled for you. Upset after 3 days without work.</p>`;
+        if (c.id === 'fainted') return `<p class="hl-note">Fainted bees wake by themselves after ${LIFE.wakeDays} days, or a working Nurse wakes one a day. Tap a bee to revive it now.</p>`;
+        return `<p class="hl-note">Recuperating: +4 stamina and −3 fatigue an hour by day, more asleep at night. Fully healed bees move to No Job on their own.</p>`;
     }
 
     // ⭐ = the bee's natural talent (+20% at it). A Named Beast's job is
@@ -278,6 +317,7 @@ const HiveLife = (() => {
         return `<div class="hl-row"><span class="hl-rface" title="${esc(f.key)}">${f.face}</span>
             <button type="button" class="hl-who-btn" data-card="${esc(bee.id)}"><b>${esc(bee.name)}${bee.sex === 'm' ? ' ♂' : ''}${lead && lead.id === bee.id ? ' <span class="wk-lead">🎖 Leader</span>' : ''}</b><small>${esc(f.why)}${where} · 🍯${Math.round(L.fullness ?? 0)} ⚡${Math.round(L.stamina ?? 0)} ❤️${Math.round(L.health ?? 0)}</small></button>
             <button type="button" class="hl-ren" data-ren="${esc(bee.id)}" aria-label="Rename ${esc(bee.name)}">✏️</button>
+            ${!bee.class && Vault.beeMergeStatus && Vault.beeMergeStatus(bee) === 'spare' ? `<a class="hl-ren hl-merge" href="../gacha/gacha.html?pick=${encodeURIComponent(bee.id)}#merge" aria-label="Merge ${esc(bee.name)}">🧬</a>` : ''}${/* Nov 6 2026 (Craft): can't get a job -> merge it */ ''}
             ${jobSelect(bee, jobsFor(bee).filter(j => bee.class === j || !Vault.jobBlock(bee, j)), { mark: c.jobs })}</div>`;   // Nov 1 2026 (Craft): open, talent, free
     }
 
@@ -306,6 +346,12 @@ const HiveLife = (() => {
                 + (typeof Plugins === 'undefined' || Plugins.isEnabled('incubator') ? `<a class="hl-inc-link" href="../../plugins/incubator/incubator.html">🥚 Egg Incubator: hatch eggs faster with your steps ›</a>` : '')
                 : '<p class="hl-note">No eggs right now. New bees from the Pollination Chamber, level-ups and skills start here.</p>';
         }
+        if (id === 'nursery') {
+            const bd = Vault.nurseryBeds();
+            const inBed = list.filter(b => b.life && b.life.nursery);
+            html += `<h3 class="hl-sub">In a bed (${bd.used}/${bd.total})</h3>`;
+            html += inBed.length ? inBed.map(b => beeRow(b, c, today)).join('') : '<p class="hl-note">No beds in use.</p>';
+        }
         // Nov 1 2026 (Craft; approved demo): job slots. One bee per open job,
         // talent only. Locked jobs are black outlines: there's more to find.
         const WC = typeof WorkerCard !== 'undefined' ? WorkerCard : null;
@@ -326,7 +372,7 @@ const HiveLife = (() => {
                 let out = `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="${hs.length ? 'hl-count' : 'hl-empty'}">${hs.length}/${n}</span></h3>${slots}`;
                 out += hs.map(h => {
                     const fresh = ls && ls.in === h.id && ls.job === j && Date.now() - Date.parse(ls.at) < 6 * 3600000;
-                    return WC.html(h, { job: j, action: 'rest', label: 'Rest', leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
+                    return WC.html(h, { job: j, action: 'rest', label: ({ nursery: '🛏️ Heal', cafe: '🍽️ Eat', rest: 'Rest' })[Vault.beeNeed(h)], leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
                 }).join('');
                 if (hs.length >= n) return out;
                 const fits = all.filter(b => !b.class && !beeIsBrood(b) && !(b.life && b.life.faintedAt) && Vault.beeFitsJob(b, j)).sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
@@ -334,9 +380,10 @@ const HiveLife = (() => {
                 return out + (hs.length ? '' : '<p class="hl-note">No bee for this job yet.</p>');
             }).join('');
         } else {
-            html += `<h3 class="hl-sub">${id === 'rest' ? 'Resting' : 'Working here'} (${list.length})</h3>`;
-            html += list.length ? list.map(b => beeRow(b, c, today)).join('') : `<p class="hl-note">${id === 'rest' ? 'Nobody is resting.' : 'No bees here yet.'}</p>`;
-            if (id === 'rest' && list.length > 1) html += `<a class="hl-inc-link" href="../gacha/gacha.html#merge">🧬 Merge spares ›</a>`;   // Nov 3 2026 (Craft)
+            const T = { rest: ['Recuperating', 'Nobody is recuperating.'], nojob: ['Waiting for a job', 'Nobody is waiting. Every bee has work or is resting.'], fainted: ['Fainted', 'Nobody has fainted.'] }[id] || ['Working here', 'No bees here yet.'];
+            html += `<h3 class="hl-sub">${T[0]} (${list.length})</h3>`;
+            html += list.length ? list.map(b => beeRow(b, c, today)).join('') : `<p class="hl-note">${T[1]}</p>`;
+            if (id === 'nojob' && list.length > 1) html += `<a class="hl-inc-link" href="../gacha/gacha.html#merge">🧬 Merge spares ›</a>`;   // Nov 3 2026 (Craft)
         }
         html += '</div>';
 
@@ -385,8 +432,16 @@ const HiveLife = (() => {
         }));
         sheet.querySelectorAll('[data-wk="add"], [data-wk="rest"]').forEach(btn => btn.addEventListener('click', () => {
             const rest = btn.dataset.wk === 'rest';
-            const r = Vault.assignBeeClass(btn.dataset.bee, rest ? null : btn.dataset.job);
-            if (typeof Toast !== 'undefined') Toast.show(r ? (rest ? `💤 ${r.name} is resting.` : `${BEE_CLASSES[btn.dataset.job].icon} ${r.name} is now a ${BEE_CLASSES[btn.dataset.job].label}.`) : (Vault.lastJobError || "That bee can't do that job."), r ? 'positive' : 'negative');
+            if (rest) {   // Nov 10 2026 (Craft): Heal / Eat / Rest, by what the bee needs. Nursery first.
+                const g = Vault.sendBeeToNeed(btn.dataset.bee);
+                if (typeof Toast !== 'undefined') Toast.show(!g ? 'That bee cannot move right now.' : g.to === 'nursery' ? `🛏️ ${g.bee.name} is in a Nursery bed.` : g.to === 'cafe' ? `🍽️ ${g.bee.name} ate at the Cafeteria. ${g.note || ''}`.trim() : `💤 ${g.bee.name} is recuperating. ${g.note || 'It moves to No Job when healed.'}`, g ? 'positive' : 'negative');
+                unlockedToast();
+                if (opts.onChange) opts.onChange();
+                openRoom(id, opts);
+                return;
+            }
+            const r = Vault.assignBeeClass(btn.dataset.bee, btn.dataset.job);
+            if (typeof Toast !== 'undefined') Toast.show(r ? `${BEE_CLASSES[btn.dataset.job].icon} ${r.name} is now a ${BEE_CLASSES[btn.dataset.job].label}.` : (Vault.lastJobError || "That bee can't do that job."), r ? 'positive' : 'negative');
             unlockedToast();
             if (opts.onChange) opts.onChange();
             openRoom(id, opts);
@@ -434,15 +489,19 @@ const HiveLife = (() => {
                 : `<div class="hl-age">Age: ${age} day${age === 1 ? '' : 's'}</div>`}
             ${trait ? `<p class="hl-trait">✨ ${trait.label}: ${trait.text}</p>` : ''}
             ${L.faintedAt ? `<div class="hl-revive"><p><b>😵 Fainted ${faintDays === 0 ? 'today' : faintDays + ' day' + (faintDays === 1 ? '' : 's') + ' ago'}.</b> ${LIFE.deathEnabled ? `After ${LIFE.faintDays} days fainted, ${esc(bee.name)} dies for good.` : `${esc(bee.name)} can't work until revived.`}</p>
-                <button type="button" class="hl-btn solid" data-act="revive"${drops < LIFE.reviveCost ? ' disabled' : ''}>Revive · 🍯 ×${LIFE.reviveCost} Honey Drops</button><small>You have ${drops}.</small></div>` : ''}
+                <button type="button" class="hl-btn solid" data-act="revive"${drops < LIFE.reviveCost ? ' disabled' : ''}>Revive · 🍯 ×${LIFE.reviveCost} Honey Drops</button>
+                <button type="button" class="hl-btn" data-act="revive-pollen"${(mats.pollen || 0) < LIFE.pollenReviveCost ? ' disabled' : ''}>Revive · 🌼 ×${LIFE.pollenReviveCost} Pollen</button>
+                <button type="button" class="hl-btn" data-act="revive-coins"${Vault.getCoins() < LIFE.coinReviveCost ? ' disabled' : ''}>Revive · 🪙 ${LIFE.coinReviveCost} coins</button>
+                ${((Vault.getItems() || {})['wake-tonic'] || 0) > 0 ? '<button type="button" class="hl-btn" data-act="revive-tonic">Use a Wake-up Tonic</button>' : ''}
+                <small>You have ${drops} Honey Drops. It also wakes up by itself after ${LIFE.wakeDays} days, or sooner with a Nurse.</small></div>` : ''}
             ${LIFE.deathEnabled && !L.royalJelly && !L.faintedAt ? `<div class="hl-actions">${jelly > 0 ? `<button type="button" class="hl-btn" data-act="jelly">👑 Give Royal Jelly (${jelly})</button>` : `<button type="button" class="hl-btn" data-act="craft"${drops < LIFE.jellyCost ? ' disabled' : ''}>👑 Make Royal Jelly · 🍯 ×${LIFE.jellyCost}</button>`}</div>` : ''}
             <p class="hl-hint">Finishing tasks feeds your bees. A good daily streak makes them happy.</p>
         </div>`;
         host.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const act = btn.dataset.act;
-            const r = act === 'revive' ? Vault.reviveBee(bee.id) : act === 'jelly' ? Vault.giveRoyalJelly(bee.id) : Vault.craftRoyalJelly();
-            if (typeof Toast !== 'undefined') Toast.show(r.ok ? (act === 'revive' ? `💛 ${bee.name} is back on ${bee.sex === 'm' ? 'his' : 'her'} feet.` : act === 'jelly' ? `👑 ${bee.name} will live far longer now.` : '👑 Royal Jelly made.') : r.error, r.ok ? 'positive' : 'negative');
+            const r = act.startsWith('revive') ? Vault.reviveBee(bee.id, act === 'revive' ? 'drops' : act.slice(7)) : act === 'jelly' ? Vault.giveRoyalJelly(bee.id) : Vault.craftRoyalJelly();
+            if (typeof Toast !== 'undefined') Toast.show(r.ok ? (act.startsWith('revive') ? `💛 ${bee.name} is back on ${bee.sex === 'm' ? 'his' : 'her'} feet.` : act === 'jelly' ? `👑 ${bee.name} will live far longer now.` : '👑 Royal Jelly made.') : r.error, r.ok ? 'positive' : 'negative');
             const fresh = Vault.getHiveBees().find(b => b.id === bee.id);
             renderPanel(host, fresh, onChange);
             if (onChange) onChange();

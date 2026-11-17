@@ -20,3 +20,5 @@
 .sp-sent b { font: 700 1.05rem var(--font-main, monospace); color: #57d18a; }
 .sp-sent p { margin: 0; color: var(--muted); }
 .sp-foot { margin: 14px 4px; font-size: .78rem; color: var(--muted); }
+.spv .sp-logs { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 8px; font-size: .78rem; color: var(--muted, #b3a583); }
+.spv .sp-logs input { margin-top: 2px; }

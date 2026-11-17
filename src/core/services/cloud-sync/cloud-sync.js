@@ -254,6 +254,22 @@ const CloudSyncAuto = (() => {
             accountId = null;
         }
     }
+    // Nov 11 2026 (Craft): Steam Deck companion. Only runs once a Deck is linked (Vault.deckLinked),
+    // so an account with no Deck makes no extra calls. Every 2 minutes while the app is on screen:
+    // apply check-offs from the Deck, read its game data, and refresh the task list it shows.
+    let deckHash = '';
+    async function deckTick() {
+        if (!ready || inactive || document.visibilityState !== 'visible' || !sameAccount() || !Vault.deckLinked || !Vault.deckLinked()) return;
+        try {
+            const r = await request('deck', { action: 'inbox' });
+            if (r.events && r.events.length) { Vault.deckApply(r.events); await request('deck', { action: 'ack', eids: r.events.map(e => e.eid) }); }
+            if (r.games && r.games.games) Vault.deckApplyGames(r.games.games);
+            const snap = Vault.deckSnapshot(), h = JSON.stringify(snap);
+            if (h !== deckHash) { await request('deck', { action: 'push-snapshot', snapshot: snap }); deckHash = h; }
+        } catch { /* try again next time */ }
+    }
+    setInterval(deckTick, 120000);
+    window.addEventListener('cloud-sync-ready', () => setTimeout(deckTick, 3000));
     window.addEventListener('vault-saved', schedule);
     window.addEventListener('online', () => ready ? schedule() : start(netlifyIdentity.currentUser()));
     // Recover pending uploads after page navigation and transient connection errors.
@@ -283,7 +299,8 @@ const CloudSyncAuto = (() => {
     }
     let hiddenAt = 0;
     document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+        // Nov 10 2026 (Craft): leaving the app sends unsent changes right away (a phone can freeze the app before the timer fires).
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); if (enabled() && dirty() && ready && !inactive) pushNow(); return; }
         if (enabled() && dirty()) { pushNow(); return; }
         if (!enabled() || Date.now() - hiddenAt < 20000) return;
         if (document.querySelector('.lvr, .gfx.on, dialog[open], .pj-sheet-bg:not([hidden]), .dc-sheet-bg:not([hidden])')) return;
@@ -294,5 +311,5 @@ const CloudSyncAuto = (() => {
     netlifyIdentity.on('logout', () => { ready = false; accountId = null; clearTimeout(timer); });
     netlifyIdentity.init();
     if (netlifyIdentity.currentUser()) start(netlifyIdentity.currentUser());
-    return { isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, isInactive: () => inactive, continueHere, deviceId, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule, refreshFromCloud };
+    return { request, isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, isInactive: () => inactive, continueHere, deviceId, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule, refreshFromCloud };
 })();
