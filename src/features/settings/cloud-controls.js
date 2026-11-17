@@ -167,6 +167,28 @@ function deviceRecoveryEntries() {
     if (legacy && Vault.storageKey !== 'bizzybee_user_data' && localStorage.getItem('bizzybee_legacy_owner') === localStorage.getItem('bizzybee_cloud_owner')) entries.push({ id: 'previous-device-save', reason: 'Device save from before cloud account separation', data: legacy });
     return entries;
 }
+// Nov 17 2026 (Craft): each copy says what is in it, so you can tell level 13 from level 11 before you restore.
+function backupLabel(item) {
+    const m = item.meta;
+    const what = m ? ` · Level ${m.level} · ${Number(m.xp).toLocaleString()} XP · ${m.bees} bees` : '';
+    return `${item.protect ? '🛡 ' : ''}${item.reason}${what}${item.createdAt ? ' · ' + new Date(item.createdAt).toLocaleString() : ''}`;
+}
+function metaOfRaw(raw) { try { return Vault.backupMeta(JSON.parse(raw)); } catch { return null; } }
+function deviceRestore(getData, label) {
+    return async () => {
+        const raw = await getData();
+        if (!raw) throw new Error('That copy could not be read.');
+        const m = metaOfRaw(raw);
+        const now = Vault.backupMeta(Vault.state || {});
+        const msg = `Restore this copy${m ? ` (Level ${m.level}, ${Number(m.xp).toLocaleString()} XP)` : ''}? ${now ? `This device is now at Level ${now.level} (${Number(now.xp).toLocaleString()} XP) and that is saved first. ` : ''}Cloud auto uploads will pause so you can review it.`;
+        if (!confirm(msg)) return;
+        try { Vault.createLocalBackup('Before restoring: ' + label, { protect: true }); } catch { /* full: the copy being restored stays */ }
+        localStorage.setItem('bizzybee_auto_sync', 'false');
+        const result = Vault.importFullState(raw, { backup: false });
+        if (!result.ok) throw new Error(result.error);
+        window.location.reload();
+    };
+}
 function renderDeviceBackups() {
     const list = document.getElementById('local-backup-list');
     list.replaceChildren();
@@ -174,18 +196,13 @@ function renderDeviceBackups() {
     try { entries = deviceRecoveryEntries(); } catch { list.textContent = 'Recovery list could not be read.'; return; }
     if (!entries.length) list.textContent = 'No device recovery copies yet.';
     for (const item of entries) {
+        if (!item.meta) item.meta = metaOfRaw(item.data);
         const row = document.createElement('div'); row.className = 'settings-action-row';
-        const label = document.createElement('span'); label.textContent = `${item.reason}${item.createdAt ? ' · ' + new Date(item.createdAt).toLocaleString() : ''}`;
+        const label = document.createElement('span'); label.textContent = backupLabel(item);
         const download = document.createElement('button'); download.textContent = 'Export';
         download.onclick = () => downloadFile(item.data, 'bizzybee-device-recovery.json', 'application/json');
         const restore = document.createElement('button'); restore.textContent = 'Restore';
-        restore.onclick = () => settingsAction(restore, async () => {
-            if (!confirm('Restore this device copy? Cloud auto uploads will pause so you can review it.')) return;
-            localStorage.setItem('bizzybee_auto_sync', 'false');
-            const result = Vault.importFullState(item.data);
-            if (!result.ok) throw new Error(result.error);
-            window.location.reload();
-        });
+        restore.onclick = () => settingsAction(restore, deviceRestore(async () => item.data, item.reason));
         row.append(label, download, restore); list.append(row);
         if (item.id !== 'previous-device-save') {
             const remove = document.createElement('button'); remove.textContent = 'Remove';
@@ -196,10 +213,63 @@ function renderDeviceBackups() {
             row.append(remove);
         }
     }
+    renderAutoBackups();
+    renderBackupHealth();
+}
+async function renderAutoBackups() {
+    const list = document.getElementById('auto-backup-list');
+    if (!list) return;
+    let copies = [];
+    try { copies = await Vault.listAutoBackups(); } catch (error) { list.textContent = 'Automatic copies could not be read: ' + error.message; return; }
+    list.replaceChildren();
+    if (!copies.length) { list.textContent = 'No automatic copies yet. The first one is made shortly after the app opens.'; return; }
+    for (const item of copies) {
+        const row = document.createElement('div'); row.className = 'settings-action-row';
+        const label = document.createElement('span'); label.textContent = backupLabel(item);
+        const download = document.createElement('button'); download.textContent = 'Export';
+        download.onclick = () => settingsAction(download, async () => downloadFile(await Vault.getAutoBackupData(item.id), 'bizzybee-auto-copy.json', 'application/json'));
+        const restore = document.createElement('button'); restore.textContent = 'Restore';
+        restore.onclick = () => settingsAction(restore, deviceRestore(() => Vault.getAutoBackupData(item.id), 'automatic copy'));
+        row.append(label, download, restore); list.append(row);
+    }
+}
+// One line per kind of backup: working, or what is wrong (Nov 17 2026, Craft).
+async function renderBackupHealth() {
+    const host = document.getElementById('backup-health');
+    if (!host) return;
+    const h = Vault.backupHealth(), now = Date.now(), lines = [];
+    const ago = iso => { if (!iso) return 'never'; const m = Math.round((now - Date.parse(iso)) / 60000); return m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; };
+    const add = (ok, text) => lines.push(`${ok ? '✅' : '⚠️'} ${text}`);
+    const autoAt = Vault.autoBackupLastAt();
+    if (h.autoErr) add(false, `Automatic copy failed: ${h.autoErr}`);
+    else if (!autoAt) add(false, 'Automatic copies: none yet (the first is made shortly after the app opens).');
+    else add(now - autoAt < 14 * 3600000, `Automatic copy (every 12 h): last ${ago(new Date(autoAt).toISOString())}.`);
+    if (h.safetyErr) add(false, `Device copy failed: ${h.safetyErr}`);
+    else add(true, `Device copies before changes: last ${ago(h.safetyAt)}.`);
+    const synced = localStorage.getItem(Vault.storageKey + ':syncedAt');
+    const signedIn = localStorage.getItem('bizzybee_session') === 'identity';
+    if (!signedIn) add(false, 'Cloud: not signed in, so nothing is backed up to the cloud.');
+    else if (localStorage.getItem('bizzybee_auto_sync') === 'false') add(false, 'Cloud: automatic uploads are off.');
+    else add(!!synced, `Cloud: last saved ${ago(synced)}.`);
+    if (typeof FolderBackup !== 'undefined') {
+        try {
+            const st = await FolderBackup.status();
+            if (!st.supported) add(false, 'Save folder: this browser cannot pick one. The Android app can (coming).');
+            else if (!st.connected) add(false, 'Save folder: none chosen.');
+            else add(st.permission === 'granted', st.permission === 'granted' ? `Save folder: ${st.name}.` : `Save folder: ${st.name} needs permission again.`);
+        } catch { /* skip */ }
+    }
+    host.innerHTML = lines.map(l => `<div class="settings-action-row"><span>${l}</span></div>`).join('');
 }
 function initDeviceBackups() {
     document.getElementById('local-backup-btn').onclick = event => settingsAction(event.currentTarget, async () => { Vault.createLocalBackup(); renderDeviceBackups(); updateLocalOnlyTimestamp(); });
     document.getElementById('local-backup-refresh-btn').onclick = renderDeviceBackups;
+    const nowBtn = document.getElementById('auto-backup-now-btn');
+    if (nowBtn) nowBtn.onclick = event => settingsAction(event.currentTarget, async () => {
+        const r = await Vault.autoBackupNow({ force: true, reason: 'Copy Now' });
+        if (!r.ok) throw new Error('Could not make the copy: ' + r.error);
+        renderAutoBackups(); renderBackupHealth();
+    });
     renderDeviceBackups();
     updateLocalOnlyTimestamp();
 }

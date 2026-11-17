@@ -97,7 +97,18 @@ const CloudSyncAuto = (() => {
     // Load the cloud copy here, then make this the active device.
     async function claim(result, { reload = true } = {}) {
         const changed = !!result.data && result.revision !== revision;
-        if (changed && dirty()) { try { Vault.createLocalBackup('This device before switching'); } catch { /* full: cloud copy still wins */ } }
+        // Nov 17 2026 (Craft): ALWAYS keep this device's copy before the cloud copy replaces it (it used to
+        // happen only when "unsent changes" was flagged, and the copy shared 3 slots with everything else).
+        // It is a protected copy, and a notice after the reload says what was replaced.
+        if (changed) {
+            try {
+                const mine = Vault.backupMeta(JSON.parse(localStorage.getItem(Vault.storageKey) || 'null') || {});
+                const theirs = Vault.backupMeta(JSON.parse(result.data));
+                Vault.createLocalBackup('This device before the cloud copy replaced it', { protect: true });
+                const id = (Vault.getLocalBackups()[0] || {}).id;
+                if (mine && theirs && mine.xp !== theirs.xp) localStorage.setItem('bizzybee_cloud_switch_notice', JSON.stringify({ at: new Date().toISOString(), id, device: mine, cloud: theirs }));
+            } catch { /* full or unreadable: the cloud copy still wins, as before */ }
+        }
         if (changed) {
             const imported = Vault.importFullState(result.data, { fromCloud: true, backup: false });
             if (!imported.ok) throw new Error(imported.error);
@@ -270,6 +281,25 @@ const CloudSyncAuto = (() => {
     }
     setInterval(deckTick, 120000);
     window.addEventListener('cloud-sync-ready', () => setTimeout(deckTick, 3000));
+    // After the cloud copy replaced this device's save, say so and offer a way back (Nov 17 2026, Craft).
+    window.addEventListener('cloud-sync-ready', () => setTimeout(() => {
+        let n = null;
+        try { n = JSON.parse(localStorage.getItem('bizzybee_cloud_switch_notice') || 'null'); localStorage.removeItem('bizzybee_cloud_switch_notice'); } catch { /* none */ }
+        if (!n || typeof Toast === 'undefined') return;
+        const lv = m => `Level ${m.level} · ${m.xp.toLocaleString()} XP`;
+        const useDevice = async () => {
+            const entry = Vault.getLocalBackups().find(b => b.id === n.id);
+            if (!entry) { Toast.show('That device copy is no longer in Backups.', 'negative'); return; }
+            try {
+                const r = Vault.importFullState(entry.data);
+                if (!r.ok) throw new Error(r.error);
+                await useDeviceCopy();
+                Toast.show('Your device copy is now the cloud copy. The old cloud copy is in Backups.', 'positive');
+                setTimeout(() => window.location.reload(), 1200);
+            } catch (e) { Toast.show(e.message || 'Could not switch back.', 'negative'); }
+        };
+        Toast.show(`Cloud loaded: ${lv(n.cloud)}. This device had ${lv(n.device)} and it is saved in Backups.`, n.device.xp > n.cloud.xp ? 'negative' : 'neutral', { ms: 20000, action: { label: 'Use device copy', onClick: useDevice } });
+    }, 1500));
     window.addEventListener('vault-saved', schedule);
     window.addEventListener('online', () => ready ? schedule() : start(netlifyIdentity.currentUser()));
     // Recover pending uploads after page navigation and transient connection errors.

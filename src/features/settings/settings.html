@@ -176,9 +176,14 @@
                     <div class="row"><span class="mid"><b>Import full save</b><small>Replaces everything on this device. Enter the file's PIN above first.</small><small id="import-full-save-hint-display" class="status" hidden></small></span><button id="import-full-save-btn" class="btn danger" type="button">Import</button></div>
                     <input type="file" id="import-full-save-input" class="file-input" aria-label="Save file to import">
                     <div class="row"><span class="mid"><b>Import history file</b><small>Old progress, like the Codex Career Terminal. Nothing is replaced.</small><small id="history-import-status" class="status" role="status" aria-live="polite"></small></span><button id="history-import-btn" class="btn" type="button">Import</button><input type="file" id="history-import-file" accept=".json,application/json" hidden></div>
-                    <div class="row"><span class="mid"><b>Device recovery copies</b><small>Up to 3 quick copies on this device</small></span></div>
+                    <div class="row"><span class="hx">🩺</span><span class="mid"><b>Backup health</b><small>Is every kind of backup working?</small></span></div>
+                    <div id="backup-health" class="list" role="status" aria-live="polite"></div>
+                    <div class="row"><span class="mid"><b>Device recovery copies</b><small>Up to 6 copies before changes, plus 5 protected copies made before the cloud replaces this device's save</small></span></div>
                     <div class="btns"><button id="local-backup-btn" class="btn" type="button">Make a Copy</button><button id="local-backup-refresh-btn" class="btn" type="button">Show Copies</button></div>
                     <div id="local-backup-list" class="list"></div>
+                    <div class="row"><span class="mid"><b>Automatic copies (every 12 hours)</b><small>The last 14 are kept on this device, about a week</small></span></div>
+                    <div class="btns"><button id="auto-backup-now-btn" class="btn" type="button">Copy Now</button></div>
+                    <div id="auto-backup-list" class="list"></div>
                 </div>
             </details>
         </section>
