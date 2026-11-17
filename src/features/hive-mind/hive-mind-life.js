@@ -221,6 +221,7 @@ const HiveLife = (() => {
             html += `<div class="hl-swap">
                 <div class="hl-swap-row"><b class="hl-swap-t">🔄 Auto-swap</b><button type="button" class="hl-sw" data-swap="toggle" role="switch" aria-checked="${P.on}" aria-label="Auto-swap"><i></i></button></div>
                 ${P.on ? `<div class="hl-swap-row"><span class="hl-swap-l">Swap below</span><input type="range" min="10" max="60" step="5" value="${P.pct}" data-swap="pct" aria-label="Swap a bee out below this stamina"><span class="hl-swap-p">${P.pct}%</span></div>
+                <div class="hl-swap-row"><span class="hl-swap-l">Return at</span><input type="range" min="50" max="100" step="5" value="${P.returnPct}" data-swap="ret" aria-label="A resting bee goes back to work at this stamina"><span class="hl-swap-p">${P.returnPct}%</span></div>
                 <div class="hl-seg"><button type="button" data-swap="auto" aria-pressed="${P.mode === 'auto'}">Automatic</button><button type="button" data-swap="pick" aria-pressed="${P.mode === 'pick'}">I choose</button></div>
                 ${P.mode === 'pick' ? `<div class="hl-pool">${bees.map(b => `<button type="button" class="hl-chip" data-pool="${esc(b.id)}" aria-pressed="${P.pool.includes(b.id)}">${esc(b.name)}</button>`).join('')}</div>` : ''}
                 ${lastLine}` : ''}</div>`;
@@ -236,10 +237,10 @@ const HiveLife = (() => {
             el.replaceWith(autoPanel());
         });
         el.addEventListener('input', (e) => {
-            if (e.target.dataset.swap !== 'pct') return;
+            if (e.target.dataset.swap !== 'pct' && e.target.dataset.swap !== 'ret') return;
             const v = Number(e.target.value);
             e.target.nextElementSibling.textContent = v + '%';
-            Vault.setAutoSwap({ pct: v });
+            Vault.setAutoSwap(e.target.dataset.swap === 'ret' ? { returnPct: v } : { pct: v });   // Nov 16 2026 (Craft): Return at
         });
         return el;
     }
