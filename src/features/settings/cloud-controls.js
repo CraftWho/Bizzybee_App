@@ -20,6 +20,11 @@ function initCloudSync() {
     });
     const show = user => {
         if (localStorage.getItem('bizzybee_session') !== 'identity') user = null;
+        // Nov 17 2026 (Craft): why the cloud login last dropped or was kept (see cloud-sync.js).
+        try {
+            const ev = JSON.parse(localStorage.getItem('bizzybee_cloud_event') || 'null'), el = document.getElementById('cloud-last-event');
+            if (ev && el) { el.textContent = 'Last cloud login event: ' + ev.msg + ' (' + new Date(ev.at).toLocaleString() + ')'; el.hidden = false; }
+        } catch { /* fine */ }
         document.getElementById('cloud-sync-signed-out').hidden = !!user;
         document.getElementById('cloud-sync-signed-in').hidden = !user;
         if (!user) return;
