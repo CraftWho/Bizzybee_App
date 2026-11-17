@@ -132,7 +132,9 @@ test('comb rooms: faces - happy, sad when lacking, upset after 3 days with no jo
         bee('ok', { sex: 'f', class: 'cleaner', life: life({}) }),
         bee('hungry', { sex: 'f', class: 'cleaner', life: life({ fullness: 20 }) }),
         bee('idle', { sex: 'f', life: life({ idleSince: daysAgo(4) }) }),
-        bee('new-idle', { sex: 'f', life: life({ idleSince: today }) })
+        bee('new-idle', { sex: 'f', life: life({ idleSince: today }) }),
+        bee('resting', { sex: 'f', life: life({ stamina: 12, fullness: 20, recuperate: true }) }),
+        bee('ate', { sex: 'f', class: 'cleaner', life: life({ cafeAt: new Date().toISOString() }) })
     ], tickets: 0, lifeTick: today } });
     await h.vault.init();
     const feel = (id) => h.g('beeFeeling')(h.vault.getHiveBees().find(b => b.id === id)).key;
@@ -140,6 +142,8 @@ test('comb rooms: faces - happy, sad when lacking, upset after 3 days with no jo
     assert.equal(feel('hungry'), 'sad');
     assert.equal(feel('idle'), 'upset');
     assert.equal(feel('new-idle'), 'calm');
+    assert.equal(h.g('beeFeeling')(h.vault.getHiveBees().find(b => b.id === 'resting')).face, '😴');   // resting bees sleep, even when tired and hungry
+    assert.equal(h.g('beeFeeling')(h.vault.getHiveBees().find(b => b.id === 'ate')).face, '😋');
     h.vault.assignBeeClass('idle', 'cleaner');
     assert.equal(feel('idle'), 'happy');
 });

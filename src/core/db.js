@@ -1875,12 +1875,18 @@ function beeFeeling(bee, today = todayISO()) {
     const out = beeOutOfAction(bee, today);
     if (out === 'nursery') return { key: 'calm', face: '🛏️', why: 'In the Nursery' };
     if (out === 'sick') return { key: 'sad', face: '🤒', why: 'Sick' };
+    // Nov 17 2026 (Craft): a bee on Recuperate shows the sleeping face, even when it is tired or
+    // hungry (that is why it is resting). A bee that just ate at the Cafeteria shows the eating face.
+    if (L.recuperate || (L.stamina != null && L.stamina < 10)) {
+        const left = [L.stamina < 100 && `⚡${Math.round(L.stamina)}`, L.health < 100 && `❤️${Math.round(L.health)}`].filter(Boolean).join(' ');
+        return { key: 'asleep', face: '😴', why: 'Sleeping and healing' + (left ? ' (' + left + ')' : '') };
+    }
+    if (L.cafeAt && Date.now() - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return { key: 'eating', face: '😋', why: 'Eating at the Cafeteria' };
     const hurt = beeHurtLevel(bee);
     if (hurt) return { key: 'sad', face: HURT_LEVELS[hurt].icon, why: HURT_LEVELS[hurt].label + (hurt === 3 ? ', can\'t work' : '') };
     if (out === 'resting') return { key: 'calm', face: '😴', why: 'Exhausted, resting' };
     const lack = [L.fullness < 40 && 'Hungry', L.stamina < 30 && 'Tired', (L.fatigue || 0) >= 80 && 'Worn out', L.happiness < 30 && 'Unhappy'].filter(Boolean);
     if (lack.length) return { key: 'sad', face: '😢', why: lack.join(', ') };
-    if (L.recuperate) return { key: 'calm', face: '💤', why: 'Recuperating' };
     if (!bee.class) return { key: 'calm', face: '🙂', why: 'Waiting for a job' };
     return { key: 'happy', face: '😊', why: 'All good' };
 }
