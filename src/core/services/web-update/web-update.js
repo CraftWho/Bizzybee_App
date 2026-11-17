@@ -9,24 +9,30 @@ const WebUpdate = (() => {
     const KEY = 'bb_web_update_check';
     const plugin = () => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BeeWeb) || null;
     let busy = false;
+    // Nov 17 2026 (Craft): remember what the last check did, so Settings › About can show it
+    // (before, a failed update was silent).
+    const LAST = 'bb_web_update_last';
+    const record = (o) => { try { localStorage.setItem(LAST, JSON.stringify({ at: Date.now(), ...o })); } catch { /* storage off */ } };
+    const last = () => { try { return JSON.parse(localStorage.getItem(LAST) || 'null'); } catch { return null; } };
 
     async function check({ force = false } = {}) {
         const P = plugin();
-        if (!P || busy || !window.BB_SITE || window.BB_PERSONAL) return null;
+        if (!P || busy || !window.BB_SITE || window.BB_PERSONAL) { if (window.BB_PERSONAL) record({ state: 'skipped', note: 'This is the BizzyBee Dev copy. It does not take site updates.' }); return null; }
         let last = 0;
         try { last = Number(localStorage.getItem(KEY)) || 0; } catch { /* fine */ }
         if (!force && Date.now() - last < CHECK_EVERY) return null;
-        if (!navigator.onLine) return null;
+        if (!navigator.onLine) { record({ state: 'skipped', note: 'Offline.' }); return null; }
         busy = true;
         try { localStorage.setItem(KEY, String(Date.now())); } catch { /* fine */ }
         try {
             const r = await P.update({ site: window.BB_SITE });
+            record(r && r.updated ? { state: 'updated', version: r.version, note: `Downloaded ${r.downloaded} file${r.downloaded === 1 ? '' : 's'}. Opens next time you start the app.` } : { state: 'current', version: r && r.version, note: 'Already on the newest files.' });
             if (r && r.updated && typeof Toast !== 'undefined') {
                 Toast.show(`⬆️ BizzyBee updated (${r.downloaded} file${r.downloaded === 1 ? '' : 's'}). It loads next time you open the app.`, 'neutral',
                     { action: { label: 'Restart now', onClick: () => P.restart() } });
             }
             return r;
-        } catch (e) { console.warn('App update check failed', e && e.message); return null; }
+        } catch (e) { console.warn('App update check failed', e && e.message); record({ state: 'failed', note: (e && e.message) || 'Update failed' }); return null; }
         finally { busy = false; }
     }
 
@@ -38,6 +44,6 @@ const WebUpdate = (() => {
         setTimeout(() => check(), 4000);
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
     }
-    return { start, check };
+    return { start, check, last };
 })();
 WebUpdate.start();

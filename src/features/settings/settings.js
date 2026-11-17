@@ -230,6 +230,24 @@ function initAbout(tries = 0) {
     if (!host) return;
     if (typeof BizzyUpdates === 'undefined') { if (tries < 50) setTimeout(() => initAbout(tries + 1), 100); return; }
     BizzyUpdates.renderAbout(host);
+    // Nov 17 2026 (Craft): the Android app's own copy updates itself from the site. Show how that last went.
+    if (window.BB_APP_COPY && typeof WebUpdate !== 'undefined') {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.id = 'web-update-row';
+        host.appendChild(row);
+        const draw = () => {
+            const l = WebUpdate.last();
+            const when = l ? new Date(l.at).toLocaleString() : '';
+            row.innerHTML = `<span class="hx">🌐</span><span class="mid"><b>App files</b><small>${l ? `${l.state === 'failed' ? '⚠️ Failed' : l.state === 'updated' ? '⬆️ Updated' : l.state === 'skipped' ? 'Skipped' : '✅ Up to date'} · ${when}. ${l.note || ''}` : 'Not checked yet.'}</small></span><button class="btn" type="button" id="web-update-now">Check now</button>`;
+            row.querySelector('#web-update-now').onclick = async (e) => {
+                e.target.disabled = true; e.target.textContent = 'Checking…';
+                try { await WebUpdate.check({ force: true }); } catch { /* recorded */ }
+                draw();
+            };
+        };
+        draw();
+    }
 }
 
 // Phone features (Android app). Notifications moved to their own page
