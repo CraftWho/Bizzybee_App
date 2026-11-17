@@ -786,7 +786,9 @@ body.hive-life .hive-mind-hud { display: none; }
 .hl-cell:hover { transform: scale(1.03); filter: brightness(1.12); background: linear-gradient(160deg, var(--bb-t-lo, #d99a1e), var(--bb-accent-deep, #8a5a0c)); }
 .hl-cell:focus-visible { outline: none; filter: brightness(1.3); }
 .hl-in { position: absolute; inset: 3px; clip-path: inherit; background: linear-gradient(160deg, #3b2808, #1a1104); display: flex; flex-direction: column; align-items: center; padding-top: 22%; gap: 1px; }
-.hl-cell.alert .hl-in { box-shadow: inset 0 0 0 2px var(--bb-alt, #dc143c); background: linear-gradient(160deg, #42200a, #1a0d04); }
+/* Nov 17 2026 (Craft): the red alert edge follows the hexagon (like the Home app tiles). A box-shadow on the clipped box showed only as two straight lines up the sides. */
+.hl-cell.alert .hl-in { background: linear-gradient(160deg, #42200a, #1a0d04); }
+.hl-cell.alert .hl-in::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: rgba(var(--bb-alt-rgb, 220, 20, 60), .9); -webkit-mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; mask: var(--hex-ring) 0 0 / 100% 100% no-repeat; }
 .hl-ic { font-size: clamp(18px, 6vw, 26px); line-height: 1; }
 .hl-nm { font: 700 clamp(.55rem, 2.6vw, .72rem) var(--font-main, monospace); color: var(--bb-t-hi, #ffd977); }
 .hl-ct { font-size: clamp(.5rem, 2.2vw, .64rem); color: #a69a80; }
@@ -934,7 +936,7 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .hl-cell[data-comb="cafeteria"] { --cb-hi: #e8604c; --cb-lo: #7a2a1e; --cb-in: #3d1510; }
 .hl-cell[data-comb="nojob"] { --cb-hi: #9aa3ad; --cb-lo: #3d4651; --cb-in: #20262d; }
 .hl-cell[data-comb="fainted"] { --cb-hi: #8c8c9e; --cb-lo: #3a3a4a; --cb-in: #1c1c26; }
-.hl-cell.alert[data-comb] .hl-in { box-shadow: inset 0 0 0 2px var(--bb-alt, #dc143c); }
+
 
 /* Nov 1 2026 (Craft): Auto-swap (approved demo). */
 .hl-swap { display: grid; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px solid rgba(127, 224, 138, .25); animation: hlGrow .35s ease-out; }
