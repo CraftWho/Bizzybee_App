@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <title>🧬 Combine</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../core/ui/bee-card/bee-card.css">
+    <link rel="stylesheet" href="../../core/ui/modal/modal.css">
+    <link rel="stylesheet" href="../../core/ui/bee-name/bee-name.css">
+    <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
+    <link rel="stylesheet" href="../gacha/gacha-fx.css">
+    <link rel="stylesheet" href="./combine.css">
+</head>
+<body>
+    <!-- Nov 2026 (Craft; approved demo): Combine has its own page. The two real
+         cards sit side by side, a strip of partners below, and the full-screen
+         combine effect from the Pollination Chamber plays on the merge. -->
+    <main class="pv2 cmb">
+        <header class="pv2-head">
+            <h1 class="pv2-title">🧬 COMBINE</h1>
+            <p class="pv2-lead">Pick two bees. You get one new bee with the best of each stat.</p>
+        </header>
+
+        <section class="cmb-stage" id="cmb-stage" aria-label="The two bees to combine">
+            <div class="cmb-slot" id="slot-a"></div>
+            <div class="cmb-mid" id="cmb-mid" aria-hidden="true"><span>＋</span></div>
+            <div class="cmb-slot" id="slot-b"></div>
+        </section>
+
+        <p class="cmb-info" id="cmb-info" aria-live="polite"></p>
+        <div class="cmb-go">
+            <button type="button" class="btn solid" id="cmb-go" disabled>🧬 Combine</button>
+        </div>
+
+        <h2 class="sec" id="cmb-sec">Pick a partner</h2>
+        <div id="cmb-pick"></div>
+        <p class="cmb-foot"><a href="../bee-care/bee-care.html">← Back to Bee Care</a> · <a href="../gacha/gacha.html">Pollination Chamber</a></p>
+    </main>
+
+    <div class="cmb-over" id="cmb-over" hidden>
+        <div class="cmb-res" id="cmb-res" hidden>
+            <p class="cmb-res-title" id="cmb-res-title"></p>
+            <div class="cmb-res-card" id="cmb-res-card"></div>
+            <div class="cmb-gains" id="cmb-gains"></div>
+            <div class="cmb-res-name" id="cmb-res-name"></div>
+            <div class="cmb-res-btns">
+                <button type="button" class="btn solid" id="cmb-res-close">Collect</button>
+                <a class="btn" href="../bee-care/bee-care.html">Bee Care</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/ui/bee-card/bee-card.js"></script>
+    <script src="../../core/ui/bee-name/bee-name.js"></script>
+    <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="../gacha/gacha-fx.js"></script>
+    <script src="./combine.js"></script>
+</body>
+</html>

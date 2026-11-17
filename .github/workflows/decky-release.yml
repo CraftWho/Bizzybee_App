@@ -1,0 +1,18 @@
+# Builds the Decky plugin and publishes it where the plugin's updater looks (Netlify serves /decky-plugin/).
+# Run manually. It commits BizzyBee-decky.zip + version.json to main.
+name: Decky plugin release
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: bash decky-plugin/make-zip.sh
+      - run: |
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -f decky-plugin/BizzyBee-decky.zip decky-plugin/version.json
+          git commit -m "Decky plugin build" && git push

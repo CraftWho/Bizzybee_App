@@ -25,7 +25,7 @@ function renderDict() {
         const m = matrix[c];
         return `<h2 class="sec">${esc(c)}${m ? ` · Lv ${m.level} · ${m.hours < 10 ? m.hours.toFixed(1) : Math.round(m.hours)} h` : ''}</h2>` + list.map(t => `
             <button type="button" class="term" data-id="${esc(t.id)}"><span class="hx">${esc(t.name.replace(/^</, '').slice(0, 2).toUpperCase())}</span>
-                <span class="body"><span class="row1"><b>${esc(t.name)}</b><span class="cat">${esc(t.category)}</span>${t.code ? '<span class="cd">&lt;/&gt;</span>' : ''}</span>${t.definition ? `<p>${esc(t.definition)}</p>` : '<p class="def-missing">＋ Add a definition</p>'}</span></button>`).join('');
+                <span class="body"><span class="row1"><b>${esc(t.name)}</b><span class="cat"${matrix[t.category] ? ` style="--c:${matrix[t.category].color}"` : ''}>${esc(t.category)}</span>${t.code ? '<span class="cd">&lt;/&gt;</span>' : ''}</span>${t.definition ? `<p>${esc(t.definition)}</p>` : '<p class="def-missing">＋ Add a definition</p>'}</span></button>`).join('');
     }).join('') : `<p class="empty">${dcQ ? 'No terms match.' : 'No terms yet. Tap New term to add your first.'}</p>`;
 }
 
@@ -75,7 +75,7 @@ async function fillFromMDN(q) {
 
 function termView(t) {
     const mdn = safeUrl(t.mdnUrl), w3 = safeUrl(t.w3Url), img = safeUrl(t.image);
-    sheetBody.innerHTML = `<div class="tv-head"><h1>${esc(t.name)}</h1><span class="cat">${esc(t.category)}</span></div>
+    sheetBody.innerHTML = `<div class="tv-head"><h1>${esc(t.name)}</h1><span class="cat" style="--c:${(Vault.getSkillMatrix().find(m => m.category === t.category) || {}).color || ''}">${esc(t.category)}</span></div>
         ${t.full ? `<p class="tv-full">${esc(t.full)}</p>` : ''}
         <label>MEANING</label>${t.definition ? `<p class="tv-def">${esc(t.definition)}</p>` : '<p class="tv-def def-missing">No meaning yet. Tap Edit to add one.</p>'}
         ${img ? `<img class="tv-img" src="${esc(img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">` : ''}

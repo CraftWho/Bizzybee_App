@@ -40,6 +40,17 @@ function render() {
     else text = `<b>${d.dailies} ${d.dailies === 1 ? 'daily' : 'dailies'} done today</b><small>${d.dailiesToNext} more for 1 day off every egg.</small><small>The Android app adds your steps too.</small>`;
     $('ic-today').innerHTML = ring + `<div>${text}</div>`;
 
+    // steps: goal, week, streak (Nov 13 2026, Craft)
+    const S = Vault.getStepStats(), pctG = Math.min(100, Math.round(S.today / S.goal * 100)), maxW = Math.max(S.goal, ...S.week.map(x => x.steps));
+    const dn = (iso) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][new Date(iso + 'T12:00:00').getDay()];
+    $('ic-stepstats').innerHTML = `
+        <div class="st-top"><div><b>${S.today.toLocaleString()}</b><small>of ${S.goal.toLocaleString()} steps · ${pctG}%</small></div><div class="st-goal"><input type="number" id="st-goal" min="1000" max="50000" step="500" value="${S.goal}" aria-label="Daily step goal"><button type="button" class="ic-btn gold" data-setgoal>Set goal</button></div></div>
+        <div class="st-bar"><i style="width:${pctG}%"></i></div>
+        <p class="st-note">${S.today >= S.goal ? `Goal reached! ${S.gaveToday.length ? 'Reward: ' + esc(S.gaveToday.join(', ')) + '.' : ''}` : `Reach it for +${S.stepXP} XP, ${S.stepMin} min of Fitness and Health time, and a random small reward. Double the goal for another.`}</p>
+        <div class="st-week">${S.week.map(x => `<span><i style="height:${Math.max(3, Math.round(x.steps / maxW * 100))}%" class="${x.steps >= S.goal ? 'hit' : ''}"></i><small>${dn(x.day)}</small></span>`).join('')}</div>
+        <div class="st-grid"><span><b>${S.weekTotal.toLocaleString()}</b><small>This week</small></span><span><b>${S.streak}</b><small>Day streak</small></span><span><b>${S.best.steps ? S.best.steps.toLocaleString() : '—'}</b><small>Best day</small></span><span><b>${S.daysHit}</b><small>Goal days</small></span></div>
+        ${isApp ? '' : '<p class="st-note">Steps count in the Android app.</p>'}`;
+
     // eggs waiting
     const free = T ? T.slots - I.slots.length : 0;
     $('ic-waiting').innerHTML = I.waiting.length ? I.waiting.map(b => {
@@ -88,6 +99,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     render();
 
     document.body.addEventListener('click', (e) => {
+        if (e.target.closest('[data-setgoal]')) {
+            const r = Vault.setStepGoal(document.getElementById('st-goal').value);
+            Toast.show(r.ok ? `👟 Step goal: ${r.goal.toLocaleString()}` : r.error, r.ok ? 'positive' : 'negative');
+            if (r.ok) { Vault.stepGoalTick(); Vault.save(); } render(); return;
+        }
         const add = e.target.closest('[data-add]'), buy = e.target.closest('[data-buy]'), use = e.target.closest('[data-use]'), out = e.target.closest('[data-out]');
         if (add) {
             const r = Vault.incubatorAdd(add.dataset.add);

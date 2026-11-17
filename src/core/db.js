@@ -800,6 +800,11 @@ const BEE_CLASSES = {
     undertaker: { label: 'Undertaker', icon: '⚰️', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Carries fallen bees out of the hive. Each fallen bee leaves a little Pollen behind.' },
     architect: { label: 'Comb Builder', icon: '🏗️', category: 'Hive Management', zone: 'comb', stat: 'power', description: 'Builds new comb from wax. +1 loot roll when a quest finishes (max 3).' },
     cleaner: { label: 'Cleaner', icon: '🧹', category: 'Hive Management', zone: 'comb', stat: 'defense', description: 'Cleans cells and other bees. A lost raid hurts happiness less.' },
+    // Nov 9 2026 (Craft): small teams inside each comb, from real hive work.
+    rescue: { label: 'Rescue Team', icon: '🚑', category: 'Hive Management', zone: 'brood', stat: 'speed', description: 'Finds hurt or sick bees and carries them to a free Nursery bed. They go back to their job when healed.' },
+    fanner: { label: 'Fanner', icon: '🌬️', category: 'Hive Management', zone: 'honey', stat: 'speed', description: 'Fans the nectar dry so it turns to honey faster. More stored honey every hour.' },
+    waxmaker: { label: 'Wax Maker', icon: '🕯️', category: 'Hive Management', zone: 'comb', stat: 'power', description: 'Makes wax for the Comb Builders. Each one raises the quest loot limit by 1 (up to +2).' },
+    receiver: { label: 'Receiver', icon: '🍽️', category: 'Hive Management', zone: 'cafe', stat: 'speed', description: 'Takes nectar from Foragers and feeds the hive. Some Cafeteria meals cost no honey.' },
     honeymaker: { label: 'Honey Maker', icon: '🍯', category: 'Hive Management', zone: 'honey', stat: 'power', description: 'Ripens nectar into honey. Some days turns 3 Pollen into 1 Honey Drop.' },
     watercarrier: { label: 'Water Carrier', icon: '💧', category: 'Hive Management', zone: 'honey', stat: 'speed', description: 'Brings water to cool the hive. Working bees tire more slowly.' },
     nurse: { label: 'Nurse Bee', icon: '🥚', category: 'Hive Management', zone: 'brood', stat: 'offense', description: 'Feeds the young and the sick. Every bee heals a little faster.' },
@@ -993,6 +998,10 @@ const STORE_ITEM_CATALOG = [
     // automatically. Paid in Honey coins, not materials.
     // Nov 1 2026 (Craft): unlocks Auto-swap for good (it also comes with auto-manage). One per hive.
     { id: 'queens-whistle', label: "Queen's Whistle", icon: '📯', kind: 'unlock', rarity: 'Legendary', price: { currency: 'coins', amount: 600 }, description: 'One blow and your hive swaps tired bees out by itself. Yours for good.' },
+    // Nov 7 2026 (Craft): Honey Balm: free, one per hive, used automatically at the first faint.
+    { id: 'honey-balm', label: 'Honey Balm', icon: '🍯', kind: 'unlock', rarity: 'Epic', price: { currency: 'coins', amount: 0 }, description: 'Free, once per hive. Used automatically the first time any bee or the Queen would faint: it heals your whole hive to full, Queen included.' },
+    // Nov 7 2026 (Craft): wakes a fainted bee from its card (medium health).
+    { id: 'wake-tonic', label: 'Wake-up Tonic', icon: '🫗', kind: 'charm', rarity: 'Common', price: { materialId: 'pollen', amount: 15 }, description: 'Wakes a fainted bee at medium health. Use it from the bee\'s card in the Hive Mind.' },
     { id: 'streak-charm', label: 'Streak Charm', icon: '🎁', kind: 'charm', rarity: 'Rare', price: { currency: 'coins', amount: 25 }, description: "Saves one daily's streak when you miss it. Used up automatically in the morning, after your Guard Bees, and only on streaks of 2 days or more." },
     // Held items (Oct 28 2026, approved demo): Rare and up hold them (see
     // beeItemSlots). 'use' items fire on their own when needed and are used
@@ -1538,7 +1547,7 @@ const LIFE = {
     // death, old age and Royal Jelly back - all the code is still here.
     deathEnabled: false,
     lifespan: 42, jellyLifespan: 120, faintDays: 3, maxCatchUp: 14,
-    reviveCost: 10, jellyCost: 5, maleChance: 0.1, traitChance: 0.08,
+    reviveCost: 5, pollenReviveCost: 15, coinReviveCost: 50, wakeDays: 2, jellyCost: 5, maleChance: 0.1, traitChance: 0.08,
     hungerPerDay: 15, feedPerTask: 4, eventsKept: 30,
     // Oct 27 2026 (Craft): missed tasks hurt the whole hive, and a Fatigue
     // stat makes worn-out bees rest. Fatigue climbs while working and drops
@@ -1599,7 +1608,10 @@ const QUEEN = {
     maxHp: 50,
     hit: { Trivial: 1, Easy: 2, Medium: 4, Hard: 7 },
     coin: { Trivial: 1, Easy: 2, Medium: 3, Hard: 5 },
-    heal: 1, faintCoinLoss: 0.1, guardSaves: 2, guardDays: 3, charmMinStreak: 2
+    heal: 1, guardSaves: 2, guardDays: 3, charmMinStreak: 2,
+    // Nov 7 2026 (Craft): Batch 24. A faint no longer takes coins or XP. It gives a
+    // timed XP debuff instead: -20% XP for 1 hour. A second faint resets the timer.
+    debuffMs: 60 * 60 * 1000, debuffMult: 0.8
 };
 function queenDifficulty(task) {
     const d = String((task && task.difficulty) || '').toLowerCase();
@@ -1635,7 +1647,8 @@ const BIRTH_TRAITS = {
 const JOB_RATES = {
     collector: [-6, -4, -1, 3], scout: [-7, -4, 0, 3.5], guardian: [-4, -3, -1.5, 2.5], barrier: [-4, -3, -1, 2],
     undertaker: [-3, -2, -2, 2], architect: [-5, -4, -1, 3], cleaner: [-3, -2, -1, 1.5], honeymaker: [-3, -3, 0.5, 2],
-    watercarrier: [-5, -3, -0.5, 2.5], nurse: [-3, -2, 0.5, 2], attendant: [-2, -2, 1, 1.5], drone: [-1, -3, 0, 0.5]
+    watercarrier: [-5, -3, -0.5, 2.5], nurse: [-3, -2, 0.5, 2], attendant: [-2, -2, 1, 1.5], drone: [-1, -3, 0, 0.5],
+    rescue: [-4, -3, -0.5, 2.5], fanner: [-4, -3, 0, 2.5], waxmaker: [-4, -3, -1, 2.5], receiver: [-2, -2, 0.5, 1.5]
 };
 // Per hour not working: [stamina, fullness, happiness, fatigue, health (if fullness 50+)].
 const REST_RATES = {
@@ -1651,19 +1664,41 @@ let HIVE_JOB_RULES = true;   // tests of the older job mechanics turn this off
 // Nov 3 2026 (Craft; approved demo): like a real colony. About 4 in 5
 // adult bees work; each open job takes its share of them (at least 1).
 // The same shares are the odds of a new bee's talent. Drones: every male.
-const HIVE_JOB_SHARES = { collector: 22, nurse: 18, honeymaker: 14, cleaner: 12, architect: 10, watercarrier: 8, scout: 6, guardian: 6, attendant: 4, barrier: 3, undertaker: 3 };
-const HIVE_WORK_SHARE = 0.8;
-const MERGE_GAP_CHANCE = 0.35;   // a merged bee may get a talent the hive is missing
+const HIVE_JOB_SHARES = { collector: 22, nurse: 18, honeymaker: 14, cleaner: 12, architect: 10, watercarrier: 8, scout: 6, guardian: 6, attendant: 4, barrier: 3, undertaker: 3,
+    rescue: 6, fanner: 8, waxmaker: 6, receiver: 8 };
+// Nov 9 2026 (Craft): every adult female bee can work (it was 80%).
+const HIVE_WORK_SHARE = 1;
+// Nov 9 2026 (Craft): a job never starts with zero room. Each open job has at
+// least this many slots, growing with the nest (Lv 5 / 10 / 20 / 35). A new
+// job that is level-locked must ALSO start with a slot, so a player is never
+// set back by not having reached its level.
+const JOB_MIN_SLOTS = [[35, 5], [20, 4], [10, 3], [1, 2]];
+const jobMinSlots = (lv) => (JOB_MIN_SLOTS.find(x => lv >= x[0]) || [0, 2])[1];
+const MERGE_GAP_CHANCE = 0.35;
+const MERGE_MALE_CHANCE = 0.1;   // Nov 9 2026 (Craft)
+// Nov 9 2026 (Craft): Stored honey + the Cafeteria. Honey Makers (and Fanners)
+// fill the stock; a hungry bee walks to the Cafeteria, eats and walks back.
+// Each meal costs honey (a working Receiver may make it free).
+// Steam Deck game XP (Nov 11 2026, Craft).
+const GAME_XP = { blockMin: 30, perBlock: 2, dayCapMin: 20, perAch: 10, dayCapAch: 50 };
+const HONEY_CAP = 100, HONEY_START = 40, HONEY_PER_DAY = 10, HONEY_PER_TASK = 1;
+const CAFE = { below: 40, meal: 40, cost: 1, freeBase: 0.1, freeMax: 0.5, stayMin: 45 };
+const RESCUE_BELOW = 60;   // health under this (or sick): the Rescue Team carries it to a bed   // a merged bee may get a talent the hive is missing
+// Nov 9 2026 (Craft): every hive job opens by Lv 5 (the hive teams are a core
+// part of the game). Only the Undertaker waits: death is paused.
 const HIVE_JOB_LADDER = [
     { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 4, job: 'collector' }, { lv: 5, job: 'guardian' },
-    { lv: 7, job: 'watercarrier' }, { lv: 8, job: 'architect' }, { lv: 10, job: 'attendant' }, { lv: 11, job: 'cleaner' },
-    { lv: 13, job: 'scout' }, { lv: 14, job: 'drone' }, { lv: 16, job: 'barrier' }, { lv: 17, job: 'undertaker' }
+    { lv: 5, job: 'watercarrier' }, { lv: 5, job: 'architect' }, { lv: 5, job: 'attendant' }, { lv: 5, job: 'cleaner' },
+    { lv: 5, job: 'scout' }, { lv: 5, job: 'drone' }, { lv: 5, job: 'barrier' },
+    { lv: 5, job: 'rescue' }, { lv: 5, job: 'fanner' }, { lv: 5, job: 'waxmaker' }, { lv: 5, job: 'receiver' },
+    { lv: 17, job: 'undertaker' }
 ];
 const HIVE_COMB_JOBS = {
     royal: { name: 'Royal Chamber', jobs: ['attendant', 'drone'] },
-    nursery: { name: 'Nursery', jobs: ['nurse'] },
-    honey: { name: 'Honey Store', jobs: ['honeymaker', 'watercarrier'] },
-    workshop: { name: 'Workshop', jobs: ['architect', 'cleaner'] },
+    nursery: { name: 'Nursery', jobs: ['nurse', 'rescue'] },
+    honey: { name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'] },
+    workshop: { name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'] },
+    cafeteria: { name: 'Cafeteria', jobs: ['receiver'] },
     entrance: { name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'] }
 };
 // How good a bee is at a job, about 1-100 (from 1.0.7's WorkerCard). The
@@ -1711,11 +1746,12 @@ function beeFatigueFactor(bee) {
     const n = beeProblems(bee);
     return n >= 2 ? 3 : n === 1 ? 2 : 1;
 }
+const NURSERY_OPEN_LV = 5;          // Nov 7 2026: the Nursery (Nurse job) opens by this level
 const NURSERY_BEDS = 2;               // + 1 per working Nurse
 // Held item slots: Common 0, Rare and Epic 1, Legendary and Named 2.
 function beeItemSlots(bee) {
     const r = bee && bee.rarity;
-    return r === 'Legendary' || r === 'Named' ? 2 : r === 'Rare' || r === 'Epic' ? 1 : 0;
+    return r === 'Legendary' || r === 'Named' ? 2 : 1;   // Nov 7 2026: Common bees get 1 slot (use-items only, see giveBeeItem)
 }
 // Gear multiplier for a stat ('combat' | 'defense' | 'speed'), 1 = none.
 function beeGear(bee, key) {
@@ -1738,6 +1774,9 @@ const INCUBATORS = {
 };
 const INCUBATOR_ORDER = ['basic', 'warm', 'honey', 'royal'];
 const INCUBATOR_DAILIES = 4;
+// Step goal (Nov 13 2026, Craft): your own daily goal. Reaching it gives XP and a little real
+// time for Fitness + Health, plus a random small reward. Steps also warm the incubator (tiers above).
+const STEP_GOAL = { def: 8000, min: 1000, max: 50000, xp: 15, minutes: 20, cats: ['Fitness', 'Health'] };
 
 const RAID_ENEMIES = [
     { id: 'hornets', label: 'Hornet raid', icon: '🦟', power: 1.2 },
@@ -1859,7 +1898,7 @@ function beeNeeds(bee, today = todayISO()) {
     if (L.sickUntil) out.push({ need: 'Sick', value: `until ${L.sickUntil}`, fix: inBed ? 'In the Nursery: it heals 2× faster.' : 'Send it to the Nursery to heal 2× faster.' });
     const hurt = beeHurtLevel(bee);
     if (hurt) out.push({ need: HURT_LEVELS[hurt].label, value: `health ${Math.round(L.health)}/100`, fix: inBed ? 'In the Nursery: +4 health an hour.' : hurt === 3 ? 'Can\'t work. Send it to the Nursery (+4 an hour) or set it to Recuperate (+1 an hour).' : 'Nursery: +4 health an hour. Recuperate: +1 an hour.' });
-    if (L.fullness < 40) out.push({ need: 'Hungry', value: `fullness ${Math.round(L.fullness)}/100`, fix: 'Finish tasks (+4 each), or let it recuperate (eats +2.5 an hour).' });
+    if (L.fullness < 40) out.push({ need: 'Hungry', value: `fullness ${Math.round(L.fullness)}/100`, fix: 'Finish tasks (+4 each), or send it to the Cafeteria.' });
     if (L.stamina < 30) out.push({ need: 'Tired', value: `stamina ${Math.round(L.stamina)}/100`, fix: 'Recuperate: +4 an hour by day, +7 asleep at night.' });
     if ((L.fatigue || 0) >= 80) out.push({ need: 'Worn out', value: `fatigue ${Math.round(L.fatigue)}/100`, fix: 'Recuperate: −3 an hour by day, −6 at night. At 100 it must rest 2 days.' });
     if (L.happiness < 30) out.push({ need: 'Unhappy', value: `happiness ${Math.round(L.happiness)}/100`, fix: 'Finish all your dailies. A streak cheers the hive up.' });
@@ -1910,6 +1949,8 @@ function isPcLocalHost() {
     if (location.protocol === 'file:') return true;
     // Nov 1 2026 (Craft): https://localhost with no port is the Android app's own copy, not PC LOCAL.
     if (location.protocol === 'https:' && host === 'localhost' && !location.port) return false;
+    // Nov 15 2026 (Craft): the free beta copy on GitHub Pages is a test copy too (own test save, no cloud).
+    if (host.endsWith('.github.io')) return true;
     return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')
         || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 }
@@ -2560,16 +2601,24 @@ class DatabaseManager {
         return xpForMinutes(m, task && task.difficulty);
     }
 
+    // Nov 7 2026 (Craft): Batch 24. Total XP before any floor: tasks + streak bonuses
+    // + the debuff and floor entries kept in state.bonusXP.
+    _rawXP() {
+        if (!this.state) return 0;
+        return computeTotalXP(this.state.quests)
+            + computeDailyXP(this.state.dailyTasks)
+            + computeHabitXP(this.state.habits)
+            + computeTodoXP(this.state.todos)
+            + (this.state.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0);
+    }
+
     // 4. Getters
     getUser() {
         if (!this.state) return null;
 
-        const totalXP = Math.max(0, computeTotalXP(this.state.quests)
-            + computeDailyXP(this.state.dailyTasks)
-            + computeHabitXP(this.state.habits)
-            + computeTodoXP(this.state.todos)
-            + (this.state.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0)   // streak bonuses
-            - ((this.state.queen && this.state.queen.xpLost) || 0));   // lost when the Queen faints
+        // Nov 7 2026 (Craft): Batch 24. XP never goes below 0 (see _floorXP), and a faint no
+        // longer takes XP, so the old "lost when the Queen faints" subtraction is gone.
+        const totalXP = Math.max(0, this._rawXP());
         const { level, currentXP, nextLevelXP } = computeLevelProgress(totalXP);
 
         return {
@@ -2902,7 +2951,38 @@ class DatabaseManager {
             this.state.characterLevelBar = { acknowledgedLevel: this.getUser().level, leveledUpAt: null };
             this.save();
         }
+        this._floorXP();
         return computeCharacterLevelBandState(this.getUser().totalXP, this.state.characterLevelBar.acknowledgedLevel);
+    }
+
+    // Nov 7 2026 (Craft): Batch 24. No XP debt. If bad habits, unchecks or deleting a task
+    // would push XP below where this level starts, a small bonusXP entry lifts it back to
+    // exactly the level start. Your level never drops and you never have to "catch up".
+    // It also clears any debt already in a save.
+    _floorXP() {
+        const S = this.state;
+        if (!S || !S.characterLevelBar) return false;
+        const from = characterXPToReach(S.characterLevelBar.acknowledgedLevel || 1);
+        const gap = Math.round(from - this._rawXP());
+        if (!(gap > 0)) return false;
+        if (!Array.isArray(S.bonusXP)) S.bonusXP = [];
+        S.bonusXP.push({ key: `xp-floor:${Date.now()}`, date: todayISO(), xp: gap, why: 'floor' });
+        this.save();
+        return true;
+    }
+
+    // Nov 7 2026 (Craft): Batch 24. XP buffs and debuffs that are active right now, for the
+    // bar colour. Today only the faint debuff exists; more can be added here later.
+    // [{ id, kind: 'debuff'|'buff', label, pct, until, msLeft }]
+    getXPBuffs() {
+        const q = this.state && this.state.queen;
+        const out = [];
+        if (q && q.debuff) {
+            const left = Number(q.debuff.until) - Date.now();
+            if (left > 0) out.push({ id: q.debuff.id || 'faint', kind: 'debuff', label: 'Queen fainted', pct: Math.round((q.debuff.mult - 1) * 100), until: q.debuff.until, msLeft: left });
+            else { delete q.debuff; this.save(); }
+        }
+        return out;
     }
 
     // Backfills state.plugins onto any save from before the plugin toggle
@@ -3154,7 +3234,7 @@ class DatabaseManager {
             else if (daysElapsed <= QUEST_SPEED_FAST_DAYS) speedBonusRolls = QUEST_SPEED_FAST_BONUS_ROLLS;
         }
 
-        const totalRolls = baseRolls + speedBonusRolls + Math.min(3, this._workers('architect').reduce((n, b) => n + (beeTitlePower(b, 'architect') ? 2 : 1), 0));
+        const totalRolls = baseRolls + speedBonusRolls + Math.min(3 + Math.min(2, this._workers('waxmaker').length), this._workers('architect').reduce((n, b) => n + (beeTitlePower(b, 'architect') ? 2 : 1), 0));   // Nov 9 2026 (Craft): Wax Makers raise the limit
         const materialsDropped = [];
         for (let i = 0; i < totalRolls; i++) {
             const materialId = rollMaterialDrop();
@@ -3820,7 +3900,8 @@ class DatabaseManager {
         const it = STORE_ITEM_CATALOG.find(i => i.id === itemId && i.kind === 'held');
         if (!bee || !it) return { ok: false, error: 'Unknown item.' };
         const slots = beeItemSlots(bee);
-        if (!slots) return { ok: false, error: 'Only Rare bees and up can hold items.' };
+        if (!slots) return { ok: false, error: 'This bee can\'t hold items.' };
+        if (bee.rarity === 'Common' && it.hold && it.hold.type !== 'use') return { ok: false, error: 'Common bees can only hold use-items (food, bandage, tonic). Gear needs a Rare bee.' };
         if (slot < 0 || slot >= slots) return { ok: false, error: 'No such slot.' };
         const items = this.state.inventory.items;
         if (!(items[itemId] > 0)) return { ok: false, error: `You don't have a ${it.label}. Make one in the Honey Store.` };
@@ -3880,8 +3961,9 @@ class DatabaseManager {
         const done = this.state.skillsMastered;
         const s = this.state;
         const hoursBy = {};
-        computeSkillMatrixXP(s.dailyTasks, s.dictionary, s.quests, s.habits, s.todos).forEach(e => { hoursBy[e.category.toLowerCase()] = e.hours; });
-        const totalHours = computeTotalPracticeMinutes(s.dailyTasks, s.quests, s.habits, s.todos) / 60;
+        // Nov 7 2026 (Craft): real hours only.
+        Object.entries(this.getRealBySkill()).forEach(([c, m]) => { hoursBy[c.toLowerCase()] = m / 60; });
+        const totalHours = this.getRealMinutes() / 60;
         const fresh = [];
         const out = [];
         const byId = {};
@@ -4209,8 +4291,13 @@ class DatabaseManager {
         const baseIndex = Math.max(indexOf(beeA.rarity), indexOf(beeB.rarity));
 
         const baseRarity = RARITY_ORDER[baseIndex];
-        const upgraded = baseIndex < RARITY_ORDER.length - 1 && Math.random() < (COMBINE_UPGRADE_CHANCE[baseRarity] || 0);
-        const resultRarity = RARITY_ORDER[upgraded ? baseIndex + 1 : baseIndex];
+        // Nov 9 2026 (Craft): a merged bee is always female, with a MERGE_MALE_CHANCE
+        // chance of a male. A male is always Rare or better (and a Drone).
+        const male = Math.random() < MERGE_MALE_CHANCE;
+        let upgraded = baseIndex < RARITY_ORDER.length - 1 && Math.random() < (COMBINE_UPGRADE_CHANCE[baseRarity] || 0);
+        let resultIndex = upgraded ? baseIndex + 1 : baseIndex;
+        if (male && resultIndex < RARITY_ORDER.indexOf('Rare')) { resultIndex = RARITY_ORDER.indexOf('Rare'); upgraded = true; }
+        const resultRarity = RARITY_ORDER[resultIndex];
 
         const sa = beeA.stats || {}, sb = beeB.stats || {};
         const total = s => BEE_SKILL_STATS.reduce((n, k) => n + (Number(s[k]) || 0), 0) + (Number(s.hp) || 0) / 4;
@@ -4227,7 +4314,6 @@ class DatabaseManager {
         // Nov 3 2026 (Craft; approved demo): the merged bee's talent. Two
         // males make a male (Drone). Otherwise a 35% chance of a talent the
         // hive is missing (an open job no bee can do), else a parent's.
-        const male = beeA.sex === 'm' && beeB.sex === 'm';
         let talent = 'drone';
         if (!male) {
             const has = new Set(bees.filter(b => b.id !== beeIdA && b.id !== beeIdB && b.talent).map(b => b.talent));
@@ -4895,6 +4981,28 @@ class DatabaseManager {
     // status, link }. Purely user-authored local content, same reasoning
     // as calendarEvents/dictionary above - ships empty, real entries only
     // ever come from adding them through the Study page itself.
+    // 5m. Study focus sessions (Nov 2026 draft): { id, date, min, topic, logged }.
+    // "logged" false = FILL IN LATER. Own ledger for now; not yet in Real Hours.
+    getStudySessions() {
+        return this.state ? (this.state.studySessions || []) : [];
+    }
+
+    addStudySession({ min, topic, logged }) {
+        if (!this.state || !(Number(min) > 0)) return null;
+        if (!this.state.studySessions) this.state.studySessions = [];
+        const e = { id: `ss-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, date: todayISO(), min: Math.round(Number(min)), topic: String(topic || '').slice(0, 80), logged: !!logged };
+        this.state.studySessions.push(e);
+        if (this.state.studySessions.length > 500) this.state.studySessions.splice(0, this.state.studySessions.length - 500);
+        this.save();
+        return e;
+    }
+
+    fillStudySession(id) {
+        const e = this.getStudySessions().find(x => x.id === id);
+        if (!e) return null;
+        e.logged = true; this.save(); return e;
+    }
+
     getStudyQueue() {
         return this.state ? (this.state.studyQueue || []) : [];
     }
@@ -5275,17 +5383,35 @@ class DatabaseManager {
         return true;
     }
 
+    // Nov 7 2026 (Craft): a skill's hours, level, stage and path count REAL
+    // minutes only (the time log: what you logged, quest timers, imported
+    // history). Planned time is kept as plannedHours, and XP still uses it.
+    // Levels can drop when this switches over; Craft OK'd that.
     getSkillMatrix() {
         if (!this.state) return [];
         if (!this.state.skillLevels) this.state.skillLevels = {};
-
-        return computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos).map(entry => {
+        const realBy = typeof this.getRealBySkill === 'function' ? this.getRealBySkill() : {};
+        // One time: skill levels earned on planned time drop to what your real
+        // hours reach (Craft: "if I lose levels, it is what it is").
+        if (!this.state.skillRealV1) {
+            this.state.skillRealV1 = new Date().toISOString();
+            Object.entries(this.state.skillLevels).forEach(([cat, st]) => {
+                if (!st || this.skillMeta(cat).measure === 'times') return;
+                const lv = skillLevelFromHours((realBy[cat] || 0) / 60);
+                if ((st.level || 1) > lv) { this._changeLog && this._changeLog('edit', `Skill "${cat}" level ${st.level} → ${lv}`, 'Skills now count real hours only'); st.level = lv; }
+            });
+        }
+        const rows = computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos);
+        const seen = new Set(rows.map(r => r.category.toLowerCase()));
+        Object.keys(realBy).forEach(c => { if (!seen.has(c.toLowerCase())) rows.push({ category: c, xp: 0, minutes: 0, bySource: {}, count: 0, realMinutes: 0, estMinutes: 0, timesMinutes: 0, hours: 0 }); });
+        return rows.map(entry => {
+            const real = realBy[entry.category] || 0;
             const stored = this.state.skillLevels[entry.category];
             const meta = this.skillMeta(entry.category);
             // "Times done" skills level up by how often, not how long (Oct 29 2026).
-            const levelState = computeSkillLevelState(meta.measure === 'times' ? entry.timesMinutes : entry.minutes, stored ? stored.level : 1);
-            return { ...entry, ...levelState, ...meta, realHours: entry.realMinutes / 60, estHours: entry.estMinutes / 60, timeHours: entry.minutes / 60 };
-        });
+            const levelState = computeSkillLevelState(meta.measure === 'times' ? entry.timesMinutes : real, stored ? stored.level : 1);
+            return { ...entry, ...levelState, ...meta, plannedHours: entry.minutes / 60, minutes: real, hours: real / 60, realHours: real / 60, estHours: 0, timeHours: real / 60 };
+        }).sort((a, b) => b.minutes - a.minutes);
     }
 
     // Every contribution toward `category` completed on or after `sinceISO`
@@ -5328,8 +5454,8 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.skillLevels) this.state.skillLevels = {};
 
-        const matrixEntry = computeSkillMatrixXP(this.state.dailyTasks, this.state.dictionary, this.state.quests, this.state.habits, this.state.todos)
-            .find(entry => entry.category === category);
+        // Nov 7 2026 (Craft): real minutes (getSkillMatrix), same as the bar.
+        const matrixEntry = this.getSkillMatrix().find(entry => entry.category === category);
         // Oct 31 2026 (Craft): a "times done" skill levels by count, same as its bar.
         const minutes = matrixEntry ? (this.skillMeta(category).measure === 'times' ? matrixEntry.timesMinutes : matrixEntry.minutes) : 0;
 
@@ -6083,6 +6209,7 @@ Object.assign(DatabaseManager.prototype, {
             L.health = clampVital(L.health - out.hp);
             L.happiness = clampVital(L.happiness - 4 * misses);
             L.fatigue = clampVital((L.fatigue || 0) + 5 * misses);
+            if (L.health <= 0 && this._useHoneyBalm()) return;
             if (L.health <= 0) { L.faintedAt = today; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); return; }
             if (!beeOutOfAction(b, today) && lifeRand() < Math.min(0.35, 0.06 * misses)) { L.sickUntil = shiftISODate(today, LIFE.sickDays); out.sick.push(b.name); }
             else if (b.class && !beeOutOfAction(b, today) && lifeRand() < Math.min(0.25, 0.04 * misses)) { L.health = clampVital(L.health - 20); out.injured.push(b.name); }   // hurt (Oct 28 2026: no more "Injured")
@@ -6128,10 +6255,19 @@ Object.assign(DatabaseManager.prototype, {
             if (first) c.firstJob = first.talent;
         }
         const f = c.firstJob;
-        if (!f || f === HIVE_JOB_LADDER[0].job) return HIVE_JOB_LADDER.slice();
-        const lv1 = HIVE_JOB_LADDER[0], other = HIVE_JOB_LADDER.find(x => x.job === f);
-        if (!other) return HIVE_JOB_LADDER.slice();
-        return HIVE_JOB_LADDER.map(x => x.job === f ? { lv: lv1.lv, job: f } : x === lv1 ? { lv: other.lv, job: lv1.job } : x).sort((a, b) => a.lv - b.lv);
+        let out;
+        const lv1 = HIVE_JOB_LADDER[0], other = f && HIVE_JOB_LADDER.find(x => x.job === f);
+        if (!f || f === lv1.job || !other) out = HIVE_JOB_LADDER.slice();
+        else out = HIVE_JOB_LADDER.map(x => x.job === f ? { lv: lv1.lv, job: f } : x === lv1 ? { lv: other.lv, job: lv1.job } : x).sort((a, b) => a.lv - b.lv);
+        // Nov 7 2026 (Craft): the Nursery always opens by Lv 5. If the first-bee swap
+        // pushed the Nurse later, it trades places with the job that opens at Lv 5.
+        out = out.map(x => ({ ...x }));   // copies: never edit the shared ladder
+        const nurse = out.find(x => x.job === 'nurse');
+        if (nurse && nurse.lv > NURSERY_OPEN_LV) {
+            const at5 = out.find(x => x.lv === NURSERY_OPEN_LV);
+            if (at5) { at5.lv = nurse.lv; nurse.lv = NURSERY_OPEN_LV; out.sort((a, b) => a.lv - b.lv); }
+        }
+        return out;
     },
     hiveOpenJobs() {
         const lv = (this.getUser() || {}).level || 1;
@@ -6155,7 +6291,8 @@ Object.assign(DatabaseManager.prototype, {
         if (job === 'drone') return Math.max(1, adults.filter(b => b.sex === 'm').length);
         const females = adults.filter(b => b.sex !== 'm').length;
         const sum = open.reduce((n, j) => n + (HIVE_JOB_SHARES[j] || 0), 0) || 1;
-        return Math.max(1, Math.round((HIVE_JOB_SHARES[job] || 0) / sum * females * HIVE_WORK_SHARE));
+        const lv = (this.getUser() || {}).level || 1;   // Nov 9 2026 (Craft): at least the nest's minimum
+        return Math.max(jobMinSlots(lv), Math.round((HIVE_JOB_SHARES[job] || 0) / sum * females * HIVE_WORK_SHARE));
     },
     // Nov 3 2026 (Craft; approved demo): for the merge picker. 'work' = in a
     // job; 'spare' = resting while its job is full or not open; 'idle' = a
@@ -6218,17 +6355,26 @@ Object.assign(DatabaseManager.prototype, {
     _autoReady(b) {
         return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery;
     },
+    // Nov 16 2026 (Craft): a bee on Recuperate is ready to go back to work once its stamina reaches
+    // the "Return at" %, for every resting bee (also the ones set to rest by hand). Needs Auto-swap on.
+    _returnReady(b) {
+        if (!b.life || !b.life.recuperate || b.class || beeIsBrood(b) || !this.autoSwapUnlocked()) return false;
+        const P = this.autoSwapPrefs();
+        return P.on && beeCanWork(b) && b.life.stamina >= P.returnPct && b.life.health >= 50 && !b.life.nursery && !b.life.sickUntil;
+    },
     // Nov 3 2026 (Craft): "filled" = open jobs with at least one bee.
     hiveAutoStatus() {
         if (!this.state || !this.state.hive) return null;
         const open = this.hiveOpenJobs();
-        const filled = open.filter(j => this.jobHolder(j)).length;
+        // Nov 9 2026 (Craft): a job nobody in the hive has the talent for can't be filled yet, so it doesn't hold auto-manage back.
+        const fillable = open.filter(j => this.jobHolder(j) || this._lifeBees().some(b => !beeIsBrood(b) && this.beeFitsJob(b, j)));
+        const filled = fillable.filter(j => this.jobHolder(j)).length;
         const leader = this.hiveLeader();
         // A tired worker with nobody free to take its place pauses it.
-        const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b));
+        const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && (this._autoReady(b) || this._returnReady(b)));
         const stuck = open.flatMap(j => this.jobHolders(j)).find(b => b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
         const on = !!(this.state.hive.autoManage && this.state.hive.autoManage.on);
-        return { on, running: on && !!leader && !stuck, leader, stuck, open: open.length, filled };
+        return { on, running: on && !!leader && !stuck, leader, stuck, open: fillable.length, filled };
     },
     // Called after a job change and every hour. Returns true when it just unlocked.
     _autoUnlockCheck() {
@@ -6250,7 +6396,8 @@ Object.assign(DatabaseManager.prototype, {
     autoSwapPrefs() {
         const c = this.state && this.state.hive;
         const a = (c && c.autoSwap) || {};
-        return { on: a.on !== false, pct: Math.max(10, Math.min(60, Number(a.pct) || 30)), mode: a.mode === 'pick' ? 'pick' : 'auto', pool: Array.isArray(a.pool) ? a.pool : [] };
+        // Nov 16 2026 (Craft): returnPct = how rested a resting bee must be (stamina) before auto sends it back to work. 100 = fully rested.
+        return { on: a.on !== false, pct: Math.max(10, Math.min(60, Number(a.pct) || 30)), returnPct: Math.max(50, Math.min(100, Number(a.returnPct) || 100)), mode: a.mode === 'pick' ? 'pick' : 'auto', pool: Array.isArray(a.pool) ? a.pool : [] };
     },
     setAutoSwap(patch) {
         if (!this.state || !this.state.hive) return null;
@@ -6265,13 +6412,15 @@ Object.assign(DatabaseManager.prototype, {
         const notes = [];
         this.hiveOpenJobs().forEach(j => this.jobHolders(j).forEach(h => {
             if (h.life.stamina >= P.pct || beeLockedJob(h)) return;
-            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && b.life.stamina >= P.pct + 20 && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
+            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
-            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince;   // resting, not upset
+            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true;   // Nov 9 2026 (Craft): resting = recuperating, not upset
+            const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft): came back from resting
+            delete pick.life.recuperate;
             pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince;
             this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
-            const text = `🔄 ${pick.name} took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
+            const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
             this._lifeEvent('auto', text, { beeId: pick.id });
             notes.push(text);
         }));
@@ -6284,12 +6433,14 @@ Object.assign(DatabaseManager.prototype, {
         this.hiveOpenJobs().forEach(j => {
             // Nov 3 2026 (Craft): fill every open slot, not just the first.
             let gap = this.jobSlots(j) - this.jobHolders(j).length;
-            const picks = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && this._autoReady(b) && this.beeFitsJob(b, j))
+            const picks = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && (this._autoReady(b) || this._returnReady(b)) && this.beeFitsJob(b, j))
                 .sort((a, b) => beeJobScore(b, j) - beeJobScore(a, j));
             for (const pick of picks) {
                 if (gap-- <= 0) break;
+                const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft)
+                delete pick.life.recuperate;
                 pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
-                const text = `🐝 ${pick.name} took the ${BEE_CLASSES[j].label} job.`;
+                const text = `🐝 ${pick.name} ${returned ? 'returned from resting and ' : ''}took the ${BEE_CLASSES[j].label} job.`;
                 this._lifeEvent('auto', text, { beeId: pick.id });
                 notes.push(text);
             }
@@ -6304,6 +6455,7 @@ Object.assign(DatabaseManager.prototype, {
         const c = this.state.hive;
         const HOUR = 3600000;
         this._talentJobsMigrate();   // Nov 1 2026 (Craft): once
+        this._newJobTalents();       // Nov 9 2026 (Craft): once
         if (!c.vitalsAt) { c.vitalsAt = now; return 0; }
         const hours = Math.min(14 * 24, Math.floor((now - c.vitalsAt) / HOUR));
         if (hours <= 0) return 0;
@@ -6326,6 +6478,11 @@ Object.assign(DatabaseManager.prototype, {
         const bees = this._lifeBees();
         const nurses = this._workers('nurse').length;
         const water = this._workers('watercarrier').length;
+        // Nov 9 2026 (Craft): stored honey. Made by day.
+        const hv = this.state.hive;
+        if (typeof hv.honey !== 'number') hv.honey = HONEY_START;
+        if (!night) hv.honey = Math.min(HONEY_CAP, hv.honey + this._workers('honeymaker').length * 1.5 + this._workers('fanner').length * 0.75);
+        const receivers = this._workers('receiver').length;
         bees.forEach(b => {
             const L = b.life;
             if (!L || L.faintedAt || L.hatchOn) return;
@@ -6346,7 +6503,9 @@ Object.assign(DatabaseManager.prototype, {
                     this._lifeEvent('rest', `😴 ${b.name} is exhausted and must rest for ${LIFE.restDays} days.`, { beeId: b.id });
                 }
             } else {
-                const r = L.nursery ? REST_RATES.nursery : night ? REST_RATES.night : REST_RATES.day;
+                let r = L.nursery ? REST_RATES.nursery : night ? REST_RATES.night : REST_RATES.day;
+                // Nov 10 2026 (Craft): Recuperate does not feed a bee, and it does not get hungrier there.
+                if (L.recuperate && !L.nursery) r = [r[0], 0, r[2], r[3], r[4]];
                 L.stamina = clampVital(L.stamina + r[0], true);
                 L.fullness = clampVital(L.fullness + r[1], true);
                 L.happiness = clampVital(L.happiness + r[2], true);
@@ -6363,12 +6522,158 @@ Object.assign(DatabaseManager.prototype, {
             if (L.fullness <= 0) L.health = clampVital(L.health - 1, true);
             this._useHeldItems(b);
             if (L.stamina <= 0) L.health = clampVital(L.health - 0.2, true);
-            // Healed: leave the Nursery and go back to the old job.
+            // Healed: leave the Nursery and go back to the old job (a bee with no job stays in No Job).
             if (L.nursery && !L.sickUntil && L.health >= 90) {
                 delete L.nursery; delete L.sickProgress;
-                this._lifeEvent('heal', `💗 ${b.name} is healed and left the Nursery.`, { beeId: b.id });
+                this._lifeEvent('heal', `💗 ${b.name} is healed and left the Nursery${b.class ? ' for its old job' : ''}.`, { beeId: b.id });
             }
-            if (L.health <= 0) { L.faintedAt = day; delete L.nursery; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
+            // Nov 9 2026 (Craft): hungry? Walk to the Cafeteria, eat, walk back.
+            if (!night && L.fullness < CAFE.below && L.health > 0) this._cafeMeal(b, at, receivers);
+            // Nov 9 2026 (Craft): Recuperate ends when fully healed and rested. The bee then
+            // waits in the No Job comb (auto-manage can send it back to work).
+            if (L.recuperate && !L.nursery && !L.sickUntil && L.health >= 100 && L.stamina >= 100 && L.fatigue <= 0) {
+                delete L.recuperate;
+                if (!b.class) L.idleSince = day;
+                this._lifeEvent('rested', `✨ ${b.name} is fully rested${b.class ? '' : ' and waiting for a job'}.`, { beeId: b.id });
+            }
+            if (L.health <= 0) { L.faintedAt = day; delete L.nursery; delete L.recuperate; this._lifeEvent('faint', `😵 ${b.name} fainted.`, { beeId: b.id }); }
+        });
+        this._rescueHour(day);   // Nov 9 2026 (Craft)
+    },
+
+    // Nov 9 2026 (Craft): one meal at the Cafeteria. Needs stored honey.
+    _cafeMeal(b, at, receivers = 0) {
+        const hv = this.state.hive, L = b.life;
+        if (!(hv.honey >= CAFE.cost)) return false;
+        const free = receivers > 0 && lifeRand() < Math.min(CAFE.freeMax, CAFE.freeBase * receivers);
+        if (!free) hv.honey = Math.max(0, hv.honey - CAFE.cost);
+        L.fullness = clampVital(L.fullness + CAFE.meal, true);
+        L.cafeAt = at.toISOString();
+        return true;
+    },
+    // Nov 11 2026 (Craft): Steam Deck companion (the Decky plugin). The Deck shows today's tasks,
+    // sends check-offs through the server, and reads hours played + achievements. Game XP:
+    // GAME_XP.perBlock for each 30 minutes played, GAME_XP.perAch per achievement, with a daily
+    // cap for each. The first time a game is seen only sets a starting point (no XP for old hours).
+    deckLinked() { return !!(this.state && this.state.deck && this.state.deck.linked); },
+    setDeckLinked(on) {
+        if (!this.state) return;
+        this.state.deck = { ...(this.state.deck || {}), linked: !!on };
+        this.save();
+    },
+    deckSnapshot() {
+        const day = todayISO(), u = this.getUser() || {};
+        return {
+            level: u.level || 1,
+            xpToNext: Math.max(0, Math.round((u.nextLevelXP || 0) - (u.currentXP || 0))),
+            dailies: this.getDailyTasks().filter(d => d.dueToday && (!d.startDate || d.startDate <= day)).map(d => ({ id: d.id, title: d.label, done: !!d.completedToday })),
+            todos: this.getTodos().filter(t => !t.completed).map(t => ({ id: t.id, title: t.label, done: false, due: t.dueDate || '' })),
+            habits: this.getHabits().filter(h => h.positive !== false).map(h => ({ id: h.id, title: h.label, positive: true }))
+        };
+    },
+    // Applies check-offs that waited in the server inbox. Returns the event ids it handled.
+    deckApply(events) {
+        if (!this.state || !Array.isArray(events)) return [];
+        const D = this.state.deck = this.state.deck || {};
+        const seen = new Set(D.applied || []), day = todayISO(), done = [];
+        for (const e of events) {
+            if (!e || !e.eid || seen.has(e.eid)) { if (e && e.eid) done.push(e.eid); continue; }
+            if (e.kind === 'daily') {
+                const t = (this.state.dailyTasks || []).find(x => x.id === e.id);
+                if (t && !(t.completedDates || []).includes(day)) this.toggleDailyTask(t.id);
+            } else if (e.kind === 'todo') {
+                const t = (this.state.todos || []).find(x => x.id === e.id);
+                if (t && !t.completed) this.toggleTodoComplete(t.id);
+            } else if (e.kind === 'habit') this.bumpHabit(e.id, 'positive');
+            seen.add(e.eid); done.push(e.eid);
+        }
+        D.applied = [...seen].slice(-200);
+        this.save();
+        return done;
+    },
+    getGaming() { return (this.state && this.state.gaming) || { games: {}, xp: 0 }; },
+    deckApplyGames(list) {
+        if (!this.state || !Array.isArray(list)) return false;
+        const G = this.state.gaming = this.state.gaming || { games: {}, xp: 0 };
+        if (!Array.isArray(this.state.bonusXP)) this.state.bonusXP = [];
+        const day = todayISO();
+        const used = (why) => this.state.bonusXP.filter(b => b.date === day && b.why === why).reduce((n, b) => n + (Number(b.xp) || 0), 0);
+        let changed = false;
+        for (const g of list) {
+            if (!g || !g.appid) continue;
+            const p = G.games[g.appid];
+            const base = { name: g.name || (p && p.name) || 'Game', minutes: g.minutes || 0, ach: g.ach || 0, achTotal: g.achTotal || 0, lastPlayed: g.lastPlayed || 0 };
+            if (!p) { G.games[g.appid] = { ...base, baseMin: base.minutes, baseAch: base.ach, paidBlocks: 0, paidAch: 0 }; changed = true; continue; }
+            const next = { ...p, ...base };
+            const blocks = Math.floor(Math.max(0, base.minutes - p.baseMin) / GAME_XP.blockMin) - p.paidBlocks;
+            if (blocks > 0) {
+                const room = Math.floor(Math.max(0, GAME_XP.dayCapMin - used('game-min')) / GAME_XP.perBlock), grant = Math.min(blocks, room);
+                if (grant > 0) { this.state.bonusXP.push({ key: `game-min:${g.appid}:${Date.now()}:${p.paidBlocks}`, date: day, xp: grant * GAME_XP.perBlock, why: 'game-min' }); next.paidBlocks = p.paidBlocks + grant; G.xp = (G.xp || 0) + grant * GAME_XP.perBlock; }
+            }
+            const newAch = Math.max(0, base.ach - p.baseAch) - p.paidAch;
+            if (newAch > 0) {
+                const room = Math.floor(Math.max(0, GAME_XP.dayCapAch - used('game-ach')) / GAME_XP.perAch), grant = Math.min(newAch, room);
+                if (grant > 0) { this.state.bonusXP.push({ key: `game-ach:${g.appid}:${Date.now()}:${p.paidAch}`, date: day, xp: grant * GAME_XP.perAch, why: 'game-ach' }); next.paidAch = p.paidAch + grant; G.xp = (G.xp || 0) + grant * GAME_XP.perAch; }
+            }
+            if (JSON.stringify(next) !== JSON.stringify(p)) { G.games[g.appid] = next; changed = true; }
+        }
+        if (changed) this.save();
+        return changed;
+    },
+    // Nov 10 2026 (Craft): the Rest button adapts. Hurt or sick -> Nursery bed, hungry -> Cafeteria,
+    // anything else (tired, or just resting) -> Recuperate. The Nursery comes first.
+    beeNeed(bee) {
+        const L = bee && bee.life; if (!L) return 'rest';
+        if (!L.nursery && (L.sickUntil || L.health < RESCUE_BELOW)) return 'nursery';
+        if (L.fullness < CAFE.below) return 'cafe';
+        return 'rest';
+    },
+    sendBeeToNeed(id) {
+        const b = this.getHiveBees().find(x => x.id === id);
+        if (!b || !b.life || b.life.faintedAt || beeIsBrood(b)) return null;
+        const need = this.beeNeed(b), L = b.life;
+        if (need === 'nursery' && this.nurseryBeds().free > 0) {
+            L.nursery = true; L.rescuedAt = todayISO(); delete L.recuperate;
+            this._lifeEvent('rescue', `🛏️ ${b.name} went to a Nursery bed.`, { beeId: b.id });
+            this.save(); return { to: 'nursery', bee: b };
+        }
+        if ((need === 'cafe' || need === 'nursery') && L.fullness < CAFE.below && this.state.hive.honey >= CAFE.cost) {
+            this._cafeMeal(b, new Date(), this._workers('receiver').length);
+            this.save(); return { to: 'cafe', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : '' };
+        }
+        const r = this.assignBeeClass(id, 'recuperate');
+        if (!r) return null;
+        return { to: 'rest', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : need === 'cafe' ? 'No stored honey for a meal.' : '' };
+    },
+    // Nov 9 2026 (Craft): each working Rescue Team bee carries one hurt or sick bee an hour
+    // to a free Nursery bed. The patient keeps its job slot and goes back when healed.
+    _rescueHour(day) {
+        const team = this._workers('rescue');
+        if (!team.length) return;
+        let free = this.nurseryBeds().free;
+        for (const r of team) {
+            if (free <= 0) break;
+            const p = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && b.class !== 'rescue' && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
+                .sort((a, z) => a.life.health - z.life.health)[0];
+            if (!p) break;
+            p.life.nursery = true; p.life.rescuedAt = day; free--;
+            this._lifeEvent('rescue', `🚑 ${r.name} carried ${p.name} to the Nursery.`, { beeId: p.id });
+        }
+    },
+    // Once: the four new jobs each get one spare bee with that talent, so
+    // nobody waits on a lucky hatch to use them.
+    _newJobTalents() {
+        const c = this.state && this.state.hive;
+        if (!c || c.newJobsV1) return;
+        c.newJobsV1 = true;
+        ['rescue', 'fanner', 'waxmaker', 'receiver'].forEach(job => {
+            const bees = this._lifeBees().filter(b => !beeIsBrood(b));
+            if (bees.some(b => b.talent === job)) return;
+            const rank = (b) => this.beeMergeStatus(b) === 'spare' ? 0 : 1;
+            // A spare Common bee, and never the last bee with its old talent.
+            const pick = bees.filter(b => b.sex !== 'm' && !b.class && b.rarity === 'Common' && !beeIsLimited(b) && b.talent && b.talent !== 'drone' && bees.filter(x => x.talent === b.talent).length > 1)
+                .sort((a, z) => rank(a) - rank(z))[0];
+            if (pick) { pick.talent = job; this._lifeEvent('talent', `🌟 ${pick.name} found a talent for ${BEE_CLASSES[job].label}.`, { beeId: pick.id }); }
         });
     },
 
@@ -6435,6 +6740,7 @@ Object.assign(DatabaseManager.prototype, {
         const streak = this.getHiveStreak();
         const bees = this._lifeBees();
         if (!bees.length) return;
+        c.honey = Math.min(HONEY_CAP, (typeof c.honey === 'number' ? c.honey : HONEY_START) + HONEY_PER_DAY);   // Nov 9 2026 (Craft): the hive's own comb
         const nurses = this._workers('nurse').reduce((n, b) => n + (beeTitlePower(b, 'healer') ? 2 : 1) * beeTalentBoost(b), 0);
         const water = this._workers('watercarrier').length;
         const avgFull = bees.reduce((n, b) => n + b.life.fullness, 0) / bees.length;
@@ -6458,6 +6764,8 @@ Object.assign(DatabaseManager.prototype, {
             if (L.restUntil && L.restUntil <= day) delete L.restUntil;
             L.happiness = clampVital(L.happiness + (streak > 0 ? 4 : streak < 0 ? -6 : 0) + stoutBonus);
         });
+
+        this._wakeFainted(bees, day);
 
         // Faint too long, or too old -> the bee dies (only while death is on).
         if (LIFE.deathEnabled) bees.slice().forEach(b => {
@@ -6522,6 +6830,7 @@ Object.assign(DatabaseManager.prototype, {
 
     // Finishing a task or daily feeds the hive.
     _feedHive() {
+        if (this.state.hive) this.state.hive.honey = Math.min(HONEY_CAP, (typeof this.state.hive.honey === 'number' ? this.state.hive.honey : HONEY_START) + HONEY_PER_TASK);   // Nov 9 2026 (Craft)
         this._lifeBees().forEach(b => {
             if (b.life.faintedAt) return;
             b.life.fullness = clampVital(b.life.fullness + LIFE.feedPerTask);
@@ -6555,16 +6864,58 @@ Object.assign(DatabaseManager.prototype, {
         return { ok: true, won, ours, theirs, team: team.map(b => b.name), text };
     },
 
-    reviveBee(beeId) {
+    // Nov 7 2026 (Craft): revives. how = 'drops' (5 Honey Drops, strong), 'pollen' (15), 'coins' (50),
+    // 'tonic' (a Wake-up Tonic from the Honey Mart). The last three bring it back at medium health.
+    reviveBee(beeId, how = 'drops') {
         const bee = this.getHiveBees().find(b => b.id === beeId);
         if (!bee || !bee.life || !bee.life.faintedAt) return { ok: false, error: 'That bee is not fainted.' };
-        const have = (this.state.inventory && this.state.inventory.materials && this.state.inventory.materials['honey-drop']) || 0;
-        if (have < LIFE.reviveCost) return { ok: false, error: `Reviving costs ${LIFE.reviveCost} Honey Drops. You have ${have}.` };
-        this._addMaterial('honey-drop', -LIFE.reviveCost);
-        Object.assign(bee.life, { faintedAt: null, health: 40, stamina: 20, fullness: Math.max(bee.life.fullness, 40) });
+        const mats = (this.state.inventory && this.state.inventory.materials) || {};
+        const items = (this.state.inventory && this.state.inventory.items) || {};
+        let hp = 40, st = 20;
+        if (how === 'pollen') {
+            if ((mats.pollen || 0) < LIFE.pollenReviveCost) return { ok: false, error: `Reviving with Pollen costs ${LIFE.pollenReviveCost}. You have ${mats.pollen || 0}.` };
+            this._addMaterial('pollen', -LIFE.pollenReviveCost);
+        } else if (how === 'coins') {
+            if (!this.spendCoins(LIFE.coinReviveCost)) return { ok: false, error: `Reviving with coins costs ${LIFE.coinReviveCost} Honey coins.` };
+        } else if (how === 'tonic') {
+            if (!(items['wake-tonic'] > 0)) return { ok: false, error: 'You have no Wake-up Tonic. Buy one in the Honey Mart.' };
+            items['wake-tonic'] -= 1;
+        } else {
+            const have = mats['honey-drop'] || 0;
+            if (have < LIFE.reviveCost) return { ok: false, error: `Reviving costs ${LIFE.reviveCost} Honey Drops. You have ${have}.` };
+            this._addMaterial('honey-drop', -LIFE.reviveCost);
+            hp = 70; st = 40;
+        }
+        Object.assign(bee.life, { faintedAt: null, health: hp, stamina: st, fullness: Math.max(bee.life.fullness, 40) });
         this._lifeEvent('revive', `💛 ${bee.name} was revived.`, { beeId });
         this.save();
         return { ok: true, bee };
+    },
+
+    // Nov 7 2026 (Craft): nobody is stuck fainted. A fainted bee wakes by itself after
+    // LIFE.wakeDays (low health). Each working Nurse wakes one fainted bee a day.
+    _wakeFainted(bees, day) {
+        const woke = [];
+        const wake = (b, hp, st, why) => { Object.assign(b.life, { faintedAt: null, health: hp, stamina: st, fullness: Math.max(b.life.fullness || 0, 30) }); woke.push(b.name); this._lifeEvent('revive', `💛 ${b.name} ${why}.`, { beeId: b.id }); };
+        let nurses = this._workers('nurse').length;
+        bees.filter(b => b.life && b.life.faintedAt).sort((a, b) => String(a.life.faintedAt).localeCompare(String(b.life.faintedAt))).forEach(b => {
+            const d = daysBetween(b.life.faintedAt, day) || 0;
+            if (nurses > 0 && d >= 1) { nurses--; wake(b, 30, 20, 'was nursed back by a Nurse'); }
+            else if (d >= LIFE.wakeDays) wake(b, 20, 10, 'woke up on its own');
+        });
+        return woke;
+    },
+
+    // Nov 7 2026 (Craft): the Honey Balm. Free, once per hive, used by itself the first time any
+    // bee or the Queen would faint: it heals every bee and the Queen to full instead.
+    _useHoneyBalm() {
+        if (!this.ownsUnlock('honey-balm') || (this.state.unlocks && this.state.unlocks['honey-balm-used'])) return false;
+        this.state.unlocks['honey-balm-used'] = new Date().toISOString();
+        this._lifeBees().forEach(b => { if (b.life && !b.life.hatchOn) { b.life.faintedAt = null; b.life.health = 100; b.life.stamina = 100; b.life.sickUntil = null; } });
+        if (this.state.queen) this.state.queen.hp = QUEEN.maxHp;
+        this._lifeEvent('balm', '🍯 The Honey Balm healed your whole hive, Queen included.');
+        if (typeof Toast !== 'undefined') Toast.show('🍯 The Honey Balm healed everyone, Queen included!', 'positive');
+        return true;
     },
 
     craftRoyalJelly() {
@@ -6740,6 +7091,55 @@ Object.assign(DatabaseManager.prototype, {
         Object.keys(i.applied).forEach(id => { if (!i.slots.includes(id)) delete i.applied[id]; });
         return moved;
     },
+    // ---- Step goal (Nov 13 2026, Craft) ----
+    getStepGoal() { const g = Math.round(Number(this.state && this.state.stepGoal)); return g >= STEP_GOAL.min && g <= STEP_GOAL.max ? g : STEP_GOAL.def; },
+    setStepGoal(n) {
+        const g = Math.round(Number(n));
+        if (!this.state || !(g >= STEP_GOAL.min && g <= STEP_GOAL.max)) return { ok: false, error: `Pick between ${STEP_GOAL.min.toLocaleString()} and ${STEP_GOAL.max.toLocaleString()} steps.` };
+        this.state.stepGoal = g; this.save(); return { ok: true, goal: g };
+    },
+    // Paid once per day at the goal, and again (a random small reward) at double the goal.
+    // Returns the rewards given now (for a toast), or null.
+    stepGoalTick(today = todayISO()) {
+        const S = this.state; if (!S) return null;
+        const steps = Number(S.steps && S.steps[today]) || 0, goal = this.getStepGoal();
+        S.stepRewards = S.stepRewards || {};
+        const r = S.stepRewards[today] = S.stepRewards[today] || {};
+        const out = []; let xpNow = 0;
+        const give = (x) => {
+            if (x.kind === 'coins') { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + x.qty; }
+            else if (x.kind === 'ticket') { if (S.hive) S.hive.tickets = (S.hive.tickets || 0) + x.qty; }
+            else this._addMaterial(x.kind, x.qty);
+            out.push(x);
+        };
+        const roll = (bigger) => {
+            const n = Math.random();
+            if (n < 0.08) return { kind: 'ticket', qty: 1, icon: '🎟️', name: 'Gacha ticket' };
+            if (n < 0.28) return { kind: 'pollen', qty: bigger ? 3 : 2, icon: '🌼', name: 'Pollen' };
+            return { kind: 'coins', qty: (bigger ? 4 : 2) + Math.floor(Math.random() * (bigger ? 5 : 5)), icon: '🪙', name: 'Honey coins' };
+        };
+        if (steps >= goal && !r.goal) {
+            r.goal = true;
+            if (!Array.isArray(S.bonusXP)) S.bonusXP = [];
+            S.bonusXP.push({ key: `steps:${today}`, date: today, xp: STEP_GOAL.xp, why: 'Step goal' });
+            if (typeof this._rt === 'function' && this._rt()) S.timeLog.push({ id: `t-steps-${today}`, key: `steps:${today}`, kind: 'steps', taskId: null, questId: null, label: `Step goal (${goal.toLocaleString()} steps)`, date: today, min: STEP_GOAL.minutes, cats: STEP_GOAL.cats.slice(), at: new Date().toISOString() });
+            r.xp = xpNow = STEP_GOAL.xp; give(roll(false));
+        }
+        if (steps >= goal * 2 && !r.x2) { r.x2 = true; give(roll(true)); }
+        r.gave = (r.gave || []).concat(out.map(x => `${x.qty} ${x.name}`));
+        Object.keys(S.stepRewards).sort().slice(0, -60).forEach(k => delete S.stepRewards[k]);
+        return out.length ? { xp: xpNow, minutes: xpNow ? STEP_GOAL.minutes : 0, gave: out } : null;
+    },
+    // Step stats for the Incubator page: last 7 days, goal streak, best day.
+    getStepStats(today = todayISO()) {
+        const S = this.state || {}, st = S.steps || {}, goal = this.getStepGoal();
+        const week = []; for (let i = 6; i >= 0; i--) { const d = shiftISODate(today, -i); week.push({ day: d, steps: Number(st[d]) || 0 }); }
+        let streak = 0; for (let i = (Number(st[today]) || 0) >= goal ? 0 : 1; i < 60; i++) { if ((Number(st[shiftISODate(today, -i)]) || 0) >= goal) streak++; else break; }
+        const all = Object.entries(st).map(([d, n]) => ({ day: d, steps: Number(n) || 0 }));
+        const best = all.reduce((b, x) => x.steps > b.steps ? x : b, { day: '', steps: 0 });
+        const r = (S.stepRewards || {})[today] || {};
+        return { goal, today: Number(st[today]) || 0, week, weekTotal: week.reduce((n, x) => n + x.steps, 0), streak, best, daysHit: all.filter(x => x.steps >= goal).length, gaveToday: r.gave || [], xpToday: r.xp || 0, stepXP: STEP_GOAL.xp, stepMin: STEP_GOAL.minutes };
+    },
     spendCoins(n) {
         const q = this._ensureQueen();
         if (!q || this.getCoins() < n) return false;
@@ -6767,18 +7167,15 @@ Object.assign(DatabaseManager.prototype, {
         q.hp = Math.max(0, (q.hp || 0) - n);
         if (typeof Toast !== 'undefined' && why) Toast.show(`❤️ −${n} · ${why}`, 'negative');
         if (q.hp > 0) return false;
-        // Faint: lose 10% of coins and this level's XP progress (never a level).
-        const coins = this.getCoins();
-        const bar = this.getCharacterLevelBar ? this.getCharacterLevelBar() : null;
-        const lostCoins = Math.floor(coins * QUEEN.faintCoinLoss);
-        const lostXP = bar && !bar.maxed ? bar.xpIntoLevel : 0;
-        q.lost = (q.lost || 0) + lostCoins;
-        q.xpLost = (q.xpLost || 0) + lostXP;
+        if (this._useHoneyBalm()) return true;
+        // Nov 7 2026 (Craft): Batch 24. A faint costs no coins and no XP. It gives a timed
+        // XP debuff (-20% for 1 hour). A faint while it runs resets the timer, it never stacks.
+        q.debuff = { id: 'faint', until: Date.now() + QUEEN.debuffMs, mult: QUEEN.debuffMult };
         q.hp = Math.round(QUEEN.maxHp / 2);
         q.faintedOn = todayISO();
         this._lifeBees().forEach(b => { if (b.life) b.life.happiness = clampVital(b.life.happiness - 15); });
-        this._lifeEvent('queen-faint', `😵 Your Queen fainted! Lost ${lostCoins} 🪙 and ${lostXP} XP. Your bees are sad.`);
-        if (typeof Toast !== 'undefined') Toast.show(`😵 Your Queen fainted! −${lostCoins} 🪙 · −${lostXP} XP. Health is back to half.`, 'negative');
+        this._lifeEvent('queen-faint', '😵 Your Queen fainted! XP is −20% for 1 hour. Your bees are sad.');
+        if (typeof Toast !== 'undefined') Toast.show('😵 Your Queen fainted! XP −20% for 1 hour. Health is back to half.', 'negative');
         return true;
     },
 
@@ -7353,5 +7750,310 @@ function mergeSaves(a, b) {
     out.updatedAt = new Date(Math.max(ta, tb) || Date.now()).toISOString();
     return out;
 }
+
+// ============================================================================
+// REAL TIME, ARCHIVE AND CHANGE LOG (Nov 7 2026, Craft; approved demo v2)
+// - Real time: only minutes you actually log (the check-off pop-up, a quest
+//   timer, imported history). Kept in state.timeLog, its own ledger, so
+//   deleting or editing a task, bad habits or a fainted Queen never take it
+//   away. Unchecking the SAME day removes that completion's time (you didn't
+//   do it). This is the "10,000 hours" number.
+// - "Fill in later": state.timePending, a red-dot list. Its time isn't real
+//   until you add the minutes.
+// - Planned time: what the plan said for every completion (for XP).
+// - Archive: deleted habits, dailies, To-Dos, quests and quest tasks, with
+//   their whole history. Restore puts them back.
+// - Change log: every uncheck, edit, delete, restore and late fill-in that
+//   touched your stats. Big after-the-fact changes get a flag. Can't be
+//   edited or cleared.
+// ============================================================================
+const TIME_FLAG_MIN = 120;   // a logged-time change this big (or on another day) gets a ⚑
+const CHANGE_LOG_MAX = 1000;
+(() => {
+    if (typeof DatabaseManager === 'undefined') return;   // tests that load only part of this file
+    const P = DatabaseManager.prototype;
+    const orig = {};
+    ['logCompletionMinutes', 'toggleDailyTask', 'toggleTodoComplete', 'toggleTask', 'removeDailyTask', 'removeHabit', 'removeTodo',
+        'removeTask', 'removeQuest', 'updateDailyTask', 'updateHabit', 'updateTodo', 'updateTask'].forEach(k => { orig[k] = P[k]; });
+    const uid = (p) => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    const fmtMin = (m) => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m} min`;
+
+    Object.assign(P, {
+        _rt() {
+            const s = this.state;
+            if (!s) return null;
+            if (!Array.isArray(s.timeLog)) s.timeLog = [];
+            if (!Array.isArray(s.timePending)) s.timePending = [];
+            if (!Array.isArray(s.archive)) s.archive = [];
+            if (!Array.isArray(s.changeLog)) s.changeLog = [];
+            if (!s.timeLogV1) { s.timeLogV1 = new Date().toISOString(); this._seedTimeLog(); }
+            return s;
+        },
+        _taskCats(task, quest) {
+            try { return skillsForTask(task, this.getDictionaryTerms ? this.getDictionaryTerms() : (this.state.dictionary || []), quest).map(x => x.category); }
+            catch { return []; }
+        },
+        _changeLog(type, text, note = '', flag = false) {
+            const s = this.state;
+            if (!s) return;
+            if (!Array.isArray(s.changeLog)) s.changeLog = [];
+            s.changeLog.unshift({ at: new Date().toISOString(), type, text, note, flag: !!flag });
+            if (s.changeLog.length > CHANGE_LOG_MAX) s.changeLog.length = CHANGE_LOG_MAX;
+        },
+        // One-time: real time you already logged before the time log existed.
+        _seedTimeLog() {
+            const s = this.state, out = s.timeLog;
+            const add = (key, kind, task, quest, date, min) => {
+                if (!(min > 0)) return;
+                out.push({ id: uid('t'), key, kind, taskId: task.id, questId: quest ? quest.id : null, label: task.label, date: String(date || '').slice(0, 10) || null, min: Math.round(min), cats: this._taskCats(task, quest), at: new Date().toISOString(), seeded: true });
+            };
+            (s.dailyTasks || []).forEach(t => { const log = t.minutesLog || {}; (t.completedDates || []).forEach(d => add(`daily:${t.id}:${d}`, 'daily', t, null, d, Number(log[d]))); });
+            (s.habits || []).forEach(h => (h.history || []).filter(x => x.direction === 'positive').forEach(x => add(`habit:${h.id}:${x.id}`, 'habit', h, null, x.date, Number(x.minutes))));
+            (s.todos || []).filter(t => t.completed).forEach(t => add(`todo:${t.id}`, 'todo', t, null, t.completedDate, Number(t.minutesSpent)));
+            (s.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed).forEach(t => {
+                const m = Number(t.minutesSpent) > 0 ? Number(t.minutesSpent) : Number(t.durSec) > 0 ? Number(t.durSec) / 60 : Number(t.historyXP) > 0 ? Number(t.historyXP) : 0;
+                add(`quest:${q.id}:${t.id}`, 'quest', t, q, t.dateCompleted, m);
+            }));
+        },
+        _findTask(kind, id, questId) {
+            const s = this.state || {};
+            if (kind === 'daily') return { task: (s.dailyTasks || []).find(t => t.id === id) };
+            if (kind === 'habit') return { task: (s.habits || []).find(t => t.id === id) };
+            if (kind === 'todo') return { task: (s.todos || []).find(t => t.id === id) };
+            const quest = (s.quests || []).find(q => q.id === questId);
+            return { task: quest && (quest.tasks || []).find(t => t.id === id), quest };
+        },
+        // Which completion a check-off is: the key the time log uses.
+        _completionKey(kind, task, questId, date = todayISO()) {
+            if (kind === 'daily') return `daily:${task.id}:${date}`;
+            if (kind === 'habit') { const last = [...(task.history || [])].reverse().find(h => h.direction === 'positive'); return last ? `habit:${task.id}:${last.id}` : null; }
+            if (kind === 'todo') return `todo:${task.id}`;
+            return `quest:${questId}:${task.id}`;
+        },
+        _putRealTime({ key, kind, task, quest, date, min, late = false }) {
+            const s = this._rt();
+            if (!s || !key || !(min > 0)) return;
+            const m = Math.round(min);
+            const was = s.timeLog.find(e => e.key === key);
+            if (was) {
+                if (was.min !== m) {
+                    const big = Math.abs(was.min - m) >= TIME_FLAG_MIN || (was.date && was.date !== todayISO());
+                    this._changeLog('edit', `Logged time on "${task.label}" ${fmtMin(was.min)} → ${fmtMin(m)}`, big ? 'Big change after the fact' : 'Real time updated', big);
+                    was.min = m; was.edited = new Date().toISOString();
+                }
+            } else {
+                s.timeLog.push({ id: uid('t'), key, kind, taskId: task.id, questId: quest ? quest.id : null, label: task.label, date: date || todayISO(), min: m, cats: this._taskCats(task, quest), at: new Date().toISOString() });
+                if (late) this._changeLog('fill', `Filled in "${task.label}" ${fmtMin(m)}`, `${date === todayISO() ? "Today's" : date + "'s"} time, now in your real hours`, m >= TIME_FLAG_MIN * 2);
+            }
+            s.timePending = s.timePending.filter(p => p.key !== key);
+        },
+        _dropRealTime(key, label) {
+            const s = this._rt();
+            if (!s || !key) return 0;
+            const e = s.timeLog.find(x => x.key === key);
+            s.timePending = s.timePending.filter(p => p.key !== key);
+            if (!e) return 0;
+            if (e.date !== todayISO()) {
+                this._changeLog('uncheck', `Unchecked "${label}"`, `Kept ${fmtMin(e.min)} real time: it was logged on ${e.date}`);
+                return 0;
+            }
+            s.timeLog = s.timeLog.filter(x => x !== e);
+            this._changeLog('uncheck', `Unchecked "${label}"`, `−${fmtMin(e.min)} real time (same day, so it comes off)`);
+            return e.min;
+        },
+
+        // ---- check-off pop-up ----
+        logCompletionMinutes(kind, id, minutes, opts = {}) {
+            const xp = orig.logCompletionMinutes.call(this, kind, id, minutes, opts);
+            if (xp == null) return xp;
+            const { task, quest } = this._findTask(kind, id, opts.questId);
+            if (task) this._putRealTime({ key: this._completionKey(kind, task, opts.questId), kind, task, quest, date: todayISO(), min: Math.max(1, Math.min(1440, Math.round(Number(minutes) || 0))) });
+            this.save();
+            return xp;
+        },
+        // "Fill in later": a red-dot list until you add the minutes.
+        timeLater(kind, id, { questId } = {}) {
+            const s = this._rt();
+            const { task, quest } = this._findTask(kind, id, questId);
+            if (!s || !task) return false;
+            const key = this._completionKey(kind, task, questId);
+            if (!key || s.timeLog.some(e => e.key === key) || s.timePending.some(p => p.key === key)) return false;
+            s.timePending.unshift({ key, kind, taskId: task.id, questId: questId || null, label: task.label, date: todayISO(), planned: plannedMinutes(task), cats: this._taskCats(task, quest), at: new Date().toISOString() });
+            this.save();
+            return true;
+        },
+        getTimePending() { const s = this._rt(); return s ? s.timePending.slice() : []; },
+        fillTimePending(key, minutes) {
+            const s = this._rt();
+            const p = s && s.timePending.find(x => x.key === key);
+            const m = Math.max(1, Math.min(1440, Math.round(Number(minutes) || 0)));
+            if (!p || !m) return false;
+            const { task, quest } = this._findTask(p.kind, p.taskId, p.questId);
+            // XP side: the completion's own minutes, if the task still exists.
+            if (task) {
+                if (p.kind === 'daily') task.minutesLog = { ...(task.minutesLog || {}), [p.date]: m };
+                else if (p.kind === 'habit') { const bump = (task.history || []).find(h => key.endsWith(':' + h.id)); if (bump) bump.minutes = m; }
+                else task.minutesSpent = m;
+            }
+            this._putRealTime({ key, kind: p.kind, task: task || { id: p.taskId, label: p.label }, quest, date: p.date, min: m, late: true });
+            if (!task) { const e = s.timeLog.find(x => x.key === key); if (e) e.cats = p.cats || []; }
+            this.save();
+            this._syncLevelUpBees();
+            return true;
+        },
+        dropTimePending(key) {
+            const s = this._rt();
+            if (!s) return;
+            s.timePending = s.timePending.filter(p => p.key !== key);
+            this.save();
+        },
+
+        // ---- totals ----
+        getRealMinutes({ since } = {}) {
+            const s = this._rt();
+            return s ? s.timeLog.filter(e => !since || (e.date && e.date >= since)).reduce((n, e) => n + (e.min || 0), 0) : 0;
+        },
+        getRealBySkill() {
+            const s = this._rt(), by = {};
+            if (s) s.timeLog.forEach(e => (e.cats || []).forEach(c => { by[c] = (by[c] || 0) + (e.min || 0); }));
+            return by;   // { category: minutes }
+        },
+        // What the plan said for every completion you have now (XP's time).
+        getPlannedMinutes() {
+            const s = this.state;
+            if (!s) return 0;
+            let m = 0;
+            (s.dailyTasks || []).forEach(t => { m += (t.completedDates || []).length * plannedMinutes(t); });
+            (s.habits || []).forEach(h => { m += (h.history || []).filter(x => x.direction === 'positive').length * plannedMinutes(h); });
+            (s.todos || []).filter(t => t.completed).forEach(t => { m += plannedMinutes(t); });
+            (s.quests || []).forEach(q => (q.tasks || []).filter(t => t.completed).forEach(t => { m += plannedMinutes(t); }));
+            return m;
+        },
+        getArchive() { const s = this._rt(); return s ? s.archive.slice() : []; },
+        getChangeLog() { const s = this._rt(); return s ? s.changeLog.slice() : []; },
+        realMinutesFor(taskId) { const s = this._rt(); return s ? s.timeLog.filter(e => e.taskId === taskId).reduce((n, e) => n + e.min, 0) : 0; },
+
+        // ---- unchecking ----
+        toggleDailyTask(taskId) {
+            const t = (this.state && this.state.dailyTasks || []).find(x => x.id === taskId);
+            const wasDone = !!(t && (t.completedDates || []).includes(todayISO()));
+            const r = orig.toggleDailyTask.call(this, taskId);
+            if (r && wasDone) { this._dropRealTime(`daily:${taskId}:${todayISO()}`, t.label); this.save(); }
+            return r;
+        },
+        toggleTodoComplete(todoId) {
+            const t = (this.state && this.state.todos || []).find(x => x.id === todoId);
+            const wasDone = !!(t && t.completed);
+            const r = orig.toggleTodoComplete.call(this, todoId);
+            if (r && wasDone) { this._dropRealTime(`todo:${todoId}`, t.label); this.save(); }
+            return r;
+        },
+        toggleTask(questId, taskId) {
+            const { task } = this._findTask('quest', taskId, questId);
+            const wasDone = !!(task && task.completed);
+            const r = orig.toggleTask.call(this, questId, taskId);
+            if (!r || !task) return r;
+            if (wasDone) { this._dropRealTime(`quest:${questId}:${taskId}`, task.label); this.save(); }
+            else if (Number(task.durSec) > 0) { this._putRealTime({ key: `quest:${questId}:${taskId}`, kind: 'quest', task, quest: r, date: todayISO(), min: Number(task.durSec) / 60 }); this.save(); }   // the quest timer is real time
+            return r;
+        },
+
+        // ---- deleting: into the Archive, real time kept ----
+        _archive(kind, item, extra = {}) {
+            const s = this._rt();
+            if (!s || !item) return;
+            s.archive.unshift({ id: uid('arc'), kind, item: clone(item), deletedAt: new Date().toISOString(), ...extra });
+            const kept = kind === 'quest' ? (item.tasks || []).reduce((n, t) => n + this.realMinutesFor(t.id), 0) : this.realMinutesFor(item.id);
+            const NAMES = { daily: 'Daily', habit: 'Habit', todo: 'To-Do', quest: 'Quest', task: 'Quest task' };
+            this._changeLog('delete', `Deleted ${NAMES[kind]} "${item.label || item.title}"`, `${fmtMin(kept)} real time kept · in the Archive`);
+        },
+        removeDailyTask(id) { const it = (this.state && this.state.dailyTasks || []).find(x => x.id === id); const r = orig.removeDailyTask.call(this, id); if (r && it) { this._archive('daily', it); this.save(); } return r; },
+        removeHabit(id) { const it = (this.state && this.state.habits || []).find(x => x.id === id); const r = orig.removeHabit.call(this, id); if (r && it) { this._archive('habit', it); this.save(); } return r; },
+        removeTodo(id) { const it = (this.state && this.state.todos || []).find(x => x.id === id); const r = orig.removeTodo.call(this, id); if (r && it) { this._archive('todo', it); this.save(); } return r; },
+        removeTask(questId, taskId) {
+            const { task, quest } = this._findTask('quest', taskId, questId);
+            const r = orig.removeTask.call(this, questId, taskId);
+            if (r && task) { this._archive('task', task, { questId, questTitle: quest && quest.title }); this.save(); }
+            return r;
+        },
+        removeQuest(id) { const it = (this.state && this.state.quests || []).find(x => x.id === id); const r = orig.removeQuest.call(this, id); if (r && it) { this._archive('quest', it); this.save(); } return r; },
+        restoreArchived(arcId) {
+            const s = this._rt();
+            const a = s && s.archive.find(x => x.id === arcId);
+            if (!a) return { ok: false, error: 'Not in the Archive.' };
+            const LIST = { daily: 'dailyTasks', habit: 'habits', todo: 'todos', quest: 'quests' };
+            if (a.kind === 'task') {
+                const q = (s.quests || []).find(x => x.id === a.questId);
+                if (!q) return { ok: false, error: 'Its quest was deleted. Restore the quest first.' };
+                q.tasks = q.tasks || [];
+                if (!q.tasks.some(t => t.id === a.item.id)) q.tasks.push(a.item);
+                this._updateQuestCompletionState && this._updateQuestCompletionState(q);
+            } else {
+                const k = LIST[a.kind];
+                s[k] = s[k] || [];
+                if (!s[k].some(x => x.id === a.item.id)) s[k].push(a.item);
+            }
+            s.archive = s.archive.filter(x => x !== a);
+            this._changeLog('restore', `Restored "${a.item.label || a.item.title}" from the Archive`, 'Back on your lists with its history');
+            this.save();
+            this._syncLevelUpBees();
+            return { ok: true };
+        },
+
+        // ---- edits that change XP (never real time) ----
+        _noteEdit(task, before) {
+            if (!task) return;
+            const bits = [];
+            if (before.label !== task.label) bits.push(`renamed "${before.label}" → "${task.label}"`);
+            if ((before.minutes || null) !== (task.minutes || null)) bits.push(`planned ${before.minutes ? fmtMin(before.minutes) : 'auto'} → ${task.minutes ? fmtMin(task.minutes) : 'auto'}`);
+            if ((before.difficulty || null) !== (task.difficulty || null)) bits.push(`difficulty ${before.difficulty || '—'} → ${task.difficulty || '—'}`);
+            if (bits.length) this._changeLog('edit', `Edited "${task.label}": ${bits.join(', ')}`, 'Planned XP changed. Real time not touched.');
+        },
+        updateDailyTask(id, patch) { const t = (this.state && this.state.dailyTasks || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateDailyTask.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
+        updateHabit(id, patch) { const t = (this.state && this.state.habits || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateHabit.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
+        updateTodo(id, patch) { const t = (this.state && this.state.todos || []).find(x => x.id === id); const b = t && { label: t.label, minutes: t.minutes, difficulty: t.difficulty }; const r = orig.updateTodo.call(this, id, patch); if (r && b) { this._noteEdit(t, b); this.save(); } return r; },
+        updateTask(questId, taskId, patch) { const { task } = this._findTask('quest', taskId, questId); const b = task && { label: task.label, minutes: task.minutes, difficulty: task.difficulty }; const r = orig.updateTask.call(this, questId, taskId, patch); if (r && b) { this._noteEdit(task, b); this.save(); } return r; },
+    });
+})();
+
+// ============================================================================
+// XP DEBUFF (Nov 7 2026, Craft; Batch 24)
+// While the Queen's faint debuff is active, XP you earn is cut by 20%. XP is worked
+// out from your tasks, so the cut is kept as a small negative entry in state.bonusXP
+// (key "debuff:..."), one per check-off. Unchecking that same check-off takes its
+// entry away again. Wraps the four check-off methods; nothing else changes.
+// ============================================================================
+(() => {
+    if (typeof DatabaseManager === 'undefined') return;   // tests that load only part of this file
+    const P = DatabaseManager.prototype;
+    ['toggleDailyTask', 'toggleTodoComplete', 'toggleTask', 'bumpHabit'].forEach(name => {
+        const orig = P[name];
+        if (typeof orig !== 'function') return;
+        P[name] = function (...args) {
+            if (!this.state) return orig.apply(this, args);
+            const before = this._rawXP();
+            const result = orig.apply(this, args);
+            try {
+                const gain = this._rawXP() - before;
+                const src = `${name}:${args.join(':')}`;
+                const list = Array.isArray(this.state.bonusXP) ? this.state.bonusXP : (this.state.bonusXP = []);
+                if (gain > 0) {
+                    const buff = this.getXPBuffs().find(b => b.kind === 'debuff');
+                    if (buff) {
+                        const cut = Math.round(gain * (-buff.pct / 100));
+                        if (cut > 0) { list.push({ key: `debuff:${Date.now()}:${list.length}`, src, date: todayISO(), xp: -cut, why: buff.id }); this.save(); }
+                    }
+                } else if (gain < 0) {
+                    // Unchecked: give back the cut that check-off paid.
+                    for (let i = list.length - 1; i >= 0; i--) {
+                        if (String(list[i].key).startsWith('debuff:') && list[i].src === src) { list.splice(i, 1); this.save(); break; }
+                    }
+                }
+            } catch (error) { console.error('XP debuff failed', error); }
+            return result;
+        };
+    });
+})();
 
 const Vault = new DatabaseManager();

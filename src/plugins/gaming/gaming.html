@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../src/assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="../../../src/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>🎮 Gaming</title>
+
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../../plugins/gaming/gaming.css">
+</head>
+<body>
+
+    <main class="gm" id="gm-main">
+        <section class="card top">
+            <div class="head"><h1>🎮 GAMING</h1><div class="meta"><b id="gm-xp">0</b>game XP</div></div>
+            <p class="sub" id="gm-sub">Your Steam Deck, linked to BizzyBee.</p>
+        </section>
+        <div id="gm-body"></div>
+    </main>
+
+    <div id="gm-not-installed" class="gm-ni" hidden>
+        <p>The Gaming plugin isn't turned on.</p>
+        <a href="../../features/plugin-hub/plugin-hub.html">🧩 Go to Plugin Hub →</a>
+    </div>
+
+    <script src="../../core/boot.js"></script>
+    <script src="./gaming.js"></script>
+</body>
+</html>
