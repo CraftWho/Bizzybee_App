@@ -2038,6 +2038,21 @@ class DatabaseManager {
         }
     }
 
+    // The save this device had before it signed in (stored under the plain key), if it has real progress.
+    _useDeviceSaveForSignIn() {
+        try {
+            if (this.storageKey === 'bizzybee_user_data' || !this._looksLikeExistingCloudAccount()) return false;
+            const raw = localStorage.getItem('bizzybee_user_data');
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            const meta = this.backupMeta(parsed);
+            const hasWork = (parsed.dailyTasks || []).some(t => (t.completedDates || []).length) || (parsed.habits || []).some(h => (h.history || []).length)
+                || (parsed.todos || []).some(t => t.completed) || (parsed.quests || []).some(q => (q.tasks || []).some(t => t.completed));
+            if (!meta || (!(meta.xp > 0) && !hasWork)) return false;
+            return this.importFullState(raw, { backup: false }).ok;
+        } catch { return false; }
+    }
+
     async _initialize() {
         await this.refreshLocalCloudDownload();
         const existingData = localStorage.getItem(this.storageKey);
@@ -2070,6 +2085,10 @@ class DatabaseManager {
             const recovered = this._looksLikeExistingCloudAccount() && await this._tryRecoverFromCloud();
             if (recovered) {
                 console.log("Vault: Recovered existing save from the cloud - skipped a blank reseed.");
+            } else if (this._useDeviceSaveForSignIn()) {
+                // Nov 17 2026 (Craft): signed in but the cloud could not be reached, and this device already has its own
+                // progress from before sign-in. Keep working on that, not a blank level 1 hatchling.
+                console.log("Vault: Cloud unreachable - continuing with this device's own save.");
             } else {
                 console.log("Vault: Fetching Blueprint...");
                 await this.loadBlueprint();
@@ -2108,6 +2127,7 @@ class DatabaseManager {
         this._nameDefaultBees();
         this._splitNamedTitles();
         this._splitHashtagTerms();
+        this.startAutoBackup();   // Nov 17 2026 (Craft): a copy every 12 hours
         this._ensureQueen();
         if (this.pcLocal && !this.state.pcLocalSeeded) this._seedPcLocal();   // Oct 31 2026 (Craft)
         this.hiveHourlyTick();
@@ -2510,13 +2530,122 @@ class DatabaseManager {
         localStorage.setItem(this.storageKey + ':backups', JSON.stringify(this.getLocalBackups().filter(item => item.id !== id)));
     }
 
-    createLocalBackup(reason = 'Manual backup') {
+    // Nov 17 2026 (Craft): a copy now knows what is in it (level, XP, bees, quests), so the list can
+    // show it. Copies made before the cloud replaces this device's save are "protected": they live in
+    // their own slots (up to 5) and ordinary copies (up to 6) never push them out. The old limit of 3
+    // let one restore delete the very copy you needed.
+    backupMeta(s) {
+        try {
+            const xp = Math.max(0, computeTotalXP(s.quests || []) + computeDailyXP(s.dailyTasks) + computeHabitXP(s.habits) + computeTodoXP(s.todos)
+                + (s.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0));
+            const level = computeLevelProgress(xp).level;
+            const ack = s.characterLevelBar && s.characterLevelBar.acknowledgedLevel;
+            return { level: ack ? Math.min(ack, level) : level, xp: Math.round(xp), bees: ((s.hive || s.colony || {}).bees || []).length, quests: (s.quests || []).length, name: s.displayName || (s.user && s.user.name) || '' };
+        } catch { return null; }
+    }
+    _trimBackups(entries) {
+        let plain = 0, safe = 0;
+        return entries.filter(e => e.protect ? ++safe <= 5 : ++plain <= 6);
+    }
+    createLocalBackup(reason = 'Manual backup', { protect = false } = {}) {
         const data = localStorage.getItem(this.storageKey);
         if (!data) return;
+        let meta = null;
+        try { meta = this.backupMeta(JSON.parse(data)); } catch { /* unreadable save: still keep the raw copy */ }
         const entries = this.getLocalBackups();
-        entries.unshift({ id: Date.now().toString(), createdAt: new Date().toISOString(), reason, data });
-        try { localStorage.setItem(this.storageKey + ':backups', JSON.stringify(entries.slice(0, 3))); }
-        catch { throw new Error('Not enough storage for a recovery copy. Export and remove older device backups to free space, then retry.'); }
+        let id = Date.now().toString();
+        while (entries.some(e => e.id === id)) id = String(Number(id) + 1);
+        entries.unshift({ id, createdAt: new Date().toISOString(), reason, meta, protect: !!protect, data });
+        let list = this._trimBackups(entries);
+        for (;;) {
+            try { localStorage.setItem(this.storageKey + ':backups', JSON.stringify(list)); this._backupHealth({ safetyAt: new Date().toISOString(), safetyErr: null }); return; }
+            catch {
+                // Storage full: drop the oldest ordinary copy and try again (never the new one).
+                const i = list.map((e, n) => (n > 0 && !e.protect) ? n : -1).filter(n => n > 0).pop();
+                const j = i == null ? list.map((e, n) => n > 0 ? n : -1).filter(n => n > 0).pop() : i;
+                if (j == null) {
+                    this._backupHealth({ safetyErr: 'Not enough storage for a recovery copy.' });
+                    throw new Error('Not enough storage for a recovery copy. Export and remove older device backups to free space, then retry.');
+                }
+                list.splice(j, 1);
+            }
+        }
+    }
+    // What the last backups did, for Settings › Backup health.
+    _backupHealth(patch) {
+        try {
+            const k = 'bizzybee_backup_health';
+            const h = JSON.parse(localStorage.getItem(k) || '{}');
+            localStorage.setItem(k, JSON.stringify({ ...h, ...patch }));
+        } catch { /* storage off or full: health is best effort */ }
+    }
+    backupHealth() {
+        try { return JSON.parse(localStorage.getItem('bizzybee_backup_health') || '{}'); } catch { return {}; }
+    }
+
+    // ---- Automatic copies every 12 hours (Nov 17 2026, Craft) ----
+    // Kept in IndexedDB (far more room than localStorage), newest 14 per save (a week), separate from
+    // the "before a change" copies above so neither pushes the other out.
+    AUTO_BACKUP_EVERY_MS = 12 * 3600000;
+    AUTO_BACKUP_KEEP = 14;
+    _autoDb() {
+        return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') return reject(new Error('This browser has no IndexedDB.'));
+            const req = indexedDB.open('bizzybee-auto-backups', 1);
+            req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('copies')) req.result.createObjectStore('copies', { keyPath: 'id' }); };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error || new Error('IndexedDB failed.'));
+        });
+    }
+    async _autoAll() {
+        const db = await this._autoDb();
+        return new Promise((resolve, reject) => {
+            const req = db.transaction('copies', 'readonly').objectStore('copies').getAll();
+            req.onsuccess = () => resolve((req.result || []).filter(c => c.key === this.storageKey).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async listAutoBackups() { return (await this._autoAll()).map(({ data, ...rest }) => rest); }
+    async getAutoBackupData(id) { const c = (await this._autoAll()).find(x => x.id === id); return c ? c.data : null; }
+    async removeAutoBackup(id) {
+        const db = await this._autoDb();
+        return new Promise((resolve, reject) => { const tx = db.transaction('copies', 'readwrite'); tx.objectStore('copies').delete(id); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+    }
+    autoBackupLastAt() { return Number(localStorage.getItem(this.storageKey + ':autobackup_at') || 0); }
+    autoBackupDue(now = Date.now()) {
+        return !!this.state && !this.devTest && !this.pcLocal && now - this.autoBackupLastAt() >= this.AUTO_BACKUP_EVERY_MS;
+    }
+    // Makes one copy (when due, or force). Never throws: a failure is recorded for Backup health.
+    async autoBackupNow({ force = false, reason = 'Every 12 hours' } = {}) {
+        if (!this.state) return { ok: false, error: 'no-save' };
+        if (!force && !this.autoBackupDue()) return { ok: true, skipped: true };
+        if (this._autoBusy) return { ok: true, skipped: true };
+        this._autoBusy = true;
+        try {
+            const data = localStorage.getItem(this.storageKey);
+            if (!data) return { ok: false, error: 'no-save' };
+            JSON.parse(data);   // never keep a copy that can't be read back
+            const db = await this._autoDb();
+            const rec = { id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 6), key: this.storageKey, createdAt: new Date().toISOString(), reason, meta: this.backupMeta(this.state), data };
+            await new Promise((resolve, reject) => { const tx = db.transaction('copies', 'readwrite'); tx.objectStore('copies').put(rec); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error || new Error('Could not write the copy.')); tx.onabort = () => reject(tx.error || new Error('The browser refused the copy (storage full?).')); });
+            const all = await this._autoAll();
+            for (const old of all.slice(this.AUTO_BACKUP_KEEP)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
+            localStorage.setItem(this.storageKey + ':autobackup_at', String(Date.now()));
+            this._backupHealth({ autoAt: rec.createdAt, autoErr: null });
+            return { ok: true, id: rec.id };
+        } catch (error) {
+            this._backupHealth({ autoErr: (error && error.message) || 'The automatic backup failed.', autoErrAt: new Date().toISOString() });
+            return { ok: false, error: (error && error.message) || 'failed' };
+        } finally { this._autoBusy = false; }
+    }
+    // Checks on load, when the app comes back, and every 15 minutes while it is open.
+    startAutoBackup() {
+        if (this._autoStarted || typeof window === 'undefined' || typeof document === 'undefined') return;
+        this._autoStarted = true;
+        const check = () => { this.autoBackupNow().catch(() => {}); };
+        setTimeout(check, 10000);
+        setInterval(check, 15 * 60000);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
     }
 
     // Time-based XP (Oct 2026), once per save:
