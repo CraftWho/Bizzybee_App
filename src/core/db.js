@@ -1871,17 +1871,18 @@ function beeFeeling(bee, today = todayISO()) {
     if (L.hatchOn) return { key: 'egg', face: '🥚', why: 'Still an egg' };
     if (L.faintedAt) return { key: 'fainted', face: '😵', why: 'Fainted' };
     const idle = !bee.class && L.idleSince ? (daysBetween(L.idleSince, today) || 0) : 0;
-    if (!bee.class && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😠', why: `No job for ${idle} days` };
+    if (!bee.class && !L.recuperate && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😠', why: `No job for ${idle} days` };
     const out = beeOutOfAction(bee, today);
     if (out === 'nursery') return { key: 'calm', face: '🛏️', why: 'In the Nursery' };
     if (out === 'sick') return { key: 'sad', face: '🤒', why: 'Sick' };
     // Nov 17 2026 (Craft): a bee on Recuperate shows the sleeping face, even when it is tired or
     // hungry (that is why it is resting). A bee that just ate at the Cafeteria shows the eating face.
-    if (L.recuperate || (L.stamina != null && L.stamina < 10)) {
+    if (L.recuperate) {
         const left = [L.stamina < 100 && `⚡${Math.round(L.stamina)}`, L.health < 100 && `❤️${Math.round(L.health)}`].filter(Boolean).join(' ');
         return { key: 'asleep', face: '😴', why: 'Sleeping and healing' + (left ? ' (' + left + ')' : '') };
     }
-    if (L.cafeAt && Date.now() - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return { key: 'eating', face: '😋', why: 'Eating at the Cafeteria' };
+    if (L.stamina != null && L.stamina < 10) return { key: 'asleep', face: '😴', why: `Too tired to work (⚡${Math.round(L.stamina)})` };
+    if (L.cafeAt && L.fullness >= CAFE.below && Date.now() - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return { key: 'eating', face: '😋', why: 'Eating at the Cafeteria' };
     const hurt = beeHurtLevel(bee);
     if (hurt) return { key: 'sad', face: HURT_LEVELS[hurt].icon, why: HURT_LEVELS[hurt].label + (hurt === 3 ? ', can\'t work' : '') };
     if (out === 'resting') return { key: 'calm', face: '😴', why: 'Exhausted, resting' };
@@ -1933,10 +1934,14 @@ function computeHiveStreak(dailies, today = todayISO(), guards = 0) {
     return streak;
 }
 
+// Nov 17 2026 (Craft): the mood face in a bee's panel and card now agrees with the face on the combs:
+// if the bee is hungry, tired, hurt, sick, asleep, eating, upset or an egg, that face and reason are shown.
 function beeMood(bee, streak = 0) {
     if (!bee.life) return { label: 'Content', face: '🙂', score: 60 };
     if (bee.life.faintedAt) return { label: 'Fainted', face: '😵', score: 0 };
     const score = (bee.life.health + bee.life.fullness + bee.life.happiness) / 3 + streak * 4;
+    const fe = beeFeeling(bee);
+    if (!['happy', 'calm'].includes(fe.key) || fe.face !== '🙂' && fe.key === 'calm') return { label: fe.why, face: fe.face, score };
     if (score > 80) return { label: 'Joyful', face: '😄', score };
     if (score > 60) return { label: 'Content', face: '🙂', score };
     if (score > 40) return { label: 'Uneasy', face: '😐', score };
