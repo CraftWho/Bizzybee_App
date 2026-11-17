@@ -170,34 +170,60 @@ const BizzyNative = (() => {
     // Back button (Oct 28 2026, Craft): always one step back. Some pages
     // replace themselves in the browser history, so Android's own back
     // could jump straight to Home. We keep our own list of pages instead.
-    // A pop-up open? Back closes it first.
+    // Nov 17 2026 (Craft): fixes. (1) Inside a page's own view (a Settings group) back now closes
+    // that view first instead of leaving the page. (2) Going back with the floating back button
+    // or the browser used to leave the list stale, so the next back came to the page you had just
+    // left. (3) Any pop-up that covers the screen is closed first, not only the ones on a fixed list.
+    const BLOCKING = '.ds-scrim, .app-lock-overlay';   // finish Start My Day / unlock first
+    function visibleOverlay() {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const cands = [...document.querySelectorAll('[class*="scrim"], [class*="sheet-bg"], [class*="overlay"], [class*="modal"], dialog[open], [role="dialog"], [aria-modal="true"]')];
+        const found = cands.filter(el => {
+            if (el.matches(BLOCKING) || el.hidden || el.closest('[hidden]')) return false;
+            if (el.matches('.back-fab-btn, .install-fab-btn, [class*="modal-"]:not([class*="modal-box"])') && !el.matches('dialog')) return false;
+            const cs = getComputedStyle(el);
+            if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0 || cs.pointerEvents === 'none') return false;
+            if (cs.position !== 'fixed' && !el.matches('dialog')) return false;
+            const r = el.getBoundingClientRect();
+            return r.width >= vw * 0.5 && r.height >= vh * 0.35;
+        });
+        found.sort((a, b) => (Number(getComputedStyle(a).zIndex) || 0) - (Number(getComputedStyle(b).zIndex) || 0));
+        return found.pop() || null;
+    }
+    function closeOverlay(pop) {
+        const x = pop.querySelector('.hl-x, .dev-close, [data-k="close"], [data-close], [data-k="no"], [data-k="skip"], .modal-close, [aria-label="Close"], [aria-label="Close dialog"]');
+        if (x) { x.click(); return; }
+        if (pop.matches('dialog[open]') && pop.close) { pop.close(); return; }
+        pop.dispatchEvent(new MouseEvent('click', { bubbles: true }));   // tapping the backdrop closes it
+    }
     function backButton() {
         const NAV = 'bb_nav';
         const here = location.pathname + location.search;
         let stack = [];
         try { stack = JSON.parse(sessionStorage.getItem(NAV) || '[]'); } catch {}
-        if (stack[stack.length - 1] !== here) stack.push(here);
+        let cameBack = false;
+        try { const nav = performance.getEntriesByType('navigation')[0]; cameBack = !!nav && nav.type === 'back_forward'; } catch {}
+        if (cameBack && stack.lastIndexOf(here) >= 0) stack = stack.slice(0, stack.lastIndexOf(here) + 1);   // went back to a page we already had
+        else if (stack[stack.length - 1] !== here) stack.push(here);
         stack = stack.slice(-40);
         try { sessionStorage.setItem(NAV, JSON.stringify(stack)); } catch {}
         const App = P('App');
         if (!App) return;
         App.addListener('backButton', () => {
             // 1. Close the top pop-up (tapping its backdrop closes it).
-            const pop = [...document.querySelectorAll('.xt-scrim, .ic-sheet-bg:not([hidden]), .pj-sheet-bg:not([hidden]), .pm-scrim, .up-scrim, .wn-scrim, .ss-scrim, .hl-sheet-scrim, .hive-mind-card-overlay:not([hidden]), #app-create-sheet, .dev-panel.open')].pop();
-            if (pop) {
-                const x = pop.querySelector('.hl-x, .dev-close, [data-k="close"], [data-close], [data-k="no"], [data-k="skip"]');
-                if (x) x.click(); else pop.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                return;
-            }
-            if (document.querySelector('.ds-scrim, .app-lock-overlay')) return;   // finish Start My Day / unlock first
-            // 2. One page back.
+            const pop = visibleOverlay();
+            if (pop) { closeOverlay(pop); return; }
+            if (document.querySelector(BLOCKING)) return;
+            // 2. A page with its own views (Settings groups) pushes a history entry for each: undo that first.
+            if (history.state && (history.state.st || history.state.bb)) { history.back(); return; }
+            // 3. One page back.
             let list = [];
             try { list = JSON.parse(sessionStorage.getItem(NAV) || '[]'); } catch {}
             if (list[list.length - 1] === here) list.pop();
             const prev = list[list.length - 1];
             try { sessionStorage.setItem(NAV, JSON.stringify(list)); } catch {}
             if (prev && prev !== here) { location.href = location.origin + prev; return; }
-            // 3. Nothing behind us: Home, or leave the app from Home.
+            // 4. Nothing behind us: Home, or leave the app from Home.
             if (!/\/home\/home\.html/.test(location.pathname)) { location.href = `${location.origin}/src/features/home/home.html`; return; }
             try { App.minimizeApp(); } catch {}
         });

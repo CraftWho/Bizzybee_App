@@ -82,6 +82,8 @@
 
     <script src="../../core/site.js"></script>   <!-- Nov 1 2026 (Craft): app copy -> site -->
     <script src="../../core/ui/hive-mind/nano-bee.js"></script>
+    <script>/* Nov 17 2026 (Craft): this page is standalone, so load the Android back button handler here */
+    (function () { try { if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) { var s = document.createElement('script'); s.src = '../../core/services/native/native.js'; document.body.appendChild(s); } } catch (e) {} })();</script>
     <script src="./request-access.js"></script>
 </body>
 </html>

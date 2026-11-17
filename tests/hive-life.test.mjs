@@ -33,7 +33,8 @@ test('hive life: a sick, starving bee faints hour by hour, then dies after 3 day
     const h = harness({ hive: { bees: [
         bee('weak', { sex: 'f', life: life({ health: 1, fullness: 0, sickUntil: daysAgo(-30) }) }),
         bee('ut', { sex: 'f', class: 'undertaker', life: life({}) })
-    ], tickets: 0, lifeTick: daysAgo(5), vitalsAt: Date.now() - 5 * 86400000 }, inventory: { materials: {} } });
+    ], tickets: 0, honey: 0, lifeTick: daysAgo(5), vitalsAt: Date.now() - 5 * 86400000 }, inventory: { materials: {} } });
+    h.g('LIFE.wakeDays = 99');   // since Nov 7 fainted bees wake on their own after 2 days; switch that off to test the death path
     await h.vault.init();
     const names = h.vault.getHiveBees().map(b => b.id);
     assert.ok(!names.includes('weak'));
@@ -63,7 +64,7 @@ test('hive life: only males can be Drones; revive and Royal Jelly cost Honey Dro
     const f1 = h.vault.getHiveBees()[0];
     f1.life.faintedAt = today; f1.life.health = 0;
     assert.equal(h.vault.reviveBee('f1').ok, true);
-    assert.equal(h.vault.state.inventory.materials['honey-drop'], 6);
+    assert.equal(h.vault.state.inventory.materials['honey-drop'], 11);
     assert.equal(h.vault.getHiveBees()[0].life.faintedAt, null);
     assert.equal(h.vault.reviveBee('f1').ok, false);
     assert.equal(h.vault.craftRoyalJelly().ok, true);
@@ -270,7 +271,7 @@ test('held items: Rare and up hold them, use-up items fire when needed, gear cou
     ], tickets: 0, lifeTick: today }, inventory: { materials: {}, items: { 'honey-extract': 1, 'wax-shield': 2 } } });
     await h.vault.init();
     const v = h.vault, B = (id) => v.getHiveBees().find(b => b.id === id);
-    assert.equal(v.giveBeeItem('com', 'honey-extract').ok, false);       // Common: no slot
+    assert.equal(v.giveBeeItem('com', 'wax-shield').ok, false);          // Common: use-items only, no gear
     assert.equal(v.giveBeeItem('rare', 'honey-extract').ok, true);
     assert.equal(v.state.inventory.items['honey-extract'], 0);
     assert.equal(v.giveBeeItem('leg', 'wax-shield', 1).ok, true);         // Legendary: 2 slots
