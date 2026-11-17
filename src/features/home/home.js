@@ -93,7 +93,7 @@ const STRIP_ICONS = {
     bees: '<path d="M10.6 4.4 9.2 2.4M13.4 4.4l1.4-2"/><circle cx="12" cy="5.9" r="1.8"/><ellipse cx="12" cy="10.1" rx="2.3" ry="2.1"/><path d="M12 12.2c-2.7 0-3.6 2.4-3.4 4.5.3 2.5 1.9 4.1 3.4 5.6 1.5-1.5 3.1-3.1 3.4-5.6.2-2.1-.7-4.5-3.4-4.5z"/><path d="M8.8 15.4h6.4M9.3 18.3h5.4"/><path d="M9.8 9.4C6.3 6.1 2.6 6.8 2.7 9.5c.1 2.4 3.9 2.6 7.1 1z"/><path d="M14.2 9.4c3.5-3.3 7.2-2.6 7.1.1-.1 2.4-3.9 2.6-7.1 1z"/><path d="M9.8 11.3c-2.9.6-4.8 2.6-3.8 4 1 1.3 3 .1 4-2.2M14.2 11.3c2.9.6 4.8 2.6 3.8 4-1 1.3-3 .1-4-2.2"/>',
     steps: '<path d="M8 3.5c1.7 0 2.6 2 2.6 4.6S9.7 13 8 13s-2.6-2.3-2.6-4.9S6.3 3.5 8 3.5z"/><path d="M6 15.5h4v1.3a2 2 0 0 1-4 0z"/><path d="M16 7.5c1.7 0 2.6 2 2.6 4.6S17.7 17 16 17s-2.6-2.3-2.6-4.9.9-4.6 2.6-4.6z"/><path d="M14 19.5h4v1.3a2 2 0 0 1-4 0z"/>',
     wx: '<path d="M7.2 18.5h10a3.7 3.7 0 0 0 .3-7.4 5.2 5.2 0 0 0-10-.9A3.9 3.9 0 0 0 7.2 18.5z"/>',
-    // Oct 31 2026 (Craft): the first tile is the Hive Mind (a small comb), not "Bees".
+    // Nov 16 2026 (Craft): the first stat is Hive Life again (the bee icon) and opens Hive Life. The Hive Mind app tile below is unchanged.
     hive: '<path d="M8.5 3.5 12 5.5v4L8.5 11.5 5 9.5v-4z"/><path d="M15.5 3.5 19 5.5v4l-3.5 2-3.5-2v-4z"/><path d="M12 9.5l3.5 2v4L12 17.5l-3.5-2v-4z"/><path d="M8.5 15.5v4L12 21.5l3.5-2v-4"/>',
     xp: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
     streak: '<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-8.3.7 1.9 1.8 3 3 3.4-.2-2.6.8-5.3 2.9-6.9.1 3.4 3.5 6 3.5 10.4C18.5 18.2 16 21 12 21z"/><path d="M12 21c-1.7 0-2.8-1.2-2.8-2.8 0-1.8 1.6-2.7 2.2-4.2.9 1.5 3.4 2.4 3.4 4.4 0 1.5-1.2 2.6-2.8 2.6z"/>',
@@ -107,7 +107,7 @@ function renderHive() {
     const qp = quest && typeof QuestUI !== 'undefined' ? QuestUI.progress(quest).pct : null;
     const xp = xpToday();
     const stats = [
-        { key: 'hive', value: hive.bees, label: 'Hive Mind', aria: `Hive Mind, ${hive.bees} bees`, href: '../hive-mind/hive-mind.html', color: '#ffcc00' },   // Oct 31 2026 (Craft)
+        { key: 'bees', value: hive.bees, label: 'Hive Life', aria: `Hive Life, ${hive.bees} bees`, href: '../hive-mind/hive-mind.html?view=life', color: '#ffcc00' },   // Oct 31 2026 (Craft)
         { key: 'xp', value: `${xp > 0 ? '+' : ''}${xp}`, label: 'XP today', button: true, color: '#34c77b' },
         { key: 'streak', value: streak, label: 'Current streak', href: '../dailies/dailies.html', color: '#ff8a3d' },
         { key: 'quest', value: qp === null ? '—' : `${qp}%`, label: quest ? 'Focus quest' : 'No focus', href: quest ? `../quests/quest.html?id=${encodeURIComponent(quest.id)}` : '../quests/quests.html', color: '#4fb3d9' }
