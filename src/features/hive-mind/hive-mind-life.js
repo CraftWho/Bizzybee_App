@@ -297,7 +297,7 @@ const HiveLife = (() => {
                 + Vault._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4), 0);
             return `<p class="hl-note">🛡️ Raid defense ${def} · ${Math.round(raidChance(Vault.getHiveStreak()) * 100)}% raid risk a day. ${list.filter(isOut).length} out foraging.</p>`;
         }
-        if (c.id === 'nojob') return `<p class="hl-note">Give a bee a job with its menu, or turn on Auto-manage and a job that opens is filled for you. Upset after 3 days without work.</p>`;
+        if (c.id === 'nojob') return `<p class="hl-note">Tap Job ▾ to give a bee a job, or turn on Auto-manage and a job that opens is filled for you. Upset after 3 days without work.</p>`;
         if (c.id === 'fainted') return `<p class="hl-note">Fainted bees wake by themselves after ${LIFE.wakeDays} days, or a working Nurse wakes one a day. Tap a bee to revive it now.</p>`;
         return `<p class="hl-note">Resting: +4 stamina and −3 fatigue an hour by day, more at night. Return sends a bee back to its job now.</p>`;
     }
@@ -350,10 +350,18 @@ const HiveLife = (() => {
             const P = Vault.autoSwapPrefs();
             const note = `😴 ⚡${Math.round(L.stamina ?? 0)} now · Ready at ⚡${P.returnPct}`;
             if (from) return cardFor(bee, { job: L.restFrom, action: 'return', label: 'Return', actClass: 'back', note });
-            return cardFor(bee, { note, extra: renBtn(bee) + jobSelect(bee, jobsFor(bee).filter(j => !Vault.jobBlock(bee, j)), { mark: c.jobs }) });
+            return cardFor(bee, { note, extra: renBtn(bee), action: 'pick', label: 'Job ▾', actClass: 'soft' });
         }
         const merge = !bee.class && Vault.beeMergeStatus && Vault.beeMergeStatus(bee) === 'spare' ? `<a class="hl-ren hl-merge" href="../gacha/gacha.html?pick=${encodeURIComponent(bee.id)}#merge" aria-label="Merge ${esc(bee.name)}">🧬</a>` : '';
-        return cardFor(bee, { extra: renBtn(bee) + merge + jobSelect(bee, jobsFor(bee).filter(j => bee.class === j || !Vault.jobBlock(bee, j)), { mark: c.jobs }) });
+        return cardFor(bee, { extra: renBtn(bee) + merge, action: 'pick', label: 'Job ▾', actClass: 'soft' });
+    }
+
+    // Nov 17 2026 (Craft): job chips under the card instead of a dropdown. Talent first.
+    function jobPicker(bee) {
+        const jobs = jobsFor(bee).filter(j => bee.class !== j && !Vault.jobBlock(bee, j)).sort((a, b) => (b === bee.talent) - (a === bee.talent));
+        const rest = bee.life && !bee.life.recuperate ? `<button type="button" class="hl-chip" data-setjob="recuperate" data-bee="${esc(bee.id)}">💤 Rest</button>` : '';
+        const chips = jobs.map(j => `<button type="button" class="hl-chip" data-setjob="${j}" data-bee="${esc(bee.id)}">${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}</button>`).join('');
+        return `<div class="hl-pick">${chips || '<small class="hl-note">No open job with room fits this bee yet.</small>'}${rest}</div>`;
     }
 
     function openRoom(id, opts = {}) {
@@ -440,9 +448,27 @@ const HiveLife = (() => {
         if (!fresh) box.style.animation = 'none';
         sheet.onclick = (e) => {
             if (e.target === sheet || e.target.closest('.hl-x')) { closeRoom(); return; }
+            const chip = e.target.closest('[data-setjob]');
+            if (chip) {
+                const job = chip.dataset.setjob;
+                const r = Vault.assignBeeClass(chip.dataset.bee, job);
+                if (typeof Toast !== 'undefined') Toast.show(!r ? (Vault.lastJobError || "That bee can't do that job.") : job === 'recuperate' ? `💤 ${r.name} is resting.` : `${BEE_CLASSES[job].icon} ${r.name} is now a ${BEE_CLASSES[job].label}.`, r ? 'positive' : 'negative');
+                unlockedToast();
+                if (opts.onChange) opts.onChange();
+                openRoom(id, opts);
+                return;
+            }
             const hb = e.target.closest('[data-hatch]');
             if (hb) { closeRoom(); AppShell.hatch(hb.dataset.hatch, () => { if (opts.onChange) opts.onChange(); }); }
         };
+        sheet.querySelectorAll('[data-wk="pick"]').forEach(btn => btn.addEventListener('click', () => {
+            const card = btn.closest('.wk-card');
+            const had = card.nextElementSibling && card.nextElementSibling.classList.contains('hl-pick');
+            sheet.querySelectorAll('.hl-pick').forEach(x => x.remove());
+            if (had) return;
+            const bee = Vault.getHiveBees().find(b => b.id === btn.dataset.bee);
+            if (bee) card.insertAdjacentHTML('afterend', jobPicker(bee));
+        }));
         sheet.querySelectorAll('.hl-job').forEach(sel => sel.addEventListener('change', () => {
             const bee = Vault.getHiveBees().find(b => b.id === sel.dataset.bee);
             const job = sel.value || null;
