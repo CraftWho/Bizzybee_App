@@ -1683,14 +1683,15 @@ const MERGE_MALE_CHANCE = 0.1;   // Nov 9 2026 (Craft)
 const GAME_XP = { blockMin: 30, perBlock: 2, dayCapMin: 20, perAch: 10, dayCapAch: 50 };
 const HONEY_CAP = 100, HONEY_START = 40, HONEY_PER_DAY = 10, HONEY_PER_TASK = 1;
 const CAFE = { below: 40, meal: 40, cost: 1, freeBase: 0.1, freeMax: 0.5, stayMin: 45 };
+const RESCUE_FATIGUE = 3;   // Nov 17 2026 (Craft): every bee a Rescue bee carries tires it by this much
 const RESCUE_BELOW = 60;   // health under this (or sick): the Rescue Team carries it to a bed   // a merged bee may get a talent the hive is missing
 // Nov 9 2026 (Craft): every hive job opens by Lv 5 (the hive teams are a core
 // part of the game). Only the Undertaker waits: death is paused.
 const HIVE_JOB_LADDER = [
-    { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 4, job: 'collector' }, { lv: 5, job: 'guardian' },
+    { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 3, job: 'collector' }, { lv: 4, job: 'rescue' }, { lv: 5, job: 'guardian' },
     { lv: 5, job: 'watercarrier' }, { lv: 5, job: 'architect' }, { lv: 5, job: 'attendant' }, { lv: 5, job: 'cleaner' },
     { lv: 5, job: 'scout' }, { lv: 5, job: 'drone' }, { lv: 5, job: 'barrier' },
-    { lv: 5, job: 'rescue' }, { lv: 5, job: 'fanner' }, { lv: 5, job: 'waxmaker' }, { lv: 5, job: 'receiver' },
+    { lv: 5, job: 'fanner' }, { lv: 5, job: 'waxmaker' }, { lv: 5, job: 'receiver' },
     { lv: 17, job: 'undertaker' }
 ];
 const HIVE_COMB_JOBS = {
@@ -1811,7 +1812,15 @@ function freshBeeLife(today, rand = lifeRand) {
 }
 
 // Adds sex + life to a bee that doesn't have them. Returns true if changed.
-function ensureBeeLife(bee, today = todayISO(), { isNew = false } = {}) {
+// Nov 17 2026 (Craft): the first bees are not random. A new female bee gets the first of these jobs the hive has no
+// bee for yet: health (Nurse), food (Honey Maker), workers (Collector), then Rescue and Receiver. After that, random.
+const ESSENTIAL_TALENTS = ['nurse', 'honeymaker', 'collector', 'rescue', 'receiver'];
+function pickStarterTalent(bee, hiveBees) {
+    if (!bee || bee.sex === 'm' || !Array.isArray(hiveBees)) return null;
+    const have = new Set(hiveBees.filter(b => b !== bee && b.sex !== 'm' && b.rarity !== 'Royal' && b.talent).map(b => b.talent));
+    return ESSENTIAL_TALENTS.find(t => !have.has(t)) || null;
+}
+function ensureBeeLife(bee, today = todayISO(), { isNew = false, hiveBees = null } = {}) {
     if (!bee || bee.rarity === 'Royal') return false;
     let changed = false;
     if (bee.sex !== 'f' && bee.sex !== 'm') {
@@ -1828,7 +1837,7 @@ function ensureBeeLife(bee, today = todayISO(), { isNew = false } = {}) {
         // Old bees get a stable talent from their id; new ones a random one.
         let h = 7;
         for (const ch of String(bee.id || bee.name || '')) h = (h * 33 + ch.charCodeAt(0)) >>> 0;
-        bee.talent = pickBeeTalent(bee, isNew ? Math.random : () => (h % 1000) / 1000);
+        bee.talent = (isNew && pickStarterTalent(bee, hiveBees)) || pickBeeTalent(bee, isNew ? Math.random : () => (h % 1000) / 1000);
         changed = true;
     }
     return changed;
@@ -1873,7 +1882,7 @@ function beeFeeling(bee, today = todayISO(), nowMs = Date.now()) {
     if (L.hatchOn) return { key: 'egg', face: '🥚', why: 'Still an egg' };
     if (L.faintedAt) return { key: 'fainted', face: '😵', why: 'Fainted' };
     const idle = !bee.class && L.idleSince ? (daysBetween(L.idleSince, today) || 0) : 0;
-    if (!bee.class && !L.recuperate && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😠', why: `No job for ${idle} days` };
+    if (!bee.class && !L.recuperate && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😡', why: `No job for ${idle} days` };
     const out = beeOutOfAction(bee, today);
     if (out === 'nursery') return { key: 'calm', face: '🛏️', why: 'In the Nursery' };
     if (out === 'sick') return { key: 'sad', face: '🤒', why: 'Sick' };
@@ -1888,9 +1897,15 @@ function beeFeeling(bee, today = todayISO(), nowMs = Date.now()) {
     const hurt = beeHurtLevel(bee);
     if (hurt) return { key: 'sad', face: HURT_LEVELS[hurt].icon, why: HURT_LEVELS[hurt].label + (hurt === 3 ? ', can\'t work' : '') };
     if (out === 'resting') return { key: 'calm', face: '😴', why: 'Exhausted, resting' };
+    // Nov 17 2026 (Craft): 😢 hungry or unhappy, 😩 worn out, 🥱 tired, 😪 getting sleepy (all before the bee fails at its job).
     const lack = [L.fullness < 40 && 'Hungry', L.stamina < 30 && 'Tired', (L.fatigue || 0) >= 80 && 'Worn out', L.happiness < 30 && 'Unhappy'].filter(Boolean);
-    if (lack.length) return { key: 'sad', face: '😢', why: lack.join(', ') };
-    if (!bee.class) return { key: 'calm', face: '🙂', why: 'Waiting for a job' };
+    if (lack.length) {
+        const face = lack.some(x => x === 'Hungry' || x === 'Unhappy') ? '😢' : lack.includes('Worn out') ? '😩' : '🥱';
+        return { key: 'sad', face, why: lack.join(', ') };
+    }
+    if (L.stamina < 50) return { key: 'sleepy', face: '😪', why: 'Getting sleepy' };
+    // No job yet: calm on day 0, bored (😤) on days 1 and 2, upset (😡) from day 3 (checked above).
+    if (!bee.class) return idle >= 1 ? { key: 'bored', face: '😤', why: `No job for ${idle} day${idle === 1 ? '' : 's'}` } : { key: 'calm', face: '🙂', why: 'Waiting for a job' };
     return { key: 'happy', face: '😊', why: 'All good' };
 }
 
@@ -2145,6 +2160,7 @@ class DatabaseManager {
         if (this.pcLocal && !this.state.pcLocalSeeded) this._seedPcLocal();   // Oct 31 2026 (Craft)
         this.hiveHourlyTick();
         this._pendingLifeEvents = this.hiveDailyTick();
+        this.startTending();   // Nov 17 2026 (Craft): keep tending while the app is open
         // Backfills state.dictionary onto any save from before the
         // Dictionary feature existed - no-ops once it's there.
         if (!this.state.dictionary) {
@@ -3816,7 +3832,7 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.hive) this.state.hive = { bees: [] };
 
-        ensureBeeLife(bee, todayISO(), { isNew: true });
+        ensureBeeLife(bee, todayISO(), { isNew: true, hiveBees: this.state.hive.bees });
         this.state.hive.bees.push(bee);
         this._noteModels(beeModelKeys(bee));
         this.save();
@@ -3924,6 +3940,7 @@ class DatabaseManager {
             bee.class = null;
             if (bee.life) { bee.life.recuperate = true; delete bee.life.idleSince; }
             this.save();
+            this.tendSoon();   // Nov 17 2026 (Craft): a free bee can take over its job at once
             return bee;
         }
         if (className && !BEE_CLASSES[className]) return null;
@@ -3951,6 +3968,7 @@ class DatabaseManager {
         }
         this.autoJustUnlocked = this._autoUnlockCheck();   // Nov 1 2026 (Craft): auto-manage
         this.save();
+        this.tendSoon();   // Nov 17 2026 (Craft): the hive reacts at once
         return bee;
     }
 
@@ -6588,6 +6606,23 @@ Object.assign(DatabaseManager.prototype, {
                 notes.push(text);
             }
         });
+        // Nov 17 2026 (Craft): a bee with no job for 3+ days takes ANY open job that still has room, whatever its talent.
+        const today = todayISO();
+        this.hiveOpenJobs().forEach(j => {
+            let gap = this.jobSlots(j) - this.jobHolders(j).length;
+            if (gap <= 0) return;
+            const idle = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && b.rarity !== 'Named' && (this._autoReady(b) || this._returnReady(b)) && (j === 'drone') === (b.sex === 'm')
+                && b.life.idleSince && (daysBetween(b.life.idleSince, today) || 0) >= LIFE.idleUpsetDays)
+                .sort((a, z) => beeJobScore(z, j) - beeJobScore(a, j));
+            for (const pick of idle) {
+                if (gap-- <= 0) break;
+                delete pick.life.recuperate; delete pick.life.idleSince;
+                pick.jobSince = today; pick.class = j;
+                const text = `🐝 ${pick.name} was bored without a job and took the ${BEE_CLASSES[j].label} job.`;
+                this._lifeEvent('auto', text, { beeId: pick.id });
+                notes.push(text);
+            }
+        });
         return notes;
     },
 
@@ -6608,9 +6643,7 @@ Object.assign(DatabaseManager.prototype, {
         for (let k = 1; k <= hours; k++) this._lifeHour(new Date(c.vitalsAt + k * HOUR));
         c.vitalsAt += hours * HOUR;
         // Nov 1 2026 (Craft): auto-manage, once per catch-up.
-        this._autoUnlockCheck();
-        this._autoManageHour();
-        this._autoSwapHour();   // Nov 1 2026 (Craft)
+        this._tendHive(new Date(now));   // Nov 17 2026 (Craft): one pass (was auto-manage + auto-swap once per catch-up)
         this.saveQuiet();   // Oct 31 2026 (Craft): the clock isn't an edit
         return hours;
     },
@@ -6642,8 +6675,7 @@ Object.assign(DatabaseManager.prototype, {
                 this._fcAt = at;
                 const evBefore = (hv.lifeEvents || []).length;
                 this._lifeHour(at);
-                this._autoManageHour();
-                this._autoSwapHour();
+                this._tendHive(at);
                 if (at.getTime() <= now) { this._lifeBees().forEach(b => { last[b.id] = feel(b, at).key; }); honeyWas = hv.honey; continue; }   // already happened (the real tick applies it)
                 const t = at.toISOString();
                 this._lifeBees().forEach(b => {
@@ -6840,25 +6872,90 @@ Object.assign(DatabaseManager.prototype, {
             this._cafeMeal(b, new Date(), this._workers('receiver').length);
             this.save(); return { to: 'cafe', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : '' };
         }
+        // Nov 17 2026 (Craft): Recuperate is for resting, it does not feed. A hungry bee with no honey stays where it is.
+        if (need === 'cafe') return { to: 'hungry', bee: b, note: 'No stored honey for a meal. Finishing a task feeds every bee.' };
         const r = this.assignBeeClass(id, 'recuperate');
         if (!r) return null;
+        this.tendSoon();
         return { to: 'rest', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : need === 'cafe' ? 'No stored honey for a meal.' : '' };
     },
     // Nov 9 2026 (Craft): each working Rescue Team bee carries one hurt or sick bee an hour
     // to a free Nursery bed. The patient keeps its job slot and goes back when healed.
+    // Nov 17 2026 (Craft): Rescue works on demand, not once an hour. The moment a bee is sick or under
+    // RESCUE_BELOW health and a bed is free, a working Rescue bee carries it. Each bee carried tires the
+    // Rescue bee by RESCUE_FATIGUE, so a bad day for the hive wears the team out. Returns how many were carried.
     _rescueHour(day) {
         const team = this._workers('rescue');
-        if (!team.length) return;
-        let free = this.nurseryBeds().free;
-        for (const r of team) {
+        if (!team.length) return 0;
+        let free = this.nurseryBeds().free, moved = 0;
+        const patients = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && b.class !== 'rescue' && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
+            .sort((a, z) => a.life.health - z.life.health);
+        for (const p of patients) {
             if (free <= 0) break;
-            const p = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && b.class !== 'rescue' && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
-                .sort((a, z) => a.life.health - z.life.health)[0];
-            if (!p) break;
-            p.life.nursery = true; p.life.rescuedAt = day; free--;
+            const r = team.filter(t => (t.life.fatigue || 0) < 95).sort((a, z) => (a.life.fatigue || 0) - (z.life.fatigue || 0))[0];
+            if (!r) break;   // the whole team is worn out
+            p.life.nursery = true; p.life.rescuedAt = day; free--; moved++;
+            r.life.fatigue = clampVital((r.life.fatigue || 0) + RESCUE_FATIGUE, true);
             this._lifeEvent('rescue', `🚑 ${r.name} carried ${p.name} to the Nursery.`, { beeId: p.id });
         }
+        return moved;
     },
+
+    // Nov 17 2026 (Craft): TEND THE HIVE. One pass that moves every bee where it needs to go, using the same
+    // rules as the faces: sick or hurt -> a Nursery bed (Rescue), hungry -> the Cafeteria, a tired worker -> a
+    // rested bee takes over, an empty job -> the best free bee (a bee with no job for 3+ days takes any job
+    // with room). It runs at once after anything changes (task done, bee moved), every 30 seconds while the app
+    // is open, and for every hour you were away. Returns the number of changes.
+    _tendHive(at = new Date()) {
+        if (!this.state || !this.state.hive) return 0;
+        const day = isoLocalDate(at), night = isNightHour(at.getHours());
+        let n = this._rescueHour(day);
+        if (!night) {
+            const receivers = this._workers('receiver').length;
+            this._lifeBees().forEach(b => {
+                const L = b.life;
+                if (!L || L.faintedAt || L.hatchOn || L.health <= 0 || !(L.fullness < CAFE.below)) return;
+                if (this._cafeMeal(b, at, receivers)) n++;
+            });
+        }
+        if (this._autoUnlockCheck()) { n++; if (!LIFE_FORECAST) this.autoJustUnlocked = true; }
+        n += this._autoManageHour().length;
+        n += this._autoSwapHour().length;
+        return n;
+    },
+    // Runs a tend pass for the real hive and tells the screens when something moved.
+    tendNow() {
+        if (!this.state || !this.state.hive || LIFE_FORECAST) return 0;
+        const n = this._tendHive(new Date());
+        if (n) { this.saveQuiet(); this._tendEvent(); }
+        return n;
+    },
+    tendSoon() {
+        if (typeof setTimeout !== 'function') return;
+        clearTimeout(this._tendT);
+        this._tendT = setTimeout(() => this.tendNow(), 300);
+    },
+    _tendEvent() { try { if (typeof window !== 'undefined' && window.dispatchEvent) window.dispatchEvent(new Event('hive-tended')); } catch { /* screens refresh on their next draw */ } },
+    // While the app is open: play new hours, then tend. Starts once, from init.
+    startTending() {
+        if (this._tendTimer || typeof setInterval !== 'function' || typeof document === 'undefined') return;
+        const step = () => {
+            if (document.hidden || !this.state || !this.state.hive) return;
+            const hours = this.hiveHourlyTick();
+            const n = this.tendNow();
+            if (hours && !n) this._tendEvent();
+        };
+        this._tendTimer = setInterval(step, 30000);
+        try { document.addEventListener('visibilitychange', () => { if (!document.hidden) step(); }); } catch { /* optional */ }
+    },
+    // Every awake bee is asleep or in a bed (or it is night): the hive header shows 💤.
+    hiveAllAsleep(at = new Date()) {
+        const bees = this._lifeBees().filter(b => !beeIsBrood(b) && !b.life.faintedAt);
+        if (!bees.length) return false;
+        if (isNightHour(at.getHours())) return true;
+        return bees.every(b => b.life.recuperate || b.life.nursery || b.life.stamina < 10);
+    },
+
     // Once: the four new jobs each get one spare bee with that talent, so
     // nobody waits on a lucky hatch to use them.
     _newJobTalents() {
@@ -7035,6 +7132,7 @@ Object.assign(DatabaseManager.prototype, {
             b.life.fullness = clampVital(b.life.fullness + LIFE.feedPerTask);
             b.life.happiness = clampVital(b.life.happiness + 1);
         });
+        this.tendSoon();   // Nov 17 2026 (Craft): fed bees, new honey: let the hive react
     },
 
     // Once a day: your 3 strongest awake bees raid a nest.
