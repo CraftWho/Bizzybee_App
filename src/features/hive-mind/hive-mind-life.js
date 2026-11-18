@@ -64,7 +64,7 @@ const HiveLife = (() => {
         setTimeout(() => p.remove(), 2300);
     }
     // Who gets a face this round: every unhappy bee, some happy ones.
-    const wantsFace = (f) => f.key === 'sad' || f.key === 'upset' || ((f.key === 'happy' || f.key === 'asleep' || f.key === 'eating') && Math.random() < 0.4);
+    const wantsFace = (f) => f.key === 'sad' || f.key === 'upset' || ((f.key === 'happy' || f.key === 'asleep' || f.key === 'eating') && Math.random() < 0.4) || f.key === 'sleepy' || f.key === 'bored';
 
     // ---- the comb ----------------------------------------------------------
     function mountComb(host, { bees, onBeeClick, onChange }) {
@@ -143,10 +143,11 @@ const HiveLife = (() => {
         });
 
         // Nov 1 2026 (Craft): "The Hive is Buzzing" banner + the auto-manage panel.
-        if (needy.length) {
+        const allAsleep = !!(Vault.hiveAllAsleep && Vault.hiveAllAsleep());   // Nov 17 2026 (Craft): 💤 when every bee sleeps
+        if (needy.length || allAsleep) {
             const bz = document.createElement('div');
             bz.className = 'hl-buzz';
-            bz.innerHTML = '🐝 <b>The Hive is Buzzing!</b>';
+            bz.innerHTML = allAsleep ? '💤 <b>The hive is asleep</b>' : '🐝 <b>The Hive is Buzzing!</b>';
             host.prepend(bz);
         }
         host.prepend(autoPanel());
@@ -194,7 +195,13 @@ const HiveLife = (() => {
     }
 
     // ---- a comb's pop-up ---------------------------------------------------
-    let sheet = null, backTo = null, lastMount = null;
+    let sheet = null, backTo = null, lastMount = null, sheetRoom = null;
+    // Nov 17 2026 (Craft): the hive tends itself (Vault.tendNow). When it moves bees, redraw what you are looking at.
+    if (typeof window !== 'undefined') window.addEventListener('hive-tended', () => {
+        if (!lastMount) return;
+        if (sheet && sheetRoom) openRoom(sheetRoom, lastMount);
+        else if (lastMount.onChange) lastMount.onChange();
+    });
     // Nov 1 2026 (Craft): after a bee's card closes, reopen the comb it came from.
     function reopenLast() {
         const id = backTo; backTo = null;
@@ -246,7 +253,7 @@ const HiveLife = (() => {
     }
     function closeRoom() {
         if (!sheet) return;
-        sheet.remove(); sheet = null;
+        sheet.remove(); sheet = null; sheetRoom = null;
         document.removeEventListener('keydown', onKey);
     }
     function onKey(e) { if (e.key === 'Escape') closeRoom(); }
@@ -309,13 +316,20 @@ const HiveLife = (() => {
         const L = Vault.hiveLeader();
         if (typeof Toast !== 'undefined') Toast.show(`🤖 Auto-manage unlocked! ${L ? L.name + ' leads the hive.' : ''}`, 'positive');
     }
+    // Nov 17 2026 (Craft): a resting bee says when auto-swap will send it back.
+    function returnNote(bee) {
+        const L = bee.life || {};
+        if (!L.recuperate || bee.class || !Vault.autoSwapUnlocked || !Vault.autoSwapUnlocked()) return '';
+        const P = Vault.autoSwapPrefs();
+        return P.on ? ` · returns at ⚡${P.returnPct}` : '';
+    }
     function beeRow(bee, c, today) {
         const f = beeFeeling(bee, today);
         const lead = Vault.hiveLeader && Vault.hiveLeader();
         const L = bee.life || {};
         const where = isOut(bee) ? ' · out foraging' : '';
         return `<div class="hl-row"><span class="hl-rface" title="${esc(f.key)}">${f.face}</span>
-            <button type="button" class="hl-who-btn" data-card="${esc(bee.id)}"><b>${esc(bee.name)}${bee.sex === 'm' ? ' ♂' : ''}${lead && lead.id === bee.id ? ' <span class="wk-lead">🎖 Leader</span>' : ''}</b><small>${esc(f.why)}${where} · 🍯${Math.round(L.fullness ?? 0)} ⚡${Math.round(L.stamina ?? 0)} ❤️${Math.round(L.health ?? 0)}</small></button>
+            <button type="button" class="hl-who-btn" data-card="${esc(bee.id)}"><b>${esc(bee.name)}${bee.sex === 'm' ? ' ♂' : ''}${lead && lead.id === bee.id ? ' <span class="wk-lead">🎖 Leader</span>' : ''}</b><small>${esc(f.why)}${returnNote(bee)}${where} · 🍯${Math.round(L.fullness ?? 0)} ⚡${Math.round(L.stamina ?? 0)} ❤️${Math.round(L.health ?? 0)}</small></button>
             <button type="button" class="hl-ren" data-ren="${esc(bee.id)}" aria-label="Rename ${esc(bee.name)}">✏️</button>
             ${!bee.class && Vault.beeMergeStatus && Vault.beeMergeStatus(bee) === 'spare' ? `<a class="hl-ren hl-merge" href="../gacha/gacha.html?pick=${encodeURIComponent(bee.id)}#merge" aria-label="Merge ${esc(bee.name)}">🧬</a>` : ''}${/* Nov 6 2026 (Craft): can't get a job -> merge it */ ''}
             ${jobSelect(bee, jobsFor(bee).filter(j => bee.class === j || !Vault.jobBlock(bee, j)), { mark: c.jobs })}</div>`;   // Nov 1 2026 (Craft): open, talent, free
@@ -324,6 +338,7 @@ const HiveLife = (() => {
     function openRoom(id, opts = {}) {
         const c = COMBS.find(x => x.id === id);
         if (!c) return;
+        sheetRoom = id;
         const today = todayISO();
         const all = Vault.getHiveBees().filter(b => b.rarity !== 'Royal');
         const list = all.filter(b => roomOf(b) === id && !beeIsBrood(b));
@@ -434,7 +449,7 @@ const HiveLife = (() => {
             const rest = btn.dataset.wk === 'rest';
             if (rest) {   // Nov 10 2026 (Craft): Heal / Eat / Rest, by what the bee needs. Nursery first.
                 const g = Vault.sendBeeToNeed(btn.dataset.bee);
-                if (typeof Toast !== 'undefined') Toast.show(!g ? 'That bee cannot move right now.' : g.to === 'nursery' ? `🛏️ ${g.bee.name} is in a Nursery bed.` : g.to === 'cafe' ? `🍽️ ${g.bee.name} ate at the Cafeteria. ${g.note || ''}`.trim() : `💤 ${g.bee.name} is recuperating. ${g.note || 'It moves to No Job when healed.'}`, g ? 'positive' : 'negative');
+                if (typeof Toast !== 'undefined') Toast.show(!g ? 'That bee cannot move right now.' : g.to === 'nursery' ? `🛏️ ${g.bee.name} is in a Nursery bed.` : g.to === 'cafe' ? `🍽️ ${g.bee.name} ate at the Cafeteria. ${g.note || ''}`.trim() : g.to === 'hungry' ? `🍽️ ${g.bee.name} is hungry. ${g.note || ''}`.trim() : `💤 ${g.bee.name} is recuperating. ${g.note || 'It moves to No Job when healed.'}`, g && g.to !== 'hungry' ? 'positive' : 'negative');
                 unlockedToast();
                 if (opts.onChange) opts.onChange();
                 openRoom(id, opts);
