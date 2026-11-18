@@ -124,3 +124,20 @@ test('hive asleep: night, or every awake bee resting; not while someone works', 
     B(v, 'a').class = null; B(v, 'a').life.recuperate = true;
     assert.equal(v.hiveAllAsleep(noon()), true);
 });
+
+test('rest remembers the job; Ready at Return-at; Return puts it back', async () => {
+    const { v } = world([bee('a', { class: 'collector', talent: 'collector', life: life({}) })]);
+    await v.init();
+    Object.assign(B(v, 'a'), { class: 'collector', talent: 'collector' });
+    v.assignBeeClass('a', 'recuperate');
+    assert.equal(B(v, 'a').life.restFrom, 'collector');
+    B(v, 'a').life.stamina = 60;
+    v.setAutoSwap({ returnPct: 70 });
+    assert.equal(v.beeIsReady(B(v, 'a')), false);
+    B(v, 'a').life.stamina = 75;
+    assert.equal(v.beeIsReady(B(v, 'a')), true);
+    assert.ok(v.returnBeeToWork('a'));
+    assert.equal(B(v, 'a').class, 'collector');
+    assert.equal(B(v, 'a').life.restFrom, undefined);
+    assert.equal(B(v, 'a').life.recuperate, undefined);
+});

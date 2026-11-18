@@ -3937,6 +3937,7 @@ class DatabaseManager {
         if (className === 'recuperate') {
             if (beeIsBrood(bee) || beeLockedJob(bee)) return null;
             if (bee.class) bee.jobSince = todayISO();
+            if (bee.class && bee.life) bee.life.restFrom = bee.class;   // Nov 17 2026 (Craft): Return sends it back here
             bee.class = null;
             if (bee.life) { bee.life.recuperate = true; delete bee.life.idleSince; }
             this.save();
@@ -3963,7 +3964,7 @@ class DatabaseManager {
         // Comb rooms: how long a bee has gone without a job (upset at 3 days).
         if (bee.life) {
             delete bee.life.recuperate;
-            if (bee.class) delete bee.life.idleSince;
+            if (bee.class) { delete bee.life.idleSince; delete bee.life.restFrom; }
             else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
         }
         this.autoJustUnlocked = this._autoUnlockCheck();   // Nov 1 2026 (Craft): auto-manage
@@ -6522,6 +6523,18 @@ Object.assign(DatabaseManager.prototype, {
         const P = this.autoSwapPrefs();
         return P.on && beeCanWork(b) && b.life.stamina >= P.returnPct && b.life.health >= 50 && !b.life.nursery && !b.life.sickUntil;
     },
+    // Nov 17 2026 (Craft; approved demo): a bee sent to rest remembers its job (life.restFrom). Once its
+    // stamina reaches "Return at" it shows as Ready in that job's comb; Return / Work sends it back.
+    beeIsReady(b) {
+        const L = b && b.life;
+        if (!L || !L.restFrom || b.class || beeIsBrood(b) || L.faintedAt || L.nursery || L.sickUntil) return false;
+        return L.stamina >= this.autoSwapPrefs().returnPct && L.health >= 50 && !(L.fatigue >= 80);   // not still worn out
+    },
+    returnBeeToWork(id) {
+        const b = this.getHiveBees().find(x => x.id === id);
+        if (!b || !b.life || !b.life.restFrom) { this.lastJobError = 'This bee has no job to go back to.'; return null; }
+        return this.assignBeeClass(id, b.life.restFrom);
+    },
     // Nov 3 2026 (Craft): "filled" = open jobs with at least one bee.
     hiveAutoStatus() {
         if (!this.state || !this.state.hive) return null;
@@ -6575,10 +6588,10 @@ Object.assign(DatabaseManager.prototype, {
             const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
-            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true;   // Nov 9 2026 (Craft): resting = recuperating, not upset
+            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true; h.life.restFrom = j;   // Nov 9 2026 (Craft): resting = recuperating, not upset
             const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft): came back from resting
             delete pick.life.recuperate;
-            pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince;
+            pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince; delete pick.life.restFrom;
             this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
             const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
             this._lifeEvent('auto', text, { beeId: pick.id });
@@ -6600,7 +6613,7 @@ Object.assign(DatabaseManager.prototype, {
                 if (gap-- <= 0) break;
                 const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft)
                 delete pick.life.recuperate;
-                pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
+                pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince; delete pick.life.restFrom;
                 const text = `🐝 ${pick.name} ${returned ? 'returned from resting and ' : ''}took the ${BEE_CLASSES[j].label} job.`;
                 this._lifeEvent('auto', text, { beeId: pick.id });
                 notes.push(text);
@@ -6616,7 +6629,7 @@ Object.assign(DatabaseManager.prototype, {
                 .sort((a, z) => beeJobScore(z, j) - beeJobScore(a, j));
             for (const pick of idle) {
                 if (gap-- <= 0) break;
-                delete pick.life.recuperate; delete pick.life.idleSince;
+                delete pick.life.recuperate; delete pick.life.idleSince; delete pick.life.restFrom;
                 pick.jobSince = today; pick.class = j;
                 const text = `🐝 ${pick.name} was bored without a job and took the ${BEE_CLASSES[j].label} job.`;
                 this._lifeEvent('auto', text, { beeId: pick.id });
