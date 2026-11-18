@@ -966,3 +966,7 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .hl-sheet-head { position: sticky; top: 0; z-index: 2; margin: 0 -16px 8px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px; align-items: center; background: #15110a; border-bottom: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .18); }
 .hl-x.hl-back { margin: 0; flex: none; width: 40px; height: 40px; padding: 0; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: rgba(255, 255, 255, .04); color: var(--bb-accent, #ffcc00); font-size: 20px; }
 .hl-sheet-head small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Nov 17 2026 (Craft): job chips open under a card (replaces the dropdown). */
+.hl-pick { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 8px; padding: 10px; border-radius: 0 0 12px 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14); border-top: 0; background: rgba(255, 255, 255, .03); }
+.hl-pick .hl-chip { padding: 8px 12px; }
+.hl-pick .hl-chip:hover { border-color: var(--bb-accent, #ffcc00); }
