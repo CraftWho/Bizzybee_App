@@ -72,20 +72,28 @@ test('storage full: the oldest ordinary copy goes, the new copy stays; nothing f
     assert.match(none.V.backupHealth().safetyErr || '', /storage/i);
 });
 
-test('every 12 hours: due when never made, not due inside 12 hours, due after, kept to 14, test saves skipped', async () => {
+test('save points: hourly when due, rings per kind never push each other out, labels carry level/XP/device, test saves skipped', async () => {
     const w = world({ local: { key: 'bizzybee_user_data', save: save(100) } });
     await w.V.init();
     assert.equal(w.V.autoBackupDue(), true);
     const r1 = await w.V.autoBackupNow();
     assert.equal(r1.ok, true);
-    assert.equal((await w.V.listAutoBackups()).length, 1);
     assert.equal(w.V.autoBackupDue(), false);
     assert.equal((await w.V.autoBackupNow()).skipped, true);
-    const later = Date.now() + 12 * 3600000 + 1000;
-    assert.equal(w.V.autoBackupDue(later), true);
-    for (let i = 0; i < 20; i++) await w.V.autoBackupNow({ force: true, reason: 'x' + i });
-    assert.equal((await w.V.listAutoBackups()).length, 14);
-    const data = await w.V.getAutoBackupData((await w.V.listAutoBackups())[0].id);
+    assert.equal(w.V.autoBackupDue(Date.now() + 3600000 + 1000), true);
+    for (let i = 0; i < 30; i++) await w.V.autoBackupNow({ force: true, reason: 'x' + i });
+    for (let i = 0; i < 12; i++) await w.V.savePoint('exit');
+    await w.V.savePoint('checkpoint', 'Before update');
+    const all = await w.V.listAutoBackups();
+    const n = (k) => all.filter(c => c.kind === k).length;
+    assert.equal(n('hourly'), 24);
+    assert.equal(n('exit'), 10);
+    assert.ok(n('checkpoint') >= 1);
+    const cp = all.find(c => c.reason === 'Before update');
+    assert.equal(typeof cp.meta.level, 'number');
+    assert.equal(typeof cp.meta.xp, 'number');
+    assert.ok(cp.meta.device);
+    const data = await w.V.getAutoBackupData(all[0].id);
     assert.ok(JSON.parse(data).user);
     const dev = world({ local: { key: 'bizzybee_user_data:devtest', save: save(1) }, extra: { bizzybee_dev_test: '1' } });
     await dev.V.init();

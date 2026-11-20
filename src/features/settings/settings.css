@@ -388,3 +388,20 @@ body.st-in-group .stv2 > .st-list, body.st-in-group #dev-section, body.st-in-gro
 
 /* Nov 2 2026 (Craft): left / right hand */
 .stv2 .look-hand { grid-template-columns: repeat(2, 1fr); }
+
+/* Nov 20 2026 (Craft): Saves & backups. */
+.sv-now { display: grid; gap: 4px; padding: 14px 16px 6px; }
+.sv-now small { color: var(--muted, #a8996f); font-size: .8rem; }
+.sv-big { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sv-lv { font: 800 1.6rem/1 var(--font-mono, ui-monospace, monospace); color: var(--bb-accent, #ffcc00); }
+.sv-filter { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 16px 8px; }
+.sv-chip { padding: 6px 11px; border-radius: 99px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: transparent; color: inherit; font: 600 .78rem system-ui, sans-serif; cursor: pointer; }
+.sv-chip.on { background: var(--bb-accent, #ffcc00); color: #1a0f02; border-color: transparent; }
+.sv-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid rgba(255, 255, 255, .06); flex-wrap: wrap; }
+.sv-info { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
+.sv-info b { font-size: .9rem; }
+.sv-info small { color: var(--muted, #a8996f); font-size: .78rem; }
+.sv-acts { display: flex; gap: 6px; flex: none; }
+.sv-acts .btn { padding: 7px 12px; font-size: .78rem; }
+.sv-log { display: grid; gap: 2px; padding: 8px 16px; border-top: 1px solid rgba(255, 255, 255, .06); font-size: .85rem; }
+.sv-log small { color: var(--muted, #a8996f); font-size: .74rem; }
