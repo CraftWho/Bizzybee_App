@@ -143,6 +143,56 @@ public class BeeFilesPlugin extends Plugin {
         }
     }
 
+    /**
+     * Nov 20 2026 (Craft): { name, text, mime? } -> Android's Share / Save screen for a file BizzyBee made
+     * (a save export, a save point). A browser download does nothing inside the app, so exports use this.
+     * The file is written to the app's cache and shared through the FileProvider (cache-path in file_paths.xml).
+     */
+    @PluginMethod
+    public void share(PluginCall call) {
+        String name = call.getString("name");
+        String text = call.getString("text", "");
+        String mime = call.getString("mime", "application/json");
+        if (name == null || name.isEmpty()) { call.reject("name is required"); return; }
+        try {
+            java.io.File dir = new java.io.File(getContext().getCacheDir(), "exports");
+            if (!dir.exists() && !dir.mkdirs()) throw new Exception("Couldn't make the export folder");
+            java.io.File[] old = dir.listFiles();
+            if (old != null) for (java.io.File f : old) { if (System.currentTimeMillis() - f.lastModified() > 86400000L) f.delete(); }
+            String safe = name.replaceAll("[^A-Za-z0-9._ -]", "_");
+            java.io.File file = new java.io.File(dir, safe);
+            try (java.io.FileOutputStream os = new java.io.FileOutputStream(file)) { os.write(text.getBytes(StandardCharsets.UTF_8)); }
+            Uri uri = androidx.core.content.FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType(mime);
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.putExtra(Intent.EXTRA_TITLE, safe);
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent chooser = Intent.createChooser(send, "Save or share " + safe);
+            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().startActivity(chooser);
+            JSObject r = new JSObject(); r.put("ok", true); r.put("name", safe);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject(e.getMessage() != null ? e.getMessage() : "Share failed");
+        }
+    }
+
+    /** Nov 20 2026 (Craft): { url } -> opens a website in the phone's browser (links to other sites). */
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) { call.reject("Only web links"); return; }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("No browser found");
+        }
+    }
+
     /** Opens Android's App info page for BizzyBee (Permissions live there). */
     @PluginMethod
     public void openAppSettings(PluginCall call) {
