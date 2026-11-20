@@ -46,7 +46,8 @@ function render() {
     $('ic-stepstats').innerHTML = `
         <div class="st-top"><div><b>${S.today.toLocaleString()}</b><small>of ${S.goal.toLocaleString()} steps · ${pctG}%</small></div><div class="st-goal"><input type="number" id="st-goal" min="1000" max="50000" step="500" value="${S.goal}" aria-label="Daily step goal"><button type="button" class="ic-btn gold" data-setgoal>Set goal</button></div></div>
         <div class="st-bar"><i style="width:${pctG}%"></i></div>
-        <p class="st-note">${S.today >= S.goal ? `Goal reached! ${S.gaveToday.length ? 'Reward: ' + esc(S.gaveToday.join(', ')) + '.' : ''}` : `Reach it for +${S.stepXP} XP, ${S.stepMin} min of Fitness and Health time, and a random small reward. Double the goal for another.`}</p>
+        <p class="st-note">Every ${S.perMin} steps is 1 minute of Fitness and Health time and 1 XP. Today: ${S.minToday} min, +${S.minToday} XP.</p>
+        <p class="st-note">${S.today >= S.goal ? `Goal reached! +${S.goalXP} XP bonus${S.gaveToday.length ? '. Reward: ' + esc(S.gaveToday.join(', ')) : ''}.` : `Reach the goal for a +${S.goalXP} XP bonus and a random small reward. Double the goal for another.`}</p>
         <div class="st-week">${S.week.map(x => `<span><i style="height:${Math.max(3, Math.round(x.steps / maxW * 100))}%" class="${x.steps >= S.goal ? 'hit' : ''}"></i><small>${dn(x.day)}</small></span>`).join('')}</div>
         <div class="st-grid"><span><b>${S.weekTotal.toLocaleString()}</b><small>This week</small></span><span><b>${S.streak}</b><small>Day streak</small></span><span><b>${S.best.steps ? S.best.steps.toLocaleString() : '—'}</b><small>Best day</small></span><span><b>${S.daysHit}</b><small>Goal days</small></span></div>
         ${isApp ? '' : '<p class="st-note">Steps count in the Android app.</p>'}`;
