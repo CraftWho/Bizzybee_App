@@ -53,17 +53,23 @@ test('gaming XP: first sight is a baseline; minutes and achievements pay once, w
     assert.equal(v.getGaming().xp, 54);
 });
 
-test('step goal: pays XP + Fitness/Health time once, no repeats; goal can be set', async () => {
+test('steps pay as you walk (100 steps = 1 min = 1 XP), goal bonus once; goal can be set', async () => {
     const v = await vault(), day = new Date(); const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+    const stepXP = () => v.state.bonusXP.filter(b => String(b.key).endsWith(iso)).reduce((n, b) => n + b.xp, 0);
     assert.equal(v.getStepGoal(), 8000);
     assert.equal(v.setStepGoal(500).ok, false);
     assert.equal(v.setStepGoal(6000).goal, 6000);
-    v.state.steps = { [iso]: 5000 };
-    assert.equal(v.stepGoalTick(iso), null);
+    v.state.steps = { [iso]: 4527 };
+    assert.equal(v.stepGoalTick(iso), null);           // no prize yet, but the walk already counts
+    assert.equal(stepXP(), 45);
     v.state.steps[iso] = 6500;
     const r = v.stepGoalTick(iso);
-    assert.equal(r.xp, 15); assert.ok(r.gave.length >= 1);
-    assert.equal(v.stepGoalTick(iso), null);
-    assert.equal(v.getRealBySkill().Fitness, 20); assert.equal(v.getRealBySkill().Health, 20);
+    assert.ok(r.gave.length >= 1); assert.equal(r.xp, 20 + 25);   // 20 more walking minutes + the goal bonus
+    assert.equal(stepXP(), 65 + 25);
+    assert.equal(v.stepGoalTick(iso), null);            // no repeats
+    assert.equal(stepXP(), 90);
+    v.state.steps[iso] = 10000; v.stepGoalTick(iso);
+    assert.equal(stepXP(), 100 + 25);
+    assert.equal(v.getRealBySkill().Fitness, 100); assert.equal(v.getRealBySkill().Health, 100);
     assert.equal(v.getStepStats(iso).streak, 1);
 });
