@@ -1117,3 +1117,12 @@ html[data-hand="right"] .hand-row > .hand-text > * { text-align: right; justify-
 /* A habit with only + or only − shows one button, on your side. */
 .hr-row .hr-side:not(.lit) { display: none; }
 .hr-row.hr-neg-only .hr-side { order: -1; }
+
+/* Nov 20 2026 (Craft): UNSENT DOT. Shows on the level chip while changes haven't reached the cloud (cloud-sync.js).
+   Amber = waiting to upload, red = not uploading (another device, signed out, or an error). Tap it for Settings. */
+html.bb-unsent .ah-chip { position: relative; }
+html.bb-unsent .ah-chip::after { content: ""; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #ffb020; box-shadow: 0 0 0 2px #0d0a05; animation: bbUnsent 1.6s ease-in-out infinite; }
+html.bb-unsent-bad .ah-chip::after { background: #ff4d4d; }
+@keyframes bbUnsent { 50% { opacity: .45; } }
+/* Nov 20 2026 (Craft): PC-only controls (folder picker, download-to-PC) hide in the Android app (native.js adds html.bb-app). */
+html.bb-app .pc-only { display: none !important; }
