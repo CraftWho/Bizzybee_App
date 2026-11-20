@@ -1,6 +1,21 @@
 console.log("/// SETTINGS PROTOCOLS INITIALIZED ///");
 
-function downloadFile(content, filename, mimeType) {
+// Nov 20 2026 (Craft): in the Android app a browser download does nothing, so files go through Android's own
+// Share / Save screen (BeeFiles.share, new in the app). An older app saves into the picked backup folder instead.
+async function downloadFile(content, filename, mimeType) {
+    const Cap = window.Capacitor;
+    if (Cap && typeof Cap.isNativePlatform === 'function' && Cap.isNativePlatform()) {
+        const f = Cap.Plugins && Cap.Plugins.BeeFiles;
+        const text = typeof content === 'string' ? content : JSON.stringify(content);
+        try { await f.share({ name: filename, text, mime: mimeType || 'application/json' }); return; }
+        catch (e) {
+            if (e && /cancel/i.test(String(e.message || e))) return;
+            try { const r = await f.writeFile({ name: filename, text }); if (typeof Toast !== 'undefined') Toast.show(`💾 Saved ${filename} to ${r.folder}.`, 'positive'); return; }
+            catch { /* no folder picked */ }
+            if (typeof Toast !== 'undefined') Toast.show('Update the BizzyBee app to export files, or pick a backup folder in Settings › Notifications & phone › Phone features.', 'negative');
+            return;
+        }
+    }
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

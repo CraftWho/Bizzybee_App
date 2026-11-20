@@ -1683,14 +1683,15 @@ const MERGE_MALE_CHANCE = 0.1;   // Nov 9 2026 (Craft)
 const GAME_XP = { blockMin: 30, perBlock: 2, dayCapMin: 20, perAch: 10, dayCapAch: 50 };
 const HONEY_CAP = 100, HONEY_START = 40, HONEY_PER_DAY = 10, HONEY_PER_TASK = 1;
 const CAFE = { below: 40, meal: 40, cost: 1, freeBase: 0.1, freeMax: 0.5, stayMin: 45 };
+const RESCUE_FATIGUE = 3;   // Nov 17 2026 (Craft): every bee a Rescue bee carries tires it by this much
 const RESCUE_BELOW = 60;   // health under this (or sick): the Rescue Team carries it to a bed   // a merged bee may get a talent the hive is missing
 // Nov 9 2026 (Craft): every hive job opens by Lv 5 (the hive teams are a core
 // part of the game). Only the Undertaker waits: death is paused.
 const HIVE_JOB_LADDER = [
-    { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 4, job: 'collector' }, { lv: 5, job: 'guardian' },
+    { lv: 1, job: 'nurse' }, { lv: 2, job: 'honeymaker' }, { lv: 3, job: 'collector' }, { lv: 4, job: 'rescue' }, { lv: 5, job: 'guardian' },
     { lv: 5, job: 'watercarrier' }, { lv: 5, job: 'architect' }, { lv: 5, job: 'attendant' }, { lv: 5, job: 'cleaner' },
     { lv: 5, job: 'scout' }, { lv: 5, job: 'drone' }, { lv: 5, job: 'barrier' },
-    { lv: 5, job: 'rescue' }, { lv: 5, job: 'fanner' }, { lv: 5, job: 'waxmaker' }, { lv: 5, job: 'receiver' },
+    { lv: 5, job: 'fanner' }, { lv: 5, job: 'waxmaker' }, { lv: 5, job: 'receiver' },
     { lv: 17, job: 'undertaker' }
 ];
 const HIVE_COMB_JOBS = {
@@ -1776,7 +1777,10 @@ const INCUBATOR_ORDER = ['basic', 'warm', 'honey', 'royal'];
 const INCUBATOR_DAILIES = 4;
 // Step goal (Nov 13 2026, Craft): your own daily goal. Reaching it gives XP and a little real
 // time for Fitness + Health, plus a random small reward. Steps also warm the incubator (tiers above).
-const STEP_GOAL = { def: 8000, min: 1000, max: 50000, xp: 15, minutes: 20, cats: ['Fitness', 'Health'] };
+// Nov 20 2026 (Craft): steps pay as you walk. About 100 steps = 1 minute of walking = 1 XP (the same 1 XP per
+// minute as tasks), so 10,000 steps = about 100 minutes and 100 XP. Capped at 300 minutes a day. Hitting the goal
+// adds a bonus (goalXP) and a prize; double the goal, another prize.
+const STEP_GOAL = { def: 8000, min: 1000, max: 50000, perMin: 100, capMin: 300, goalXP: 25, cats: ['Fitness', 'Health'] };
 
 const RAID_ENEMIES = [
     { id: 'hornets', label: 'Hornet raid', icon: '🦟', power: 1.2 },
@@ -1787,7 +1791,9 @@ const RAID_ENEMIES = [
 // frac = keep one decimal (hourly changes like +0.2 add up); shown rounded.
 const clampVital = (n, frac) => Math.max(0, Math.min(100, frac ? Math.round(n * 10) / 10 : Math.round(n)));
 const isoLocalDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const lifeRand = () => Math.random();
+// Nov 17 2026 (Craft): while forecasting (hiveForecast) nothing is left to chance: no lucky free meals, no new sickness.
+let LIFE_FORECAST = false;
+const lifeRand = () => (LIFE_FORECAST ? 0.99 : Math.random());
 
 // Stable 1-in-10 for bees that existed before Hive Life, so a reload never
 // changes anyone's sex. A bee that already has a job stays female (only
@@ -1809,7 +1815,15 @@ function freshBeeLife(today, rand = lifeRand) {
 }
 
 // Adds sex + life to a bee that doesn't have them. Returns true if changed.
-function ensureBeeLife(bee, today = todayISO(), { isNew = false } = {}) {
+// Nov 17 2026 (Craft): the first bees are not random. A new female bee gets the first of these jobs the hive has no
+// bee for yet: health (Nurse), food (Honey Maker), workers (Collector), then Rescue and Receiver. After that, random.
+const ESSENTIAL_TALENTS = ['nurse', 'honeymaker', 'collector', 'rescue', 'receiver'];
+function pickStarterTalent(bee, hiveBees) {
+    if (!bee || bee.sex === 'm' || !Array.isArray(hiveBees)) return null;
+    const have = new Set(hiveBees.filter(b => b !== bee && b.sex !== 'm' && b.rarity !== 'Royal' && b.talent).map(b => b.talent));
+    return ESSENTIAL_TALENTS.find(t => !have.has(t)) || null;
+}
+function ensureBeeLife(bee, today = todayISO(), { isNew = false, hiveBees = null } = {}) {
     if (!bee || bee.rarity === 'Royal') return false;
     let changed = false;
     if (bee.sex !== 'f' && bee.sex !== 'm') {
@@ -1826,7 +1840,7 @@ function ensureBeeLife(bee, today = todayISO(), { isNew = false } = {}) {
         // Old bees get a stable talent from their id; new ones a random one.
         let h = 7;
         for (const ch of String(bee.id || bee.name || '')) h = (h * 33 + ch.charCodeAt(0)) >>> 0;
-        bee.talent = pickBeeTalent(bee, isNew ? Math.random : () => (h % 1000) / 1000);
+        bee.talent = (isNew && pickStarterTalent(bee, hiveBees)) || pickBeeTalent(bee, isNew ? Math.random : () => (h % 1000) / 1000);
         changed = true;
     }
     return changed;
@@ -1865,23 +1879,36 @@ function broodDaysLeft(bee, today = todayISO(), nurses = 0) {
 }
 // What pops out of a bee: happy (has a job, all good), sad (hungry, tired
 // or hurt), upset (no job for LIFE.idleUpsetDays+), calm (no job yet).
-function beeFeeling(bee, today = todayISO()) {
+function beeFeeling(bee, today = todayISO(), nowMs = Date.now()) {
     const L = bee && bee.life;
     if (!L) return { key: 'calm', face: '🙂', why: 'Doing fine' };
     if (L.hatchOn) return { key: 'egg', face: '🥚', why: 'Still an egg' };
     if (L.faintedAt) return { key: 'fainted', face: '😵', why: 'Fainted' };
     const idle = !bee.class && L.idleSince ? (daysBetween(L.idleSince, today) || 0) : 0;
-    if (!bee.class && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😠', why: `No job for ${idle} days` };
+    if (!bee.class && !L.recuperate && idle >= LIFE.idleUpsetDays) return { key: 'upset', face: '😡', why: `No job for ${idle} days` };
     const out = beeOutOfAction(bee, today);
     if (out === 'nursery') return { key: 'calm', face: '🛏️', why: 'In the Nursery' };
     if (out === 'sick') return { key: 'sad', face: '🤒', why: 'Sick' };
+    // Nov 17 2026 (Craft): a bee on Recuperate shows the sleeping face, even when it is tired or
+    // hungry (that is why it is resting). A bee that just ate at the Cafeteria shows the eating face.
+    if (L.recuperate) {
+        const left = [L.stamina < 100 && `⚡${Math.round(L.stamina)}`, L.health < 100 && `❤️${Math.round(L.health)}`].filter(Boolean).join(' ');
+        return { key: 'asleep', face: '😴', why: 'Sleeping and healing' + (left ? ' (' + left + ')' : '') };
+    }
+    if (L.stamina != null && L.stamina < 10) return { key: 'asleep', face: '😴', why: `Too tired to work (⚡${Math.round(L.stamina)})` };
+    if (L.cafeAt && L.fullness >= CAFE.below && nowMs - Date.parse(L.cafeAt) >= 0 && nowMs - Date.parse(L.cafeAt) < CAFE.stayMin * 60000) return { key: 'eating', face: '😋', why: 'Eating at the Cafeteria' };
     const hurt = beeHurtLevel(bee);
     if (hurt) return { key: 'sad', face: HURT_LEVELS[hurt].icon, why: HURT_LEVELS[hurt].label + (hurt === 3 ? ', can\'t work' : '') };
     if (out === 'resting') return { key: 'calm', face: '😴', why: 'Exhausted, resting' };
+    // Nov 17 2026 (Craft): 😢 hungry or unhappy, 😩 worn out, 🥱 tired, 😪 getting sleepy (all before the bee fails at its job).
     const lack = [L.fullness < 40 && 'Hungry', L.stamina < 30 && 'Tired', (L.fatigue || 0) >= 80 && 'Worn out', L.happiness < 30 && 'Unhappy'].filter(Boolean);
-    if (lack.length) return { key: 'sad', face: '😢', why: lack.join(', ') };
-    if (L.recuperate) return { key: 'calm', face: '💤', why: 'Recuperating' };
-    if (!bee.class) return { key: 'calm', face: '🙂', why: 'Waiting for a job' };
+    if (lack.length) {
+        const face = lack.some(x => x === 'Hungry' || x === 'Unhappy') ? '😢' : lack.includes('Worn out') ? '😩' : '🥱';
+        return { key: 'sad', face, why: lack.join(', ') };
+    }
+    if (L.stamina < 50) return { key: 'sleepy', face: '😪', why: 'Getting sleepy' };
+    // No job yet: calm on day 0, bored (😤) on days 1 and 2, upset (😡) from day 3 (checked above).
+    if (!bee.class) return idle >= 1 ? { key: 'bored', face: '😤', why: `No job for ${idle} day${idle === 1 ? '' : 's'}` } : { key: 'calm', face: '🙂', why: 'Waiting for a job' };
     return { key: 'happy', face: '😊', why: 'All good' };
 }
 
@@ -1927,10 +1954,14 @@ function computeHiveStreak(dailies, today = todayISO(), guards = 0) {
     return streak;
 }
 
+// Nov 17 2026 (Craft): the mood face in a bee's panel and card now agrees with the face on the combs:
+// if the bee is hungry, tired, hurt, sick, asleep, eating, upset or an egg, that face and reason are shown.
 function beeMood(bee, streak = 0) {
     if (!bee.life) return { label: 'Content', face: '🙂', score: 60 };
     if (bee.life.faintedAt) return { label: 'Fainted', face: '😵', score: 0 };
     const score = (bee.life.health + bee.life.fullness + bee.life.happiness) / 3 + streak * 4;
+    const fe = beeFeeling(bee);
+    if (!['happy', 'calm'].includes(fe.key) || fe.face !== '🙂' && fe.key === 'calm') return { label: fe.why, face: fe.face, score };
     if (score > 80) return { label: 'Joyful', face: '😄', score };
     if (score > 60) return { label: 'Content', face: '🙂', score };
     if (score > 40) return { label: 'Uneasy', face: '😐', score };
@@ -1954,6 +1985,36 @@ function isPcLocalHost() {
     return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local')
         || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 }
+
+// Nov 20 2026 (Craft): which device made a save ("Android phone", "Windows PC"...). Shown on save points and in the review screen.
+function bbDeviceName() {
+    try {
+        const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+        const app = typeof window !== 'undefined' && window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+        if (app) return 'Android app';
+        if (/Android/i.test(ua)) return 'Android browser';
+        if (/iPhone|iPad/i.test(ua)) return 'iPhone browser';
+        if (/Steam ?Deck|SteamOS/i.test(ua)) return 'Steam Deck';
+        if (/Windows/i.test(ua)) return 'Windows PC';
+        if (/Mac OS/i.test(ua)) return 'Mac';
+        if (/Linux/i.test(ua)) return 'Linux PC';
+    } catch { /* fall through */ }
+    return 'This device';
+}
+// Nov 20 2026 (Craft): SYNC LOG. A lasting record (last 200) of saves, uploads, failures, device switches,
+// restores and save points, each with the level and XP at that moment. Settings shows it.
+function syncLog(kind, msg, meta) {
+    try {
+        if (typeof localStorage === 'undefined') return;
+        const k = 'bizzybee_sync_log';
+        const list = JSON.parse(localStorage.getItem(k) || '[]');
+        let m = meta;
+        if (m === undefined && typeof Vault !== 'undefined' && Vault.state) m = Vault.backupMeta(Vault.state);
+        list.unshift({ at: new Date().toISOString(), kind, msg: String(msg).slice(0, 200), lv: m && m.level, xp: m && m.xp, dev: bbDeviceName() });
+        localStorage.setItem(k, JSON.stringify(list.slice(0, 200)));
+    } catch { /* storage full or off: the log is best effort */ }
+}
+function syncLogList() { try { return JSON.parse(localStorage.getItem('bizzybee_sync_log') || '[]'); } catch { return []; } }
 
 class DatabaseManager {
     constructor() {
@@ -2038,6 +2099,21 @@ class DatabaseManager {
         }
     }
 
+    // The save this device had before it signed in (stored under the plain key), if it has real progress.
+    _useDeviceSaveForSignIn() {
+        try {
+            if (this.storageKey === 'bizzybee_user_data' || !this._looksLikeExistingCloudAccount()) return false;
+            const raw = localStorage.getItem('bizzybee_user_data');
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            const meta = this.backupMeta(parsed);
+            const hasWork = (parsed.dailyTasks || []).some(t => (t.completedDates || []).length) || (parsed.habits || []).some(h => (h.history || []).length)
+                || (parsed.todos || []).some(t => t.completed) || (parsed.quests || []).some(q => (q.tasks || []).some(t => t.completed));
+            if (!meta || (!(meta.xp > 0) && !hasWork)) return false;
+            return this.importFullState(raw, { backup: false }).ok;
+        } catch { return false; }
+    }
+
     async _initialize() {
         await this.refreshLocalCloudDownload();
         const existingData = localStorage.getItem(this.storageKey);
@@ -2070,6 +2146,10 @@ class DatabaseManager {
             const recovered = this._looksLikeExistingCloudAccount() && await this._tryRecoverFromCloud();
             if (recovered) {
                 console.log("Vault: Recovered existing save from the cloud - skipped a blank reseed.");
+            } else if (this._useDeviceSaveForSignIn()) {
+                // Nov 17 2026 (Craft): signed in but the cloud could not be reached, and this device already has its own
+                // progress from before sign-in. Keep working on that, not a blank level 1 hatchling.
+                console.log("Vault: Cloud unreachable - continuing with this device's own save.");
             } else {
                 console.log("Vault: Fetching Blueprint...");
                 await this.loadBlueprint();
@@ -2108,10 +2188,12 @@ class DatabaseManager {
         this._nameDefaultBees();
         this._splitNamedTitles();
         this._splitHashtagTerms();
+        this.startAutoBackup();   // Nov 17 2026 (Craft): a copy every 12 hours
         this._ensureQueen();
         if (this.pcLocal && !this.state.pcLocalSeeded) this._seedPcLocal();   // Oct 31 2026 (Craft)
         this.hiveHourlyTick();
         this._pendingLifeEvents = this.hiveDailyTick();
+        this.startTending();   // Nov 17 2026 (Craft): keep tending while the app is open
         // Backfills state.dictionary onto any save from before the
         // Dictionary feature existed - no-ops once it's there.
         if (!this.state.dictionary) {
@@ -2510,13 +2592,143 @@ class DatabaseManager {
         localStorage.setItem(this.storageKey + ':backups', JSON.stringify(this.getLocalBackups().filter(item => item.id !== id)));
     }
 
-    createLocalBackup(reason = 'Manual backup') {
+    // Nov 17 2026 (Craft): a copy now knows what is in it (level, XP, bees, quests), so the list can
+    // show it. Copies made before the cloud replaces this device's save are "protected": they live in
+    // their own slots (up to 5) and ordinary copies (up to 6) never push them out. The old limit of 3
+    // let one restore delete the very copy you needed.
+    backupMeta(s) {
+        try {
+            const xp = Math.max(0, computeTotalXP(s.quests || []) + computeDailyXP(s.dailyTasks) + computeHabitXP(s.habits) + computeTodoXP(s.todos)
+                + (s.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0));
+            const level = computeLevelProgress(xp).level;
+            const ack = s.characterLevelBar && s.characterLevelBar.acknowledgedLevel;
+            return { level: ack ? Math.min(ack, level) : level, xp: Math.round(xp), coins: Math.round(Number((s.user && s.user.coins) ?? s.coins) || 0), bees: ((s.hive || s.colony || {}).bees || []).length, quests: (s.quests || []).length, name: s.displayName || (s.user && s.user.name) || '', device: bbDeviceName() };
+        } catch { return null; }
+    }
+    _trimBackups(entries) {
+        let plain = 0, safe = 0;
+        return entries.filter(e => e.protect ? ++safe <= 5 : ++plain <= 6);
+    }
+    createLocalBackup(reason = 'Manual backup', { protect = false } = {}) {
         const data = localStorage.getItem(this.storageKey);
         if (!data) return;
+        let meta = null;
+        try { meta = this.backupMeta(JSON.parse(data)); } catch { /* unreadable save: still keep the raw copy */ }
         const entries = this.getLocalBackups();
-        entries.unshift({ id: Date.now().toString(), createdAt: new Date().toISOString(), reason, data });
-        try { localStorage.setItem(this.storageKey + ':backups', JSON.stringify(entries.slice(0, 3))); }
-        catch { throw new Error('Not enough storage for a recovery copy. Export and remove older device backups to free space, then retry.'); }
+        let id = Date.now().toString();
+        while (entries.some(e => e.id === id)) id = String(Number(id) + 1);
+        entries.unshift({ id, createdAt: new Date().toISOString(), reason, meta, protect: !!protect, data });
+        this.savePoint('checkpoint', reason).catch(() => {});   // Nov 20 2026 (Craft): also kept in the big save-point ring
+        let list = this._trimBackups(entries);
+        for (;;) {
+            try { localStorage.setItem(this.storageKey + ':backups', JSON.stringify(list)); this._backupHealth({ safetyAt: new Date().toISOString(), safetyErr: null }); return; }
+            catch {
+                // Storage full: drop the oldest ordinary copy and try again (never the new one).
+                const i = list.map((e, n) => (n > 0 && !e.protect) ? n : -1).filter(n => n > 0).pop();
+                const j = i == null ? list.map((e, n) => n > 0 ? n : -1).filter(n => n > 0).pop() : i;
+                if (j == null) {
+                    this._backupHealth({ safetyErr: 'Not enough storage for a recovery copy.' });
+                    throw new Error('Not enough storage for a recovery copy. Export and remove older device backups to free space, then retry.');
+                }
+                list.splice(j, 1);
+            }
+        }
+    }
+    // What the last backups did, for Settings › Backup health.
+    _backupHealth(patch) {
+        try {
+            const k = 'bizzybee_backup_health';
+            const h = JSON.parse(localStorage.getItem(k) || '{}');
+            localStorage.setItem(k, JSON.stringify({ ...h, ...patch }));
+        } catch { /* storage off or full: health is best effort */ }
+    }
+    backupHealth() {
+        try { return JSON.parse(localStorage.getItem('bizzybee_backup_health') || '{}'); } catch { return {}; }
+    }
+
+    // ---- Automatic copies every 12 hours (Nov 17 2026, Craft) ----
+    // Kept in IndexedDB (far more room than localStorage), newest 14 per save (a week), separate from
+    // the "before a change" copies above so neither pushes the other out.
+    // Nov 20 2026 (Craft): SAVE POINTS, like a game. Your live save is the autosave slot. Behind it, rings of
+    // copies that never push each other out: every time you leave the app, every hour you use it, one a day,
+    // and a checkpoint before anything risky (update, cloud load, restore, merge...). Each shows level, XP,
+    // coins, time and the device that made it.
+    AUTO_BACKUP_EVERY_MS = 3600000;
+    SAVE_POINT_KEEP = { exit: 10, hourly: 24, daily: 7, checkpoint: 10 };
+    SAVE_POINT_LABEL = { exit: 'Left the app', hourly: 'Hourly', daily: 'Daily', checkpoint: 'Checkpoint' };
+    _autoDb() {
+        return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') return reject(new Error('This browser has no IndexedDB.'));
+            const req = indexedDB.open('bizzybee-auto-backups', 1);
+            req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('copies')) req.result.createObjectStore('copies', { keyPath: 'id' }); };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error || new Error('IndexedDB failed.'));
+        });
+    }
+    async _autoAll() {
+        const db = await this._autoDb();
+        return new Promise((resolve, reject) => {
+            const req = db.transaction('copies', 'readonly').objectStore('copies').getAll();
+            req.onsuccess = () => resolve((req.result || []).filter(c => c.key === this.storageKey).map(c => ({ ...c, kind: c.kind || 'hourly' })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async listAutoBackups() { return (await this._autoAll()).map(({ data, ...rest }) => rest); }
+    async getAutoBackupData(id) { const c = (await this._autoAll()).find(x => x.id === id); return c ? c.data : null; }
+    async removeAutoBackup(id) {
+        const db = await this._autoDb();
+        return new Promise((resolve, reject) => { const tx = db.transaction('copies', 'readwrite'); tx.objectStore('copies').delete(id); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+    }
+    autoBackupLastAt() { return Number(localStorage.getItem(this.storageKey + ':autobackup_at') || 0); }
+    autoBackupDue(now = Date.now()) {
+        return !!this.state && !this.devTest && !this.pcLocal && now - this.autoBackupLastAt() >= this.AUTO_BACKUP_EVERY_MS;
+    }
+    // Makes one copy (when due, or force). Never throws: a failure is recorded for Backup health.
+    savePoint(kind, reason) { return this.autoBackupNow({ force: true, kind, reason: reason || this.SAVE_POINT_LABEL[kind] }); }
+    async autoBackupNow({ force = false, reason = 'Hourly', kind = 'hourly' } = {}) {
+        if (!this.state || this.devTest || this.pcLocal) return { ok: false, error: 'no-save' };
+        if (!force && !this.autoBackupDue()) return { ok: true, skipped: true };
+        if (this._autoBusy) return { ok: true, skipped: true };
+        this._autoBusy = true;
+        try {
+            const data = localStorage.getItem(this.storageKey);
+            if (!data) return { ok: false, error: 'no-save' };
+            JSON.parse(data);   // never keep a copy that can't be read back
+            const db = await this._autoDb();
+            const rec = { id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 6), key: this.storageKey, kind, createdAt: new Date().toISOString(), reason, meta: this.backupMeta(JSON.parse(data)), data };
+            await new Promise((resolve, reject) => { const tx = db.transaction('copies', 'readwrite'); tx.objectStore('copies').put(rec); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error || new Error('Could not write the copy.')); tx.onabort = () => reject(tx.error || new Error('The browser refused the copy (storage full?).')); });
+            const same = (await this._autoAll()).filter(c => c.kind === kind);
+            for (const old of same.slice(this.SAVE_POINT_KEEP[kind] || 10)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
+            if (kind === 'hourly') localStorage.setItem(this.storageKey + ':autobackup_at', String(Date.now()));
+            if (kind === 'daily') localStorage.setItem(this.storageKey + ':dailypoint', todayISO());
+            syncLog('save-point', `${this.SAVE_POINT_LABEL[kind] || kind} save point`, rec.meta);
+            this._backupHealth({ autoAt: rec.createdAt, autoErr: null });
+            return { ok: true, id: rec.id };
+        } catch (error) {
+            this._backupHealth({ autoErr: (error && error.message) || 'The automatic backup failed.', autoErrAt: new Date().toISOString() });
+            return { ok: false, error: (error && error.message) || 'failed' };
+        } finally { this._autoBusy = false; }
+    }
+    // Checks on load, when the app comes back, and every 5 minutes while it is open.
+    // Leaving the app (or the phone freezing it) makes an "exit" save point at once.
+    startAutoBackup() {
+        if (this._autoStarted || typeof window === 'undefined' || typeof document === 'undefined') return;
+        this._autoStarted = true;
+        const check = () => {
+            this.autoBackupNow().catch(() => {});
+            if (localStorage.getItem(this.storageKey + ':dailypoint') !== todayISO()) this.savePoint('daily').catch(() => {});
+        };
+        setTimeout(check, 10000);
+        setInterval(check, 5 * 60000);
+        let lastExit = 0;
+        const leave = () => {
+            if (Date.now() - lastExit < 60000) return;   // one per minute is plenty
+            lastExit = Date.now();
+            this.savePoint('exit').catch(() => {});
+        };
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); else leave(); });
+        window.addEventListener('pagehide', leave);
+        try { const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (App && App.addListener) App.addListener('pause', leave); } catch { /* not the app */ }
     }
 
     // Time-based XP (Oct 2026), once per save:
@@ -3674,7 +3886,7 @@ class DatabaseManager {
         if (!this.state) return null;
         if (!this.state.hive) this.state.hive = { bees: [] };
 
-        ensureBeeLife(bee, todayISO(), { isNew: true });
+        ensureBeeLife(bee, todayISO(), { isNew: true, hiveBees: this.state.hive.bees });
         this.state.hive.bees.push(bee);
         this._noteModels(beeModelKeys(bee));
         this.save();
@@ -3779,9 +3991,11 @@ class DatabaseManager {
         if (className === 'recuperate') {
             if (beeIsBrood(bee) || beeLockedJob(bee)) return null;
             if (bee.class) bee.jobSince = todayISO();
+            if (bee.class && bee.life) bee.life.restFrom = bee.class;   // Nov 17 2026 (Craft): Return sends it back here
             bee.class = null;
             if (bee.life) { bee.life.recuperate = true; delete bee.life.idleSince; }
             this.save();
+            this.tendSoon();   // Nov 17 2026 (Craft): a free bee can take over its job at once
             return bee;
         }
         if (className && !BEE_CLASSES[className]) return null;
@@ -3804,11 +4018,12 @@ class DatabaseManager {
         // Comb rooms: how long a bee has gone without a job (upset at 3 days).
         if (bee.life) {
             delete bee.life.recuperate;
-            if (bee.class) delete bee.life.idleSince;
+            if (bee.class) { delete bee.life.idleSince; delete bee.life.restFrom; }
             else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
         }
         this.autoJustUnlocked = this._autoUnlockCheck();   // Nov 1 2026 (Craft): auto-manage
         this.save();
+        this.tendSoon();   // Nov 17 2026 (Craft): the hive reacts at once
         return bee;
     }
 
@@ -6109,7 +6324,7 @@ Object.assign(DatabaseManager.prototype, {
     _lifeEvent(type, text, extra = {}) {
         const c = this.state.hive;
         if (!Array.isArray(c.lifeEvents)) c.lifeEvents = [];
-        c.lifeEvents.unshift({ id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, at: new Date().toISOString(), type, text, ...extra });
+        c.lifeEvents.unshift({ id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, at: (this._fcAt || new Date()).toISOString(), type, text, ...extra });
         c.lifeEvents = c.lifeEvents.slice(0, LIFE.eventsKept);
     },
     _addMaterial(id, n = 1) {
@@ -6362,6 +6577,18 @@ Object.assign(DatabaseManager.prototype, {
         const P = this.autoSwapPrefs();
         return P.on && beeCanWork(b) && b.life.stamina >= P.returnPct && b.life.health >= 50 && !b.life.nursery && !b.life.sickUntil;
     },
+    // Nov 17 2026 (Craft; approved demo): a bee sent to rest remembers its job (life.restFrom). Once its
+    // stamina reaches "Return at" it shows as Ready in that job's comb; Return / Work sends it back.
+    beeIsReady(b) {
+        const L = b && b.life;
+        if (!L || !L.restFrom || b.class || beeIsBrood(b) || L.faintedAt || L.nursery || L.sickUntil) return false;
+        return L.stamina >= this.autoSwapPrefs().returnPct && L.health >= 50 && !(L.fatigue >= 80);   // not still worn out
+    },
+    returnBeeToWork(id) {
+        const b = this.getHiveBees().find(x => x.id === id);
+        if (!b || !b.life || !b.life.restFrom) { this.lastJobError = 'This bee has no job to go back to.'; return null; }
+        return this.assignBeeClass(id, b.life.restFrom);
+    },
     // Nov 3 2026 (Craft): "filled" = open jobs with at least one bee.
     hiveAutoStatus() {
         if (!this.state || !this.state.hive) return null;
@@ -6415,10 +6642,10 @@ Object.assign(DatabaseManager.prototype, {
             const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
-            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true;   // Nov 9 2026 (Craft): resting = recuperating, not upset
+            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true; h.life.restFrom = j;   // Nov 9 2026 (Craft): resting = recuperating, not upset
             const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft): came back from resting
             delete pick.life.recuperate;
-            pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince;
+            pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince; delete pick.life.restFrom;
             this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
             const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
             this._lifeEvent('auto', text, { beeId: pick.id });
@@ -6440,8 +6667,25 @@ Object.assign(DatabaseManager.prototype, {
                 if (gap-- <= 0) break;
                 const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft)
                 delete pick.life.recuperate;
-                pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince;
+                pick.jobSince = todayISO(); pick.class = j; delete pick.life.idleSince; delete pick.life.restFrom;
                 const text = `🐝 ${pick.name} ${returned ? 'returned from resting and ' : ''}took the ${BEE_CLASSES[j].label} job.`;
+                this._lifeEvent('auto', text, { beeId: pick.id });
+                notes.push(text);
+            }
+        });
+        // Nov 17 2026 (Craft): a bee with no job for 3+ days takes ANY open job that still has room, whatever its talent.
+        const today = todayISO();
+        this.hiveOpenJobs().forEach(j => {
+            let gap = this.jobSlots(j) - this.jobHolders(j).length;
+            if (gap <= 0) return;
+            const idle = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && b.rarity !== 'Named' && (this._autoReady(b) || this._returnReady(b)) && (j === 'drone') === (b.sex === 'm')
+                && b.life.idleSince && (daysBetween(b.life.idleSince, today) || 0) >= LIFE.idleUpsetDays)
+                .sort((a, z) => beeJobScore(z, j) - beeJobScore(a, j));
+            for (const pick of idle) {
+                if (gap-- <= 0) break;
+                delete pick.life.recuperate; delete pick.life.idleSince; delete pick.life.restFrom;
+                pick.jobSince = today; pick.class = j;
+                const text = `🐝 ${pick.name} was bored without a job and took the ${BEE_CLASSES[j].label} job.`;
                 this._lifeEvent('auto', text, { beeId: pick.id });
                 notes.push(text);
             }
@@ -6466,11 +6710,64 @@ Object.assign(DatabaseManager.prototype, {
         for (let k = 1; k <= hours; k++) this._lifeHour(new Date(c.vitalsAt + k * HOUR));
         c.vitalsAt += hours * HOUR;
         // Nov 1 2026 (Craft): auto-manage, once per catch-up.
-        this._autoUnlockCheck();
-        this._autoManageHour();
-        this._autoSwapHour();   // Nov 1 2026 (Craft)
+        this._tendHive(new Date(now));   // Nov 17 2026 (Craft): one pass (was auto-manage + auto-swap once per catch-up)
         this.saveQuiet();   // Oct 31 2026 (Craft): the clock isn't an edit
         return hours;
+    },
+
+    // Nov 17 2026 (Craft): HIVE FORECAST. Plays the hive forward on a COPY of the save, hour by hour, with the
+    // same rules as the real hourly step (vitals, meals, Nursery, resting, auto-manage and auto-swap).
+    // Nothing is random and nothing is saved, so the real hive is never touched. Returns the moments that
+    // matter, in time order, for the phone alerts and the status bar:
+    //   { from, to, events: [{ at, beeId, name, kind, face, why }], honeyOutAt }
+    // kinds: hungry, tired, worn, sick, hurt, rest (starts resting), rested, ate, faint, swap, healed, idle, honey-out.
+    hiveForecast(hours = 24, now = Date.now()) {
+        if (!this.state || !this.state.hive) return { from: new Date(now).toISOString(), to: new Date(now).toISOString(), events: [], honeyOutAt: null };
+        const HOUR = 3600000;
+        const realState = this.state;
+        const out = { from: new Date(now).toISOString(), to: new Date(now + hours * HOUR).toISOString(), events: [], honeyOutAt: null };
+        const kindOf = (f, b) => ({ upset: 'idle', fainted: 'faint', asleep: 'rest', eating: 'ate' })[f.key] || (f.key === 'sad' ? (/Hungry/.test(f.why) ? 'hungry' : /Tired|Worn/.test(f.why) ? (/Worn/.test(f.why) ? 'worn' : 'tired') : /Sick/.test(f.why) ? 'sick' : /hurt/i.test(f.why) ? 'hurt' : 'sad') : f.key === 'calm' && /Nursery/.test(f.why) ? 'bed' : null);
+        try {
+            this.state = JSON.parse(JSON.stringify(realState));
+            LIFE_FORECAST = true;
+            const hv = this.state.hive;
+            const start = hv.vitalsAt || now;
+            const last = {};
+            const feel = (b, at) => beeFeeling(b, isoLocalDate(at), at.getTime());
+            this._lifeBees().forEach(b => { last[b.id] = feel(b, new Date(Math.max(start, now))).key; });
+            const total = Math.ceil((now + hours * HOUR - start) / HOUR);
+            let honeyWas = hv.honey;
+            for (let k = 1; k <= total; k++) {
+                const at = new Date(start + k * HOUR);
+                this._fcAt = at;
+                const evBefore = (hv.lifeEvents || []).length;
+                this._lifeHour(at);
+                this._tendHive(at);
+                if (at.getTime() <= now) { this._lifeBees().forEach(b => { last[b.id] = feel(b, at).key; }); honeyWas = hv.honey; continue; }   // already happened (the real tick applies it)
+                const t = at.toISOString();
+                this._lifeBees().forEach(b => {
+                    const f = feel(b, at);
+                    if (f.key !== last[b.id]) {
+                        const kind = kindOf(f, b);
+                        if (kind) out.events.push({ at: t, beeId: b.id, name: b.name, kind, face: f.face, why: f.why });
+                        last[b.id] = f.key;
+                    }
+                });
+                (hv.lifeEvents || []).slice(0, Math.max(0, (hv.lifeEvents || []).length - evBefore)).forEach(e => {
+                    if (e.type === 'auto') out.events.push({ at: t, beeId: e.beeId || null, name: '', kind: 'swap', face: '🔄', why: e.text.replace(/^[^\w]+/, '') });
+                    else if (e.type === 'rested') out.events.push({ at: t, beeId: e.beeId || null, name: '', kind: 'rested', face: '✨', why: e.text.replace(/^[^\w]+/, '') });
+                    else if (e.type === 'heal') out.events.push({ at: t, beeId: e.beeId || null, name: '', kind: 'healed', face: '💗', why: e.text.replace(/^[^\w]+/, '') });
+                });
+                if (honeyWas > 0 && hv.honey <= 0 && !out.honeyOutAt) { out.honeyOutAt = t; out.events.push({ at: t, beeId: null, name: '', kind: 'honey-out', face: '🍯', why: 'The stored honey runs out. Hungry bees cannot eat.' }); }
+                honeyWas = hv.honey;
+            }
+        } finally {
+            LIFE_FORECAST = false;
+            this._fcAt = null;
+            this.state = realState;
+        }
+        out.events.sort((a, z) => a.at.localeCompare(z.at));
+        return out;
     },
 
     _lifeHour(at) {
@@ -6642,25 +6939,90 @@ Object.assign(DatabaseManager.prototype, {
             this._cafeMeal(b, new Date(), this._workers('receiver').length);
             this.save(); return { to: 'cafe', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : '' };
         }
+        // Nov 17 2026 (Craft): Recuperate is for resting, it does not feed. A hungry bee with no honey stays where it is.
+        if (need === 'cafe') return { to: 'hungry', bee: b, note: 'No stored honey for a meal. Finishing a task feeds every bee.' };
         const r = this.assignBeeClass(id, 'recuperate');
         if (!r) return null;
+        this.tendSoon();
         return { to: 'rest', bee: b, note: need === 'nursery' ? 'Nursery beds are full.' : need === 'cafe' ? 'No stored honey for a meal.' : '' };
     },
     // Nov 9 2026 (Craft): each working Rescue Team bee carries one hurt or sick bee an hour
     // to a free Nursery bed. The patient keeps its job slot and goes back when healed.
+    // Nov 17 2026 (Craft): Rescue works on demand, not once an hour. The moment a bee is sick or under
+    // RESCUE_BELOW health and a bed is free, a working Rescue bee carries it. Each bee carried tires the
+    // Rescue bee by RESCUE_FATIGUE, so a bad day for the hive wears the team out. Returns how many were carried.
     _rescueHour(day) {
         const team = this._workers('rescue');
-        if (!team.length) return;
-        let free = this.nurseryBeds().free;
-        for (const r of team) {
+        if (!team.length) return 0;
+        let free = this.nurseryBeds().free, moved = 0;
+        const patients = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && b.class !== 'rescue' && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
+            .sort((a, z) => a.life.health - z.life.health);
+        for (const p of patients) {
             if (free <= 0) break;
-            const p = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && b.class !== 'rescue' && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
-                .sort((a, z) => a.life.health - z.life.health)[0];
-            if (!p) break;
-            p.life.nursery = true; p.life.rescuedAt = day; free--;
+            const r = team.filter(t => (t.life.fatigue || 0) < 95).sort((a, z) => (a.life.fatigue || 0) - (z.life.fatigue || 0))[0];
+            if (!r) break;   // the whole team is worn out
+            p.life.nursery = true; p.life.rescuedAt = day; free--; moved++;
+            r.life.fatigue = clampVital((r.life.fatigue || 0) + RESCUE_FATIGUE, true);
             this._lifeEvent('rescue', `🚑 ${r.name} carried ${p.name} to the Nursery.`, { beeId: p.id });
         }
+        return moved;
     },
+
+    // Nov 17 2026 (Craft): TEND THE HIVE. One pass that moves every bee where it needs to go, using the same
+    // rules as the faces: sick or hurt -> a Nursery bed (Rescue), hungry -> the Cafeteria, a tired worker -> a
+    // rested bee takes over, an empty job -> the best free bee (a bee with no job for 3+ days takes any job
+    // with room). It runs at once after anything changes (task done, bee moved), every 30 seconds while the app
+    // is open, and for every hour you were away. Returns the number of changes.
+    _tendHive(at = new Date()) {
+        if (!this.state || !this.state.hive) return 0;
+        const day = isoLocalDate(at), night = isNightHour(at.getHours());
+        let n = this._rescueHour(day);
+        if (!night) {
+            const receivers = this._workers('receiver').length;
+            this._lifeBees().forEach(b => {
+                const L = b.life;
+                if (!L || L.faintedAt || L.hatchOn || L.health <= 0 || !(L.fullness < CAFE.below)) return;
+                if (this._cafeMeal(b, at, receivers)) n++;
+            });
+        }
+        if (this._autoUnlockCheck()) { n++; if (!LIFE_FORECAST) this.autoJustUnlocked = true; }
+        n += this._autoManageHour().length;
+        n += this._autoSwapHour().length;
+        return n;
+    },
+    // Runs a tend pass for the real hive and tells the screens when something moved.
+    tendNow() {
+        if (!this.state || !this.state.hive || LIFE_FORECAST) return 0;
+        const n = this._tendHive(new Date());
+        if (n) { this.saveQuiet(); this._tendEvent(); }
+        return n;
+    },
+    tendSoon() {
+        if (typeof setTimeout !== 'function') return;
+        clearTimeout(this._tendT);
+        this._tendT = setTimeout(() => this.tendNow(), 300);
+    },
+    _tendEvent() { try { if (typeof window !== 'undefined' && window.dispatchEvent) window.dispatchEvent(new Event('hive-tended')); } catch { /* screens refresh on their next draw */ } },
+    // While the app is open: play new hours, then tend. Starts once, from init.
+    startTending() {
+        if (this._tendTimer || typeof setInterval !== 'function' || typeof document === 'undefined') return;
+        const step = () => {
+            if (document.hidden || !this.state || !this.state.hive) return;
+            const hours = this.hiveHourlyTick();
+            const n = this.tendNow();
+            if (hours && !n) this._tendEvent();
+        };
+        this._tendTimer = setInterval(step, 30000);
+        try { document.addEventListener('visibilitychange', () => { if (!document.hidden) step(); }); } catch { /* optional */ }
+    },
+    // Every awake bee is asleep or in a bed (or it is night): the hive header shows 💤.
+    hiveAllAsleep(at = new Date()) {
+        const bees = this._lifeBees().filter(b => !beeIsBrood(b) && !b.life.faintedAt);
+        if (!bees.length) return false;
+        if (isNightHour(at.getHours())) return true;
+        return bees.every(b => b.life.recuperate || b.life.nursery || b.life.stamina < 10);
+    },
+
     // Once: the four new jobs each get one spare bee with that talent, so
     // nobody waits on a lucky hatch to use them.
     _newJobTalents() {
@@ -6837,6 +7199,7 @@ Object.assign(DatabaseManager.prototype, {
             b.life.fullness = clampVital(b.life.fullness + LIFE.feedPerTask);
             b.life.happiness = clampVital(b.life.happiness + 1);
         });
+        this.tendSoon();   // Nov 17 2026 (Craft): fed bees, new honey: let the hive react
     },
 
     // Once a day: your 3 strongest awake bees raid a nest.
@@ -7119,17 +7482,31 @@ Object.assign(DatabaseManager.prototype, {
             if (n < 0.28) return { kind: 'pollen', qty: bigger ? 3 : 2, icon: '🌼', name: 'Pollen' };
             return { kind: 'coins', qty: (bigger ? 4 : 2) + Math.floor(Math.random() * (bigger ? 5 : 5)), icon: '🪙', name: 'Honey coins' };
         };
+        if (!Array.isArray(S.bonusXP)) S.bonusXP = [];
+        // Walking time and XP grow with the steps you take (one entry per day, updated in place).
+        const min = Math.min(STEP_GOAL.capMin, Math.floor(steps / STEP_GOAL.perMin));
+        let walk = S.bonusXP.find(b => b.key === `steps:${today}`);
+        const before = walk ? Number(walk.xp) || 0 : 0;
+        if (min > before) {
+            if (!walk) { walk = { key: `steps:${today}`, date: today, xp: 0, why: 'Steps' }; S.bonusXP.push(walk); }
+            walk.xp = min; walk.why = `Steps (${steps.toLocaleString()})`;
+            if (typeof this._rt === 'function' && this._rt()) {
+                let t = S.timeLog.find(x => x.id === `t-steps-${today}`);
+                if (!t) { t = { id: `t-steps-${today}`, key: `steps:${today}`, kind: 'steps', taskId: null, questId: null, date: today, cats: STEP_GOAL.cats.slice() }; S.timeLog.push(t); }
+                t.min = min; t.label = `Walking (${steps.toLocaleString()} steps)`; t.at = new Date().toISOString();
+            }
+            xpNow += min - before;
+        }
         if (steps >= goal && !r.goal) {
             r.goal = true;
-            if (!Array.isArray(S.bonusXP)) S.bonusXP = [];
-            S.bonusXP.push({ key: `steps:${today}`, date: today, xp: STEP_GOAL.xp, why: 'Step goal' });
-            if (typeof this._rt === 'function' && this._rt()) S.timeLog.push({ id: `t-steps-${today}`, key: `steps:${today}`, kind: 'steps', taskId: null, questId: null, label: `Step goal (${goal.toLocaleString()} steps)`, date: today, min: STEP_GOAL.minutes, cats: STEP_GOAL.cats.slice(), at: new Date().toISOString() });
-            r.xp = xpNow = STEP_GOAL.xp; give(roll(false));
+            S.bonusXP.push({ key: `stepgoal:${today}`, date: today, xp: STEP_GOAL.goalXP, why: `Step goal (${goal.toLocaleString()})` });
+            xpNow += STEP_GOAL.goalXP; give(roll(false));
         }
+        r.xp = (r.xp || 0) + xpNow;
         if (steps >= goal * 2 && !r.x2) { r.x2 = true; give(roll(true)); }
         r.gave = (r.gave || []).concat(out.map(x => `${x.qty} ${x.name}`));
         Object.keys(S.stepRewards).sort().slice(0, -60).forEach(k => delete S.stepRewards[k]);
-        return out.length ? { xp: xpNow, minutes: xpNow ? STEP_GOAL.minutes : 0, gave: out } : null;
+        return out.length ? { xp: xpNow, minutes: min, gave: out, goal: !!r.goal } : null;
     },
     // Step stats for the Incubator page: last 7 days, goal streak, best day.
     getStepStats(today = todayISO()) {
@@ -7139,7 +7516,7 @@ Object.assign(DatabaseManager.prototype, {
         const all = Object.entries(st).map(([d, n]) => ({ day: d, steps: Number(n) || 0 }));
         const best = all.reduce((b, x) => x.steps > b.steps ? x : b, { day: '', steps: 0 });
         const r = (S.stepRewards || {})[today] || {};
-        return { goal, today: Number(st[today]) || 0, week, weekTotal: week.reduce((n, x) => n + x.steps, 0), streak, best, daysHit: all.filter(x => x.steps >= goal).length, gaveToday: r.gave || [], xpToday: r.xp || 0, stepXP: STEP_GOAL.xp, stepMin: STEP_GOAL.minutes };
+        return { goal, today: Number(st[today]) || 0, week, weekTotal: week.reduce((n, x) => n + x.steps, 0), streak, best, daysHit: all.filter(x => x.steps >= goal).length, gaveToday: r.gave || [], xpToday: r.xp || 0, goalXP: STEP_GOAL.goalXP, perMin: STEP_GOAL.perMin, minToday: Math.min(STEP_GOAL.capMin, Math.floor((Number(st[today]) || 0) / STEP_GOAL.perMin)) };
     },
     spendCoins(n) {
         const q = this._ensureQueen();

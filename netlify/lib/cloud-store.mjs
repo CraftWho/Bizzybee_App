@@ -4,9 +4,19 @@ import { encryptSave, decryptSave } from './save-crypto.mjs';
 // Oct 31 2026 (Craft): simple backups. One daily copy (about 4 AM Eastern),
 // keeping 4, so you can always go back 3 full days. Plus up to 3 copies made
 // right before a restore or "use this device's copy", so those can be undone.
-export const KEEP_DAILY = 4;
-export const KEEP_OTHER = 3;
-export const RETAIN = KEEP_DAILY + KEEP_OTHER;
+// Nov 20 2026 (Craft): a 4-day-old copy doesn't help with yesterday's problem. Now: 7 daily copies, 24 hourly
+// copies (one per hour the save changes, made right before an upload replaces it), and 10 "before change" copies.
+export const KEEP_DAILY = 7;
+export const KEEP_HOURLY = 24;
+export const KEEP_OTHER = 10;
+export const RETAIN = KEEP_DAILY + KEEP_HOURLY + KEEP_OTHER;
+const kindOf = (id) => id.endsWith('-scheduled') ? 'daily' : id.endsWith('-hourly') ? 'hourly' : 'other';
+// Small, safe facts about a save (no task text): level, XP, coins, which device. Sent by the app with each upload.
+export function cleanMeta(m) {
+    if (!m || typeof m !== 'object') return null;
+    const n = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v)) : null;
+    return { level: n(m.level), xp: n(m.xp), coins: n(m.coins), device: typeof m.device === 'string' ? m.device.slice(0, 40) : null };
+}
 export const saves = () => getStore({ name: 'bizzybee-saves', consistency: 'strong' });
 export const backups = () => getStore({ name: 'bizzybee-backups', consistency: 'strong' });
 export const schedules = () => getStore({ name: 'bizzybee-backup-schedules', consistency: 'strong' });
@@ -41,16 +51,16 @@ export async function listBackups(userId) {
     const { blobs } = await backups().list({ prefix: `${userId}/` });
     return blobs.map(({ key }) => {
         const id = key.slice(userId.length + 1);
-        return { id, kind: id.endsWith('-scheduled') ? 'daily' : 'other', createdAt: new Date(Number(id.split('-')[0])).toISOString() };
+        return { id, kind: kindOf(id), createdAt: new Date(Number(id.split('-')[0])).toISOString() };
     }).sort((a, b) => b.id.localeCompare(a.id));
 }
 export async function createBackup(userId, entry, reason = 'manual', id = `${Date.now()}-${randomUUID()}`) {
-    const record = { encrypted: encryptSave(plain(entry, userId), userId), updatedAt: entry.updatedAt, reason, createdAt: new Date().toISOString() };
+    const record = { encrypted: encryptSave(plain(entry, userId), userId), updatedAt: entry.updatedAt, reason, createdAt: new Date().toISOString(), meta: entry.meta || null };
     const result = await backups().setJSON(`${userId}/${id}`, record, { onlyIfNew: true });
     if (result.modified && !result.etag) throw new Error('Backup was not acknowledged by storage.');
     if (result.modified) {
         const all = await listBackups(userId);
-        const old = [...all.filter(b => b.kind === 'daily').slice(KEEP_DAILY), ...all.filter(b => b.kind !== 'daily').slice(KEEP_OTHER)];
+        const old = [...all.filter(b => b.kind === 'daily').slice(KEEP_DAILY), ...all.filter(b => b.kind === 'hourly').slice(KEEP_HOURLY), ...all.filter(b => b.kind === 'other').slice(KEEP_OTHER)];
         await Promise.all(old.map(item => backups().delete(`${userId}/${item.id}`)));
     }
     return id;

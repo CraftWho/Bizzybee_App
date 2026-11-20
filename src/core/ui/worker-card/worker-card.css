@@ -11,3 +11,17 @@
 .wk-bars i { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--c) var(--v), rgba(255, 255, 255, .08) var(--v)); }
 .wk-eff { color: #7fe08a !important; font-weight: 700; }
 .wk-act { flex: none; padding: 8px 12px; border-radius: 10px; border: 0; background: linear-gradient(#ffd84a, #e6b52c); color: #1a1000; font: 700 .74rem system-ui, sans-serif; cursor: pointer; }
+
+/* Nov 17 2026 (Craft; approved demo): the card's color says how the bee is doing.
+   Gold working, blue resting, red hungry, purple sick, orange worn out, grey fainted, green ready. */
+.wk-card { --st: transparent; transition: background .3s, border-color .3s; }
+.wk-card.st-work { --st: #ffcc00; } .wk-card.st-rest { --st: #5aa9ff; } .wk-card.st-hungry { --st: #ff5a5a; }
+.wk-card.st-sick { --st: #b06cff; } .wk-card.st-worn { --st: #ff8a3d; } .wk-card.st-faint { --st: #8b8b95; } .wk-card.st-ready { --st: #4cd27a; }
+.wk-card:not(.st-idle) { border-color: color-mix(in srgb, var(--st) 45%, transparent); border-left: 4px solid var(--st); background: color-mix(in srgb, var(--st) 12%, rgba(255, 255, 255, .03)); }
+.wk-card:not(.st-idle) .wk-face { background: color-mix(in srgb, var(--st) 28%, transparent); }
+.wk-why { color: #c2b48f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-act.go { background: linear-gradient(#5fe08e, #34b866); color: #052010; }
+.wk-act.back { background: linear-gradient(#7cbcff, #4a90e8); color: #04142a; }
+.wk-act.soft { background: rgba(255, 255, 255, .08); color: #f1ede2; }
+.wk-card .hl-job { max-width: 120px; }
+.wk-card .hl-ren { align-self: center; }

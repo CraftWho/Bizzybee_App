@@ -93,7 +93,7 @@ test('legacy save upgrade preserves an encrypted recovery backup', async () => {
 test('backups are daily: the old interval picker is accepted and ignored', async () => {
     const res = await backup(req('backups', { action: 'schedule', hours: 4 }));
     assert.equal(res.status, 200);
-    assert.equal((await res.json()).keepDaily, 4);
+    assert.equal((await res.json()).keepDaily, 7);
 });
 test('one active device: another device cannot save until it takes over', async () => {
     const first = await (await save(req('save-state', { data: sample(), revision: null, device: 'phone' }))).json();
@@ -102,7 +102,8 @@ test('one active device: another device cannot save until it takes over', async 
     const taken = await (await save(req('save-state', { data: sample(), revision: first.revision, device: 'pc', takeover: true }))).json();
     assert.equal(taken.ok, true);
     assert.equal((await save(req('save-state', { data: sample(), revision: taken.revision, device: 'phone' }))).status, 423);
-    assert.equal((await cloud.listBackups('alice')).length, 0);   // switching devices makes no backups
+    // Nov 20 2026: the first replace makes an hourly safety copy (then at most one an hour).
+    assert.deepEqual((await cloud.listBackups('alice')).map(b => b.kind), ['hourly']);
 });
 test('server scheduler backs up without an open client and is idempotent', async () => {
     await save(req('save-state', { data: sample(), revision: null }));
@@ -110,14 +111,16 @@ test('server scheduler backs up without an open client and is idempotent', async
     await scheduled(); await scheduled();
     assert.equal((await cloud.listBackups('alice')).length, 1);
 });
-test('backup retention keeps 4 daily copies and 3 others', async () => {
-    const entry = { data: sample(), updatedAt: new Date().toISOString() };
-    for (let i = 0; i < 6; i++) await cloud.createBackup('alice', entry, 'scheduled', `${1700000000000 + i * 86400000}-scheduled`);
-    for (let i = 0; i < 5; i++) await cloud.createBackup('alice', entry, 'manual', `${1700000000000 + i}-test`);
+test('backup retention keeps 7 daily, 24 hourly and 10 other copies', async () => {
+    const entry = { data: sample(), updatedAt: new Date().toISOString(), meta: { level: 13, xp: 4200, coins: 300, device: 'Android app' } };
+    for (let i = 0; i < 9; i++) await cloud.createBackup('alice', entry, 'scheduled', `${1700000000000 + i * 86400000}-scheduled`);
+    for (let i = 0; i < 26; i++) await cloud.createBackup('alice', entry, 'hourly', `${1700000000000 + i * 3600000}-hourly`);
+    for (let i = 0; i < 12; i++) await cloud.createBackup('alice', entry, 'manual', `${1700000000000 + i}-test`);
     const entries = await cloud.listBackups('alice');
-    assert.equal(entries.filter(e => e.kind === 'daily').length, 4);
-    assert.equal(entries.filter(e => e.kind !== 'daily').length, 3);
-    assert.equal(entries[0].id, `${1700000000000 + 5 * 86400000}-scheduled`);
+    assert.equal(entries.filter(e => e.kind === 'daily').length, 7);
+    assert.equal(entries.filter(e => e.kind === 'hourly').length, 24);
+    assert.equal(entries.filter(e => e.kind === 'other').length, 10);
+    assert.equal(entries[0].id, `${1700000000000 + 8 * 86400000}-scheduled`);
 });
 
 function vaultHarness(raw = sample()) {
@@ -263,4 +266,19 @@ test('gacha: the 6th pull without a Rare is a guaranteed Rare or better; Named B
     h.vault.state.hive.tickets = 10;
     assert.equal(h.vault.unwrapTicket().rarity, 'Named');
     assert.equal(h.vault.getTicketCount(), 0);
+});
+
+test('each upload carries level/XP/device; an hourly cloud copy is made before an upload replaces the save', async () => {
+    const meta = { level: 13, xp: 4200, coins: 300, device: 'Android app' };
+    const first = await (await save(req('save-state', { data: sample(), revision: null, device: 'phone', meta }, 'hana'))).json();
+    assert.equal(first.ok, true);
+    const loaded = await (await load(req('load-state', null, 'hana'))).json();
+    assert.deepEqual(loaded.meta, meta);
+    const second = await (await save(req('save-state', { data: sample(), revision: first.revision, device: 'phone', meta: { ...meta, xp: 4300 } }, 'hana'))).json();
+    assert.equal(second.ok, true);
+    const list = await (await backup(req('backups', null, 'hana'))).json();
+    const hourly = list.backups.filter(b => b.kind === 'hourly');
+    assert.equal(hourly.length, 1);
+    assert.equal(hourly[0].meta.xp, 4200);   // the copy is of the save before the upload
+    assert.equal(list.keepHourly, 24);
 });
