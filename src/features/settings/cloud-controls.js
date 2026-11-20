@@ -101,13 +101,11 @@ function initCloudSync() {
 async function refreshCloudBackups() {
     const result = await cloudEngine().request('backups');
     // Oct 31 2026 (Craft): daily backups, keep 4, plus copies made before a restore.
-    document.getElementById('backup-status').textContent = `Daily at about 4 AM, only when something changed. Keeps the last ${result.keepDaily || 4} days, plus up to ${result.keepOther || 3} copies made before a restore or Back Up Now.`;
+    document.getElementById('backup-status').textContent = `Hourly while you upload (last ${result.keepHourly || 24}), daily at about 4 AM when something changed (last ${result.keepDaily || 7} days), and before a restore or Back Up Now (last ${result.keepOther || 10}).`;
     const list = document.getElementById('cloud-backup-list');
     list.replaceChildren();
     if (!result.backups.length) list.textContent = 'No cloud backups yet. Use Back Up Now to create your first.';
     for (const item of result.backups) {
-        const row = document.createElement('div'); row.className = 'settings-action-row';
-        const label = document.createElement('span'); label.textContent = `${item.kind === 'daily' ? 'Daily' : 'Before change'} · ${new Date(item.createdAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
         const button = document.createElement('button'); button.textContent = 'Restore';
         button.onclick = () => settingsAction(button, async () => {
             if (confirm('Restore this backup to your cloud account and this device? The current cloud and device copies will be preserved first.')) await cloudEngine().restoreBackup(item.id);
@@ -122,11 +120,10 @@ async function refreshCloudBackups() {
             const name = `bizzybee-REAL-cloud-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.json`;   // Oct 31 2026 (Craft): cloud = REAL
             const written = typeof FolderBackup !== 'undefined' ? await FolderBackup.writeFile(name, text) : { ok: false };
             if (written.ok) { Toast.show(`💾 Saved ${name} to ${written.folder}.`, 'positive'); return; }
-            const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-            const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            await downloadFile(text, name, 'application/json');
         });
-        row.append(label, save, button); list.append(row);
+        button.className = save.className = 'btn';
+        list.append(svRow({ ...item, kind: item.kind === 'other' ? 'checkpoint' : item.kind }, item.kind === 'daily' ? 'Daily' : item.kind === 'hourly' ? 'Hourly' : 'Before change', [save, button]));
     }
 }
 function getLocalUpdateText() {
@@ -170,8 +167,60 @@ function deviceRecoveryEntries() {
 // Nov 17 2026 (Craft): each copy says what is in it, so you can tell level 13 from level 11 before you restore.
 function backupLabel(item) {
     const m = item.meta;
-    const what = m ? ` · Level ${m.level} · ${Number(m.xp).toLocaleString()} XP · ${m.bees} bees` : '';
+    const what = m ? ` · Level ${m.level} · ${Number(m.xp).toLocaleString()} XP` : '';
     return `${item.protect ? '🛡 ' : ''}${item.reason}${what}${item.createdAt ? ' · ' + new Date(item.createdAt).toLocaleString() : ''}`;
+}
+// Nov 20 2026 (Craft): every copy shows level, XP, coins, when and which device, the same way everywhere.
+const SV_ICON = { exit: '🚪', hourly: '🕐', daily: '📅', checkpoint: '🛡', other: '🛡', 'before-replacement': '🛡' };
+function svWhen(iso) { try { return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } }
+function svRow(item, title, buttons) {
+    const m = item.meta || {};
+    const row = document.createElement('div'); row.className = 'sv-row';
+    const info = document.createElement('div'); info.className = 'sv-info';
+    const top = document.createElement('b'); top.textContent = `${SV_ICON[item.kind] || '💾'} ${title} · ${svWhen(item.createdAt)}`;
+    const sub = document.createElement('small');
+    sub.textContent = m.level != null ? `Lv ${m.level} · ${Number(m.xp || 0).toLocaleString()} XP · 🪙 ${Number(m.coins || 0).toLocaleString()}${m.device ? ' · ' + m.device : ''}` : 'Level not recorded (older copy)';
+    info.append(top, sub);
+    const acts = document.createElement('div'); acts.className = 'sv-acts';
+    buttons.forEach(b => acts.append(b));
+    row.append(info, acts);
+    return row;
+}
+function svBtn(text, fn) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = text; b.onclick = () => settingsAction(b, fn); return b; }
+let svKind = '';
+function renderSaveNow() {
+    const el = document.getElementById('sv-now');
+    if (!el || typeof Vault === 'undefined' || !Vault.state) return;
+    const m = Vault.backupMeta(Vault.state) || {};
+    const signedIn = localStorage.getItem('bizzybee_session') === 'identity' && !Vault.devTest;
+    const dirty = localStorage.getItem(Vault.storageKey + ':dirty') === 'true';
+    const synced = localStorage.getItem(Vault.storageKey + ':syncedAt');
+    const engine = typeof CloudSyncAuto !== 'undefined' ? CloudSyncAuto : null;
+    let cloud = 'Not signed in: saved on this device only.';
+    if (signedIn) {
+        if (engine && engine.isInactive && engine.isInactive()) cloud = '🔴 Not uploading: another device is saving.';
+        else if (dirty) cloud = '🟠 Saved here, waiting to upload to the cloud.';
+        else cloud = synced ? `✅ In the cloud · ${svWhen(synced)}` : '✅ In the cloud';
+    }
+    el.innerHTML = '';
+    const big = document.createElement('div'); big.className = 'sv-big';
+    big.innerHTML = `<span class="sv-lv">Lv ${m.level ?? '?'}</span><span>${Number(m.xp || 0).toLocaleString()} XP · 🪙 ${Number(m.coins || 0).toLocaleString()}</span>`;
+    const line = (t) => { const s = document.createElement('small'); s.textContent = t; return s; };
+    el.append(big, line(`${m.device || 'This device'} · last change ${svWhen(Vault.state.updatedAt) || '—'}`), line(cloud));
+}
+function renderSyncLog(all = false) {
+    const host = document.getElementById('sync-log');
+    if (!host) return;
+    const list = typeof syncLogList === 'function' ? syncLogList() : [];
+    host.replaceChildren();
+    if (!list.length) { host.textContent = 'Nothing logged yet. Saves, uploads and switches show up here.'; return; }
+    const ICON = { fail: '⚠️', upload: '☁️', load: '⬇️', inactive: '🔴', review: '❓', choice: '👆', 'save-point': '💾', restore: '↩️', login: '🔑', open: '📱' };
+    for (const e of list.slice(0, all ? 200 : 20)) {
+        const row = document.createElement('div'); row.className = 'sv-log';
+        const t = document.createElement('small'); t.textContent = `${svWhen(e.at)}${e.lv != null ? ` · Lv ${e.lv} · ${Number(e.xp || 0).toLocaleString()} XP` : ''}${e.dev ? ' · ' + e.dev : ''}`;
+        const b = document.createElement('span'); b.textContent = `${ICON[e.kind] || '•'} ${e.msg}`;
+        row.append(b, t); host.append(row);
+    }
 }
 function metaOfRaw(raw) { try { return Vault.backupMeta(JSON.parse(raw)); } catch { return null; } }
 function deviceRestore(getData, label) {
@@ -180,12 +229,14 @@ function deviceRestore(getData, label) {
         if (!raw) throw new Error('That copy could not be read.');
         const m = metaOfRaw(raw);
         const now = Vault.backupMeta(Vault.state || {});
-        const msg = `Restore this copy${m ? ` (Level ${m.level}, ${Number(m.xp).toLocaleString()} XP)` : ''}? ${now ? `This device is now at Level ${now.level} (${Number(now.xp).toLocaleString()} XP) and that is saved first. ` : ''}Cloud auto uploads will pause so you can review it.`;
+        const msg = `Restore this copy${m ? ` (Level ${m.level}, ${Number(m.xp).toLocaleString()} XP)` : ''}? ${now ? `This device is now at Level ${now.level} (${Number(now.xp).toLocaleString()} XP) and that is saved first. ` : ''}It then becomes your cloud copy too (the current cloud copy is backed up first).`;
         if (!confirm(msg)) return;
         try { Vault.createLocalBackup('Before restoring: ' + label, { protect: true }); } catch { /* full: the copy being restored stays */ }
-        localStorage.setItem('bizzybee_auto_sync', 'false');
+        // Nov 20 2026 (Craft): after the reload, this copy goes straight to the cloud (the old cloud copy is backed up first).
+        localStorage.setItem('bizzybee_after_restore', '1');
         const result = Vault.importFullState(raw, { backup: false });
         if (!result.ok) throw new Error(result.error);
+        if (typeof syncLog === 'function') syncLog('restore', `Restored ${label}${m ? ` (Lv ${m.level} · ${m.xp} XP)` : ''}. `, m);
         window.location.reload();
     };
 }
@@ -222,15 +273,14 @@ async function renderAutoBackups() {
     let copies = [];
     try { copies = await Vault.listAutoBackups(); } catch (error) { list.textContent = 'Automatic copies could not be read: ' + error.message; return; }
     list.replaceChildren();
-    if (!copies.length) { list.textContent = 'No automatic copies yet. The first one is made shortly after the app opens.'; return; }
-    for (const item of copies) {
-        const row = document.createElement('div'); row.className = 'settings-action-row';
-        const label = document.createElement('span'); label.textContent = backupLabel(item);
-        const download = document.createElement('button'); download.textContent = 'Export';
-        download.onclick = () => settingsAction(download, async () => downloadFile(await Vault.getAutoBackupData(item.id), 'bizzybee-auto-copy.json', 'application/json'));
-        const restore = document.createElement('button'); restore.textContent = 'Restore';
-        restore.onclick = () => settingsAction(restore, deviceRestore(() => Vault.getAutoBackupData(item.id), 'automatic copy'));
-        row.append(label, download, restore); list.append(row);
+    const shown = copies.filter(c => !svKind || c.kind === svKind);
+    if (!shown.length) { list.textContent = copies.length ? 'None of this kind yet.' : 'No save points yet. The first is made shortly after the app opens.'; return; }
+    for (const item of shown) {
+        const name = `bizzybee-${Vault.saveType ? Vault.saveType() : 'REAL'}-savepoint-${(item.createdAt || '').slice(0, 16).replace(/[:T]/g, '-')}.json`;
+        list.append(svRow(item, item.reason || 'Save point', [
+            svBtn('Export', async () => downloadFile(await Vault.getAutoBackupData(item.id), name, 'application/json')),
+            svBtn('Restore', deviceRestore(() => Vault.getAutoBackupData(item.id), item.reason || 'save point')),
+        ]));
     }
 }
 // One line per kind of backup: working, or what is wrong (Nov 17 2026, Craft).
@@ -242,8 +292,8 @@ async function renderBackupHealth() {
     const add = (ok, text) => lines.push(`${ok ? '✅' : '⚠️'} ${text}`);
     const autoAt = Vault.autoBackupLastAt();
     if (h.autoErr) add(false, `Automatic copy failed: ${h.autoErr}`);
-    else if (!autoAt) add(false, 'Automatic copies: none yet (the first is made shortly after the app opens).');
-    else add(now - autoAt < 14 * 3600000, `Automatic copy (every 12 h): last ${ago(new Date(autoAt).toISOString())}.`);
+    else if (!autoAt) add(false, 'Save points: none yet (the first is made shortly after the app opens).');
+    else add(now - autoAt < 26 * 3600000, `Hourly save point: last ${ago(new Date(autoAt).toISOString())}.`);
     if (h.safetyErr) add(false, `Device copy failed: ${h.safetyErr}`);
     else add(true, `Device copies before changes: last ${ago(h.safetyAt)}.`);
     const synced = localStorage.getItem(Vault.storageKey + ':syncedAt');
@@ -254,7 +304,7 @@ async function renderBackupHealth() {
     if (typeof FolderBackup !== 'undefined') {
         try {
             const st = await FolderBackup.status();
-            if (!st.supported) add(false, 'Save folder: this browser cannot pick one. The Android app can (coming).');
+            if (!st.supported) { if (!document.documentElement.classList.contains('bb-app')) add(false, 'Save folder: this browser cannot pick one.'); }
             else if (!st.connected) add(false, 'Save folder: none chosen.');
             else add(st.permission === 'granted', st.permission === 'granted' ? `Save folder: ${st.name}.` : `Save folder: ${st.name} needs permission again.`);
         } catch { /* skip */ }
@@ -266,10 +316,22 @@ function initDeviceBackups() {
     document.getElementById('local-backup-refresh-btn').onclick = renderDeviceBackups;
     const nowBtn = document.getElementById('auto-backup-now-btn');
     if (nowBtn) nowBtn.onclick = event => settingsAction(event.currentTarget, async () => {
-        const r = await Vault.autoBackupNow({ force: true, reason: 'Copy Now' });
-        if (!r.ok) throw new Error('Could not make the copy: ' + r.error);
-        renderAutoBackups(); renderBackupHealth();
+        const r = await Vault.savePoint('checkpoint', 'Made by you');
+        if (!r.ok) throw new Error('Could not make the save point: ' + r.error);
+        Toast.show('💾 Save point made.', 'positive');
+        renderAutoBackups(); renderBackupHealth(); renderSyncLog();
     });
+    const exp = document.getElementById('sv-export-btn');
+    if (exp) exp.onclick = event => settingsAction(event.currentTarget, async () => downloadFile(Vault.exportFullState(), Vault.saveFileName ? Vault.saveFileName() : 'bizzybee-save.json', 'application/json'));
+    document.querySelectorAll('#sv-filter .sv-chip').forEach(c => c.onclick = () => {
+        svKind = c.dataset.k; document.querySelectorAll('#sv-filter .sv-chip').forEach(x => x.classList.toggle('on', x === c)); renderAutoBackups();
+    });
+    let more = false;
+    const mb = document.getElementById('sync-log-more');
+    if (mb) mb.onclick = () => { more = !more; mb.textContent = more ? 'Show Less' : 'Show More'; renderSyncLog(more); };
+    renderSaveNow(); renderSyncLog();
+    window.addEventListener('vault-saved', renderSaveNow);
+    window.addEventListener('cloud-sync-status', renderSaveNow);
     renderDeviceBackups();
     updateLocalOnlyTimestamp();
 }

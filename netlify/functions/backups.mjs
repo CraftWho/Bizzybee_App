@@ -1,5 +1,5 @@
 import { authenticatedUser } from '../lib/auth.mjs';
-import { json, KEEP_DAILY, KEEP_OTHER, backups, readLatest, listBackups, createBackup, plain } from '../lib/cloud-store.mjs';
+import { json, KEEP_DAILY, KEEP_HOURLY, KEEP_OTHER, backups, readLatest, listBackups, createBackup, plain } from '../lib/cloud-store.mjs';
 import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
 const handler = async (req) => {
     if (!['GET', 'POST'].includes(req.method)) return json({ ok: false, error: 'Method not allowed' }, 405);
@@ -25,7 +25,10 @@ const handler = async (req) => {
             if (!entry) return json({ ok: false, error: 'Backup not found.' }, 404);
             return json({ ok: true, data: plain(entry, user.id), updatedAt: entry.updatedAt });
         }
-        return json({ ok: true, backups: await listBackups(user.id), keepDaily: KEEP_DAILY, keepOther: KEEP_OTHER });
+        // Nov 20 2026 (Craft): each copy shows its level, XP, coins and device.
+        const list = await listBackups(user.id);
+        await Promise.all(list.map(async b => { try { const r = await backups().get(`${user.id}/${b.id}`, { type: 'json' }); b.meta = (r && r.meta) || null; b.reason = r && r.reason; } catch { b.meta = null; } }));
+        return json({ ok: true, backups: list, keepDaily: KEEP_DAILY, keepHourly: KEEP_HOURLY, keepOther: KEEP_OTHER });
     } catch { return json({ ok: false, error: 'Backup operation failed. Check cloud encryption configuration and try again.' }, 503); }
 };
 export default withCors(handler);

@@ -11,7 +11,9 @@
 const CloudSyncAuto = (() => {
     let timer, running = false, ready = false, conflict = false, revision = null, inactive = false;
     let accountId = null;
-    let lastStatus = 'Connecting to cloud…', lastError = '';
+    let lastStatus = 'Connecting to cloud…', lastError = '', lastOkLog = 0;
+    const bootAt = Date.now();
+    const log = (...a) => { try { if (typeof syncLog === 'function') syncLog(...a); } catch { /* best effort */ } };
     const enabled = () => {
         // Nov 1 2026 (Craft): paused while the Terminal is open (terminal-shell.js).
         try { if (sessionStorage.getItem('bizzybee_sync_paused') === '1') return false; } catch { /* storage off */ }
@@ -28,13 +30,25 @@ const CloudSyncAuto = (() => {
         }
         return id;
     }
+    // Nov 20 2026 (Craft): UNSENT DOT. While changes have not reached the cloud (waiting, offline, signed out,
+    // or another device is saving), a dot shows on the header. It is never silent again.
+    function indicator() {
+        try {
+            const on = enabled() && !Vault.devTest && localStorage.getItem('bizzybee_session') === 'identity';
+            const unsent = on && (dirty() || inactive || (!ready && Date.now() - bootAt > 10000) || !!lastError);
+            document.documentElement.classList.toggle('bb-unsent', !!unsent);
+            document.documentElement.classList.toggle('bb-unsent-bad', !!(on && (inactive || lastError)));
+        } catch { /* page not ready */ }
+    }
     function status(message) {
         lastStatus = message;
+        indicator();
         window.dispatchEvent(new CustomEvent('cloud-sync-status', { detail: message }));
         const el = document.getElementById('cloud-sync-status');
         if (el) el.textContent = message;
     }
     function failure(message) {
+        if (message !== lastError) log('fail', message);
         status(message);
         if (message !== lastError && typeof Toast !== 'undefined') Toast.show(message, 'negative', { action: { label: 'Open Settings', href: '/src/features/settings/settings.html#cloud' } });
         lastError = message;
@@ -48,6 +62,8 @@ const CloudSyncAuto = (() => {
         const user = netlifyIdentity.currentUser();
         const token = await user.jwt();
         if (!sameAccount()) throw new Error('Account changed. Reload before syncing.');
+        // Nov 20 2026 (Craft): every upload carries its level, XP, coins and device, so cloud copies can show them.
+        if (path === 'save-state' && body && typeof body.data === 'string' && !body.meta) { try { body.meta = Vault.backupMeta(JSON.parse(body.data)); } catch { /* still upload */ } }
         const response = await fetch((window.BB_SITE || '') + '/.netlify/functions/' + path, {   // Nov 1 2026 (Craft): app copy -> site
             method: body ? 'POST' : 'GET', cache: 'no-store',
             headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
@@ -89,6 +105,7 @@ const CloudSyncAuto = (() => {
         document.body.appendChild(bar);
     }
     function goInactive() {
+        if (!inactive) log('inactive', 'Another device is saving. This device stopped uploading.');
         inactive = true;
         clearTimeout(timer);
         status('Active on another device. This device is not saving to the cloud.');
@@ -112,6 +129,7 @@ const CloudSyncAuto = (() => {
         if (changed) {
             const imported = Vault.importFullState(result.data, { fromCloud: true, backup: false });
             if (!imported.ok) throw new Error(imported.error);
+            log('load', 'Loaded the cloud copy' + (result.meta && result.meta.device ? ` (from ${result.meta.device})` : ''));
         }
         const data = result.data || Vault.exportFullState();
         const saved = await request('save-state', { data, revision: result.revision ?? null, device: deviceId(), takeover: true });
@@ -137,6 +155,7 @@ const CloudSyncAuto = (() => {
             status('Saving to encrypted cloud storage…');
             const result = await request('save-state', { data: snapshot, revision, device: deviceId() });
             acknowledge(result);
+            if (lastError || Date.now() - lastOkLog > 30 * 60000) { log('upload', 'Saved to the cloud'); lastOkLog = Date.now(); }
             lastError = '';
             // Never clear a newer edit's dirty flag while acknowledging an older request.
             if (snapshot === Vault.exportFullState() && JSON.stringify(JSON.parse(snapshot)) === localStorage.getItem(Vault.storageKey)) {
@@ -146,7 +165,7 @@ const CloudSyncAuto = (() => {
             return true;
         } catch (error) {
             running = false;
-            if (error.code === 'other-device') { goInactive(); return false; }
+            if (error.code === 'other-device') { running = false; goInactive(); otherDevice(); return false; }
             if (error.status === 409 && tries < 1) {
                 // Another tab on THIS device saved first (tabs share the device
                 // copy, so it's already here). Take the new revision and resend.
@@ -224,6 +243,78 @@ const CloudSyncAuto = (() => {
             window.location.reload();
         } finally { running = false; }
     }
+    // ---- Review screen (Nov 20 2026, Craft; approved plan) ----
+    // When the cloud copy came from another device, show both copies side by side: level, XP, coins, when, and
+    // which device. You pick one; the other is kept as a save point. Same-progress copies don't ask.
+    function metaOf(text) { try { return Vault.backupMeta(JSON.parse(text)); } catch { return null; } }
+    async function reviewCopies(result) {
+        const local = localStorage.getItem(Vault.storageKey);
+        const me = local ? metaOf(local) : null;
+        const cloud = metaOf(result.data) || {};
+        if (result.meta && result.meta.device) cloud.device = result.meta.device;
+        if (!me || (!me.xp && !me.level)) return 'cloud';                 // nothing here yet (new install)
+        if (me.xp === cloud.xp && me.level === cloud.level && me.coins === cloud.coins) return 'cloud';   // same progress
+        log('review', `Cloud copy differs: this device Lv ${me.level} · ${me.xp} XP, cloud Lv ${cloud.level} · ${cloud.xp} XP`);
+        try { await Vault.savePoint('checkpoint', 'Before choosing a copy'); } catch { /* still ask */ }
+        const when = (iso) => { try { return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
+        let myAt = null; try { myAt = JSON.parse(local).updatedAt || null; } catch { /* no time */ }
+        const card = (title, m, at, dev, rec) => `<div class="bbr-c${rec ? ' rec' : ''}"><div class="bbr-h">${title}${rec ? '<span>Most progress</span>' : ''}</div>
+            <div class="bbr-lv">Lv ${m.level ?? '?'}</div><div class="bbr-xp">${(m.xp ?? 0).toLocaleString()} XP · 🪙 ${(m.coins ?? 0).toLocaleString()}</div>
+            <div class="bbr-m">${dev || 'Unknown device'}${at ? '<br>' + when(at) : ''}</div></div>`;
+        const meBest = (me.xp || 0) >= (cloud.xp || 0);
+        return new Promise((resolve) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'bbr-scrim'; wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true');
+            wrap.innerHTML = `<style>
+                .bbr-scrim{position:fixed;inset:0;z-index:6000;background:rgba(5,4,2,.92);display:flex;align-items:center;justify-content:center;padding:16px;font:14px/1.35 system-ui,sans-serif;color:#f5ecd4}
+                .bbr{width:100%;max-width:420px;background:#15110a;border:1px solid #ffcc00;border-radius:18px;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.7)}
+                .bbr h2{margin:0 0 4px;font-size:18px;color:#ffcc00}.bbr p{margin:0 0 14px;color:#c2b48f;font-size:13px}
+                .bbr-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+                .bbr-c{border:1px solid #3a2a0a;border-radius:14px;padding:12px;background:#1d170c;min-width:0}.bbr-c.rec{border-color:#4cd27a;background:#13210f}
+                .bbr-h{font-weight:700;font-size:13px;display:flex;flex-direction:column;gap:2px}.bbr-h span{font-size:11px;color:#4cd27a;font-weight:600}
+                .bbr-lv{font:800 24px/1.1 ui-monospace,monospace;color:#ffcc00;margin:8px 0 2px}.bbr-xp{font-size:13px}.bbr-m{font-size:11px;color:#a8996f;margin-top:6px}
+                .bbr-b{display:grid;gap:8px}.bbr-b button{border:0;border-radius:12px;padding:13px;font:800 14px system-ui,sans-serif;cursor:pointer}
+                .bbr-b .a{background:#ffcc00;color:#1a0f02}.bbr-b .b{background:#2a2418;color:#f5ecd4;border:1px solid #3a2a0a}
+                .bbr small{display:block;margin-top:10px;font-size:11px;color:#a8996f}</style>
+              <div class="bbr"><h2>Which save do you want?</h2><p>The cloud copy was saved by another device. Nothing changes until you pick.</p>
+                <div class="bbr-row">${card('📱 This device', me, myAt, me.device, meBest)}${card('☁️ Cloud', cloud, result.updatedAt, cloud.device, !meBest)}</div>
+                <div class="bbr-b"><button type="button" class="a" data-k="${meBest ? 'device' : 'cloud'}">${meBest ? 'Keep this device' : 'Use the cloud copy'}</button>
+                  <button type="button" class="b" data-k="${meBest ? 'cloud' : 'device'}">${meBest ? 'Use the cloud copy' : 'Keep this device'}</button></div>
+                <small>The copy you don't pick is kept as a save point in Settings › Backups.</small></div>`;
+            wrap.addEventListener('click', (e) => {
+                const b = e.target.closest('button[data-k]'); if (!b) return;
+                wrap.querySelectorAll('button').forEach(x => { x.disabled = true; }); b.textContent = 'One moment…';
+                log('choice', b.dataset.k === 'device' ? 'Kept this device' : 'Chose the cloud copy');
+                resolve(b.dataset.k);
+                setTimeout(() => wrap.remove(), 300);
+            });
+            const add = () => document.body.appendChild(wrap);
+            if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+        });
+    }
+    // Keep this device's copy: the cloud copy is backed up first, then this device saves over it.
+    async function keepDevice(result) {
+        const snapshot = Vault.exportFullState();
+        const saved = await request('save-state', { data: snapshot, revision: result.revision ?? null, preservePrevious: true, device: deviceId(), takeover: true });
+        acknowledge(saved);
+        if (snapshot === Vault.exportFullState()) localStorage.setItem(Vault.storageKey + ':dirty', 'false');
+        inactive = false;
+        const bar = document.getElementById('bb-inactive'); if (bar) bar.remove();
+        log('upload', 'This device is saving again. The old cloud copy is in Backups.');
+    }
+    // Another device saved while this one was open: ask, don't go quiet.
+    let asking = false;
+    async function otherDevice() {
+        if (asking) return;
+        asking = true;
+        try {
+            const result = await request('load-state');
+            const pick = await reviewCopies(result);
+            if (pick === 'cloud') await claim(result);
+            else await keepDevice(result);
+        } catch (error) { goInactive(); failure(error.message); }
+        finally { asking = false; indicator(); }
+    }
     async function start(user) {
         if (!user || ready || accountId) return;
         accountId = user.id;
@@ -250,7 +341,10 @@ const CloudSyncAuto = (() => {
             // changes go to a device backup first.
             const mine = result.device === deviceId();
             if (result.data && !mine && result.revision !== revision) {
-                if (await claim(result)) return;   // reloading with the cloud copy
+                // Nov 20 2026 (Craft): REVIEW FIRST. Nothing replaces anything until you pick a copy.
+                const pick = await reviewCopies(result);
+                if (pick === 'cloud') { if (await claim(result)) return; }
+                else await keepDevice(result);
             } else if (result.data && result.revision !== revision) {
                 // This device is active; another tab of it saved. Same device
                 // copy, so just take the new revision.
@@ -304,6 +398,7 @@ const CloudSyncAuto = (() => {
     window.addEventListener('online', () => ready ? schedule() : start(netlifyIdentity.currentUser()));
     // Recover pending uploads after page navigation and transient connection errors.
     setInterval(() => {
+        indicator();
         if (!ready) start(netlifyIdentity.currentUser());
         else if (enabled() && dirty() && !inactive) pushNow();
     }, 30000);
@@ -318,7 +413,7 @@ const CloudSyncAuto = (() => {
         try {
             const result = await request('load-state');
             // Oct 31 2026 (Craft): another device took over: stop saving here.
-            if (result.device && result.device !== deviceId()) { running = false; goInactive(); return 'inactive'; }
+            if (result.device && result.device !== deviceId()) { running = false; otherDevice(); return 'inactive'; }
             if (!result.data || result.revision === revision) return 'same';
             if (dirty()) return 'skip';
             const imported = Vault.importFullState(result.data, { fromCloud: true, backup: false });
@@ -328,9 +423,27 @@ const CloudSyncAuto = (() => {
         } finally { running = false; }
     }
     let hiddenAt = 0;
+    // Nov 20 2026 (Craft): leaving the app uploads at once (skipping the 1.5 s wait), and the Android app's own
+    // "pause" event does the same, since the phone can freeze the page before visibilitychange finishes.
+    function leaving() {
+        clearTimeout(timer);
+        if (!enabled() || !dirty()) return;
+        if (!ready || inactive) { log('fail', inactive ? 'Left the app while another device was saving. Not uploaded.' : 'Left the app before the cloud was ready. Not uploaded.'); return; }
+        pushNow().then(ok => { if (!ok) log('fail', 'Upload on leaving did not finish.'); });
+    }
+    try { const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (App && App.addListener) App.addListener('pause', leaving); } catch { /* not the app */ }
+    window.addEventListener('vault-saved', () => indicator());
+    // A restored save point becomes the cloud copy (old cloud copy backed up first).
+    window.addEventListener('cloud-sync-ready', async () => {
+        if (localStorage.getItem('bizzybee_after_restore') !== '1') return;
+        localStorage.removeItem('bizzybee_after_restore');
+        try { await useDeviceCopy(); log('upload', 'Restored copy saved to the cloud. The old cloud copy is in Backups.'); if (typeof Toast !== 'undefined') Toast.show('☁️ Restored copy is now your cloud copy too.', 'positive'); }
+        catch (e) { failure('Restored here, but the cloud upload failed: ' + e.message); }
+    });
+    window.addEventListener('cloud-sync-ready', () => { try { if (!sessionStorage.getItem('bb_open_logged')) { sessionStorage.setItem('bb_open_logged', '1'); log('open', 'App opened, cloud ready'); } } catch { /* fine */ } indicator(); });
     document.addEventListener('visibilitychange', async () => {
         // Nov 10 2026 (Craft): leaving the app sends unsent changes right away (a phone can freeze the app before the timer fires).
-        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); if (enabled() && dirty() && ready && !inactive) pushNow(); return; }
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); leaving(); return; }
         if (enabled() && dirty()) { pushNow(); return; }
         if (!enabled() || Date.now() - hiddenAt < 20000) return;
         if (document.querySelector('.lvr, .gfx.on, dialog[open], .pj-sheet-bg:not([hidden]), .dc-sheet-bg:not([hidden])')) return;
@@ -345,7 +458,7 @@ const CloudSyncAuto = (() => {
     const GT = 'gotrue.user', GT_BK = 'bizzybee_gotrue_backup', GT_EVT = 'bizzybee_cloud_event';
     const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
     const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
-    const cloudEvent = msg => lsSet(GT_EVT, JSON.stringify({ at: new Date().toISOString(), msg }));
+    const cloudEvent = msg => { lsSet(GT_EVT, JSON.stringify({ at: new Date().toISOString(), msg })); log('login', msg); };
     const backupLogin = () => { const v = lsGet(GT); if (v) lsSet(GT_BK, v); };
     const restoreLogin = () => { const b = lsGet(GT_BK); if (b && !lsGet(GT)) { lsSet(GT, b); return true; } return false; };
     const transientAuthError = e => !e || typeof e.status !== 'number' || e.status >= 500;

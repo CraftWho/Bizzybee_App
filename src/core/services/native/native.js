@@ -10,6 +10,28 @@ const BizzyNative = (() => {
     const isApp = !!(Cap && typeof Cap.isNativePlatform === 'function' && Cap.isNativePlatform());
     const P = (name) => (isApp && Cap.Plugins && Cap.Plugins[name]) || null;
     const LN = () => P('LocalNotifications');
+    // Nov 20 2026 (Craft): ANDROID TAILORING. The app gets a class so PC-only controls hide, and links to other
+    // websites open in the phone's browser (BeeFiles.openUrl, new in the app) instead of a blocked pop-up window.
+    if (isApp) {
+        try { document.documentElement.classList.add('bb-app'); } catch { /* early */ }
+        const external = (href) => { try { const u = new URL(href, location.href); return /^https?:$/.test(u.protocol) && u.host !== location.host && !/bizzybeee\.netlify\.app$/.test(u.host) ? u.href : null; } catch { return null; } };
+        const openOutside = async (url) => { try { await P('BeeFiles').openUrl({ url }); return true; } catch { return false; } };
+        document.addEventListener('click', async (e) => {
+            const a = e.target.closest && e.target.closest('a[href]');
+            if (!a) return;
+            const url = external(a.getAttribute('href'));
+            if (!url && a.target !== '_blank') return;
+            e.preventDefault();
+            if (url && await openOutside(url)) return;
+            location.href = a.href;   // old app: open it here (the back button returns)
+        }, true);
+        const nativeOpen = window.open;
+        window.open = (href, ...rest) => {
+            const url = external(href || '');
+            if (url) { openOutside(url).then(ok => { if (!ok) location.href = url; }); return null; }
+            return nativeOpen ? nativeOpen.call(window, href, ...rest) : null;
+        };
+    }
     const KEY = { rem: 'bizzybee_native_reminders', smart: 'bizzybee_smart_notify', quiet: 'bizzybee_smart_quiet', level: 'bizzybee_smart_level', buzz: 'bizzybee_vibration',
         sound: 'bizzybee_notify_sound', alarmSound: 'bizzybee_alarm_sound', rhythm: 'bizzybee_notify_rhythm' };
     const get = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } };

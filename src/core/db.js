@@ -1983,6 +1983,36 @@ function isPcLocalHost() {
         || /^(10|192\.168)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
 }
 
+// Nov 20 2026 (Craft): which device made a save ("Android phone", "Windows PC"...). Shown on save points and in the review screen.
+function bbDeviceName() {
+    try {
+        const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+        const app = typeof window !== 'undefined' && window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+        if (app) return 'Android app';
+        if (/Android/i.test(ua)) return 'Android browser';
+        if (/iPhone|iPad/i.test(ua)) return 'iPhone browser';
+        if (/Steam ?Deck|SteamOS/i.test(ua)) return 'Steam Deck';
+        if (/Windows/i.test(ua)) return 'Windows PC';
+        if (/Mac OS/i.test(ua)) return 'Mac';
+        if (/Linux/i.test(ua)) return 'Linux PC';
+    } catch { /* fall through */ }
+    return 'This device';
+}
+// Nov 20 2026 (Craft): SYNC LOG. A lasting record (last 200) of saves, uploads, failures, device switches,
+// restores and save points, each with the level and XP at that moment. Settings shows it.
+function syncLog(kind, msg, meta) {
+    try {
+        if (typeof localStorage === 'undefined') return;
+        const k = 'bizzybee_sync_log';
+        const list = JSON.parse(localStorage.getItem(k) || '[]');
+        let m = meta;
+        if (m === undefined && typeof Vault !== 'undefined' && Vault.state) m = Vault.backupMeta(Vault.state);
+        list.unshift({ at: new Date().toISOString(), kind, msg: String(msg).slice(0, 200), lv: m && m.level, xp: m && m.xp, dev: bbDeviceName() });
+        localStorage.setItem(k, JSON.stringify(list.slice(0, 200)));
+    } catch { /* storage full or off: the log is best effort */ }
+}
+function syncLogList() { try { return JSON.parse(localStorage.getItem('bizzybee_sync_log') || '[]'); } catch { return []; } }
+
 class DatabaseManager {
     constructor() {
         this.dbName = 'BizzybeeVault';
@@ -2569,7 +2599,7 @@ class DatabaseManager {
                 + (s.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0));
             const level = computeLevelProgress(xp).level;
             const ack = s.characterLevelBar && s.characterLevelBar.acknowledgedLevel;
-            return { level: ack ? Math.min(ack, level) : level, xp: Math.round(xp), bees: ((s.hive || s.colony || {}).bees || []).length, quests: (s.quests || []).length, name: s.displayName || (s.user && s.user.name) || '' };
+            return { level: ack ? Math.min(ack, level) : level, xp: Math.round(xp), coins: Math.round(Number((s.user && s.user.coins) ?? s.coins) || 0), bees: ((s.hive || s.colony || {}).bees || []).length, quests: (s.quests || []).length, name: s.displayName || (s.user && s.user.name) || '', device: bbDeviceName() };
         } catch { return null; }
     }
     _trimBackups(entries) {
@@ -2585,6 +2615,7 @@ class DatabaseManager {
         let id = Date.now().toString();
         while (entries.some(e => e.id === id)) id = String(Number(id) + 1);
         entries.unshift({ id, createdAt: new Date().toISOString(), reason, meta, protect: !!protect, data });
+        this.savePoint('checkpoint', reason).catch(() => {});   // Nov 20 2026 (Craft): also kept in the big save-point ring
         let list = this._trimBackups(entries);
         for (;;) {
             try { localStorage.setItem(this.storageKey + ':backups', JSON.stringify(list)); this._backupHealth({ safetyAt: new Date().toISOString(), safetyErr: null }); return; }
@@ -2615,8 +2646,13 @@ class DatabaseManager {
     // ---- Automatic copies every 12 hours (Nov 17 2026, Craft) ----
     // Kept in IndexedDB (far more room than localStorage), newest 14 per save (a week), separate from
     // the "before a change" copies above so neither pushes the other out.
-    AUTO_BACKUP_EVERY_MS = 12 * 3600000;
-    AUTO_BACKUP_KEEP = 14;
+    // Nov 20 2026 (Craft): SAVE POINTS, like a game. Your live save is the autosave slot. Behind it, rings of
+    // copies that never push each other out: every time you leave the app, every hour you use it, one a day,
+    // and a checkpoint before anything risky (update, cloud load, restore, merge...). Each shows level, XP,
+    // coins, time and the device that made it.
+    AUTO_BACKUP_EVERY_MS = 3600000;
+    SAVE_POINT_KEEP = { exit: 10, hourly: 24, daily: 7, checkpoint: 10 };
+    SAVE_POINT_LABEL = { exit: 'Left the app', hourly: 'Hourly', daily: 'Daily', checkpoint: 'Checkpoint' };
     _autoDb() {
         return new Promise((resolve, reject) => {
             if (typeof indexedDB === 'undefined') return reject(new Error('This browser has no IndexedDB.'));
@@ -2630,7 +2666,7 @@ class DatabaseManager {
         const db = await this._autoDb();
         return new Promise((resolve, reject) => {
             const req = db.transaction('copies', 'readonly').objectStore('copies').getAll();
-            req.onsuccess = () => resolve((req.result || []).filter(c => c.key === this.storageKey).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+            req.onsuccess = () => resolve((req.result || []).filter(c => c.key === this.storageKey).map(c => ({ ...c, kind: c.kind || 'hourly' })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
             req.onerror = () => reject(req.error);
         });
     }
@@ -2645,8 +2681,9 @@ class DatabaseManager {
         return !!this.state && !this.devTest && !this.pcLocal && now - this.autoBackupLastAt() >= this.AUTO_BACKUP_EVERY_MS;
     }
     // Makes one copy (when due, or force). Never throws: a failure is recorded for Backup health.
-    async autoBackupNow({ force = false, reason = 'Every 12 hours' } = {}) {
-        if (!this.state) return { ok: false, error: 'no-save' };
+    savePoint(kind, reason) { return this.autoBackupNow({ force: true, kind, reason: reason || this.SAVE_POINT_LABEL[kind] }); }
+    async autoBackupNow({ force = false, reason = 'Hourly', kind = 'hourly' } = {}) {
+        if (!this.state || this.devTest || this.pcLocal) return { ok: false, error: 'no-save' };
         if (!force && !this.autoBackupDue()) return { ok: true, skipped: true };
         if (this._autoBusy) return { ok: true, skipped: true };
         this._autoBusy = true;
@@ -2655,11 +2692,13 @@ class DatabaseManager {
             if (!data) return { ok: false, error: 'no-save' };
             JSON.parse(data);   // never keep a copy that can't be read back
             const db = await this._autoDb();
-            const rec = { id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 6), key: this.storageKey, createdAt: new Date().toISOString(), reason, meta: this.backupMeta(this.state), data };
+            const rec = { id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 6), key: this.storageKey, kind, createdAt: new Date().toISOString(), reason, meta: this.backupMeta(JSON.parse(data)), data };
             await new Promise((resolve, reject) => { const tx = db.transaction('copies', 'readwrite'); tx.objectStore('copies').put(rec); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error || new Error('Could not write the copy.')); tx.onabort = () => reject(tx.error || new Error('The browser refused the copy (storage full?).')); });
-            const all = await this._autoAll();
-            for (const old of all.slice(this.AUTO_BACKUP_KEEP)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
-            localStorage.setItem(this.storageKey + ':autobackup_at', String(Date.now()));
+            const same = (await this._autoAll()).filter(c => c.kind === kind);
+            for (const old of same.slice(this.SAVE_POINT_KEEP[kind] || 10)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
+            if (kind === 'hourly') localStorage.setItem(this.storageKey + ':autobackup_at', String(Date.now()));
+            if (kind === 'daily') localStorage.setItem(this.storageKey + ':dailypoint', todayISO());
+            syncLog('save-point', `${this.SAVE_POINT_LABEL[kind] || kind} save point`, rec.meta);
             this._backupHealth({ autoAt: rec.createdAt, autoErr: null });
             return { ok: true, id: rec.id };
         } catch (error) {
@@ -2667,14 +2706,26 @@ class DatabaseManager {
             return { ok: false, error: (error && error.message) || 'failed' };
         } finally { this._autoBusy = false; }
     }
-    // Checks on load, when the app comes back, and every 15 minutes while it is open.
+    // Checks on load, when the app comes back, and every 5 minutes while it is open.
+    // Leaving the app (or the phone freezing it) makes an "exit" save point at once.
     startAutoBackup() {
         if (this._autoStarted || typeof window === 'undefined' || typeof document === 'undefined') return;
         this._autoStarted = true;
-        const check = () => { this.autoBackupNow().catch(() => {}); };
+        const check = () => {
+            this.autoBackupNow().catch(() => {});
+            if (localStorage.getItem(this.storageKey + ':dailypoint') !== todayISO()) this.savePoint('daily').catch(() => {});
+        };
         setTimeout(check, 10000);
-        setInterval(check, 15 * 60000);
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+        setInterval(check, 5 * 60000);
+        let lastExit = 0;
+        const leave = () => {
+            if (Date.now() - lastExit < 60000) return;   // one per minute is plenty
+            lastExit = Date.now();
+            this.savePoint('exit').catch(() => {});
+        };
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); else leave(); });
+        window.addEventListener('pagehide', leave);
+        try { const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (App && App.addListener) App.addListener('pause', leave); } catch { /* not the app */ }
     }
 
     // Time-based XP (Oct 2026), once per save:

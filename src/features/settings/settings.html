@@ -54,7 +54,7 @@
             <button type="button" class="row" data-g="look"><span class="hx">🎨</span><span class="mid"><b>Look &amp; feel</b><small>Themes, text and look, weather</small></span><span class="chev">›</span></button>
             <button type="button" class="row" data-g="eve"><span class="hx">👑</span><span class="mid"><b>Eve &amp; help</b><small>Tips, Guide, feedback, exports</small></span><span class="chev">›</span></button>
             <button type="button" class="row" data-g="track"><span class="hx">⏱️</span><span class="mid"><b>Tracking</b><small>Time and XP for tasks</small></span><span class="chev">›</span></button>
-            <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Your data</b><small>Save files, import and export</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Saves &amp; backups</b><small>Save points, cloud backups, sync log, import and export</small></span><span class="chev">›</span></button>
             <button type="button" class="row" data-g="about"><span class="hx">ℹ️</span><span class="mid"><b>About</b><small>Version, what's new, app updates</small></span><span class="chev">›</span></button>
         </section>
         <section class="card st-list" id="st-hits" hidden></section>
@@ -81,19 +81,8 @@
                 <div class="row"><span class="hx">☁️</span><span class="mid"><b>Automatic cloud uploads</b><small>Saves to the cloud shortly after changes</small></span><label class="toggle-switch"><input type="checkbox" id="cloud-sync-auto-toggle" aria-label="Automatic cloud uploads" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
                 <div class="btns indent"><button id="cloud-sync-push-btn" class="btn solid" type="button">Save to Cloud</button><button id="cloud-sync-pull-btn" class="btn" type="button">Load from Cloud</button></div>
                 <p id="cloud-sync-status" class="status indent" role="status" aria-live="polite">Connecting to cloud…</p>
-                <details>
-                    <summary class="row"><span class="hx">🧰</span><span class="mid"><b>More sync options</b><small>Backups, conflicts, offline profile</small></span><span class="chev">›</span></summary>
-                    <div class="inner">
-                        <div class="row"><span class="mid"><b>Automatic backups</b><small>Once a day, about 4 AM, even while the app is closed. Keeps the last 4 days.</small></span></div>
-                        <!-- Oct 31 2026 (Craft): daily backups only; the 4/8/12/24-hour picker is gone. -->
-                        <p id="backup-status" class="status" role="status" aria-live="polite"></p>
-                        <div class="btns"><button id="backup-now-btn" class="btn" type="button">Back Up Now</button><button id="backup-refresh-btn" class="btn" type="button">Show Backups</button></div>
-                        <div id="cloud-backup-list" class="list"></div>
-                        <div class="row"><span class="mid"><b>Download cloud to local</b><small>Pick your Bizzybee_App folder. Updates your offline profile and adds a file to save-files (last 3 kept).</small><small id="cloud-local-download-status" class="status" role="status" aria-live="polite"></small></span><button id="cloud-local-download-btn" class="btn" type="button">Download</button></div>
-                        <div class="row"><span class="mid"><b>Use this device's copy</b><small>Only to fix a sync conflict. The old cloud copy is backed up first.</small></span><button id="cloud-sync-use-device-btn" class="btn danger" type="button">Use Device</button></div>
-                        <div class="row"><span class="mid"><b>Sign out of the cloud</b><small>This device keeps working offline.</small></span><button id="cloud-sync-logout-btn" class="btn" type="button">Sign Out</button></div>
-                    </div>
-                </details>
+                <div class="row"><span class="mid"><b>Sign out of the cloud</b><small>This device keeps working offline.</small></span><button id="cloud-sync-logout-btn" class="btn" type="button">Sign Out</button></div>
+                <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Saves &amp; backups</b><small>Save points, cloud backups, sync log</small></span><span class="chev">›</span></button>
             </section>
         </div>
 
@@ -158,14 +147,45 @@
 
         </div>
 
-        <div class="st-group" id="g-data" data-title="💾 Your data" hidden>
-            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>💾 Your data</h2></div>
-        <h2 class="sec">Your data</h2>
+        <div class="st-group" id="g-data" data-title="💾 Saves &amp; backups" hidden>
+            <div class="st-top"><button type="button" class="st-back" data-close aria-label="Back to Settings">←</button><h2>💾 Saves &amp; backups</h2></div>
+        <!-- Nov 20 2026 (Craft): one place for saves. Your save now, save points, cloud backups, the sync log, then everything else. -->
+        <h2 class="sec">Your save</h2>
         <section class="card">
-            <div class="row"><span class="hx">📁</span><span class="mid"><b>Save files folder</b><small id="folder-backup-status">Checking this browser…</small></span><button id="folder-backup-choose-btn" class="btn" type="button" hidden>Choose</button><button id="folder-backup-disconnect-btn" class="btn" type="button" hidden>Disconnect</button></div>
-            <div class="row"><span class="hx">⬇️</span><span class="mid"><b>Download a copy now</b><small>One save file to your Downloads</small></span><button id="folder-backup-download-btn" class="btn" type="button">Download</button></div>
+            <div id="sv-now" class="sv-now" role="status" aria-live="polite">Loading…</div>
+            <div class="btns indent"><button id="auto-backup-now-btn" class="btn solid" type="button">Make a Save Point</button><button id="sv-export-btn" class="btn" type="button">Export File</button></div>
+        </section>
+
+        <h2 class="sec">Save points on this device</h2>
+        <section class="card">
+            <p class="status indent">Made when you leave the app (last 10), every hour you use it (last 24), once a day (last 7), and before risky changes like an update, a cloud load or a restore (last 10). They never push each other out.</p>
+            <div class="sv-filter" id="sv-filter" role="tablist">
+                <button type="button" class="sv-chip on" data-k="">All</button><button type="button" class="sv-chip" data-k="exit">Left app</button><button type="button" class="sv-chip" data-k="hourly">Hourly</button><button type="button" class="sv-chip" data-k="daily">Daily</button><button type="button" class="sv-chip" data-k="checkpoint">Checkpoints</button>
+            </div>
+            <div id="auto-backup-list" class="list"></div>
+        </section>
+
+        <div class="cloud-only" id="sv-cloud">
+        <h2 class="sec">Cloud backups</h2>
+        <section class="card">
+            <p id="backup-status" class="status" role="status" aria-live="polite"></p>
+            <div class="btns"><button id="backup-now-btn" class="btn" type="button">Back Up Now</button><button id="backup-refresh-btn" class="btn" type="button">Show Backups</button></div>
+            <div id="cloud-backup-list" class="list"></div>
+        </section>
+        </div>
+
+        <h2 class="sec">Sync log</h2>
+        <section class="card">
+            <p class="status indent">Every upload, failure, device switch, restore and save point, with your level and XP at that moment.</p>
+            <div id="sync-log" class="list"></div>
+            <div class="btns indent"><button id="sync-log-more" class="btn" type="button">Show More</button></div>
+        </section>
+
+        <h2 class="sec">More</h2>
+        <section class="card">
+            <div class="row pc-only"><span class="hx">⬇️</span><span class="mid"><b>Download a copy now</b><small>One save file to your Downloads</small></span><button id="folder-backup-download-btn" class="btn" type="button">Download</button></div>
             <details>
-                <summary class="row"><span class="hx">📦</span><span class="mid"><b>Import &amp; export</b><small>Full save, history file, recovery copies</small></span><span class="chev">›</span></summary>
+                <summary class="row"><span class="hx">📦</span><span class="mid"><b>Import &amp; export</b><small>PIN-locked save file, import, history file</small></span><span class="chev">›</span></summary>
                 <div class="inner">
                     <p class="status" id="local-only-updated-row">📍 Last change on this device: <b id="local-only-updated">—</b></p>
                     <div class="row"><span class="mid"><b>Export full save</b><small>Your whole hive as one file. Add a 6-digit PIN to lock it.</small></span><button id="export-full-save-btn" class="btn" type="button">Export</button></div>
@@ -176,14 +196,21 @@
                     <div class="row"><span class="mid"><b>Import full save</b><small>Replaces everything on this device. Enter the file's PIN above first.</small><small id="import-full-save-hint-display" class="status" hidden></small></span><button id="import-full-save-btn" class="btn danger" type="button">Import</button></div>
                     <input type="file" id="import-full-save-input" class="file-input" aria-label="Save file to import">
                     <div class="row"><span class="mid"><b>Import history file</b><small>Old progress, like the Codex Career Terminal. Nothing is replaced.</small><small id="history-import-status" class="status" role="status" aria-live="polite"></small></span><button id="history-import-btn" class="btn" type="button">Import</button><input type="file" id="history-import-file" accept=".json,application/json" hidden></div>
+                </div>
+            </details>
+            <details>
+                <summary class="row"><span class="hx">🧰</span><span class="mid"><b>Advanced</b><small>Fix a sync conflict, backup health, older copies</small></span><span class="chev">›</span></summary>
+                <div class="inner">
+                    <div class="row"><span class="mid"><b>Use this device's copy</b><small>Only to fix a sync conflict. The old cloud copy is backed up first.</small></span><button id="cloud-sync-use-device-btn" class="btn danger" type="button">Use Device</button></div>
                     <div class="row"><span class="hx">🩺</span><span class="mid"><b>Backup health</b><small>Is every kind of backup working?</small></span></div>
                     <div id="backup-health" class="list" role="status" aria-live="polite"></div>
-                    <div class="row"><span class="mid"><b>Device recovery copies</b><small>Up to 6 copies before changes, plus 5 protected copies made before the cloud replaces this device's save</small></span></div>
+                    <div class="row"><span class="mid"><b>Device recovery copies</b><small>The older quick-copy list. New save points are above.</small></span></div>
                     <div class="btns"><button id="local-backup-btn" class="btn" type="button">Make a Copy</button><button id="local-backup-refresh-btn" class="btn" type="button">Show Copies</button></div>
                     <div id="local-backup-list" class="list"></div>
-                    <div class="row"><span class="mid"><b>Automatic copies (every 12 hours)</b><small>The last 14 are kept on this device, about a week</small></span></div>
-                    <div class="btns"><button id="auto-backup-now-btn" class="btn" type="button">Copy Now</button></div>
-                    <div id="auto-backup-list" class="list"></div>
+                    <div class="pc-only">
+                    <div class="row"><span class="hx">📁</span><span class="mid"><b>Save files folder</b><small id="folder-backup-status">Checking this browser…</small></span><button id="folder-backup-choose-btn" class="btn" type="button" hidden>Choose</button><button id="folder-backup-disconnect-btn" class="btn" type="button" hidden>Disconnect</button></div>
+                    <div class="row"><span class="mid"><b>Download cloud to local</b><small>Pick your Bizzybee_App folder. Updates your offline profile and adds a file to save-files (last 3 kept).</small><small id="cloud-local-download-status" class="status" role="status" aria-live="polite"></small></span><button id="cloud-local-download-btn" class="btn" type="button">Download</button></div>
+                    </div>
                 </div>
             </details>
         </section>
