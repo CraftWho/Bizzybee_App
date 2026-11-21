@@ -36,7 +36,7 @@ test('claim: closes after Nov 16 (Eastern) and when all 50 are taken; the creato
     const late = '2026-11-17T06:00:00Z';
     assert.equal((await call(s, u(1), { action: 'status', ...E }, { now: late })).open, false);
     assert.equal((await call(s, u(1), { action: 'claim', ...E }, { now: late })).ok, false);
-    assert.equal((await call(s, u(1), { action: 'claim', ...E }, { now: '2026-11-17T04:00:00Z' })).ok, true);   // still Nov 16 in redacted
+    assert.equal((await call(s, u(1), { action: 'claim', ...E }, { now: '2026-11-17T04:00:00Z' })).ok, true);   // still Nov 16 in US time zones
     for (let n = 2; n <= 49; n++) assert.ok((await call(s, u(100 + n), { action: 'claim', ...E })).ok);   // fills #003 - #050
     const last = await call(s, u(999), { action: 'claim', ...E });
     assert.equal(last.ok, false);

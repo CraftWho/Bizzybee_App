@@ -1,0 +1,10 @@
+{
+  "note": "Fingerprints (sha256 of the lowercase word) of private words that must never be in the repo. Add with: node tools/privacy-add.mjs \"word\"",
+  "hashes": [
+    "8535e86c8118bbbb0a18ac72d15d3a2b37b18d1bce1611fc60165f322cf57386",
+    "2bea932c423a17afc1c906f880c63c1228f7e3c81da4850ed1461160b1a7bf3f",
+    "dc528538462cb97652a5ed99ee22e5ccc2da8c6429a7a8df05b866a8fc5cf789",
+    "0fb7061c0faa822f969cf19e1e1e96f9abd3ea14b0c3e232f80b25eea65b374f",
+    "e067e8beb3a29632e1a9c1a074dac8b34b7fd3a6eb8851cf0111a3f409345f93"
+  ]
+}

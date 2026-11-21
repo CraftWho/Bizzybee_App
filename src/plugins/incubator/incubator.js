@@ -174,17 +174,9 @@ function sheet(bee) {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     const installed = typeof Plugins === 'undefined' || Plugins.isEnabled('incubator');
-    // Nov 21 2026 (Craft: "When I press the steps button nothing happens"): the Home Steps tile always
-    // opens this page. With no incubator yet it shows your steps and Step stats, and where to get one.
-    const stepsOnly = !installed;
-    $('ic-not-installed').hidden = true;
-    $('ic-main').hidden = false;
-    $('ic-main').classList.toggle('ic-steps-only', stepsOnly);
-    if (stepsOnly) {
-        document.title = '👟 Steps';
-        document.querySelector('.ic-head h1').textContent = '👟 STEPS';
-        document.querySelector('.ic-head p').textContent = 'Your steps, hours, streak, history and records.';
-    }
+    $('ic-not-installed').hidden = installed;
+    $('ic-main').hidden = !installed;
+    if (!installed) return;
     // Fresh steps first (Android app).
     if (isApp) {
         let tries = 0;
@@ -242,9 +234,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Remember whether Step stats is open (this phone only). #steps opens it.
     const det = $('steps');
     let open = false; try { open = localStorage.getItem('bb_ic_stats_open') === '1'; } catch { /* fine */ }
-    if (location.hash === '#steps' || $('ic-main').classList.contains('ic-steps-only')) open = true;
+    if (location.hash === '#steps') open = true;
     det.open = open;
-    // Only your own taps are remembered (opening it for you in the steps-only view isn't).
+    // Only your own taps are remembered, not the page opening it from a #steps link.
     det.querySelector('summary').addEventListener('click', () => setTimeout(() => { try { localStorage.setItem('bb_ic_stats_open', det.open ? '1' : '0'); } catch { /* fine */ } }, 0));
     window.addEventListener('vault-saved', () => render());
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') render(); });

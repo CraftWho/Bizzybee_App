@@ -1205,6 +1205,14 @@ class CodexSystem {
         const script = document.createElement('script');
         script.src = '../../../src/core/ui/hints/hints.js';
         document.body.appendChild(script);
+        // Nov 21 2026 (Craft): new item intros (a card after buying, then Eve shows you around its page).
+        const iiCss = document.createElement('link');
+        iiCss.rel = 'stylesheet';
+        iiCss.href = '../../../src/core/ui/item-intro/item-intro.css';
+        document.head.appendChild(iiCss);
+        const ii = document.createElement('script');
+        ii.src = '../../../src/core/ui/item-intro/item-intro.js';
+        document.body.appendChild(ii);
     }
 
     // "How long did it take?" pop-up after a check-off (time-log.js).

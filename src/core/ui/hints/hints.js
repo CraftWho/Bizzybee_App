@@ -67,6 +67,8 @@ const Hints = (() => {
         close();
         const tips = TIPS[page];
         if (!tips || (!force && (!Vault.hintsOn() || Vault.hintSeen(page) || snoozed(page)))) return;
+        // Nov 21 2026: wait while a new-item walk-through or card is up (item-intro.js).
+        if (!force && (document.querySelector('.ii-scrim, .hn-eve-pop') || new URLSearchParams(location.search).get('intro'))) return;
         el = document.createElement('div');
         el.className = 'hn-tip';
         el.setAttribute('role', 'status');
@@ -317,7 +319,7 @@ const Hints = (() => {
     }
     // New features: Eve introduces one at a time (Home only, after tips).
     function intro() {
-        if (page !== 'home' || !Vault.hintsOn() || document.querySelector('.hn-tip, .ds-scrim, .wn-scrim, .ss-scrim')) return;
+        if (page !== 'home' || !Vault.hintsOn() || document.querySelector('.hn-tip, .ds-scrim, .wn-scrim, .ss-scrim, .ii-scrim, .hn-eve-pop')) return;
         const seen = seenGuide();
         const g = GUIDE.find(x => x.intro && !seen.includes(x.id));
         if (!g) return;

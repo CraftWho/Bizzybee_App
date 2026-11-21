@@ -79,6 +79,9 @@ function pick(id) {
     render();
 }
 
+// Nov 21 2026 (Craft): something new shows what it is and how to use it, once (core/ui/item-intro).
+function newItem(id) { if (id && typeof ItemIntro !== 'undefined') setTimeout(() => ItemIntro.bought(id), 700); }
+
 function go() {
     const it = rows().items.find(i => i.id === sel);
     if (!it) return;
@@ -86,9 +89,11 @@ function go() {
         const r = Vault.buyIncubator(it.inc);
         if (r.ok && typeof Vault.setPluginEnabled === 'function' && !Vault.isPluginEnabled('incubator')) Vault.setPluginEnabled('incubator', true);
         say(r.ok ? `Here you go! Your ${it.label}. Put eggs inside from the Egg Incubator page. 🐝` : r.error);
+        if (r.ok) newItem('incubator');
     } else if (mode === 'buy') {
         const r = Vault.buyStoreItems(it.id, qty);
         say(r ? (it.unlock ? `Here you go! Your ${it.label}. Your hive will know what to do. 🐝` : `Here you go! ${r.count} × ${it.label}. Thank you! 🐝`) : 'Sorry, you can\'t afford that.');
+        if (r) newItem(it.unlock ? it.id : it.held ? 'held' : null);
     } else {
         const r = Vault.sellOwned(it.id, qty);
         say(r ? `Thanks! Here's 🪙 ${r.coins}.` : 'Sorry, I can\'t buy that.');
