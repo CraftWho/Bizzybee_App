@@ -180,3 +180,45 @@ test('work boredom: 5 days straight -> 😤 and extra unhappiness; workaholics n
     assert.equal(v._autoReady(B(v, 'w')), false);                       // not put straight back to work
     assert.equal(B(v, 's').class, 'collector');
 });
+
+test('sim fixes: tired worker rests itself, bored worker breaks itself and returns, resting bee eats below 50, Return swaps into a full job', async () => {
+    const at = noon();
+    const { v } = world([bee('t', { class: 'collector', talent: 'collector', life: life({}) }), bee('b', { class: 'honeymaker', talent: 'honeymaker', life: life({}) }), bee('r', { talent: 'collector', life: life({}) })]);
+    await v.init();
+    Object.assign(B(v, 't'), { class: 'collector', talent: 'collector' }); Object.assign(B(v, 'b'), { class: 'honeymaker', talent: 'honeymaker' });
+    B(v, 't').life.stamina = 5;
+    B(v, 'b').life.workFrom = daysAgo(6); B(v, 'b').life.happiness = 40;
+    v._careHour(at, at.toISOString().slice(0, 10));
+    assert.equal(B(v, 't').class, null); assert.equal(B(v, 't').life.recuperate, true); assert.equal(B(v, 't').life.restFrom, 'collector');
+    assert.equal(B(v, 'b').class, null); assert.ok(B(v, 'b').life.playUntil);
+    const later = new Date(at.getTime() + 5 * 3600000);
+    v._careHour(later, later.toISOString().slice(0, 10));
+    assert.equal(B(v, 'b').class, 'honeymaker');                      // back from its break
+    B(v, 't').life.fullness = 45; v.state.hive.honey = 10;
+    v._tendHive(at);
+    assert.ok(B(v, 't').life.fullness > 45);                          // resting bee ate below 50
+    // Return into a full job: the most tired holder goes to rest
+    Object.assign(B(v, 'r'), { class: null, talent: 'collector' });
+    for (let i = 0; v.jobHolders('collector').length < v.jobSlots('collector'); i++) v.state.hive.bees.push({ ...bee('c' + i, { class: 'collector', talent: 'collector', life: life({ stamina: 40 + i }) }) });
+    B(v, 't').life.stamina = 100; B(v, 't').life.recuperate = true;
+    const r = v.returnBeeToWork('t');
+    assert.ok(r); assert.equal(B(v, 't').class, 'collector');
+    assert.equal(B(v, 'c0').class, null); assert.equal(B(v, 'c0').life.recuperate, true);
+});
+
+test('sim fixes: a sick Rescue bee walks itself to a bed; beds in use never shrink; a sick leader still leads', async () => {
+    const { v } = world([bee('res', { class: 'rescue', talent: 'rescue', life: life({ health: 30 }) }), bee('n', { class: 'nurse', talent: 'nurse', rarity: 'Rare', life: life({}) })]);
+    await v.init();
+    Object.assign(B(v, 'res'), { class: 'rescue', talent: 'rescue' }); Object.assign(B(v, 'n'), { class: 'nurse', talent: 'nurse' });
+    B(v, 'res').life.health = 30;
+    v._tendHive(noon());
+    assert.equal(B(v, 'res').life.nursery, true);
+    const total0 = v.nurseryBeds().total;
+    v.state.hive.bees.push(bee('p1', { life: life({ nursery: true }) }), bee('p2', { life: life({ nursery: true }) }));
+    B(v, 'n').class = null;                                              // the Nurse stops working
+    assert.ok(v.nurseryBeds().total >= v.nurseryBeds().used);
+    assert.equal(v.nurseryBeds().free, 0);
+    B(v, 'n').class = 'nurse'; B(v, 'n').life.health = 25;            // sick, can't work, still the leader
+    assert.equal((v.hiveLeader() || {}).id, 'n');
+    assert.ok(total0 >= 2);
+});
