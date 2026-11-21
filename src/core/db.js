@@ -227,7 +227,7 @@ function localISO(d = new Date()) {
 }
 // Oct 31 2026 (Craft): the LOCAL day of a stored date. Quest tasks store
 // the exact moment (UTC ISO time), so slicing the first 10 characters gave
-// the UTC day: after 8 PM in redacted that's already tomorrow. This uses the
+// the UTC day: in the evening (US time zones) that's already tomorrow. This uses the
 // device's own clock and time zone. Plain dates ("2026-10-31") pass through.
 function localDayOf(value) {
     if (!value) return '';

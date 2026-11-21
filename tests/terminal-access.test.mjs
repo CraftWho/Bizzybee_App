@@ -1,7 +1,8 @@
 // Terminal access: grants, expiry, owners and request limits (pure helpers).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeLevel, makeGrant, addRequest, addLog, isOwnerEmail, validEmail } from '../netlify/lib/terminal-access.mjs';
+import { createHash } from 'node:crypto';
+import { activeLevel, makeGrant, addRequest, addLog, isOwnerEmail, validEmail, OWNER_HASHES, cleanEmail } from '../netlify/lib/terminal-access.mjs';
 
 test('terminal: users get 48 hours, moderators until revoked', () => {
     const now = Date.parse('2026-10-19T12:00:00Z');
@@ -17,7 +18,11 @@ test('terminal: users get 48 hours, moderators until revoked', () => {
 });
 
 test('terminal: owners by email hash, request limits and logs', () => {
-    assert.equal(isOwnerEmail(' tester@example.com '), true);
+    // Nov 21 2026: the owner's real address never goes in the repo, only its fingerprint (hash).
+    assert.ok(OWNER_HASHES.length >= 1 && OWNER_HASHES.every(h => /^[0-9a-f]{64}$/.test(h)));
+    assert.equal(cleanEmail('  Some.One@Example.COM '), 'some.one@example.com');
+    const sha = (e) => createHash('sha256').update(cleanEmail(e)).digest('hex');
+    assert.equal(isOwnerEmail('x@example.com'), OWNER_HASHES.includes(sha('x@example.com')));
     assert.equal(isOwnerEmail('someone@else.com'), false);
     assert.equal(validEmail('a@b.co'), true);
     assert.equal(validEmail('nope'), false);
