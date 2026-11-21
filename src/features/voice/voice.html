@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <title>🎙️ Voice</title>
+    <!-- Nov 21 2026 (Craft; approved): say what to change ("make stretch 10 minutes a daily", "complete gym").
+         BizzyBee shows what it understood; OK applies it on this phone and logs it as Voice.
+         Also lists bizzybee:// links for Bixby Quick Commands. -->
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../settings/settings.css">
+    <link rel="stylesheet" href="./voice.css">
+</head>
+<body>
+    <main class="stv2 vcv">
+        <h1 class="settings-title">🎙️ VOICE</h1>
+        <section class="card vc-main">
+            <button type="button" class="vc-mic" id="vc-mic" aria-label="Start listening">🎙️</button>
+            <p class="vc-hint" id="vc-hint">Tap and say something like:<br>“Make stretch 10 minutes a daily”<br>“Complete gym”<br>“Add call mom as a to-do”<br>“Plus water”</p>
+            <div class="vc-type"><input id="vc-text" type="text" placeholder="…or type it" autocomplete="off"><button type="button" class="btn" id="vc-go">Go</button></div>
+            <div class="vc-out" id="vc-out" hidden></div>
+        </section>
+        <h2 class="sec">Bixby links</h2>
+        <section class="card">
+            <p class="status indent">In Bixby › Quick commands, make a command (for example “workout done”) and add the action “Open a link”. Paste one of these. The home-screen <b>Save BizzyBee</b> button is in the list too.</p>
+            <div class="btns indent"><button type="button" class="btn solid" id="vc-pin">Add Save Button to Home Screen</button></div>
+            <div id="vc-links" class="list"></div>
+        </section>
+    </main>
+    <script src="../../core/boot.js"></script>
+    <script src="./voice.js"></script>
+</body>
+</html>
