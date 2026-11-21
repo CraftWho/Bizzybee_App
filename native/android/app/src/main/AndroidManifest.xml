@@ -29,6 +29,10 @@
             </intent-filter>
         </activity>
 
+        <service android:name=".HiveService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Keeps the BizzyBee hive status bar and cloud save running while the app is in the background" />
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -52,6 +56,9 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Nov 21 2026 (Craft): keep BizzyBee running with the hive status bar (HiveService). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Oct 30 2026 (Craft): "Set alarm" opens the Clock app with the time filled in. -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
