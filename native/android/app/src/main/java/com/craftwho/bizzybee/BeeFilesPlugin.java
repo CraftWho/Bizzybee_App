@@ -279,6 +279,22 @@ public class BeeFilesPlugin extends Plugin {
         }
     }
 
+    /** Nov 21 2026 (Craft): { on, title?, body? } -> start / update / stop the keep-running hive service. */
+    @PluginMethod
+    public void hiveService(PluginCall call) {
+        try {
+            Context ctx = getContext();
+            Intent i = new Intent(ctx, HiveService.class);
+            if (!call.getBoolean("on", true)) { ctx.stopService(i); call.resolve(); return; }
+            if (call.getString("title") != null) i.putExtra("title", call.getString("title"));
+            if (call.getString("body") != null) i.putExtra("body", call.getString("body"));
+            if (android.os.Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i); else ctx.startService(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() != null ? e.getMessage() : "Could not start the hive service");
+        }
+    }
+
     /** Opens Android's App info page for BizzyBee (Permissions live there). */
     @PluginMethod
     public void openAppSettings(PluginCall call) {
