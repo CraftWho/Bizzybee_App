@@ -1644,8 +1644,9 @@ const BIRTH_TRAITS = {
 // Nov 21 2026 (Craft; approved): WORK BOREDOM. A bee that works 5 days straight gets bored of its job: it loses
 // 1.5 extra happiness an hour while working (😤). A break of 4 daytime hours off work (Play Yard or Rest Comb)
 // resets the count. Workaholics never get bored. With Auto-swap on, a bored worker is sent to the Play Yard for a
-// 4-hour break when a fresh bee can take its place.
-const WORK_BORED = { days: 5, perHour: -1.5, breakHours: 4 };
+// 4-hour break when a fresh bee can take its place. Without a spare, a bored bee under 50 happiness takes its own
+// 4-hour break anyway (its job waits) and goes back to the same job when the break ends.
+const WORK_BORED = { days: 5, perHour: -1, breakHours: 4, breakBelow: 50 };   // Nov 21 2026 (Craft): -1/h; under 50 happiness a bored bee takes its own break
 function beeWorkDays(bee, today = todayISO()) {
     const L = bee && bee.life;
     if (!L || !L.workFrom || !bee.class) return 0;
@@ -6837,11 +6838,13 @@ Object.assign(DatabaseManager.prototype, {
     hiveLeader() {
         const RANK = { Rare: 1, Epic: 2, Legendary: 3, Named: 4 };
         const open = this.hiveOpenJobs();
-        return this._lifeBees().filter(b => open.includes(b.class) && RANK[b.rarity] && !beeIsBrood(b) && beeCanWork(b))
-            .sort((a, b) => RANK[b.rarity] - RANK[a.rarity] || beeJobScore(b, b.class) - beeJobScore(a, a.class))[0] || null;
+        // Nov 21 2026 (Craft): a tired leader resting from its job still leads (auto-manage keeps going).
+        // A sick or tired leader still leads; only a fainted one does not.
+        return this._lifeBees().filter(b => (open.includes(b.class) || (b.life && open.includes(b.life.restFrom))) && b.life && !b.life.faintedAt && RANK[b.rarity] && !beeIsBrood(b))
+            .sort((a, b) => RANK[b.rarity] - RANK[a.rarity] || (!!b.class - !!a.class) || beeJobScore(b, b.class || b.life.restFrom) - beeJobScore(a, a.class || a.life.restFrom))[0] || null;
     },
     _autoReady(b) {
-        return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery && !this._onBreak(b);
+        return beeCanWork(b, this._fcAt ? isoLocalDate(this._fcAt) : undefined) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery && !this._onBreak(b);
     },
     // Nov 21 2026 (Craft): a bored worker sent to the Play Yard stays there for its 4-hour break.
     _onBreak(b) { return !!(b.life && b.life.playUntil && Date.parse(b.life.playUntil) > (this._fcAt ? this._fcAt.getTime() : Date.now())); },
@@ -6850,7 +6853,7 @@ Object.assign(DatabaseManager.prototype, {
     _returnReady(b) {
         if (!b.life || !b.life.recuperate || b.class || beeIsBrood(b) || !this.autoSwapUnlocked()) return false;
         const P = this.autoSwapPrefs();
-        return P.on && beeCanWork(b) && b.life.stamina >= P.returnPct && b.life.health >= 50 && !b.life.nursery && !b.life.sickUntil;
+        return P.on && beeCanWork(b, this._fcAt ? isoLocalDate(this._fcAt) : undefined) && b.life.stamina >= P.returnPct && b.life.health >= 50 && !b.life.nursery && !b.life.sickUntil;
     },
     // Nov 17 2026 (Craft; approved demo): a bee sent to rest remembers its job (life.restFrom). Once its
     // stamina reaches "Return at" it shows as Ready in that job's comb; Return / Work sends it back.
@@ -6862,7 +6865,16 @@ Object.assign(DatabaseManager.prototype, {
     returnBeeToWork(id) {
         const b = this.getHiveBees().find(x => x.id === id);
         if (!b || !b.life || !b.life.restFrom) { this.lastJobError = 'This bee has no job to go back to.'; return null; }
-        return this.assignBeeClass(id, b.life.restFrom);
+        const j = b.life.restFrom;
+        // Nov 21 2026 (Craft): job full? The rested bee swaps in for the most tired worker there, who goes to rest.
+        if (this.hiveOpenJobs().includes(j) && this.jobHolders(j).length >= this.jobSlots(j)) {
+            const out = this.jobHolders(j).filter(h => !beeLockedJob(h)).sort((x, y) => x.life.stamina - y.life.stamina)[0];
+            if (out && out.life.stamina < b.life.stamina) {
+                out.class = null; out.jobSince = todayISO(); delete out.life.idleSince; out.life.recuperate = true; out.life.restFrom = j;
+                this._lifeEvent('auto', `🔄 ${b.name} came back to the ${(BEE_CLASSES[j] || {}).label || ''} job. ${out.name} is resting.`, { beeId: b.id });
+            }
+        }
+        return this.assignBeeClass(id, j);
     },
     // Nov 3 2026 (Craft): "filled" = open jobs with at least one bee.
     hiveAutoStatus() {
@@ -6914,7 +6926,7 @@ Object.assign(DatabaseManager.prototype, {
         const notes = [];
         this.hiveOpenJobs().forEach(j => this.jobHolders(j).forEach(h => {
             const bored = beeWorkBored(h) && h.life.stamina >= P.pct;
-            if ((h.life.stamina >= P.pct && !bored) || beeLockedJob(h)) return;
+            if ((h.life.stamina >= P.pct && !bored) || beeLockedJob(h) || h.life.nursery) return;   // a bee in a Nursery bed is not swapped to rest
             const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
@@ -7244,15 +7256,17 @@ Object.assign(DatabaseManager.prototype, {
         const team = this._workers('rescue');
         if (!team.length) return 0;
         let free = this.nurseryBeds().free, moved = 0;
-        const patients = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && b.class !== 'rescue' && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
+        const patients = this._lifeBees().filter(b => !b.life.nursery && !b.life.faintedAt && !beeIsBrood(b) && (b.life.sickUntil || b.life.health < RESCUE_BELOW))
             .sort((a, z) => a.life.health - z.life.health);
         for (const p of patients) {
             if (free <= 0) break;
-            const r = team.filter(t => (t.life.fatigue || 0) < 95).sort((a, z) => (a.life.fatigue || 0) - (z.life.fatigue || 0))[0];
-            if (!r) break;   // the whole team is worn out
-            p.life.nursery = true; p.life.rescuedAt = day; free--; moved++;
-            r.life.fatigue = clampVital((r.life.fatigue || 0) + RESCUE_FATIGUE, true);
-            this._lifeEvent('rescue', `🚑 ${r.name} carried ${p.name} to the Nursery.`, { beeId: p.id });
+            // Nov 21 2026 (Craft): a sick Rescue bee is carried by another one, or walks itself to a bed.
+            const r = team.filter(t => t !== p && (t.life.fatigue || 0) < 95 && !t.life.sickUntil && t.life.health >= RESCUE_BELOW).sort((a, z) => (a.life.fatigue || 0) - (z.life.fatigue || 0))[0];
+            const self = !r && p.class === 'rescue';
+            if (!r && !self) break;   // the whole team is worn out
+            p.life.nursery = true; p.life.rescuedAt = day; delete p.life.recuperate; free--; moved++;
+            if (r) r.life.fatigue = clampVital((r.life.fatigue || 0) + RESCUE_FATIGUE, true);
+            this._lifeEvent('rescue', self ? `🚑 ${p.name} walked itself to the Nursery.` : `🚑 ${r.name} carried ${p.name} to the Nursery.`, { beeId: p.id });
         }
         return moved;
     },
@@ -7270,14 +7284,57 @@ Object.assign(DatabaseManager.prototype, {
             const receivers = this._workers('receiver').length;
             this._lifeBees().forEach(b => {
                 const L = b.life;
-                if (!L || L.faintedAt || L.hatchOn || L.health <= 0 || !(L.fullness < CAFE.below)) return;
+                // Nov 21 2026 (Craft): a resting bee eats below 50 too, since it only heals from 50 fullness up.
+                if (!L || L.faintedAt || L.hatchOn || L.health <= 0 || !(L.fullness < (L.recuperate ? 50 : CAFE.below))) return;
                 if (this._cafeMeal(b, at, receivers)) n++;
             });
         }
+        if (!night) n += this._careHour(at, day);
         if (!night && at.getHours() >= 9 && !LIFE_FORECAST) n += this._graveDay(day);
         if (this._autoUnlockCheck()) { n++; if (!LIFE_FORECAST) this.autoJustUnlocked = true; }
         n += this._autoManageHour().length;
         n += this._autoSwapHour().length;
+        return n;
+    },
+    // Nov 21 2026 (Craft): small care rules found by the 30-day simulation.
+    //  - a worker that drops under 10 stamina goes to rest by itself (it remembers its job and comes back);
+    //  - a bored worker under 50 happiness takes its own 4-hour Play Yard break (workaholics never);
+    //  - when a break ends, the bee goes back to the same job if there is room.
+    _careHour(at, day) {
+        let n = 0;
+        const nowMs = at.getTime();
+        this._lifeBees().forEach(b => {
+            const L = b.life;
+            if (!L || L.faintedAt || L.hatchOn || beeIsBrood(b)) return;
+            if (b.class && !beeLockedJob(b) && L.stamina < 10 && !L.nursery) {
+                const j = b.class; b.class = null; b.jobSince = day; delete L.idleSince; L.recuperate = true; L.restFrom = j;
+                this._lifeEvent('rest', `😴 ${b.name} was too tired to work and went to rest. It will come back to the ${(BEE_CLASSES[j] || {}).label || ''} job.`, { beeId: b.id });
+                n++; return;
+            }
+            if (b.class && !beeLockedJob(b) && beeWorkBored(b, day) && L.happiness < WORK_BORED.breakBelow) {
+                const j = b.class; b.class = null; b.jobSince = day; delete L.idleSince; L.restFrom = j;
+                L.playUntil = new Date(nowMs + WORK_BORED.breakHours * 3600000).toISOString();
+                this._lifeEvent('bored', `🪀 ${b.name} was bored of being a ${(BEE_CLASSES[j] || {}).label || 'worker'} and took a 4-hour break in the Play Yard.`, { beeId: b.id });
+                n++; return;
+            }
+            // A Ready bee whose job stays full for a day stops waiting for it and joins the Play Yard (any job).
+            if (!b.class && L.restFrom && !L.recuperate && !L.playUntil && this.beeIsReady(b)) {
+                if (!L.readySince) L.readySince = day;
+                else if (L.readySince < day && this.jobHolders(L.restFrom).length >= this.jobSlots(L.restFrom)) {
+                    this._lifeEvent('auto', `🪀 No room in the ${(BEE_CLASSES[L.restFrom] || {}).label || ''} job for ${b.name}, so it's waiting in the Play Yard for any job.`, { beeId: b.id });
+                    delete L.restFrom; delete L.readySince; L.idleSince = day; n++; return;
+                }
+            } else if (L.readySince) delete L.readySince;
+            if (!b.class && L.playUntil && Date.parse(L.playUntil) <= nowMs) {
+                const j = L.restFrom;
+                delete L.playUntil;
+                if (j && this.hiveOpenJobs().includes(j) && this.jobHolders(j).length < this.jobSlots(j) && beeCanWork(b, day)) {
+                    b.class = j; b.jobSince = day; delete L.restFrom; delete L.idleSince;
+                    this._lifeEvent('auto', `🐝 ${b.name} came back from its break to the ${(BEE_CLASSES[j] || {}).label || ''} job.`, { beeId: b.id });
+                    n++;
+                }
+            }
+        });
         return n;
     },
     // Runs a tend pass for the real hive and tells the screens when something moved.
@@ -7366,8 +7423,9 @@ Object.assign(DatabaseManager.prototype, {
 
     nurseryBeds() {
         const used = this._lifeBees().filter(b => b.life.nursery).length;
-        const total = NURSERY_BEDS + this._workers('nurse').length;
-        return { used, total, free: Math.max(0, total - used) };
+        const base = NURSERY_BEDS + this._workers('nurse').length;
+        const total = Math.max(base, used);   // Nov 21 2026 (Craft): a bed in use never disappears when a Nurse stops
+        return { used, total, free: Math.max(0, base - used) };
     },
     // Sick or hurt bees can take a Nursery bed (instead of needing a Nurse each).
     sendToNursery(beeId) {
@@ -7376,7 +7434,7 @@ Object.assign(DatabaseManager.prototype, {
         if (b.life.nursery) return { ok: true };
         if (!b.life.sickUntil && beeHurtLevel(b) === 0) return { ok: false, error: 'Only sick or hurt bees need a bed.' };
         if (!this.nurseryBeds().free) return { ok: false, error: 'No free bed. Each working Nurse adds one.' };
-        b.life.nursery = true;
+        b.life.nursery = true; delete b.life.recuperate;
         this.save();
         return { ok: true };
     },
