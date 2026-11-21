@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const today = new Date().toISOString().slice(0, 10);
+const today = new Date().toLocaleDateString('sv-SE');
 function harness(state) {
     const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], dailyTasks: [], hive: { bees: [], tickets: 0, lifeTick: today }, ...state };
     const data = new Map([['bizzybee_user_data', JSON.stringify(save)]]);

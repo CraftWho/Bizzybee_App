@@ -21,7 +21,7 @@ function render() {
     const I = Vault.getIncubator();
     const T = I.info, d = I.today;
     $('ic-coins').textContent = I.coins.toLocaleString();
-    $('ic-steps').textContent = isApp ? (d.steps || 0).toLocaleString() : '—';
+    $('ic-steps').textContent = isApp ? (Number(Vault.state.steps && Vault.state.steps[todayISO()]) || 0).toLocaleString() : '—';   // real steps even without an incubator
     $('ic-eggs').textContent = I.slots.length + I.waiting.length;
 
     // the machine
@@ -40,17 +40,7 @@ function render() {
     else text = `<b>${d.dailies} ${d.dailies === 1 ? 'daily' : 'dailies'} done today</b><small>${d.dailiesToNext} more for 1 day off every egg.</small><small>The Android app adds your steps too.</small>`;
     $('ic-today').innerHTML = ring + `<div>${text}</div>`;
 
-    // steps: goal, week, streak (Nov 13 2026, Craft)
-    const S = Vault.getStepStats(), pctG = Math.min(100, Math.round(S.today / S.goal * 100)), maxW = Math.max(S.goal, ...S.week.map(x => x.steps));
-    const dn = (iso) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][new Date(iso + 'T12:00:00').getDay()];
-    $('ic-stepstats').innerHTML = `
-        <div class="st-top"><div><b>${S.today.toLocaleString()}</b><small>of ${S.goal.toLocaleString()} steps · ${pctG}%</small></div><div class="st-goal"><input type="number" id="st-goal" min="1000" max="50000" step="500" value="${S.goal}" aria-label="Daily step goal"><button type="button" class="ic-btn gold" data-setgoal>Set goal</button></div></div>
-        <div class="st-bar"><i style="width:${pctG}%"></i></div>
-        <p class="st-note">Every ${S.perMin} steps is 1 minute of Fitness and Health time and 1 XP. Today: ${S.minToday} min, +${S.minToday} XP.</p>
-        <p class="st-note">${S.today >= S.goal ? `Goal reached! +${S.goalXP} XP bonus${S.gaveToday.length ? '. Reward: ' + esc(S.gaveToday.join(', ')) : ''}.` : `Reach the goal for a +${S.goalXP} XP bonus and a random small reward. Double the goal for another.`}</p>
-        <div class="st-week">${S.week.map(x => `<span><i style="height:${Math.max(3, Math.round(x.steps / maxW * 100))}%" class="${x.steps >= S.goal ? 'hit' : ''}"></i><small>${dn(x.day)}</small></span>`).join('')}</div>
-        <div class="st-grid"><span><b>${S.weekTotal.toLocaleString()}</b><small>This week</small></span><span><b>${S.streak}</b><small>Day streak</small></span><span><b>${S.best.steps ? S.best.steps.toLocaleString() : '—'}</b><small>Best day</small></span><span><b>${S.daysHit}</b><small>Goal days</small></span></div>
-        ${isApp ? '' : '<p class="st-note">Steps count in the Android app.</p>'}`;
+    renderSteps();
 
     // eggs waiting
     const free = T ? T.slots - I.slots.length : 0;
@@ -71,6 +61,98 @@ function render() {
             <ul>${PERKS(t).map(p => `<li>${esc(p)}</li>`).join('')}</ul>
             <div class="row"><span class="ic-price">${own ? '✓ Owned' : `🪙 ${t.price.toLocaleString()}`}</span>${btn}</div></div></div>`;
     }).join('');
+}
+
+// ---- Step stats (Nov 21 2026, Craft: approved Steps Page Demo) ----
+const ST = { tab: '14', rows: 14, month: 0, open: new Set() };
+const fmt = (n) => (Number(n) || 0).toLocaleString();
+const hourName = (h) => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`;
+const dayName = (iso, o) => new Date(iso + 'T12:00:00').toLocaleDateString(undefined, o || { weekday: 'short', month: 'short', day: 'numeric' });
+const short = (iso) => dayName(iso, { month: 'short', day: 'numeric' });
+function hourBars(h, nowHour, cls) {
+    const max = Math.max(1, ...h);
+    return `<div class="${cls}">${h.map((v, i) => `<i class="${i > nowHour ? 'later' : v ? '' : 'none'}" style="height:${v ? Math.max(4, Math.round(v / max * 100)) : 2}%" title="${hourName(i)} · ${fmt(v)} steps"></i>`).join('')}</div>`;
+}
+function spanText(sp) {
+    if (!sp) return '';
+    return `Most steps ${hourName(sp.busy)}–${hourName((sp.busy + 1) % 24)} · first steps around ${hourName(sp.first)} · last around ${hourName(sp.last)}`;
+}
+function renderSteps() {
+    if (typeof Vault.getStepPage !== 'function') return;
+    const P = Vault.getStepPage(), T = P.today, today = todayISO(), nowH = new Date().getHours();
+    const pct = Math.min(100, Math.round(T.steps / P.goal * 100));
+    $('ic-strip').innerHTML = `<div class="ics-top"><b>👟 ${fmt(T.steps)}</b><span>of ${fmt(P.goal)} goal · 🔥 ${P.streak.cur}-day streak · +${T.xp} XP</span></div>
+        <div class="ics-bar"><i style="width:${pct}%"></i></div>${isApp ? '' : '<small class="ics-web">Steps count in the Android app. This shows what it last saved.</small>'}`;
+
+    // today: ring + numbers
+    const C = 2 * Math.PI * 52, off = (C * (1 - pct / 100)).toFixed(1);
+    const todayCard = `<section class="ics-card"><div class="ics-hero">
+        <div class="ics-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="bg"/><circle cx="60" cy="60" r="52" class="fg${T.hit ? ' hit' : ''}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off}"/></svg>
+            <div><b>${fmt(T.steps)}</b><small>of ${fmt(P.goal)}</small></div></div>
+        <div class="ics-nums"><p><span>🚶 Walked</span><b>${T.min} min</b></p><p><span>⚡ XP so far</span><b>+${T.xp} XP</b></p><p><span>🎯 To the goal</span><b>${T.hit ? 'Done ✓' : fmt(T.toGoal)}</b></p>
+            <span class="ics-pill">🎁 ${T.hit ? 'Goal bonus earned' : `Goal bonus +${P.goalXP} XP and a prize`}</span></div></div></section>`;
+
+    // today by hour
+    let hours;
+    if (T.hours && T.hours.some(v => v > 0)) {
+        hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">Busiest: ${hourName(T.span.busy)}–${hourName((T.span.busy + 1) % 24)} · ${fmt(T.span.busySteps)} steps</p>
+            ${hourBars(T.hours, nowH, 'ics-bars')}<div class="ics-axis"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>11 PM</span></div>
+            ${T.span.src === 'snap' ? '<p class="ics-sub">Your step app only saves day totals, so BizzyBee counts the hours itself while it runs.</p>' : ''}</section>`;
+    } else hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">${isApp ? 'Hours show up after your first steps sync today.' : 'Hours come from the Android app.'}</p></section>`;
+
+    // streak + month calendar
+    const base = new Date(); base.setDate(1); base.setMonth(base.getMonth() + ST.month);
+    const y = base.getFullYear(), m = base.getMonth(), daysIn = new Date(y, m + 1, 0).getDate(), lead = (new Date(y, m, 1).getDay() + 6) % 7;
+    const byDay = {}; P.days.forEach(x => { byDay[x.day] = x; });
+    let cells = '';
+    for (let i = 0; i < lead; i++) cells += '<i class="blank"></i>';
+    for (let d = 1; d <= daysIn; d++) {
+        const k = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, x = byDay[k];
+        const c = k > today ? 'future' : x && x.hit ? 'hit' : x && x.steps ? 'part' : '';
+        cells += `<i class="${c}${k === today ? ' today' : ''}" title="${x ? fmt(x.steps) + ' steps' : ''}">${d}</i>`;
+    }
+    const oldest = P.records.since || today, canBack = `${y}-${String(m + 1).padStart(2, '0')}-01` > oldest;
+    const streak = `<section class="ics-card"><h3>🔥 Streak</h3>
+        <div class="ics-recs"><div><b>${P.streak.cur} day${P.streak.cur === 1 ? '' : 's'}</b><small>Current goal streak</small></div>
+        <div><b>${P.streak.best} day${P.streak.best === 1 ? '' : 's'}</b><small>Best streak${P.streak.best ? ` · ${short(P.streak.bestFrom)}${P.streak.bestTo !== P.streak.bestFrom ? '–' + short(P.streak.bestTo) : ''}` : ''}</small></div></div>
+        <div class="ics-month"><button type="button" class="ic-btn" data-st-mon="-1" ${canBack ? '' : 'disabled'} aria-label="Last month">‹</button><b>${base.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</b><button type="button" class="ic-btn" data-st-mon="1" ${ST.month < 0 ? '' : 'disabled'} aria-label="Next month">›</button></div>
+        <div class="ics-dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        <div class="ics-cal">${cells}</div><p class="ics-sub">Gold = goal hit · dim = some steps · green ring = today</p></section>`;
+
+    // history
+    const n = ST.tab === 'all' ? P.days.length : Number(ST.tab);
+    const range = P.days.slice(0, n), chart = range.slice().reverse();
+    let bars = chart;
+    if (chart.length > 62) {   // all time: one bar per week
+        const wk = {}; chart.forEach(x => { const dt = new Date(x.day + 'T12:00:00'); const mon = shiftISODate(x.day, -((dt.getDay() + 6) % 7)); (wk[mon] = wk[mon] || { day: mon, steps: 0, n: 0 }); wk[mon].steps += x.steps; wk[mon].n++; });
+        bars = Object.values(wk).map(w => ({ day: w.day, steps: Math.round(w.steps / w.n), hit: w.steps / w.n >= P.goal }));
+    }
+    const maxB = Math.max(P.goal, ...bars.map(x => x.steps));
+    const rows = range.slice(0, ST.rows).map(x => `<div class="ics-row${ST.open.has(x.day) ? ' open' : ''}" data-st-day="${x.day}" role="button" tabindex="0" aria-expanded="${ST.open.has(x.day)}">
+        <b>${x.day === today ? 'Today' : dayName(x.day)}</b><span class="r">${fmt(x.steps)}</span>
+        <small>🚶 ${x.min} min · +${x.xp} XP</small><small class="r ${x.hit ? 'ok' : ''}">${x.hit ? 'Goal ✓' : '—'}</small>
+        <div class="ics-detail">${x.hours && x.hours.some(v => v > 0) ? `${spanText(x.span)}${hourBars(x.hours, x.day === today ? nowH : 23, 'ics-mini')}` : 'No hourly times for this day. Times are saved from Nov 21, 2026 on.'}</div></div>`).join('');
+    const history = `<section class="ics-card"><h3>History</h3>
+        <div class="ics-tabs">${[['14', '2 weeks'], ['30', 'Month'], ['all', 'All time']].map(([k, l]) => `<button type="button" data-st-tab="${k}" class="${ST.tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <div class="ics-bars short">${bars.map(x => `<i class="${x.steps >= P.goal ? '' : 'under'}" style="height:${Math.max(2, Math.round(x.steps / maxB * 100))}%" title="${short(x.day)} · ${fmt(x.steps)}"></i>`).join('')}</div>
+        <div class="ics-axis"><span>${chart.length ? short(chart[0].day) : ''}${chart.length > 62 ? ' · weekly average' : ''}</span><span>Today</span></div>
+        <div class="ics-list">${rows}</div>${range.length > ST.rows ? `<button type="button" class="ic-btn ics-more" data-st-more>Show more days</button>` : ''}</section>`;
+
+    // records
+    const R = P.records;
+    const records = `<section class="ics-card"><h3>🏆 Records</h3><div class="ics-recs">
+        <div><b>${R.bestDay.steps ? fmt(R.bestDay.steps) : '—'}</b><small>Best day${R.bestDay.steps ? ' · ' + short(R.bestDay.day) : ''}</small></div>
+        <div><b>${R.bestWeek.steps ? fmt(R.bestWeek.steps) : '—'}</b><small>Best week${R.bestWeek.steps ? ` · week of ${short(R.bestWeek.from)}` : ''}</small></div>
+        <div><b>${fmt(R.total)}</b><small>All steps · since ${short(R.since)}</small></div>
+        <div><b>${R.minutes >= 60 ? Math.round(R.minutes / 60) + ' h' : R.minutes + ' min'}</b><small>Walking · +${fmt(R.xp)} XP · ${R.goalDays} goal day${R.goalDays === 1 ? '' : 's'}</small></div></div></section>`;
+
+    // goal
+    const goal = `<section class="ics-card"><h3>Daily goal</h3>
+        <div class="ics-goal">${[6000, 8000, 10000, 12000].map(g => `<button type="button" data-goal="${g}" class="${P.goal === g ? 'on' : ''}">${fmt(g)}</button>`).join('')}</div>
+        <div class="st-goal"><input type="number" id="st-goal" min="1000" max="50000" step="500" value="${P.goal}" aria-label="Daily step goal"><button type="button" class="ic-btn gold" data-setgoal>Set goal</button></div>
+        <p class="ics-sub">Every ${P.perMin} steps = 1 minute of Fitness and Health = 1 XP (up to ${P.capMin} min a day). Hit the goal for +${P.goalXP} XP and a small prize. Double it for another prize.</p></section>`;
+
+    $('ic-stepstats').innerHTML = todayCard + hours + streak + history + records + goal;
 }
 
 function sheet(bee) {
@@ -100,8 +182,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     render();
 
     document.body.addEventListener('click', (e) => {
-        if (e.target.closest('[data-setgoal]')) {
-            const r = Vault.setStepGoal(document.getElementById('st-goal').value);
+        const tab = e.target.closest('[data-st-tab]'), day = e.target.closest('[data-st-day]'), more = e.target.closest('[data-st-more]'), mon = e.target.closest('[data-st-mon]'), chip = e.target.closest('[data-goal]');
+        if (tab) { ST.tab = tab.dataset.stTab; ST.rows = 14; renderSteps(); return; }
+        if (day) { const k = day.dataset.stDay; ST.open.has(k) ? ST.open.delete(k) : ST.open.add(k); day.classList.toggle('open'); day.setAttribute('aria-expanded', day.classList.contains('open')); return; }
+        if (more) { ST.rows += 30; renderSteps(); return; }
+        if (mon) { ST.month += Number(mon.dataset.stMon); renderSteps(); return; }
+        if (chip || e.target.closest('[data-setgoal]')) {
+            const r = Vault.setStepGoal(chip ? chip.dataset.goal : document.getElementById('st-goal').value);
             Toast.show(r.ok ? `👟 Step goal: ${r.goal.toLocaleString()}` : r.error, r.ok ? 'positive' : 'negative');
             if (r.ok) { Vault.stepGoalTick(); Vault.save(); } render(); return;
         }
@@ -135,6 +222,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
+    document.body.addEventListener('keydown', (e) => { const r = e.target.closest && e.target.closest('[data-st-day]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); r.click(); } });
+    // Remember whether Step stats is open (this phone only). #steps opens it.
+    const det = $('steps');
+    let open = false; try { open = localStorage.getItem('bb_ic_stats_open') === '1'; } catch { /* fine */ }
+    if (location.hash === '#steps') open = true;
+    det.open = open;
+    det.addEventListener('toggle', () => { try { localStorage.setItem('bb_ic_stats_open', det.open ? '1' : '0'); } catch { /* fine */ } });
     window.addEventListener('vault-saved', () => render());
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') render(); });
     if (typeof Waggle !== 'undefined' && typeof baseWaggleActions === 'function') Waggle.setActions(baseWaggleActions());
