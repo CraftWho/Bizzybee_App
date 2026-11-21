@@ -382,7 +382,7 @@
 
 /* Nov 3 2026 (Craft; approved demo): merge picker. */
 .ga2 .mp-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
-.ga2 .mp-chip { border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: rgba(255, 255, 255, .04); color: inherit; border-radius: 99px; padding: 7px 12px; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
+.ga2 .mp-chip { border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .25); background: #1a140b; color: inherit; border-radius: 99px; padding: 7px 12px; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
 .ga2 .mp-chip[aria-pressed="true"] { border-color: transparent; background: var(--gold, #ffcc00); color: #1a1000; }
 .ga2 .mp-chip small { font-weight: 400; opacity: .8; }
 .ga2 .mp-key { margin: 0 0 8px; color: var(--muted); font-size: .74rem; line-height: 1.4; }

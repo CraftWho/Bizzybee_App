@@ -251,7 +251,7 @@ function renderMergePicker() {
     document.getElementById('gacha-combine-btn').disabled = !(a && b);
 }
 // A quick sheet for one bee: the things that matter when you choose what to merge.
-// "Full card" shows the real collectible card.
+// Opens on the real collectible card; "Details" shows the merge info.
 function mpOpenSheet(id) {
     const b = Vault.getHiveBees().find(x => x.id === id);
     if (!b) return;
@@ -271,19 +271,20 @@ function mpOpenSheet(id) {
                 <div><dt>Right now</dt><dd>${mpEsc(now)}</dd></div>
                 <div><dt>Level</dt><dd class="mp-soon">Bee levels come later. This line fills in then.</dd></div>
             </dl>
-            <div class="mp-sheet-btns"><button type="button" class="mp-full">Full card</button><button type="button" class="mp-close">Close</button></div>
+            <div class="mp-sheet-btns"><button type="button" class="mp-full">Card</button><button type="button" class="mp-close">Close</button></div>
         </div>`;
         bg.querySelector('.mp-close').onclick = close;
         bg.querySelector('.mp-full').onclick = full;
     };
     const full = () => {
-        bg.innerHTML = `<div class="mp-sheet mp-sheet--card" role="dialog" aria-label="${mpEsc(b.name)} card"><div class="mp-cardhost"></div><div class="mp-sheet-btns"><button type="button" class="mp-back">Back</button><button type="button" class="mp-close">Close</button></div></div>`;
+        bg.innerHTML = `<div class="mp-sheet mp-sheet--card" role="dialog" aria-label="${mpEsc(b.name)} card"><div class="mp-cardhost"></div><div class="mp-sheet-btns"><button type="button" class="mp-back">Details</button><button type="button" class="mp-close">Close</button></div></div>`;
         if (typeof BeeCard !== 'undefined') BeeCard.render(bg.querySelector('.mp-cardhost'), b, { editable: false });
-        bg.querySelector('.mp-back').onclick = basic;
+        bg.querySelector('.mp-back').onclick = basic;   // "Details"
         bg.querySelector('.mp-close').onclick = close;
     };
     bg.onclick = (e) => { if (e.target === bg) close(); };
-    basic();
+    // Nov 21 2026 (Craft: "buttons not pulling up the card"): Card › opens the real card; Details has the merge info.
+    full();
     document.body.appendChild(bg);
 }
 function setupMergePicker() {

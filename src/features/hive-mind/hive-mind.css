@@ -838,7 +838,7 @@ body.hive-mind-outside #hive-mind-exterior .cm-head, body.hive-mind-inside #hive
 .cm-head .cm-lead { margin: 4px 0 0; color: #a69a80; font: .8rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
 .cm-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
 .cm-stats:empty { display: none; }
-.cm-stats > * { padding: 7px 4px; border-radius: 12px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .1); text-align: center; text-decoration: none; color: #f1ede2; }
+.cm-stats > * { padding: 7px 4px; border-radius: 12px; background: #120d06; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .1); text-align: center; text-decoration: none; color: #f1ede2; }
 .cm-stats b { display: block; font: 700 .95rem var(--font-main, monospace); }
 .cm-stats small { color: #a69a80; font: .64rem system-ui, sans-serif; }
 .cm-stats a.is-warn { border-color: rgba(var(--bb-alt-rgb, 220, 20, 60), .55); background: rgba(var(--bb-alt-rgb, 220, 20, 60), .1); }

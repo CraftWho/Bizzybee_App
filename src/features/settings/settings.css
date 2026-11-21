@@ -256,7 +256,7 @@
    SETTINGS v2 (Oct 2026 redesign - approved demo). Grouped like a phone
    settings app; Dashboard v2 look. All the old ids are kept.
    ========================================================================== */
-.stv2 { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --green: #5fd38a; --panel: rgba(14, 10, 4, .94);
+.stv2 { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --green: #5fd38a; --panel: #0e0a04;
     width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 120px; box-sizing: border-box; color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 .stv2 [hidden] { display: none !important; }
