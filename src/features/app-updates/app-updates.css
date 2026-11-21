@@ -1,0 +1,10 @@
+/* Nov 21 2026 (Craft): Updates page. */
+.upv .up-now { padding: 16px; display: grid; gap: 6px; }
+.upv .up-now b { font-size: 1.05rem; }
+.upv .up-now small, .upv .up-row small { color: var(--muted, #a8996f); }
+.upv .up-new { padding: 16px; display: grid; gap: 10px; border-color: var(--bb-accent, #ffcc00); }
+.upv .up-new h2 { margin: 0; font-size: 1.05rem; color: var(--bb-accent, #ffcc00); }
+.upv .up-new ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.upv .up-go { border: 0; border-radius: 12px; padding: 13px; font: 800 .95rem system-ui, sans-serif; background: var(--bb-accent, #ffcc00); color: #1a0f02; cursor: pointer; }
+.upv .up-go[disabled] { opacity: .6; }
+.upv .up-row { display: grid; gap: 2px; padding: 10px 16px; border-top: 1px solid rgba(255, 255, 255, .06); }
