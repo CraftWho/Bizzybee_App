@@ -4,7 +4,7 @@ console.log("/// POLLINATION CHAMBER PROTOCOLS INITIALIZED ///");
 // data) - this file re-uses those same globals so a bee's color/loot is
 // identical wherever it's rendered. Bee MANAGEMENT (rename, assign work)
 // now lives on the Inventory page - this room is just acquire (pollinate/
-// tickets) and refine (destroy/combine), see redacted's "more about the gacha
+// tickets) and refine (destroy/combine), see Craft's "more about the gacha
 // game" framing.
 
 function beeColor(rarity) {

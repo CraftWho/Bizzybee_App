@@ -778,7 +778,7 @@ function rollNamedBeeName() {
 
 // Bee classes ("work" you can assign a bee to once you own it - see
 // assignBeeClass below). Grouped into three categories (see `category`
-// below, used to build <optgroup>s in bee-card.js) matching how redacted
+// below, used to build <optgroup>s in bee-card.js) matching how Craft
 // framed the roster: Gathering, Defense, and Hive Management. Collector
 // is still the only one with a real mechanical payoff (a material drop
 // whenever you complete a real task/daily - see
@@ -908,7 +908,7 @@ const EVOLUTION_ITEM_DROP_CHANCE = 0.15;
 
 // Persistent, cosmetic-for-now traits a bee can carry (bee.traits[]) -
 // granted by applyTraitItem below. drill-hands always grants 'breach'
-// specifically (redacted's own example: drill hands -> breaching an enemy
+// specifically (Craft's own example: drill hands -> breaching an enemy
 // hive); nanite-bolt is the generic "bolts and screws matter too" item
 // and grants a random one instead of a fixed one.
 // The 17 store-item traits below (brawler..insight) are deliberately
@@ -951,7 +951,7 @@ const ITEM_TRAIT_MAP = {
 };
 
 // evolveBee/applyTraitItem below - both spend the item regardless of
-// outcome. Both stones' effects are GUARANTEED (100%) - per redacted's explicit
+// outcome. Both stones' effects are GUARANTEED (100%) - per Craft's explicit
 // call, the risk lives entirely in how rare each stone is to find (see
 // their weights in EVOLUTION_ITEM_DROP_TABLE above), not in whether using
 // one actually works. Trait items keep their own real per-use chance
@@ -968,7 +968,7 @@ const TRAIT_GRANT_CHANCE = 0.35;
 // you GOT the item, not a different kind of item once you own it.
 //
 // Two kinds:
-// - 'trait' (17 items, one per emoji redacted picked): works on ANY bee that
+// - 'trait' (17 items, one per emoji Craft picked): works on ANY bee that
 //   isn't already a Named Beast. Always rolls a chance at its trait
 //   (TRAIT_GRANT_CHANCE); ADDITIONALLY, if the bee is still Common or
 //   Rare, also rolls a chance (STORE_EVOLVE_TO_EPIC_CHANCE) to bump it
@@ -1207,7 +1207,7 @@ function rollBeeWeight(rarity) {
 }
 
 // Elemental affinity - v1, deliberately just the four "easy" starter
-// elements redacted named. Rolled uniformly (no rarity weighting, unlike
+// elements Craft named. Rolled uniformly (no rarity weighting, unlike
 // stats/weight) and rendered as a hexagon badge on the card's art frame
 // (see bee-card.js/css). Doesn't affect any mechanic yet - same
 // "groundwork now, hook things into it later" spirit as BEE_CLASSES.
@@ -3598,7 +3598,7 @@ class DatabaseManager {
             }
             if (typeof bee.customNamed !== 'boolean') {
                 // Can't know retroactively whether a pre-existing bee's
-                // current name was auto-generated or something redacted typed
+                // current name was auto-generated or something Craft typed
                 // in before this flag existed - defaults to false (not
                 // custom-named). Worst case on an old save: the Identity
                 // Card becomes usable on a bee he'd already personally
@@ -3682,7 +3682,7 @@ class DatabaseManager {
 
     // Awards a gacha ticket when a quest transitions INTO completed and
     // its total XP clears QUEST_TICKET_XP_THRESHOLD - "certain quests that
-    // accomplish a great deal," per redacted's own framing, not every quest.
+    // accomplish a great deal," per Craft's own framing, not every quest.
     _awardQuestTicketIfSignificant(quest) {
         if (!this.state) return;
         const totalXP = (quest.tasks || []).reduce((sum, t) => sum + t.xp, 0);
@@ -4250,7 +4250,7 @@ class DatabaseManager {
 
         bee.name = trimmed.slice(0, 40);
         // Flags this bee as user-named - the Identity Card store item
-        // (evolveToNamed below) explicitly excludes these, per redacted's own
+        // (evolveToNamed below) explicitly excludes these, per Craft's own
         // rule, so it can't be used to "steal" a name-worthy moment from
         // a bee you already personally named.
         bee.customNamed = true;
@@ -4362,7 +4362,7 @@ class DatabaseManager {
             element: rollBeeElement(),
             // Named Beasts from a ticket already have a generated themed
             // name (rollNamedBeeName above), but that's not a CUSTOM name
-            // redacted picked - starts false like every other bee, same rule.
+            // Craft picked - starts false like every other bee, same rule.
             customNamed: false
         };
         bee.class = beeLockedJob(bee);            // its title sets its job
@@ -4570,7 +4570,7 @@ class DatabaseManager {
     // Consumes an Evolution Stone (bumps a bee up exactly ONE rarity tier,
     // e.g. Common -> Rare) or a Rebirth Stone (jumps a bee straight to
     // Legendary regardless of its current tier) - both GUARANTEED, per
-    // redacted's explicit call the risk lives entirely in how rare each stone
+    // Craft's explicit call the risk lives entirely in how rare each stone
     // is to find (see EVOLUTION_ITEM_DROP_TABLE above), not in whether
     // using one actually works. Keeps the bee's identity (id/name/
     // dexNumber/obtainedAt/class/element) intact; only rarity/stats/weight
@@ -4701,7 +4701,7 @@ class DatabaseManager {
     // Consumes the Identity Card for a GUARANTEED evolution into a full
     // Named Beast - re-rolls a themed name (rollNamedBeeName) since the
     // bee never had one. Explicitly excludes any bee already flagged
-    // customNamed (see renameBee above) - per redacted's own rule, this can't
+    // customNamed (see renameBee above) - per Craft's own rule, this can't
     // be used to override a name he already personally chose. Also
     // excludes bees already Named (nothing to evolve into). Returns null
     // on any ineligible bee/item/insufficient stock.
