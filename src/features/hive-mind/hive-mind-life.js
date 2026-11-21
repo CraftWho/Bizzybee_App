@@ -20,15 +20,16 @@ const HiveLife = (() => {
         { id: 'honey', icon: '🍯', name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'], x: 66, y: T(0), text: 'Honey Makers make Honey Drops and stored honey. Fanners dry nectar faster. Water Carriers keep workers fresh.' },
         { id: 'workshop', icon: '🔨', name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'], x: 50, y: T(1), text: 'Comb Builders add quest loot. Wax Makers raise the loot limit. Cleaners soften lost raids.' },
         { id: 'rest', icon: '💤', name: 'Rest Comb', jobs: [], x: 18, y: T(1), text: 'Resting bees sleep and heal. They do not get hungrier here. At the Return level they go back to their comb as Ready.' },
-        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'], x: 66, y: T(2), text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' },
+        { id: 'entrance', icon: '🛡️', name: 'Entrance', jobs: ['guardian', 'barrier', 'collector', 'scout'], x: 66, y: T(2), text: 'Guards and Sealers fight raids. Foragers and Scouts fly out from here.' },
         { id: 'cafeteria', icon: '🍽️', name: 'Cafeteria', jobs: ['receiver'], x: 34, y: T(2), text: 'Hungry bees walk here, eat, and go back to what they were doing. Each meal costs stored honey. Receivers keep it cheap.' },
-        { id: 'nojob', icon: '🪧', name: 'No Job', jobs: [], x: 2, y: T(2), text: 'Healed bees with no job wait here. With Auto-manage on, they go back to work when a job opens. Bees get upset after 3 days without work.' },
-        { id: 'fainted', icon: '😵', name: 'Fainted', jobs: [], x: 18, y: T(3), text: 'Bees that fainted. They wake by themselves after 2 days, or a Nurse wakes one a day. Tap one to revive it faster.' }
+        { id: 'nojob', icon: '🪀', name: 'Play Yard', jobs: [], x: 2, y: T(2), text: 'Bees with no job play here by day, which keeps them happy. With Auto-manage on, they go to work when a job opens. After 3 days without work they get upset.' },
+        { id: 'fainted', icon: '😵', name: 'Fainted', jobs: [], x: 18, y: T(3), text: 'Bees that fainted. They wake by themselves after 2 days, or a Nurse wakes one a day. Tap one to revive it faster.' },
+        { id: 'grave', icon: '⚰️', name: 'Grave Comb', jobs: ['undertaker'], x: 50, y: T(3), text: 'Undertakers lay finished To-Dos older than a week to rest in the Archive, up to 5 each a day. Each leaves 1 Pollen.' }
     ];
     // Nov 9 2026 (Craft): the map has 9 combs now, so it is taller. Every y below is
     // written on the old scale and scaled by YK.
     const Y = (v) => v * YK;
-    const ZONE_ROOM = { royal: 'royal', brood: 'nursery', honey: 'honey', comb: 'workshop', entrance: 'entrance', outside: 'entrance', cafe: 'cafeteria' };
+    const ZONE_ROOM = { royal: 'royal', brood: 'nursery', honey: 'honey', comb: 'workshop', entrance: 'entrance', outside: 'entrance', cafe: 'cafeteria', grave: 'grave' };
     const CAP = 3;
     const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const rand = (a, b) => a + Math.random() * (b - a);
@@ -297,7 +298,8 @@ const HiveLife = (() => {
                 + Vault._workers('barrier').reduce((n, b) => n + Math.round((b.stats.hp || 0) * 0.4), 0);
             return `<p class="hl-note">🛡️ Raid defense ${def} · ${Math.round(raidChance(Vault.getHiveStreak()) * 100)}% raid risk a day. ${list.filter(isOut).length} out foraging.</p>`;
         }
-        if (c.id === 'nojob') return `<p class="hl-note">Tap Job ▾ to give a bee a job, or turn on Auto-manage and a job that opens is filled for you. Upset after 3 days without work.</p>`;
+        if (c.id === 'nojob') return `<p class="hl-note">Bees here play by day, which keeps them happy. Tap Job ▾ to give one a job, or turn on Auto-manage. Upset after 3 days without work.</p>`;
+        if (c.id === 'grave') return `<p class="hl-note">⚰️ ${Vault._workers('undertaker').length ? 'Undertakers at work: up to 5 To-Dos each, once a day after 9 AM.' : 'No Undertaker yet. Give a bee with the Undertaker talent this job.'}</p>`;
         if (c.id === 'fainted') return `<p class="hl-note">Fainted bees wake by themselves after ${LIFE.wakeDays} days, or a working Nurse wakes one a day. Tap a bee to revive it now.</p>`;
         return `<p class="hl-note">Resting: +4 stamina and −3 fatigue an hour by day, more at night. Return sends a bee back to its job now.</p>`;
     }
@@ -412,6 +414,15 @@ const HiveLife = (() => {
             html += `<h3 class="hl-sub">${T[0]} (${list.length})</h3>`;
             html += list.length ? list.map(b => listCard(b, c, id)).join('') : `<p class="hl-note">${T[1]}</p>`;
             if (id === 'nojob' && list.length > 1) html += `<a class="hl-inc-link" href="../gacha/gacha.html#merge">🧬 Merge spares ›</a>`;   // Nov 3 2026 (Craft)
+        }
+        // Nov 21 2026 (Craft): the Grave Comb's lists.
+        if (id === 'grave') {
+            const q = Vault.graveQueue ? Vault.graveQueue() : [];
+            const laid = (Vault.getArchive ? Vault.getArchive() : []).filter(a => a.laidToRest).slice(0, 8);
+            html += `<h3 class="hl-sub">⏳ Waiting to be laid to rest · ${q.length}</h3>`;
+            html += q.length ? `<p class="hl-note">${q.slice(0, 8).map(t => '✅ ' + esc(t.label)).join('<br>')}${q.length > 8 ? `<br>…and ${q.length - 8} more` : ''}</p>` : '<p class="hl-note">No finished To-Dos older than a week.</p>';
+            html += `<h3 class="hl-sub">🪦 Laid to rest</h3>`;
+            html += laid.length ? `<p class="hl-note">${laid.map(a => `⚰️ ${esc(a.item && a.item.label)}${a.by ? ' · by ' + esc(a.by) : ''}`).join('<br>')}</p><p class="hl-note"><a href="../history/history.html#archive">Open the Archive ›</a></p>` : '<p class="hl-note">Nothing yet.</p>';
         }
         if (id === 'nursery') {
             const bd = Vault.nurseryBeds();

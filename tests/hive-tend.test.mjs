@@ -141,3 +141,21 @@ test('rest remembers the job; Ready at Return-at; Return puts it back', async ()
     assert.equal(B(v, 'a').life.restFrom, undefined);
     assert.equal(B(v, 'a').life.recuperate, undefined);
 });
+
+test('Grave Comb: once a day each Undertaker lays up to 5 week-old finished To-Dos to rest, +1 Pollen each', async () => {
+    const old = Date.now() - 9 * 86400000;
+    const todos = Array.from({ length: 7 }, (_, i) => ({ id: 't' + i, label: 'Old ' + i, xp: 5, completed: true, completedAt: old }))
+        .concat([{ id: 'n1', label: 'Fresh', xp: 5, completed: true, completedAt: Date.now() }, { id: 'o1', label: 'Open', xp: 5 }]);
+    const { v } = world([bee('u', { class: 'undertaker', talent: 'undertaker', life: life({}) })]);
+    await v.init();
+    Object.assign(B(v, 'u'), { class: 'undertaker', talent: 'undertaker' });
+    v.state.todos = todos;
+    const before = (v.state.inventory.materials.pollen || 0);
+    assert.equal(v.graveQueue().length, 7);
+    v._tendHive(noon());
+    assert.equal(v.state.todos.length, 4);                       // 5 laid to rest, 2 old + fresh + open stay
+    assert.ok(v.state.todos.some(t => t.id === 'n1') && v.state.todos.some(t => t.id === 'o1'));
+    assert.equal((v.state.inventory.materials.pollen || 0) - before, 5);
+    v._tendHive(noon());
+    assert.equal(v.state.todos.length, 4);                       // once a day
+});

@@ -797,7 +797,7 @@ const BEE_CLASSES = {
     scout: { label: 'Scout', icon: '🔭', category: 'Gathering', zone: 'outside', stat: 'speed', description: 'Dances to show Foragers the best flowers: better odds of rare materials. Small chance of a gacha ticket when you finish a task.' },
     guardian: { label: 'Guard Bee', icon: '🛡️', category: 'Defense', zone: 'entrance', stat: 'defense', description: 'Fights raids at the entrance. Each Guard forgives one missed day of dailies per week (max 2).' },
     barrier: { label: 'Propolis Sealer', icon: '🟫', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Seals cracks with propolis (bee glue). Adds to raid defense.' },
-    undertaker: { label: 'Undertaker', icon: '⚰️', category: 'Defense', zone: 'entrance', stat: 'hp', description: 'Carries fallen bees out of the hive. Each fallen bee leaves a little Pollen behind.' },
+    undertaker: { label: 'Undertaker', icon: '⚰️', category: 'Hive Management', zone: 'grave', stat: 'hp', description: 'Works the Grave Comb: once a day lays finished To-Dos older than a week to rest in the Archive (up to 5 each). Each leaves a little Pollen.' },
     architect: { label: 'Comb Builder', icon: '🏗️', category: 'Hive Management', zone: 'comb', stat: 'power', description: 'Builds new comb from wax. +1 loot roll when a quest finishes (max 3).' },
     cleaner: { label: 'Cleaner', icon: '🧹', category: 'Hive Management', zone: 'comb', stat: 'defense', description: 'Cleans cells and other bees. A lost raid hurts happiness less.' },
     // Nov 9 2026 (Craft): small teams inside each comb, from real hive work.
@@ -1692,7 +1692,7 @@ const HIVE_JOB_LADDER = [
     { lv: 5, job: 'watercarrier' }, { lv: 5, job: 'architect' }, { lv: 5, job: 'attendant' }, { lv: 5, job: 'cleaner' },
     { lv: 5, job: 'scout' }, { lv: 5, job: 'drone' }, { lv: 5, job: 'barrier' },
     { lv: 5, job: 'fanner' }, { lv: 5, job: 'waxmaker' }, { lv: 5, job: 'receiver' },
-    { lv: 17, job: 'undertaker' }
+    { lv: 5, job: 'undertaker' }   // Nov 21 2026 (Craft): Grave Comb job now, so it opens with the rest
 ];
 const HIVE_COMB_JOBS = {
     royal: { name: 'Royal Chamber', jobs: ['attendant', 'drone'] },
@@ -1700,7 +1700,8 @@ const HIVE_COMB_JOBS = {
     honey: { name: 'Honey Factory', jobs: ['honeymaker', 'watercarrier', 'fanner'] },
     workshop: { name: 'Workshop', jobs: ['architect', 'cleaner', 'waxmaker'] },
     cafeteria: { name: 'Cafeteria', jobs: ['receiver'] },
-    entrance: { name: 'Entrance', jobs: ['guardian', 'barrier', 'undertaker', 'collector', 'scout'] }
+    entrance: { name: 'Entrance', jobs: ['guardian', 'barrier', 'collector', 'scout'] },
+    grave: { name: 'Grave Comb', jobs: ['undertaker'] }
 };
 // How good a bee is at a job, about 1-100 (from 1.0.7's WorkerCard). The
 // job's stat, +20% for its talent, less if it's not well or tired.
@@ -1908,7 +1909,7 @@ function beeFeeling(bee, today = todayISO(), nowMs = Date.now()) {
     }
     if (L.stamina < 50) return { key: 'sleepy', face: '😪', why: 'Getting sleepy' };
     // No job yet: calm on day 0, bored (😤) on days 1 and 2, upset (😡) from day 3 (checked above).
-    if (!bee.class) return idle >= 1 ? { key: 'bored', face: '😤', why: `No job for ${idle} day${idle === 1 ? '' : 's'}` } : { key: 'calm', face: '🙂', why: 'Waiting for a job' };
+    if (!bee.class) return idle >= 1 ? { key: 'bored', face: '😤', why: `Bored: no job for ${idle} day${idle === 1 ? '' : 's'}, playing in the Play Yard` } : { key: 'calm', face: '🙂', why: 'Playing in the Play Yard, waiting for a job' };
     return { key: 'happy', face: '😊', why: 'All good' };
 }
 
@@ -7059,6 +7060,8 @@ Object.assign(DatabaseManager.prototype, {
                 }
             } else {
                 let r = L.nursery ? REST_RATES.nursery : night ? REST_RATES.night : REST_RATES.day;
+                // Nov 21 2026 (Craft): PLAY YARD. A bee with no job plays by day: twice the happiness, a little less fatigue.
+                if (!night && !b.class && !L.recuperate && !L.nursery) r = [r[0], r[1], r[2] + 1, r[3] - 1, r[4]];
                 // Nov 10 2026 (Craft): Recuperate does not feed a bee, and it does not get hungrier there.
                 if (L.recuperate && !L.nursery) r = [r[0], 0, r[2], r[3], r[4]];
                 L.stamina = clampVital(L.stamina + r[0], true);
@@ -7242,6 +7245,7 @@ Object.assign(DatabaseManager.prototype, {
                 if (this._cafeMeal(b, at, receivers)) n++;
             });
         }
+        if (!night && at.getHours() >= 9 && !LIFE_FORECAST) n += this._graveDay(day);
         if (this._autoUnlockCheck()) { n++; if (!LIFE_FORECAST) this.autoJustUnlocked = true; }
         n += this._autoManageHour().length;
         n += this._autoSwapHour().length;
@@ -7405,6 +7409,29 @@ Object.assign(DatabaseManager.prototype, {
 
         if (lifeRand() < raidChance(streak)) this._raid(day);
     },
+
+    // Nov 21 2026 (Craft; approved): GRAVE COMB. Once a day each working Undertaker lays up to 5 finished
+    // To-Dos older than a week to rest in the Archive (kept there with their real time, see _archive),
+    // and each leaves 1 Pollen.
+    _graveDay(day) {
+        const hv = this.state.hive;
+        if (hv.graveDay === day) return 0;
+        hv.graveDay = day;
+        const crew = this._workers('undertaker');
+        if (!crew.length) return 0;
+        const weekAgo = Date.now() - 7 * 86400000;
+        const old = (this.state.todos || []).filter(t => t.completed && Number(t.completedAt) && Number(t.completedAt) < weekAgo).sort((a, b) => a.completedAt - b.completedAt);
+        const take = old.slice(0, crew.length * 5);
+        if (!take.length) return 0;
+        const ids = new Set(take.map(t => t.id));
+        this.state.todos = this.state.todos.filter(t => !ids.has(t.id));
+        take.forEach((t, i) => { const by = crew[Math.floor(i / 5)]; if (typeof this._archive === 'function') this._archive('todo', t, { laidToRest: true, by: by && by.name }); });
+        this._addMaterial('pollen', take.length);
+        this._lifeEvent('grave', `⚰️ ${crew.map(b => b.name).join(' and ')} laid ${take.length} finished To-Do${take.length === 1 ? '' : 's'} to rest. +${take.length} Pollen.`, { beeId: crew[0].id });
+        return take.length;
+    },
+    // Finished To-Dos waiting for the Grave Comb (older than a week).
+    graveQueue() { const weekAgo = Date.now() - 7 * 86400000; return (this.state && this.state.todos || []).filter(t => t.completed && Number(t.completedAt) && Number(t.completedAt) < weekAgo); },
 
     _beeDies(bee, cause, day = todayISO()) {
         const c = this.state.hive;
