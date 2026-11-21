@@ -983,3 +983,26 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .hl-mgr-bar { height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden; }
 .hl-mgr-bar i { display: block; height: 100%; border-radius: 99px; transition: width .4s; }
 .hl-mgr > small { color: #c2b48f; font-size: .74rem; line-height: 1.4; }
+
+/* Manager picker (Nov 21 2026, Craft): a centered pop-up (the shared pop-up rule in global.css gives the box). */
+.hl-pick-scrim { position: fixed; inset: 0; z-index: 1300; display: flex; }
+.hl-pick { display: grid; gap: 10px; padding: 16px; color: #f1ede2; }
+.hl-pick h3 { margin: 0; color: var(--bb-accent, #ffcc00); font: 700 .9rem var(--font-main, monospace); letter-spacing: .12em; text-transform: uppercase; }
+.hl-pick p { margin: 0; color: #c2b48f; font: .84rem/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.hl-pick-list { display: grid; gap: 8px; }
+.hl-pick-row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .28); background: #0e0a04; color: #f1ede2; text-align: left; cursor: pointer; }
+.hl-pick-row[aria-pressed="true"] { border-color: var(--bb-accent, #ffcc00); background: #221a08; }
+.hl-pick-face { font-size: 1.4rem; }
+.hl-pick-n { display: grid; min-width: 0; }
+.hl-pick-n b { font: 700 .9rem var(--font-main, monospace); }
+.hl-pick-n small { color: #c2b48f; font: .74rem system-ui, -apple-system, "Segoe UI", sans-serif; }
+.hl-pick-v { font: 700 .76rem var(--font-main, monospace); color: #f1ede2; white-space: nowrap; }
+.hl-pick-now { padding: 2px 8px; border-radius: 99px; background: var(--bb-accent, #ffcc00); color: #1a1000; font: 800 .66rem var(--font-main, monospace); }
+.hl-pick-x { justify-self: center; padding: 10px 22px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, .28); background: #1a140b; color: #f1ede2; font: 700 .84rem var(--font-main, monospace); cursor: pointer; }
+.hl-swap-note { color: #c2b48f; font: .74rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+/* Bee card pop-up (Nov 21 2026, Craft): reading text in the plain font; the hint sits centered on a plate, not against the edge. */
+.hive-mind-card-overlay { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+.hive-mind-card-hint { align-self: center; max-width: 420px; margin: 10px auto 0; padding: 8px 14px; border-radius: 12px; background: #0e0a04; border: 1px solid rgba(255, 204, 0, .28); color: #c2b48f; text-align: center; font: .82rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.hl-panel .hl-hint, .hl-panel .hl-trait, .hl-panel .hl-age, .hl-panel small, .hl-panel .hl-revive p { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.hl-mgr small { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }   /* reading text plain */
+.hl-mgr-ch { font-family: var(--font-main, monospace) !important; }                    /* buttons in the hive font */

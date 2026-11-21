@@ -41,7 +41,8 @@ async function run(label, seed, opts) {
             for (const k of ['health', 'stamina', 'fullness', 'happiness', 'fatigue']) if (!(L[k] >= 0 && L[k] <= 100)) add('vital out of range: ' + k, `${b.id} ${k}=${L[k]}`);
             if (L.nursery && L.recuperate) add('nursery AND recuperate', `${b.id} h${h}`);
             if (b.class && L.recuperate) add('job AND recuperate', `${b.id}`);
-            if (b.class && L.playUntil && Date.parse(L.playUntil) > at.getTime()) add('job while on a play break', `${b.id}`);
+            // Nov 21 2026: a title-locked bee keeps its job on a play break, but must not work during it
+            if (b.class && L.playUntil && Date.parse(L.playUntil) > at.getTime() && v._workers(b.class).some(w => w.id === b.id)) add('works while on a play break', `${b.id}`);
             if (L.recuperate && !L.faintedAt) { restStart[b.id] ??= h; if (h - restStart[b.id] > 24 * 4) add('resting 4+ days straight', `${b.id} hp${Math.round(L.health)} st${Math.round(L.stamina)} full${Math.round(L.fullness)} fat${Math.round(L.fatigue)}`); } else delete restStart[b.id];
             if (v.beeIsReady(b)) { tr('readyHours'); readyStart[b.id] ??= h; if (h - readyStart[b.id] > 72) add('Ready 3+ days, never back to work', `${b.id} from=${L.restFrom} ${v.jobHolders(L.restFrom).length}/${v.jobSlots(L.restFrom)} block="${v.jobBlock(b, L.restFrom)}"`); } else delete readyStart[b.id];
             if (L.fullness < 40 && !L.faintedAt && v.state.hive.honey >= 1 && !g('isNightHour')(at.getHours())) { hungryStart[b.id] ??= h; if (h - hungryStart[b.id] > 3) add('hungry 3+ day-hours with honey', `${b.id}`); } else delete hungryStart[b.id];
