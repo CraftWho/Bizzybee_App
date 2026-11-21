@@ -222,3 +222,28 @@ test('sim fixes: a sick Rescue bee walks itself to a bed; beds in use never shri
     assert.equal((v.hiveLeader() || {}).id, 'n');
     assert.ok(total0 >= 2);
 });
+
+test('Manager bee: the Leader is promoted, eats 5% of daily XP, burns 10 a day, and its energy steps slow then stop auto', async () => {
+    const { v } = world([bee('lead', { class: 'nurse', talent: 'nurse', rarity: 'Rare', life: life({}) }), bee('w', { class: 'collector', talent: 'collector', life: life({}) })], { autoManage: { on: true } });
+    await v.init();
+    Object.assign(B(v, 'lead'), { class: 'nurse', talent: 'nurse' });
+    v._tendHive(noon());
+    assert.equal(v.hiveManager().beeId, 'lead');
+    assert.equal(v.managerLevel(), 'full');
+    assert.equal(v.setManager('w').ok, false);                       // Common bees can't manage
+    const m = v.state.hive.manager;
+    v.doneOn = () => [{ xp: 200 }];                                  // 200 XP a day -> eats 10, burns 10
+    v._managerDay('2026-11-22'); assert.equal(m.energy, 100);
+    v.doneOn = () => [];                                             // no XP for days
+    for (let i = 0; i < 6; i++) v._managerDay('2026-11-2' + (3 + i));
+    assert.equal(m.energy, 40); assert.equal(v.managerLevel(), 'slow');
+    for (let i = 0; i < 2; i++) v._managerDay('2026-12-0' + (1 + i));
+    assert.equal(v.managerLevel(), 'swap');
+    m.energy = 0;
+    assert.equal(v.managerLevel(), 'off');
+    assert.equal(v.hiveAutoStatus().running, false);
+    v.doneOn = () => [{ xp: 1200 }];                                 // a big day brings it back (+60 -10)
+    v._managerDay('2026-12-05'); assert.equal(m.energy, 50); assert.equal(v.managerLevel(), 'full');
+    assert.ok(v.state.hive.lifeEvents.some(e => /back to full speed/.test(e.text)));
+    assert.ok(v.state.hive.lifeEvents.some(e => /getting tired/.test(e.text)));
+});
