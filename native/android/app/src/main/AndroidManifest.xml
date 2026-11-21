@@ -19,6 +19,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Nov 21 2026 (Craft): bizzybee:// links for the home-screen Save button and Bixby Quick Commands
+                 (bizzybee://save, bizzybee://voice, bizzybee://done?daily=Workout, bizzybee://habit?name=Water). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bizzybee" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -29,6 +37,11 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
     </application>
+
+    <!-- Nov 21 2026 (Craft): the voice screen uses Android's speech recognizer. -->
+    <queries>
+        <intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent>
+    </queries>
 
     <!-- Permissions -->
 

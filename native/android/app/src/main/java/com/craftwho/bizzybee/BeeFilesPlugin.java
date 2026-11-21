@@ -2,6 +2,7 @@ package com.craftwho.bizzybee;
 
 import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -190,6 +191,91 @@ public class BeeFilesPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) {
             call.reject("No browser found");
+        }
+    }
+
+    /**
+     * Nov 21 2026 (Craft): { name, text } -> writes (or overwrites) a file in Documents/BizzyBee, a normal folder
+     * you can see in the Files app. No folder picking and no permission (Android 10+ MediaStore, own files).
+     */
+    @PluginMethod
+    public void saveDocument(PluginCall call) {
+        String name = call.getString("name");
+        String text = call.getString("text", "");
+        if (name == null || !name.matches("[A-Za-z0-9._ -]{1,80}")) { call.reject("Bad file name"); return; }
+        if (android.os.Build.VERSION.SDK_INT < 29) { call.reject("Needs Android 10 or newer"); return; }
+        try {
+            ContentResolver cr = getContext().getContentResolver();
+            Uri col = android.provider.MediaStore.Files.getContentUri("external");
+            String rel = android.os.Environment.DIRECTORY_DOCUMENTS + "/BizzyBee/";
+            Uri uri = null;
+            try (Cursor c = cr.query(col, new String[] { android.provider.MediaStore.MediaColumns._ID },
+                    android.provider.MediaStore.MediaColumns.RELATIVE_PATH + "=? AND " + android.provider.MediaStore.MediaColumns.DISPLAY_NAME + "=?",
+                    new String[] { rel, name }, null)) {
+                if (c != null && c.moveToFirst()) uri = android.content.ContentUris.withAppendedId(col, c.getLong(0));
+            }
+            if (uri == null) {
+                android.content.ContentValues v = new android.content.ContentValues();
+                v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+                v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json");
+                v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, rel);
+                uri = cr.insert(col, v);
+            }
+            if (uri == null) throw new Exception("Couldn't make the file");
+            try (OutputStream os = cr.openOutputStream(uri, "wt")) {
+                if (os == null) throw new Exception("Couldn't open the file");
+                os.write(text.getBytes(StandardCharsets.UTF_8));
+            }
+            JSObject r = new JSObject(); r.put("ok", true); r.put("folder", "Documents/BizzyBee"); r.put("name", name);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject(e.getMessage() != null ? e.getMessage() : "Save failed");
+        }
+    }
+
+    /** Nov 21 2026 (Craft): { prompt } -> { text } using Android's speech recognizer (the voice screen). */
+    @PluginMethod
+    public void listen(PluginCall call) {
+        Intent i = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, call.getString("prompt", "Tell BizzyBee"));
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        try { startActivityForResult(call, i, "speechResult"); }
+        catch (Exception e) { call.reject("No speech recognizer on this phone"); }
+    }
+    @ActivityCallback
+    private void speechResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) { call.reject("cancelled"); return; }
+        ArrayList<String> said = result.getData().getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+        JSObject r = new JSObject(); r.put("text", said != null && !said.isEmpty() ? said.get(0) : "");
+        call.resolve(r);
+    }
+
+    /**
+     * Nov 21 2026 (Craft): app shortcuts. Long-press the BizzyBee icon for "Save BizzyBee" and "Voice";
+     * { pin: true } also asks Android to put a "Save BizzyBee" button on the home screen.
+     */
+    @PluginMethod
+    public void shortcuts(PluginCall call) {
+        try {
+            Context ctx = getContext();
+            android.content.pm.ShortcutManager sm = ctx.getSystemService(android.content.pm.ShortcutManager.class);
+            if (sm == null) { call.reject("No shortcuts on this phone"); return; }
+            Intent save = new Intent(Intent.ACTION_VIEW, Uri.parse("bizzybee://save")).setClass(ctx, MainActivity.class);
+            Intent voice = new Intent(Intent.ACTION_VIEW, Uri.parse("bizzybee://voice")).setClass(ctx, MainActivity.class);
+            android.content.pm.ShortcutInfo s1 = new android.content.pm.ShortcutInfo.Builder(ctx, "bb-save").setShortLabel("Save BizzyBee").setLongLabel("Save BizzyBee now")
+                    .setIcon(android.graphics.drawable.Icon.createWithResource(ctx, R.mipmap.ic_launcher)).setIntent(save).build();
+            android.content.pm.ShortcutInfo s2 = new android.content.pm.ShortcutInfo.Builder(ctx, "bb-voice").setShortLabel("Voice").setLongLabel("Tell BizzyBee")
+                    .setIcon(android.graphics.drawable.Icon.createWithResource(ctx, R.mipmap.ic_launcher)).setIntent(voice).build();
+            List<android.content.pm.ShortcutInfo> list = new ArrayList<>(); list.add(s1); list.add(s2);
+            sm.setDynamicShortcuts(list);
+            boolean pinned = false;
+            if (call.getBoolean("pin", false) && sm.isRequestPinShortcutSupported()) pinned = sm.requestPinShortcut(s1, null);
+            JSObject r = new JSObject(); r.put("ok", true); r.put("pinAsked", pinned);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject(e.getMessage() != null ? e.getMessage() : "Shortcut failed");
         }
     }
 
