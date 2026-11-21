@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const today = new Date().toISOString().slice(0, 10);
-const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const today = new Date().toLocaleDateString('sv-SE');
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toLocaleDateString('sv-SE');
 const bee = (id, extra = {}) => ({ id, name: `Bee ${id}`, rarity: 'Common', class: null, sex: 'f', talent: extra.class || 'cleaner', stats: { level: 1, hp: 30, offense: 10, defense: 10, speed: 10, power: 10 }, element: 'fire', dexNumber: 1, weight: 1, customNamed: false, ...extra });
 const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, fatigue: 0, bornAt: daysAgo(9), faintedAt: null, birthTrait: null, ...o });
 function world(bees, hive = {}, xp = 5000) {
@@ -188,11 +188,11 @@ test('sim fixes: tired worker rests itself, bored worker breaks itself and retur
     Object.assign(B(v, 't'), { class: 'collector', talent: 'collector' }); Object.assign(B(v, 'b'), { class: 'honeymaker', talent: 'honeymaker' });
     B(v, 't').life.stamina = 5;
     B(v, 'b').life.workFrom = daysAgo(6); B(v, 'b').life.happiness = 40;
-    v._careHour(at, at.toISOString().slice(0, 10));
+    v._careHour(at, at.toLocaleDateString('sv-SE'));
     assert.equal(B(v, 't').class, null); assert.equal(B(v, 't').life.recuperate, true); assert.equal(B(v, 't').life.restFrom, 'collector');
     assert.equal(B(v, 'b').class, null); assert.ok(B(v, 'b').life.playUntil);
     const later = new Date(at.getTime() + 5 * 3600000);
-    v._careHour(later, later.toISOString().slice(0, 10));
+    v._careHour(later, later.toLocaleDateString('sv-SE'));
     assert.equal(B(v, 'b').class, 'honeymaker');                      // back from its break
     B(v, 't').life.fullness = 45; v.state.hive.honey = 10;
     v._tendHive(at);

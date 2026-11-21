@@ -221,7 +221,10 @@ const BizzyPhone = (() => {
             Vault.state.steps = Vault.state.steps || {};
             const before = Vault.state.steps[day];
             Vault.state.steps[day] = total;
-            Object.keys(Vault.state.steps).sort().slice(0, -60).forEach(k => delete Vault.state.steps[k]);   // keep 60 days
+            // Nov 21 2026 (Craft): keep 2 years for history and records (was 60 days).
+            Object.keys(Vault.state.steps).sort().slice(0, -STEP_KEEP).forEach(k => delete Vault.state.steps[k]);
+            const hoursChanged = await this.hours(h, start, total).catch(() => false);
+            this.backfill(h).catch(() => null);
             (Vault.state.dailyTasks || []).forEach(t => {
                 const m = String(t.label || '').match(/(\d[\d,.]*)\s*(k\b)?\s*steps?\b/i);
                 if (!m) return;
@@ -235,10 +238,91 @@ const BizzyPhone = (() => {
             if (goalHit) toast(`👟 Step goal reached! ${goalHit.xp ? `+${goalHit.xp} XP, +${goalHit.minutes} min Fitness & Health. ` : ''}${goalHit.gave.map(g => `${g.icon} ${g.qty} ${g.name}`).join(' · ')}`, 'positive');
             const hatched = typeof Vault.incubatorTick === 'function' ? Vault.incubatorTick() : 0;   // steps warm the Egg Incubator
             if (hatched) toast(`🥚 Your steps took a day off ${hatched} egg${hatched === 1 ? '' : 's'} in the incubator.`);
-            if (before !== total || hatched || goalHit) Vault.save();
+            if (before !== total || hatched || goalHit || hoursChanged) Vault.save();
             return total;
         },
+        // Today by hour (Nov 21 2026, Craft). Health Connect hour buckets when they
+        // look real; if the step app only saves one all-day block (Samsung Health
+        // can), we count it ourselves: new steps since the last check go into this hour.
+        async hours(h, start, total) {
+            const day = todayISO(), now = new Date();
+            let arr = null;
+            try {
+                const r = await h.queryAggregated({ dataType: 'steps', startDate: start.toISOString(), endDate: now.toISOString(), bucket: 'hour', aggregation: 'sum' });
+                arr = hourArray(r.samples, day);
+            } catch (e) { arr = null; }
+            const all = Vault.state.stepHours = Vault.state.stepHours || {};
+            const old = all[day];
+            let next;
+            if (arr && hoursLookReal(arr, total, now.getHours())) next = { h: arr, src: 'hc' };
+            else {
+                const base = old && old.src === 'snap' ? old : { h: new Array(24).fill(0), src: 'snap', last: 0 };
+                const add = Math.max(0, total - (Number(base.last) || 0));
+                const hh = base.h.slice(); if (add) hh[now.getHours()] += add;
+                next = { h: hh, src: 'snap', last: total };
+            }
+            Object.keys(all).sort().slice(0, -STEP_HOURS_KEEP).forEach(k => delete all[k]);
+            if (old && JSON.stringify(old) === JSON.stringify(next)) return false;
+            all[day] = next;
+            return true;
+        },
+        // Once a day: fill the last 30 days from Health Connect (totals and hours),
+        // so history and records aren't empty. Past days give no XP or prizes.
+        async backfill(h) {
+            const day = todayISO();
+            if (get('bb_steps_backfill') === day) return 0;
+            const end = new Date(); end.setHours(0, 0, 0, 0);
+            const start = new Date(end); start.setDate(start.getDate() - 30);
+            const [d, hr] = await Promise.all([
+                h.queryAggregated({ dataType: 'steps', startDate: start.toISOString(), endDate: end.toISOString(), bucket: 'day', aggregation: 'sum' }),
+                h.queryAggregated({ dataType: 'steps', startDate: start.toISOString(), endDate: end.toISOString(), bucket: 'hour', aggregation: 'sum' }).catch(() => ({ samples: [] })),
+            ]);
+            const steps = Vault.state.steps = Vault.state.steps || {};
+            const hrs = Vault.state.stepHours = Vault.state.stepHours || {};
+            let changed = 0;
+            (d.samples || []).forEach(s => {
+                const k = ymd(new Date(s.startDate)), v = Math.round(Number(s.value) || 0);
+                if (k >= day || v <= 0 || Number(steps[k]) === v) return;
+                if (Number(steps[k]) > v) return;   // never lower a day we already counted
+                steps[k] = v; changed++;
+            });
+            const byDay = {};
+            (hr.samples || []).forEach(s => { const k = ymd(new Date(s.startDate)); (byDay[k] = byDay[k] || []).push(s); });
+            Object.keys(byDay).forEach(k => {
+                if (k >= day || (hrs[k] && hrs[k].src === 'hc')) return;
+                const arr = hourArray(byDay[k], k);
+                if (arr && hoursLookReal(arr, Number(steps[k]) || 0, 24)) { hrs[k] = { h: arr, src: 'hc' }; changed++; }
+            });
+            Object.keys(steps).sort().slice(0, -STEP_KEEP).forEach(k => delete steps[k]);
+            Object.keys(hrs).sort().slice(0, -STEP_HOURS_KEEP).forEach(k => delete hrs[k]);
+            set('bb_steps_backfill', day);
+            if (changed) Vault.save();
+            return changed;
+        },
     };
+    const STEP_KEEP = 730, STEP_HOURS_KEEP = 120;
+    // Health Connect hour buckets -> [24] for one local day.
+    function hourArray(samples, day) {
+        const out = new Array(24).fill(0);
+        (samples || []).forEach(s => {
+            const t = new Date(s.startDate);
+            if (isNaN(t) || ymd(t) !== day) return;
+            out[t.getHours()] += Math.round(Number(s.value) || 0);
+        });
+        return out;
+    }
+    // Real hours: they add up to the day's total, nothing lands after "now",
+    // and it isn't one all-day block dumped at midnight or spread evenly.
+    function hoursLookReal(arr, total, nowHour) {
+        const sum = arr.reduce((a, v) => a + v, 0);
+        if (!sum) return false;
+        if (total && Math.abs(sum - total) > Math.max(50, total * 0.03)) return false;
+        if (arr.some((v, i) => v > 0 && i > nowHour)) return false;
+        const on = arr.filter(v => v > 0);
+        if (on.length === 1 && arr[0] > 0 && nowHour >= 2) return false;
+        if (on.length >= 20) { const avg = sum / on.length; if (on.every(v => Math.abs(v - avg) <= Math.max(2, avg * 0.02))) return false; }
+        return true;
+    }
 
     // ------------------------------------------------------- phone calendar
     // Two switches (Settings › Phone features): show phone events in the

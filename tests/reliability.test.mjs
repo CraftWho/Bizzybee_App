@@ -243,7 +243,7 @@ test('time XP: logged minutes change a completion, history counts, level never j
     const old = JSON.parse(sample());
     old.characterLevelBar = { acknowledgedLevel: 3 };
     old.quests[0].tasks.push({ id: 'h', label: 'Old Codex lesson', xp: 0, historyXP: 600, completed: true });
-    old.dailyTasks = [{ id: 'd', label: 'Read for 10 minutes', difficulty: 'Easy', completedDates: [new Date().toISOString().slice(0, 10)] }];
+    old.dailyTasks = [{ id: 'd', label: 'Read for 10 minutes', difficulty: 'Easy', completedDates: [new Date().toLocaleDateString('sv-SE')] }];
     const h = vaultHarness(JSON.stringify(old)); await h.vault.init();
     const xp0 = h.vault.getUser().totalXP;
     assert.ok(xp0 >= 600 + 10);
