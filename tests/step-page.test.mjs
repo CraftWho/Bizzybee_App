@@ -109,13 +109,19 @@ test('hourly steps: an all-day block falls back to our own count', async () => {
     let h = v.state.stepHours[today];
     if (nowH >= 2) {
         assert.equal(h.src, 'snap');
-        assert.equal(h.h[nowH], 1000);
+        assert.equal(h.pre, 1000);                     // first check: "1,000 steps before <hour>", not dumped in this hour
+        assert.equal(h.from, nowH);
+        assert.equal(h.h[nowH], 0);
+        let sp = v.getStepPage(today).today.span;
+        assert.equal(sp.pre, 1000); assert.equal(sp.busy, null);
         total = 1500; await phone.Steps.sync();
         h = v.state.stepHours[today];
-        assert.equal(h.h[nowH], 1500);                 // +500 more this hour
+        assert.equal(h.h[nowH], 500);                  // +500 new steps this hour
         assert.equal(h.last, 1500);
         await phone.Steps.sync();
-        assert.equal(v.state.stepHours[today].h[nowH], 1500);   // no double count
+        assert.equal(v.state.stepHours[today].h[nowH], 500);   // no double count
+        sp = v.getStepPage(today).today.span;
+        assert.equal(sp.busy, nowH); assert.equal(sp.pre, 1000);
     }
 });
 
@@ -147,4 +153,24 @@ test('30-day fill: past totals and hours, no XP, never lowers a day, once a day'
     const P = v.getStepPage(today);
     assert.equal(P.days.find(x => x.day === day(-2)).span.first, 8);
     assert.equal(P.days.find(x => x.day === day(-2)).span.last, 18);
+});
+
+// Samsung Health can save one midnight-to-midnight block per day, and Health
+// Connect then spreads it evenly over the hours (here 9,600 steps = 400 an hour).
+test('hourly steps: Samsung\'s even spread is not used as step times', async () => {
+    const even = (n) => new Array(24).fill(0).map((_, h) => (h <= n ? 400 : 0));
+    const nowH = new Date().getHours();
+    // today: spread over the hours so far, but the day total is the whole block
+    const { v, phone } = harness({}, { health: fakeHealth({ hourly: () => even(nowH), total: () => 9600 }) });
+    await v.init();
+    await phone.Steps.sync();
+    assert.equal(v.state.stepHours[today].src, 'snap');
+    // a past day: 24 even hours that add up exactly
+    const past = { [day(-1)]: { total: 9600, hours: even(23) } };
+    const h2 = harness({}, { health: fakeHealth({ hourly: () => [], total: () => 0, past }) });
+    await h2.v.init();
+    await h2.phone.Steps.sync();
+    await new Promise(r => setTimeout(r, 20));
+    assert.equal(h2.v.state.steps[day(-1)], 9600);          // the day total still fills in
+    assert.equal(h2.v.state.stepHours[day(-1)], undefined);  // but no fake times
 });

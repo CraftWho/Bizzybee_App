@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="../../core/ui/modal/modal.css">
     <link rel="stylesheet" href="../../core/ui/page-v2/page-v2.css">
     <link rel="stylesheet" href="./history.css">
+    <link rel="stylesheet" href="../../core/ui/change-log/change-log.css">
 </head>
 <body>
 
@@ -40,14 +41,15 @@
             <div id="hi-archive" class="hi-arc-list"></div>
         </div>
         <div id="hi-v-log" hidden>
-            <p class="hi-note">Every uncheck, edit, delete, restore and late fill-in that touched your stats. It can't be edited or cleared. ⚑ = a big change after the fact.</p>
-            <ul class="hi-log" id="hi-log"></ul>
+            <p class="hi-note">Every change to your save, newest first. Unchecks, edits, deletes, restores and late fill-ins show their note and can't be edited or cleared. ⚑ = a big change after the fact. Also in Settings › Saves &amp; backups.</p>
+            <div class="hi-log" id="hi-log"></div>
         </div>
     </main>
 
     <script src="../../core/boot.js"></script>
 
     <script src="../../core/ui/page-v2/page-v2.js"></script>
+    <script src="../../core/ui/change-log/change-log.js"></script>
     <script src="./history.js"></script>
 </body>
 </html>

@@ -7967,9 +7967,10 @@ Object.assign(DatabaseManager.prototype, {
         const span = (h) => {
             if (!h) return null;
             const on = h.h.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0);
-            if (!on.length) return null;
+            const pre = Number(h.pre) || 0, from = Number.isInteger(h.from) ? h.from : null;   // BizzyBee's own count: steps before it started counting
+            if (!on.length) return pre ? { first: null, last: null, busy: null, busySteps: 0, src: h.src, pre, from } : null;
             const busy = h.h.reduce((b, v, i) => v > h.h[b] ? i : b, 0);
-            return { first: on[0], last: on[on.length - 1], busy, busySteps: h.h[busy], src: h.src };
+            return { first: on[0], last: on[on.length - 1], busy, busySteps: h.h[busy], src: h.src, pre, from };
         };
         const days = Object.keys(st).filter(d => d <= today && /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
         if (!days.includes(today)) days.push(today);

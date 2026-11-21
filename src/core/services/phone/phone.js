@@ -256,10 +256,14 @@ const BizzyPhone = (() => {
             let next;
             if (arr && hoursLookReal(arr, total, now.getHours())) next = { h: arr, src: 'hc' };
             else {
-                const base = old && old.src === 'snap' ? old : { h: new Array(24).fill(0), src: 'snap', last: 0 };
-                const add = Math.max(0, total - (Number(base.last) || 0));
-                const hh = base.h.slice(); if (add) hh[now.getHours()] += add;
-                next = { h: hh, src: 'snap', last: total };
+                // First check of the day: steps so far are "before <hour>" (we don't know when they
+                // happened), not all dumped into this hour. From then on, new steps go into their hour.
+                if (!old || old.src !== 'snap') next = { h: new Array(24).fill(0), src: 'snap', last: total, pre: total, from: now.getHours() };
+                else {
+                    const add = Math.max(0, total - (Number(old.last) || 0));
+                    const hh = old.h.slice(); if (add) hh[now.getHours()] += add;
+                    next = { ...old, h: hh, last: Math.max(total, Number(old.last) || 0) };
+                }
             }
             Object.keys(all).sort().slice(0, -STEP_HOURS_KEEP).forEach(k => delete all[k]);
             if (old && JSON.stringify(old) === JSON.stringify(next)) return false;

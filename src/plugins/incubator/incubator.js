@@ -75,8 +75,14 @@ function hourBars(h, nowHour, cls) {
 }
 function spanText(sp) {
     if (!sp) return '';
-    return `Most steps ${hourName(sp.busy)}–${hourName((sp.busy + 1) % 24)} · first steps around ${hourName(sp.first)} · last around ${hourName(sp.last)}`;
+    const before = sp.pre ? `${fmt(sp.pre)} steps before ${hourName(sp.from)}` : '';
+    if (sp.busy == null) return before;
+    const parts = [`Most steps ${hourName(sp.busy)}–${hourName((sp.busy + 1) % 24)}`];
+    parts.push(sp.pre ? before : `first steps around ${hourName(sp.first)}`);
+    parts.push(`last around ${hourName(sp.last)}`);
+    return parts.join(' · ');
 }
+const hasHours = (h, sp) => !!(sp && (sp.pre || (h && h.some(v => v > 0))));
 function renderSteps() {
     if (typeof Vault.getStepPage !== 'function') return;
     const P = Vault.getStepPage(), T = P.today, today = todayISO(), nowH = new Date().getHours();
@@ -94,8 +100,9 @@ function renderSteps() {
 
     // today by hour
     let hours;
-    if (T.hours && T.hours.some(v => v > 0)) {
-        hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">Busiest: ${hourName(T.span.busy)}–${hourName((T.span.busy + 1) % 24)} · ${fmt(T.span.busySteps)} steps</p>
+    if (hasHours(T.hours, T.span)) {
+        const sp = T.span, busy = sp.busy == null ? 'New steps show here by the hour.' : `Busiest: ${hourName(sp.busy)}–${hourName((sp.busy + 1) % 24)} · ${fmt(sp.busySteps)} steps`;
+        hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">${busy}${sp.pre ? ` · ${fmt(sp.pre)} steps before ${hourName(sp.from)}` : ''}</p>
             ${hourBars(T.hours, nowH, 'ics-bars')}<div class="ics-axis"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>11 PM</span></div>
             ${T.span.src === 'snap' ? '<p class="ics-sub">Your step app only saves day totals, so BizzyBee counts the hours itself while it runs.</p>' : ''}</section>`;
     } else hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">${isApp ? 'Hours show up after your first steps sync today.' : 'Hours come from the Android app.'}</p></section>`;
@@ -131,7 +138,7 @@ function renderSteps() {
     const rows = range.slice(0, ST.rows).map(x => `<div class="ics-row${ST.open.has(x.day) ? ' open' : ''}" data-st-day="${x.day}" role="button" tabindex="0" aria-expanded="${ST.open.has(x.day)}">
         <b>${x.day === today ? 'Today' : dayName(x.day)}</b><span class="r">${fmt(x.steps)}</span>
         <small>🚶 ${x.min} min · +${x.xp} XP</small><small class="r ${x.hit ? 'ok' : ''}">${x.hit ? 'Goal ✓' : '—'}</small>
-        <div class="ics-detail">${x.hours && x.hours.some(v => v > 0) ? `${spanText(x.span)}${hourBars(x.hours, x.day === today ? nowH : 23, 'ics-mini')}` : 'No hourly times for this day. Times are saved from Nov 21, 2026 on.'}</div></div>`).join('');
+        <div class="ics-detail">${hasHours(x.hours, x.span) ? `${spanText(x.span)}${hourBars(x.hours, x.day === today ? nowH : 23, 'ics-mini')}` : 'No hourly times for this day. Times are saved from Nov 21, 2026 on.'}</div></div>`).join('');
     const history = `<section class="ics-card"><h3>History</h3>
         <div class="ics-tabs">${[['14', '2 weeks'], ['30', 'Month'], ['all', 'All time']].map(([k, l]) => `<button type="button" data-st-tab="${k}" class="${ST.tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <div class="ics-bars short">${bars.map(x => `<i class="${x.steps >= P.goal ? '' : 'under'}" style="height:${Math.max(2, Math.round(x.steps / maxB * 100))}%" title="${short(x.day)} · ${fmt(x.steps)}"></i>`).join('')}</div>
