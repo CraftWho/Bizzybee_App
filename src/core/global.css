@@ -1126,3 +1126,5 @@ html.bb-unsent-bad .ah-chip::after { background: #ff4d4d; }
 @keyframes bbUnsent { 50% { opacity: .45; } }
 /* Nov 20 2026 (Craft): PC-only controls (folder picker, download-to-PC) hide in the Android app (native.js adds html.bb-app). */
 html.bb-app .pc-only { display: none !important; }
+/* Nov 21 2026 (Craft): app-only controls hide on the website. */
+html:not(.bb-app) .bb-app-only { display: none !important; }

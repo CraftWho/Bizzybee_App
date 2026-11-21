@@ -16,8 +16,17 @@ try {
     const nums = [...src.matchAll(/Batch (\d+)/g)].map(m => Number(m[1]));
     if (nums.length) batch = 'Batch ' + Math.max(...nums);
 } catch { /* no batch, fine */ }
+// Nov 21 2026 (Craft): the Updates page in the app lists what's new, from the newest What's New entry.
+let notes = [];
 try {
-    writeFileSync(new URL('../version.json', import.meta.url), JSON.stringify({ version, commit: process.env.COMMIT_REF || null, batch, builtAt: new Date().toISOString() }) + '\n');
+    const src = readFileSync(new URL('../src/core/ui/updates/updates.js', import.meta.url), 'utf8');
+    const start = src.indexOf("{ id: '");
+    const next = src.indexOf("{ id: '", start + 5);
+    const block = src.slice(start, next > 0 ? next : undefined);
+    notes = [...block.matchAll(/title: '((?:[^'\\]|\\.)*)', text: '((?:[^'\\]|\\.)*)'/g)].map(m => `${m[1]}: ${m[2]}`.replace(/\\'/g, "'")).slice(0, 12);
+} catch { /* no notes, fine */ }
+try {
+    writeFileSync(new URL('../version.json', import.meta.url), JSON.stringify({ version, commit: process.env.COMMIT_REF || null, batch, builtAt: new Date().toISOString(), notes }) + '\n');
     console.log('version.json:', version);
 } catch (error) { console.log('version.json not written:', error.message); }
 try {

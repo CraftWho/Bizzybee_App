@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#050402">
+    <title>⬆️ Updates</title>
+    <!-- Nov 21 2026 (Craft; approved): app updates wait for you. This page shows what's new, and Update
+         makes a safety copy, uploads your save, loads the new files and writes it all to the change log. -->
+    <script src="../../core/boot.js" data-load="styles"></script>
+    <link rel="stylesheet" href="../settings/settings.css">
+    <link rel="stylesheet" href="./app-updates.css">
+</head>
+<body>
+    <main class="stv2 upv">
+        <h1 class="settings-title">⬆️ UPDATES</h1>
+        <section class="card up-now" id="up-now" aria-live="polite">Checking…</section>
+        <section class="card up-new" id="up-new" hidden></section>
+        <h2 class="sec">Update history</h2>
+        <section class="card"><div id="up-history" class="list"></div></section>
+    </main>
+    <script src="../../core/boot.js"></script>
+    <script src="../../core/services/web-update/web-update.js"></script>
+    <script src="./app-updates.js"></script>
+</body>
+</html>

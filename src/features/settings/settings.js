@@ -254,12 +254,9 @@ function initAbout(tries = 0) {
         const draw = () => {
             const l = WebUpdate.last();
             const when = l ? new Date(l.at).toLocaleString() : '';
-            row.innerHTML = `<span class="hx">🌐</span><span class="mid"><b>App files</b><small>${l ? `${l.state === 'failed' ? '⚠️ Failed' : l.state === 'updated' ? '⬆️ Updated' : l.state === 'skipped' ? 'Skipped' : '✅ Up to date'} · ${when}. ${l.note || ''}` : 'Not checked yet.'}</small></span><button class="btn" type="button" id="web-update-now">Check now</button>`;
-            row.querySelector('#web-update-now').onclick = async (e) => {
-                e.target.disabled = true; e.target.textContent = 'Checking…';
-                try { await WebUpdate.check({ force: true }); } catch { /* recorded */ }
-                draw();
-            };
+            const rd = WebUpdate.ready && WebUpdate.ready();
+            // Nov 21 2026 (Craft): updates wait for you on the Updates page.
+            row.innerHTML = `<span class="hx">⬆️</span><span class="mid"><b>Updates</b><small>${rd ? `Update ready: ${rd.label}` : l ? `${l.state === 'failed' ? '⚠️ Check failed' : l.state === 'skipped' ? 'Skipped' : '✅ Up to date'} · ${when}` : 'Not checked yet.'}</small></span><a class="btn" href="../app-updates/app-updates.html">${rd ? 'See update' : 'Open'}</a>`;
         };
         draw();
     }

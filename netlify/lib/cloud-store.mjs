@@ -4,11 +4,11 @@ import { encryptSave, decryptSave } from './save-crypto.mjs';
 // Oct 31 2026 (Craft): simple backups. One daily copy (about 4 AM Eastern),
 // keeping 4, so you can always go back 3 full days. Plus up to 3 copies made
 // right before a restore or "use this device's copy", so those can be undone.
-// Nov 20 2026 (Craft): a 4-day-old copy doesn't help with yesterday's problem. Now: 7 daily copies, 24 hourly
-// copies (one per hour the save changes, made right before an upload replaces it), and 10 "before change" copies.
-export const KEEP_DAILY = 7;
-export const KEEP_HOURLY = 24;
-export const KEEP_OTHER = 10;
+// Nov 21 2026 (Craft): keep it simple. The phone keeps the change log, so the cloud keeps only the last 2 daily
+// copies and your last 3 "before change" copies (Back Up Now, restores). No hourly copies.
+export const KEEP_DAILY = 2;
+export const KEEP_HOURLY = 0;
+export const KEEP_OTHER = 3;
 export const RETAIN = KEEP_DAILY + KEEP_HOURLY + KEEP_OTHER;
 const kindOf = (id) => id.endsWith('-scheduled') ? 'daily' : id.endsWith('-hourly') ? 'hourly' : 'other';
 // Small, safe facts about a save (no task text): level, XP, coins, which device. Sent by the app with each upload.
