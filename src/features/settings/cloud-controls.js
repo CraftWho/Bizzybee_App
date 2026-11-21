@@ -219,42 +219,13 @@ function renderSaveNow() {
     const line = (t) => { const s = document.createElement('small'); s.textContent = t; return s; };
     el.append(big, line(`${m.device || 'This device'} · last change ${svWhen(Vault.state.updatedAt) || '—'}`), line(cloud));
 }
-const SRC = { app: '📱', phone: '📱', pc: '💻', claude: '🤖', voice: '🎙️', bixby: '🎙️', update: '⬆️', restore: '↩️', cloud: '☁️', import: '📥', api: '🤖' };
-async function renderSyncLog(all = false) {
+// Change log: one timeline shared with History (Nov 21 2026, Craft). See core/ui/change-log.
+let changeLogView = null;
+function renderSyncLog() {
     const host = document.getElementById('sync-log');
-    if (!host) return;
-    let entries = [];
-    try { entries = await Vault.journalList(all ? 300 : 25); } catch { /* no IndexedDB */ }
-    const sync = (typeof syncLogList === 'function' ? syncLogList() : []).filter(e => e.kind !== 'save-point').slice(0, all ? 200 : 15);
-    const rows = [...entries.map(e => ({ t: e.at, e })), ...sync.map(x => ({ t: x.at, x }))].sort((a, b) => b.t.localeCompare(a.t)).slice(0, all ? 400 : 25);
-    host.replaceChildren();
-    if (!rows.length) { host.textContent = 'Nothing yet. Changes show up here a few seconds after you make them.'; return; }
-    const ICON = { fail: '⚠️', upload: '☁️', load: '⬇️', inactive: '🔴', review: '❓', choice: '👆', restore: '↩️', login: '🔑', open: '📱', update: '⬆️' };
-    for (const r of rows) {
-        const row = document.createElement('div'); row.className = 'sv-log';
-        if (r.x) {
-            row.classList.add('sv-sync');
-            const b = document.createElement('span'); b.textContent = `${ICON[r.x.kind] || '•'} ${r.x.msg}`;
-            const t = document.createElement('small'); t.textContent = svWhen(r.x.at);
-            row.append(b, t); host.append(row); continue;
-        }
-        const e = r.e;
-        const b = document.createElement('span');
-        b.textContent = `${SRC[e.src] || '📱'} ${(e.note ? [e.note] : []).concat(e.sum || []).join(' · ') || 'Small changes'}`;
-        const t = document.createElement('small');
-        t.textContent = `${svWhen(e.at)} · Lv ${e.lv ?? '?'} · ${Number(e.xp || 0).toLocaleString()} XP${e.dev ? ' · ' + e.dev : ''}`;
-        const go = document.createElement('button'); go.type = 'button'; go.className = 'btn sv-go'; go.textContent = 'Go back to here';
-        go.onclick = () => {
-            if (go.dataset.sure !== '1') { go.dataset.sure = '1'; go.textContent = 'Tap again to go back'; setTimeout(() => { go.dataset.sure = ''; go.textContent = 'Go back to here'; }, 4000); return; }
-            settingsAction(go, async () => {
-                const res = await Vault.journalGoBack(e.id);
-                if (!res.ok) throw new Error(res.error);
-                Toast.show(`↩️ Back to ${svWhen(res.at)}. A safety copy was made first.`, 'positive');
-                setTimeout(() => window.location.reload(), 800);
-            });
-        };
-        row.append(b, t, go); host.append(row);
-    }
+    if (!host || typeof ChangeLog === 'undefined') return;
+    if (!changeLogView) changeLogView = ChangeLog.mount(host, { limit: 25 });
+    else changeLogView.draw();
 }
 function metaOfRaw(raw) { try { return Vault.backupMeta(JSON.parse(raw)); } catch { return null; } }
 function deviceRestore(getData, label) {
@@ -358,10 +329,6 @@ function initDeviceBackups() {
     });
     const exp = document.getElementById('sv-export-btn');
     if (exp) exp.onclick = event => settingsAction(event.currentTarget, async () => downloadFile(Vault.exportFullState(), Vault.saveFileName ? Vault.saveFileName() : 'bizzybee-save.json', 'application/json'));
-    window.addEventListener('journal-entry', () => renderSyncLog(more));
-    let more = false;
-    const mb = document.getElementById('sync-log-more');
-    if (mb) mb.onclick = () => { more = !more; mb.textContent = more ? 'Show Less' : 'Show More'; renderSyncLog(more); };
     renderSaveNow(); renderSyncLog();
     window.addEventListener('vault-saved', renderSaveNow);
     window.addEventListener('cloud-sync-status', renderSaveNow);

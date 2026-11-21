@@ -24,7 +24,6 @@ function render() {
 }
 // ---- Archive + Change log (Nov 7 2026, Craft; approved demo v2) ----
 const KIND = { daily: ['🔁', 'Daily'], habit: ['➕', 'Habit'], todo: ['☑️', 'To-Do'], quest: ['🗺️', 'Quest'], task: ['📌', 'Quest task'] };
-const LOG_TAG = { uncheck: ['Unchecked', 'un'], edit: ['Edited', 'edit'], delete: ['Deleted', 'del'], restore: ['Restored', 'res'], fill: ['Filled in', 'fill'] };
 const shortDate = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
 const mins = (m) => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m}m`;
 function archiveHistory(a) {
@@ -44,13 +43,12 @@ function renderArchive() {
         return `<div class="hi-arc" data-arc="${esc(a.id)}"><div class="hi-arc-top"><span class="mid"><b>${ic} ${esc(a.item.label || a.item.title)}</b><small>${name}${a.questTitle ? ' in ' + esc(a.questTitle) : ''} · deleted ${shortDate(a.deletedAt)} · ${mins(real)} real time</small></span><button type="button" data-view="${esc(a.id)}">View</button><button type="button" data-restore="${esc(a.id)}">Restore</button></div><div class="hi-arc-hist" hidden>${archiveHistory(a)}</div></div>`;
     }).join('') : '<p class="hi-empty">Nothing deleted yet.</p>';
 }
+// Nov 21 2026 (Craft): one change log, shared with Settings (core/ui/change-log).
+let logView = null;
 function renderLog() {
-    const list = Vault.getChangeLog();
-    document.getElementById('hi-log').innerHTML = list.length ? list.map(e => {
-        const [tag, cls] = LOG_TAG[e.type] || [e.type, 'edit'];
-        const t = new Date(e.at);
-        return `<li class="hi-ev"><time>${shortDate(e.at)}<br>${t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time><span><span class="hi-tag t-${cls}">${tag}</span> ${esc(String(e.text).replace(/^(Unchecked|Edited|Deleted|Restored|Filled in)\s*/, ''))}<small>${e.flag ? '<b class="hi-flag">⚑</b> ' : ''}${esc(e.note)}</small></span></li>`;
-    }).join('') : '<li class="hi-empty">No changes yet.</li>';
+    if (typeof ChangeLog === 'undefined') return;
+    if (!logView) logView = ChangeLog.mount(document.getElementById('hi-log'), { limit: 40 });
+    else logView.draw();
 }
 function showTab(tab) {
     document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
