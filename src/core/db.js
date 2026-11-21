@@ -1646,6 +1646,11 @@ const BIRTH_TRAITS = {
 // resets the count. Workaholics never get bored. With Auto-swap on, a bored worker is sent to the Play Yard for a
 // 4-hour break when a fresh bee can take its place. Without a spare, a bored bee under 50 happiness takes its own
 // 4-hour break anyway (its job waits) and goes back to the same job when the break ends.
+// Nov 21 2026 (Craft; approved): THE MANAGER BEE. Your Leader is promoted to Manager and runs auto (Auto-manage
+// and Auto-swap). It runs on XP: each night it eats 5% of the XP you earned that day (you keep all your XP) and
+// burns 10 energy a day. Energy 50+: full speed. 25-49: slower (auto checks every 3 hours). 1-24: only swaps
+// tired bees, empty jobs stay empty. 0: it rests and auto stops until you earn XP again.
+const MANAGER = { feedPct: 0.05, drainPerDay: 10, slowBelow: 50, swapOnlyBelow: 25, start: 100 };
 const WORK_BORED = { days: 5, perHour: -1, breakHours: 4, breakBelow: 50 };   // Nov 21 2026 (Craft): -1/h; under 50 happiness a bored bee takes its own break
 function beeWorkDays(bee, today = todayISO()) {
     const L = bee && bee.life;
@@ -6719,7 +6724,7 @@ Object.assign(DatabaseManager.prototype, {
         if (!c.lifeTick) { c.lifeTick = today; this.save(); return []; }
         let days = Math.min(LIFE.maxCatchUp, Math.max(0, daysBetween(c.lifeTick, today) || 0));
         const before = (c.lifeEvents || []).length ? c.lifeEvents[0].id : null;
-        for (let i = days - 1; i >= 0; i--) this._lifeDay(shiftISODate(today, -i));
+        for (let i = days - 1; i >= 0; i--) { this._lifeDay(shiftISODate(today, -i)); this._managerDay(shiftISODate(today, -i)); }
         if (days > 0) { c.lifeTick = today; this.save(); }
         const fresh = [];
         for (const ev of (c.lifeEvents || [])) { if (ev.id === before) break; fresh.push(ev); }
@@ -6837,6 +6842,8 @@ Object.assign(DatabaseManager.prototype, {
     },
     hiveLeader() {
         const RANK = { Rare: 1, Epic: 2, Legendary: 3, Named: 4 };
+        const mgr = this.hiveManager();
+        if (mgr && mgr.bee) return mgr.bee;   // Nov 21 2026 (Craft): the Manager is the leader
         const open = this.hiveOpenJobs();
         // Nov 21 2026 (Craft): a tired leader resting from its job still leads (auto-manage keeps going).
         // A sick or tired leader still leads; only a fainted one does not.
@@ -6888,7 +6895,57 @@ Object.assign(DatabaseManager.prototype, {
         const free = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && (this._autoReady(b) || this._returnReady(b)));
         const stuck = open.flatMap(j => this.jobHolders(j)).find(b => b.life.stamina < 30 && !free.some(f => this.beeFitsJob(f, b.class))) || null;
         const on = !!(this.state.hive.autoManage && this.state.hive.autoManage.on);
-        return { on, running: on && !!leader && !stuck, leader, stuck, open: fillable.length, filled };
+        const level = this.managerLevel();
+        return { on, running: on && !!leader && !stuck && level !== 'off', leader, stuck, open: fillable.length, filled, manager: this.hiveManager(), level };
+    },
+    // ---- Manager bee (Nov 21 2026, Craft; approved) ----
+    hiveManager() {
+        const m = this.state && this.state.hive && this.state.hive.manager;
+        if (!m) return null;
+        const bee = this.getHiveBees().find(b => b.id === m.beeId) || null;
+        return { ...m, bee: bee && !(bee.life && bee.life.faintedAt) ? bee : null, beeGone: !bee };
+    },
+    // 'full' | 'slow' | 'swap' | 'off' (energy 0) | 'none' (no manager or it fainted)
+    managerLevel() {
+        const m = this.hiveManager();
+        if (!m || !m.bee) return 'none';
+        const e = Number(m.energy) || 0;
+        return e >= MANAGER.slowBelow ? 'full' : e >= MANAGER.swapOnlyBelow ? 'slow' : e > 0 ? 'swap' : 'off';
+    },
+    managerCandidates() {
+        const RANK = { Rare: 1, Epic: 2, Legendary: 3, Named: 4 };
+        return this._lifeBees().filter(b => RANK[b.rarity] && !beeIsBrood(b) && !(b.life && b.life.faintedAt)).sort((a, b) => RANK[b.rarity] - RANK[a.rarity]);
+    },
+    setManager(beeId, { quiet = false } = {}) {
+        const b = this.managerCandidates().find(x => x.id === beeId);
+        if (!b) return { ok: false, error: 'Only a Rare or better bee can be the Manager.' };
+        const hv = this.state.hive, old = hv.manager;
+        hv.manager = { beeId: b.id, energy: old ? old.energy : MANAGER.start, since: new Date().toISOString(), lastFeed: old ? old.lastFeed : null };
+        if (!quiet) this._lifeEvent('auto', `👔 ${b.name} is now your Manager bee.`, { beeId: b.id });
+        this.save();
+        return { ok: true, bee: b };
+    },
+    // XP the Manager will eat tonight (5% of today's XP). Your XP stays yours.
+    managerFeedToday(day = todayISO()) {
+        const xp = typeof this.doneOn === 'function' ? Math.max(0, this.doneOn(day).reduce((n, x) => n + (Number(x.xp) || 0), 0)) : 0;
+        return { xp, feed: Math.round(xp * MANAGER.feedPct) };
+    },
+    // Each new day: eat yesterday's share, burn the daily energy, say when it crosses a step.
+    _managerDay(day) {
+        const hv = this.state.hive, m = hv.manager;
+        if (!m) return;
+        const bee = this.getHiveBees().find(b => b.id === m.beeId);
+        if (!bee) { delete hv.manager; this._lifeEvent('auto', '👔 Your Manager bee is gone. Pick a new one in Hive Life.'); return; }
+        const prev = shiftISODate(day, -1);
+        const { xp, feed } = this.managerFeedToday(prev);
+        const before = this.managerLevel();
+        m.energy = Math.max(0, Math.min(100, (Number(m.energy) || 0) - MANAGER.drainPerDay + feed));
+        m.lastFeed = { day: prev, xp, feed };
+        const after = this.managerLevel();
+        if (before !== after) {
+            const SAY = { full: 'is back to full speed', slow: 'is getting tired: auto checks every 3 hours', swap: 'is worn out: only swapping tired bees now', off: 'is exhausted and resting. Auto is off until you earn XP' };
+            if (SAY[after]) this._lifeEvent('auto', `👔 ${bee.name} ${SAY[after]}.`, { beeId: bee.id });
+        }
     },
     // Called after a job change and every hour. Returns true when it just unlocked.
     _autoUnlockCheck() {
@@ -7292,8 +7349,15 @@ Object.assign(DatabaseManager.prototype, {
         if (!night) n += this._careHour(at, day);
         if (!night && at.getHours() >= 9 && !LIFE_FORECAST) n += this._graveDay(day);
         if (this._autoUnlockCheck()) { n++; if (!LIFE_FORECAST) this.autoJustUnlocked = true; }
-        n += this._autoManageHour().length;
-        n += this._autoSwapHour().length;
+        // Nov 21 2026 (Craft): your Leader becomes the Manager the first time, then the Manager's energy decides.
+        if (!this.state.hive.manager && this.state.hive.autoManage && this.state.hive.autoManage.on) {
+            const L = this.hiveLeader();
+            if (L) this.setManager(L.id, { quiet: LIFE_FORECAST });
+        }
+        const lvl = this.managerLevel();
+        const tick = lvl === 'full' || (lvl === 'slow' && at.getHours() % 3 === 0) || lvl === 'none';
+        if (tick && lvl !== 'swap') n += this._autoManageHour().length;
+        if (tick || lvl === 'swap') n += this._autoSwapHour().length;
         return n;
     },
     // Nov 21 2026 (Craft): small care rules found by the 30-day simulation.
