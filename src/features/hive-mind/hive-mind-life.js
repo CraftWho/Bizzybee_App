@@ -355,7 +355,8 @@ const HiveLife = (() => {
             return cardFor(bee, { note, extra: renBtn(bee), action: 'pick', label: 'Job ▾', actClass: 'soft' });
         }
         const merge = !bee.class && Vault.beeMergeStatus && Vault.beeMergeStatus(bee) === 'spare' ? `<a class="hl-ren hl-merge" href="../gacha/gacha.html?pick=${encodeURIComponent(bee.id)}#merge" aria-label="Merge ${esc(bee.name)}">🧬</a>` : '';
-        return cardFor(bee, { extra: renBtn(bee) + merge, action: 'pick', label: 'Job ▾', actClass: 'soft' });
+        const brk = Vault._onBreak && Vault._onBreak(bee) ? `🪀 Play break until ${new Date(L.playUntil).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : '';
+        return cardFor(bee, { extra: renBtn(bee) + merge, action: 'pick', label: 'Job ▾', actClass: 'soft', ...(brk ? { note: brk } : {}) });
     }
 
     // Nov 17 2026 (Craft): job chips under the card instead of a dropdown. Talent first.

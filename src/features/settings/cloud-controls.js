@@ -497,4 +497,6 @@ setTimeout(() => initMainAndApi(), 500);
     };
     wire('hive-bar-toggle', 'bb_hive_bar', () => BizzyNative.updateHiveBar());
     wire('hive-alerts-toggle', 'bb_hive_alerts', () => BizzyNative.scheduleHiveAlerts());
+    const bat = document.getElementById('hive-battery-btn');
+    if (bat) bat.onclick = () => { try { window.Capacitor.Plugins.BeeFiles.openAppSettings(); } catch { Toast.show('Open Settings › Apps › BizzyBee › Battery.', 'neutral'); } };
 })();

@@ -1638,8 +1638,22 @@ const BIRTH_TRAITS = {
     'deep-stomach': { label: 'Deep Stomach', text: 'Gets hungry 25% slower' },
     'swift-wings': { label: 'Swift Wings', text: 'Foraging finds 10% more' },
     'iron-shell': { label: 'Iron Shell', text: '+10 raid defense' },
-    'long-lived': { label: 'Long-Lived', text: 'Lives 25% longer' }
+    'long-lived': { label: 'Long-Lived', text: 'Lives 25% longer' },
+    'workaholic': { label: 'Workaholic', text: 'Never gets bored of working' }   // Nov 21 2026 (Craft)
 };
+// Nov 21 2026 (Craft; approved): WORK BOREDOM. A bee that works 5 days straight gets bored of its job: it loses
+// 1.5 extra happiness an hour while working (😤). A break of 4 daytime hours off work (Play Yard or Rest Comb)
+// resets the count. Workaholics never get bored. With Auto-swap on, a bored worker is sent to the Play Yard for a
+// 4-hour break when a fresh bee can take its place.
+const WORK_BORED = { days: 5, perHour: -1.5, breakHours: 4 };
+function beeWorkDays(bee, today = todayISO()) {
+    const L = bee && bee.life;
+    if (!L || !L.workFrom || !bee.class) return 0;
+    return Math.max(0, Math.floor((Date.parse(today) - Date.parse(L.workFrom)) / 86400000));
+}
+function beeWorkBored(bee, today = todayISO()) {
+    return !!(bee && bee.class && bee.life && bee.life.birthTrait !== 'workaholic' && beeWorkDays(bee, today) >= WORK_BORED.days);
+}
 // ---- Hour by hour (Oct 28 2026, approved demo) ----
 // Vitals change every hour, not once a night. Bees work 7 AM - 10 PM and
 // everyone sleeps 10 PM - 7 AM. Per working hour, by job:
@@ -1908,6 +1922,7 @@ function beeFeeling(bee, today = todayISO(), nowMs = Date.now()) {
         return { key: 'sad', face, why: lack.join(', ') };
     }
     if (L.stamina < 50) return { key: 'sleepy', face: '😪', why: 'Getting sleepy' };
+    if (beeWorkBored(bee, today)) return { key: 'workbored', face: '😤', why: `Bored of this job: ${beeWorkDays(bee, today)} days straight. A few hours in the Play Yard fixes it.` };
     // No job yet: calm on day 0, bored (😤) on days 1 and 2, upset (😡) from day 3 (checked above).
     if (!bee.class) return idle >= 1 ? { key: 'bored', face: '😤', why: `Bored: no job for ${idle} day${idle === 1 ? '' : 's'}, playing in the Play Yard` } : { key: 'calm', face: '🙂', why: 'Playing in the Play Yard, waiting for a job' };
     return { key: 'happy', face: '😊', why: 'All good' };
@@ -4275,7 +4290,7 @@ class DatabaseManager {
         // Comb rooms: how long a bee has gone without a job (upset at 3 days).
         if (bee.life) {
             delete bee.life.recuperate;
-            if (bee.class) { delete bee.life.idleSince; delete bee.life.restFrom; }
+            if (bee.class) { delete bee.life.idleSince; delete bee.life.restFrom; delete bee.life.playUntil; }
             else if (!bee.life.hatchOn) bee.life.idleSince = todayISO();
         }
         this.autoJustUnlocked = this._autoUnlockCheck();   // Nov 1 2026 (Craft): auto-manage
@@ -6826,8 +6841,10 @@ Object.assign(DatabaseManager.prototype, {
             .sort((a, b) => RANK[b.rarity] - RANK[a.rarity] || beeJobScore(b, b.class) - beeJobScore(a, a.class))[0] || null;
     },
     _autoReady(b) {
-        return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery;
+        return beeCanWork(b) && b.life.stamina >= 30 && b.life.health >= 50 && !b.life.recuperate && !b.life.nursery && !this._onBreak(b);
     },
+    // Nov 21 2026 (Craft): a bored worker sent to the Play Yard stays there for its 4-hour break.
+    _onBreak(b) { return !!(b.life && b.life.playUntil && Date.parse(b.life.playUntil) > (this._fcAt ? this._fcAt.getTime() : Date.now())); },
     // Nov 16 2026 (Craft): a bee on Recuperate is ready to go back to work once its stamina reaches
     // the "Return at" %, for every resting bee (also the ones set to rest by hand). Needs Auto-swap on.
     _returnReady(b) {
@@ -6839,7 +6856,7 @@ Object.assign(DatabaseManager.prototype, {
     // stamina reaches "Return at" it shows as Ready in that job's comb; Return / Work sends it back.
     beeIsReady(b) {
         const L = b && b.life;
-        if (!L || !L.restFrom || b.class || beeIsBrood(b) || L.faintedAt || L.nursery || L.sickUntil) return false;
+        if (!L || !L.restFrom || b.class || beeIsBrood(b) || L.faintedAt || L.nursery || L.sickUntil || this._onBreak(b)) return false;
         return L.stamina >= this.autoSwapPrefs().returnPct && L.health >= 50 && !(L.fatigue >= 80);   // not still worn out
     },
     returnBeeToWork(id) {
@@ -6896,16 +6913,19 @@ Object.assign(DatabaseManager.prototype, {
         if (!P.on) return [];
         const notes = [];
         this.hiveOpenJobs().forEach(j => this.jobHolders(j).forEach(h => {
-            if (h.life.stamina >= P.pct || beeLockedJob(h)) return;
+            const bored = beeWorkBored(h) && h.life.stamina >= P.pct;
+            if ((h.life.stamina >= P.pct && !bored) || beeLockedJob(h)) return;
             const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
-            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.recuperate = true; h.life.restFrom = j;   // Nov 9 2026 (Craft): resting = recuperating, not upset
+            h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.restFrom = j;
+            if (bored) h.life.playUntil = new Date((this._fcAt ? this._fcAt.getTime() : Date.now()) + WORK_BORED.breakHours * 3600000).toISOString();   // Nov 21 2026 (Craft): a play break, not rest
+            else h.life.recuperate = true;   // Nov 9 2026 (Craft): resting = recuperating, not upset
             const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft): came back from resting
             delete pick.life.recuperate;
             pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince; delete pick.life.restFrom;
             this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
-            const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} is resting.`;
+            const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} ${bored ? 'was bored and went to play for a few hours' : 'is resting'}.`;
             this._lifeEvent('auto', text, { beeId: pick.id });
             notes.push(text);
         }));
@@ -7046,6 +7066,15 @@ Object.assign(DatabaseManager.prototype, {
             const relentless = beeTitlePower(b, 'relentless');
             const working = !night && !!b.class && !L.recuperate && beeCanWork(b, day);
             const hungerX = L.birthTrait === 'deep-stomach' ? 0.75 : 1;
+            // Work boredom: count working days; a 4-hour daytime break resets it.
+            if (!night) {
+                if (working) { if (!L.workFrom) L.workFrom = day; L.breakHours = 0; }
+                else if (L.workFrom && ++L.breakHours >= WORK_BORED.breakHours) { delete L.workFrom; L.breakHours = 0; }
+            }
+            if (working && beeWorkBored(b, day)) {
+                L.happiness = clampVital(L.happiness + WORK_BORED.perHour, true);
+                if (!L.boredSaid || L.boredSaid !== L.workFrom) { L.boredSaid = L.workFrom; this._lifeEvent('bored', `😤 ${b.name} is bored of being a ${(BEE_CLASSES[b.class] || {}).label || 'worker'}: ${beeWorkDays(b, day)} days straight. A few hours in the Play Yard will fix it.`, { beeId: b.id }); }
+            }
             if (working) {
                 const r = JOB_RATES[b.class] || [-4, -3, -1, 2.5];
                 const rareX = HIVE_JOB_RULES && this._rareCombOf(b) ? 0.5 : 1;   // Nov 1 2026 (Craft): all Rare+ comb

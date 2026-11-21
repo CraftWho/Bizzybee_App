@@ -275,6 +275,7 @@ const BizzyNative = (() => {
         const q = (k) => u.searchParams.get(k);
         const close = () => setTimeout(() => { try { P('App').minimizeApp(); } catch { /* stay */ } }, 1800);
         if (what === 'voice') { location.href = root() + '/src/features/voice/voice.html'; return; }
+        if (what === 'hive') { location.href = root() + '/src/features/hive-mind/hive-mind.html?view=life'; return; }
         await Vault.init();
         if (what === 'save') { await quickSave(); close(); return; }
         const ops = [];
@@ -328,9 +329,13 @@ const BizzyNative = (() => {
     async function updateHiveBar() {
         const ln = LN(); if (!ln || typeof Vault === 'undefined' || !Vault.state || Vault.devTest) return;
         await hiveSetup();
+        // Nov 21 2026 (Craft; approved): the bar is a keep-running service (HiveService) when the app has it,
+        // so BizzyBee stays alive in the background. Off in Settings stops it. Older apps: a plain notification.
+        const F = P('BeeFiles');
         try {
-            if (!hivePrefs.bar()) { await ln.cancel({ notifications: [{ id: HIVE_BAR }] }); return; }
+            if (!hivePrefs.bar()) { try { await F.hiveService({ on: false }); } catch { /* old app */ } await ln.cancel({ notifications: [{ id: HIVE_BAR }] }); return; }
             const t = hiveText();
+            try { await F.hiveService({ on: true, title: t.title, body: t.body }); await ln.cancel({ notifications: [{ id: HIVE_BAR }] }); return; } catch { /* old app: plain notification below */ }
             await ln.schedule({ notifications: [{ id: HIVE_BAR, channelId: 'hive-status', title: t.title, body: t.body, ongoing: true, autoCancel: false, extra: { hive: 'bar', url: '/src/features/hive-mind/hive-mind.html?view=life' } }] });
         } catch { /* notifications not allowed */ }
     }
@@ -372,6 +377,14 @@ const BizzyNative = (() => {
             document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') leave(); else barSoon(); });
             if (P('App')) P('App').addListener('pause', leave);
             (typeof Vault !== 'undefined' ? Vault.init() : Promise.resolve()).then(() => setTimeout(() => { updateHiveBar(); scheduleHiveAlerts(); }, 3000));
+            // While BizzyBee runs in the background (kept alive by the hive service): every 5 minutes refresh the bar,
+            // catch the hive up and upload anything not yet in the cloud.
+            setInterval(() => {
+                if (document.visibilityState !== 'hidden' || !hivePrefs.bar()) return;
+                try { if (Vault.hiveHourlyTick) Vault.hiveHourlyTick(); } catch { /* fine */ }
+                try { if (typeof CloudSyncAuto !== 'undefined' && localStorage.getItem(Vault.storageKey + ':dirty') === 'true') CloudSyncAuto.pushNow(); } catch { /* next time */ }
+                updateHiveBar();
+            }, 5 * 60000);
         } catch { /* fine */ }
         try {
             const App = P('App');
