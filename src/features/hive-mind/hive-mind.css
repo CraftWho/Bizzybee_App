@@ -970,3 +970,5 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 .hl-pick { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 8px; padding: 10px; border-radius: 0 0 12px 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14); border-top: 0; background: rgba(255, 255, 255, .03); }
 .hl-pick .hl-chip { padding: 8px 12px; }
 .hl-pick .hl-chip:hover { border-color: var(--bb-accent, #ffcc00); }
+/* Nov 21 2026 (Craft): the Grave Comb (Undertakers) and the Play Yard (bees with no job). */
+.hl-cell[data-comb="grave"] { --cb-hi: #6f6a8a; --cb-lo: #2c2838; --cb-in: #15131c; }
