@@ -33,7 +33,7 @@ a.hi-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; }
 .hi-arc-top small { color: #a69a80; font-size: .72rem; }
 .hi-arc-top button { border: 1px solid #3a2a0a; background: #1a140b; color: #f1ede2; border-radius: 8px; padding: 6px 9px; font-size: .76rem; cursor: pointer; }
 .hi-arc-hist { display: grid; gap: 3px; margin-top: 8px; font-size: .76rem; color: #c2b48f; max-height: 240px; overflow-y: auto; }
-.hi-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hi-log { padding: 10px 0; border-radius: 12px; background: #120d05; border: 1px solid #3a2a0a; }   /* Nov 21 2026: holds the shared change log */
 .hi-ev { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 9px 10px; border-radius: 10px; background: #120d05; border: 1px solid #3a2a0a; font-size: .82rem; }
 .hi-ev time { color: #a69a80; font: 700 .68rem var(--font-main, monospace); text-align: center; }
 .hi-ev small { display: block; color: #a69a80; font-size: .74rem; margin-top: 2px; }

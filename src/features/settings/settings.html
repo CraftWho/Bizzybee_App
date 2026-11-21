@@ -15,6 +15,7 @@
     <script src="../../core/boot.js" data-load="styles"></script>
     <link rel="stylesheet" href="../../core/ui/modal/modal.css">
     <link rel="stylesheet" href="./settings.css">
+    <link rel="stylesheet" href="../../core/ui/change-log/change-log.css">
 
     <!-- Netlify Identity widget - handles login/signup/logout UI and JWT
          refresh for the Cloud Sync panel below. Netlify auto-injects this
@@ -190,9 +191,8 @@
 
         <h2 class="sec">Change log</h2>
         <section class="card">
-            <p class="status indent">Every change to your save, in plain words: who made it, and your level and XP after. Tap a line to go back to that moment.</p>
-            <div id="sync-log" class="list"></div>
-            <div class="btns indent"><button id="sync-log-more" class="btn" type="button">Show More</button></div>
+            <p class="status indent">Every change to your save, in plain words: who made it, and your level and XP after. Unchecks, edits and deletes show their note, and ⚑ marks a big change after the fact. Tap Go back to here to return to that moment. Also in History › Change log.</p>
+            <div id="sync-log"></div>
         </section>
 
         <h2 class="sec">More</h2>
@@ -251,6 +251,7 @@
     <script src="../../core/boot.js" data-with="services/folder-backup.js crypto-lite.js"></script>
 
     <script src="../../core/login/account-recovery.js"></script>
+    <script src="../../core/ui/change-log/change-log.js"></script>
 <script src="./cloud-controls.js"></script>
 <script src="./local-cloud-download.js"></script>
 <script src="./settings.js"></script>
