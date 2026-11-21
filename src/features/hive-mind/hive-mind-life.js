@@ -218,8 +218,22 @@ const HiveLife = (() => {
         if (!st || (!st.on && !swap)) return el;
         const L = st.leader;
         el.className = 'hl-auto' + (st.running || swap ? ' on' : '');
-        let html = !st.on ? '' : st.running ? `<b>🤖 Auto-manage</b> · 🎖 ${esc(L.name)}`
-            : `<b>⏸ Auto-manage</b> · ${st.stuck ? `${esc(st.stuck.name)} is tired` : 'no Leader'}`;
+        let html = !st.on ? '' : st.running ? `<b>🤖 Auto-manage</b> · 👔 ${esc(L.name)}`
+            : `<b>⏸ Auto-manage</b> · ${st.level === 'off' ? 'your Manager is resting' : st.stuck ? `${esc(st.stuck.name)} is tired` : 'no Manager'}`;
+        // Nov 21 2026 (Craft; approved): the Manager bee card. Runs on 5% of the XP you earn; burns 10 energy a day.
+        if (st.on) {
+            const m = st.manager, e = m ? Math.round(Number(m.energy) || 0) : 0;
+            const STEP = { full: ['Full speed', '#4cd27a'], slow: ['Tired: auto checks every 3 hours', '#ffcc00'], swap: ['Worn out: only swaps tired bees', '#ff8a3d'], off: ['Exhausted and resting: auto is off', '#ff5a5a'], none: ['No Manager', '#a8996f'] };
+            const [said, col] = STEP[st.level] || STEP.none;
+            const today = Vault.managerFeedToday ? Vault.managerFeedToday() : { xp: 0, feed: 0 };
+            const cands = Vault.managerCandidates ? Vault.managerCandidates() : [];
+            html += m && m.bee ? `<div class="hl-mgr">
+                <div class="hl-mgr-top"><span class="hl-mgr-face">${esc(typeof beeFeeling === 'function' ? beeFeeling(m.bee).face : '🐝')}</span><span class="hl-mgr-n"><b>👔 ${esc(m.bee.name)}</b><small style="color:${col}">${said}</small></span><button type="button" class="hl-mgr-ch" data-mgr="pick">Change</button></div>
+                <div class="hl-mgr-bar" role="meter" aria-label="Manager energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${e}"><i style="width:${e}%;background:${col}"></i></div>
+                <small>⚡ ${e}/100 · eats ${Math.round(100 * 0.05)}% of your XP each night (tonight: +${today.feed} from ${today.xp} XP) · −10 a day${m.lastFeed ? ` · last night +${m.lastFeed.feed}` : ''}</small>
+              </div>` : `<div class="hl-mgr"><small>👔 Pick a Rare or better bee to be your Manager. It runs auto on a share of the XP you earn.</small><button type="button" class="hl-mgr-ch" data-mgr="pick">Pick a Manager</button></div>`;
+            html += `<div class="hl-pool" data-mgrlist hidden>${cands.map(b => `<button type="button" class="hl-chip" data-mgrset="${esc(b.id)}" aria-pressed="${m && m.beeId === b.id}">${esc(b.name)} · ${esc(b.rarity)}</button>`).join('') || '<small>No Rare or better bee yet.</small>'}</div>`;
+        }
         if (swap) {
             const P = Vault.autoSwapPrefs();
             const bees = Vault.getHiveBees().filter(b => b.rarity !== 'Royal' && !beeIsBrood(b) && !(b.life && b.life.faintedAt));
@@ -237,6 +251,10 @@ const HiveLife = (() => {
         }
         el.innerHTML = html;
         el.addEventListener('click', (e) => {
+            const mp = e.target.closest('[data-mgr]');
+            if (mp) { const list = el.querySelector('[data-mgrlist]'); if (list) list.hidden = !list.hidden; return; }
+            const ms = e.target.closest('[data-mgrset]');
+            if (ms) { const r = Vault.setManager(ms.dataset.mgrset); if (typeof Toast !== 'undefined') Toast.show(r.ok ? `👔 ${r.bee.name} is your Manager now.` : r.error, r.ok ? 'positive' : 'negative'); el.replaceWith(autoPanel()); return; }
             const b = e.target.closest('[data-swap], [data-pool]');
             if (!b) return;
             const P = Vault.autoSwapPrefs();
@@ -317,7 +335,7 @@ const HiveLife = (() => {
         if (!Vault.autoJustUnlocked) return;
         Vault.autoJustUnlocked = false;
         const L = Vault.hiveLeader();
-        if (typeof Toast !== 'undefined') Toast.show(`🤖 Auto-manage unlocked! ${L ? L.name + ' leads the hive.' : ''}`, 'positive');
+        if (typeof Toast !== 'undefined') Toast.show(`🤖 Auto-manage unlocked! ${L ? L.name + ' is your Manager bee.' : ''}`, 'positive');
     }
     // Nov 17 2026 (Craft): a resting bee says when auto-swap will send it back.
     function returnNote(bee) {
