@@ -122,9 +122,10 @@ function renderHive() {
     const local = typeof Vault !== 'undefined' && Vault.pcLocal;
     let wxOn = false;
     try { wxOn = (localStorage.getItem('bb_weather') || 'off') !== 'off'; } catch { /* storage off */ }
-    // Nov 13 2026 (Craft): the steps tile opens the Incubator; Nov 21: stats sit in its Step stats drop-down,
-    // and it always opens (with no incubator yet the page shows just your steps).
-    if (app && hs.steps !== null) stats.push({ key: 'steps', value: hs.steps != null ? hs.steps.toLocaleString() : '–', label: 'Steps', color: '#9be15d', href: '../../plugins/incubator/incubator.html' });
+    // Nov 13 2026 (Craft): the steps tile opens the Incubator; Nov 21: stats sit in its Step stats drop-down.
+    // It opens once you own an incubator (Craft, Nov 21: "keep it that way").
+    const incOn = typeof Plugins === 'undefined' || Plugins.isEnabled('incubator');
+    if (app && hs.steps !== null) stats.push({ key: 'steps', value: hs.steps != null ? hs.steps.toLocaleString() : '–', label: 'Steps', color: '#9be15d', still: !incOn, href: '../../plugins/incubator/incubator.html' });
     else if (local) stats.push({ key: 'steps', value: '—', label: 'Steps · app', title: 'Steps show in the Android app', color: '#9be15d', still: true, ph: true });
     if (hs.wx !== null) stats.push({ key: 'wx', value: hs.wx ? `${hs.wx.temp}°` : '–', label: hs.wx ? hs.wx.text : 'Weather', color: '#7fc8ff', still: true, icon: hs.wx && hs.wx.icon, title: hs.wx && hs.wx.place });
     else if (local && wxOn) stats.push({ key: 'wx', value: '—', label: 'Weather', title: 'Weather is on but not loading here', color: '#7fc8ff', still: true, ph: true });
