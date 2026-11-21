@@ -255,7 +255,7 @@ const CloudSyncAuto = (() => {
         if (!me || (!me.xp && !me.level)) return 'cloud';                 // nothing here yet (new install)
         if (me.xp === cloud.xp && me.level === cloud.level && me.coins === cloud.coins) return 'cloud';   // same progress
         log('review', `Cloud copy differs: this device Lv ${me.level} · ${me.xp} XP, cloud Lv ${cloud.level} · ${cloud.xp} XP`);
-        try { await Vault.savePoint('checkpoint', 'Before choosing a copy'); } catch { /* still ask */ }
+        try { Vault.createLocalBackup('Before choosing a copy'); } catch { /* still ask */ }
         const when = (iso) => { try { return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
         let myAt = null; try { myAt = JSON.parse(local).updatedAt || null; } catch { /* no time */ }
         const card = (title, m, at, dev, rec) => `<div class="bbr-c${rec ? ' rec' : ''}"><div class="bbr-h">${title}${rec ? '<span>Most progress</span>' : ''}</div>
@@ -280,7 +280,7 @@ const CloudSyncAuto = (() => {
                 <div class="bbr-row">${card('📱 This device', me, myAt, me.device, meBest)}${card('☁️ Cloud', cloud, result.updatedAt, cloud.device, !meBest)}</div>
                 <div class="bbr-b"><button type="button" class="a" data-k="${meBest ? 'device' : 'cloud'}">${meBest ? 'Keep this device' : 'Use the cloud copy'}</button>
                   <button type="button" class="b" data-k="${meBest ? 'cloud' : 'device'}">${meBest ? 'Use the cloud copy' : 'Keep this device'}</button></div>
-                <small>The copy you don't pick is kept as a save point in Settings › Backups.</small></div>`;
+                <small>The copy you don't pick is kept: the cloud's in Cloud backups, this device's as the safety copy.</small></div>`;
             wrap.addEventListener('click', (e) => {
                 const b = e.target.closest('button[data-k]'); if (!b) return;
                 wrap.querySelectorAll('button').forEach(x => { x.disabled = true; }); b.textContent = 'One moment…';
@@ -458,7 +458,36 @@ const CloudSyncAuto = (() => {
     const GT = 'gotrue.user', GT_BK = 'bizzybee_gotrue_backup', GT_EVT = 'bizzybee_cloud_event';
     const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
     const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
-    const cloudEvent = msg => { lsSet(GT_EVT, JSON.stringify({ at: new Date().toISOString(), msg })); log('login', msg); };
+    const cloudEvent = msg => { lsSet(GT_EVT, JSON.stringify({ at: new Date().toISOString(), msg })); log('login', msg); if (/rejected|Sign in again/i.test(msg)) warnLoggedOut(); };
+    // Nov 21 2026 (Craft): LOGGED-OUT WARNING. If the cloud login is ever lost (not by you tapping Sign Out),
+    // a pop-up says so at once, so progress never piles up unsaved again.
+    function warnLoggedOut() {
+        try {
+            if (lsGet('bizzybee_user_signout') === '1' || document.getElementById('bb-loggedout')) return;
+            const last = Number(sessionStorage.getItem('bb_lo_warn') || 0);
+            if (Date.now() - last < 10 * 60000) return;
+            sessionStorage.setItem('bb_lo_warn', String(Date.now()));
+        } catch { /* show it anyway */ }
+        const show = () => {
+            const w = document.createElement('div');
+            w.id = 'bb-loggedout'; w.setAttribute('role', 'alertdialog'); w.setAttribute('aria-modal', 'true');
+            w.innerHTML = `<style>#bb-loggedout{position:fixed;inset:0;z-index:6100;background:rgba(5,4,2,.88);display:flex;align-items:center;justify-content:center;padding:16px;font:14px/1.4 system-ui,sans-serif;color:#f5ecd4}
+                #bb-loggedout .box{max-width:380px;width:100%;background:#1a0c0c;border:1px solid #ff4d4d;border-radius:18px;padding:18px}
+                #bb-loggedout h2{margin:0 0 6px;font-size:18px;color:#ff6b6b}#bb-loggedout p{margin:0 0 14px;color:#e6cfc0}
+                #bb-loggedout button{display:block;width:100%;border:0;border-radius:12px;padding:13px;margin-top:8px;font:800 14px system-ui,sans-serif;cursor:pointer}
+                #bb-loggedout .a{background:#ffcc00;color:#1a0f02}#bb-loggedout .b{background:#2a2418;color:#f5ecd4}</style>
+                <div class="box"><h2>⚠️ You're signed out of the cloud</h2><p>Your progress is still saved on this device, but it is <b>not</b> reaching the cloud. Sign in to keep it safe.</p>
+                <button type="button" class="a" data-k="in">Sign In</button><button type="button" class="b" data-k="later">Later</button></div>`;
+            w.addEventListener('click', (e) => {
+                const k = e.target.closest('[data-k]'); if (!k) return;
+                w.remove();
+                if (k.dataset.k === 'in') { try { netlifyIdentity.open('login'); } catch { location.href = (window.BB_SITE || '') + '/src/features/settings/settings.html'; } }
+            });
+            document.body.appendChild(w);
+        };
+        if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
+        log('login', 'Signed out of the cloud: warning shown');
+    }
     const backupLogin = () => { const v = lsGet(GT); if (v) lsSet(GT_BK, v); };
     const restoreLogin = () => { const b = lsGet(GT_BK); if (b && !lsGet(GT)) { lsSet(GT, b); return true; } return false; };
     const transientAuthError = e => !e || typeof e.status !== 'number' || e.status >= 500;
@@ -485,11 +514,12 @@ const CloudSyncAuto = (() => {
         if (netlifyIdentity.currentUser()) cloudEvent('Cloud login restored after it dropped.');
         else { try { localStorage.removeItem(GT); } catch { /* fine */ } }
     }
+    if (!netlifyIdentity.currentUser() && lsGet('bizzybee_session') === 'identity' && enabled() && !Vault.devTest) warnLoggedOut();
     guardLogin(netlifyIdentity.currentUser());
     setInterval(backupLogin, 60000);
     netlifyIdentity.on('init', user => { guardLogin(user); start(user); });
-    netlifyIdentity.on('login', user => { guardLogin(user); backupLogin(); start(user); });
-    netlifyIdentity.on('logout', () => { try { localStorage.removeItem(GT_BK); } catch { /* fine */ } ready = false; accountId = null; clearTimeout(timer); });
+    netlifyIdentity.on('login', user => { try { localStorage.removeItem('bizzybee_user_signout'); } catch { /* fine */ } const w = document.getElementById('bb-loggedout'); if (w) w.remove(); guardLogin(user); backupLogin(); start(user); });
+    netlifyIdentity.on('logout', () => { if (lsGet('bizzybee_user_signout') !== '1') warnLoggedOut(); try { localStorage.removeItem(GT_BK); } catch { /* fine */ } ready = false; accountId = null; clearTimeout(timer); });
     netlifyIdentity.init();
     if (netlifyIdentity.currentUser()) { guardLogin(netlifyIdentity.currentUser()); start(netlifyIdentity.currentUser()); }
     return { request, isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, isInactive: () => inactive, continueHere, deviceId, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule, refreshFromCloud };

@@ -405,3 +405,5 @@ body.st-in-group .stv2 > .st-list, body.st-in-group #dev-section, body.st-in-gro
 .sv-acts .btn { padding: 7px 12px; font-size: .78rem; }
 .sv-log { display: grid; gap: 2px; padding: 8px 16px; border-top: 1px solid rgba(255, 255, 255, .06); font-size: .85rem; }
 .sv-log small { color: var(--muted, #a8996f); font-size: .74rem; }
+.sv-log .sv-go { justify-self: start; margin-top: 4px; padding: 5px 10px; font-size: .74rem; }
+.sv-log.sv-sync { opacity: .75; }

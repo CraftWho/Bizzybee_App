@@ -54,7 +54,7 @@
             <button type="button" class="row" data-g="look"><span class="hx">🎨</span><span class="mid"><b>Look &amp; feel</b><small>Themes, text and look, weather</small></span><span class="chev">›</span></button>
             <button type="button" class="row" data-g="eve"><span class="hx">👑</span><span class="mid"><b>Eve &amp; help</b><small>Tips, Guide, feedback, exports</small></span><span class="chev">›</span></button>
             <button type="button" class="row" data-g="track"><span class="hx">⏱️</span><span class="mid"><b>Tracking</b><small>Time and XP for tasks</small></span><span class="chev">›</span></button>
-            <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Saves &amp; backups</b><small>Save points, cloud backups, sync log, import and export</small></span><span class="chev">›</span></button>
+            <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Saves &amp; backups</b><small>Backups, change log, cloud copies, import and export</small></span><span class="chev">›</span></button>
             <button type="button" class="row" data-g="about"><span class="hx">ℹ️</span><span class="mid"><b>About</b><small>Version, what's new, app updates</small></span><span class="chev">›</span></button>
         </section>
         <section class="card st-list" id="st-hits" hidden></section>
@@ -82,7 +82,7 @@
                 <div class="btns indent"><button id="cloud-sync-push-btn" class="btn solid" type="button">Save to Cloud</button><button id="cloud-sync-pull-btn" class="btn" type="button">Load from Cloud</button></div>
                 <p id="cloud-sync-status" class="status indent" role="status" aria-live="polite">Connecting to cloud…</p>
                 <div class="row"><span class="mid"><b>Sign out of the cloud</b><small>This device keeps working offline.</small></span><button id="cloud-sync-logout-btn" class="btn" type="button">Sign Out</button></div>
-                <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Saves &amp; backups</b><small>Save points, cloud backups, sync log</small></span><span class="chev">›</span></button>
+                <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Saves &amp; backups</b><small>Backups, change log, cloud copies</small></span><span class="chev">›</span></button>
             </section>
         </div>
 
@@ -153,16 +153,14 @@
         <h2 class="sec">Your save</h2>
         <section class="card">
             <div id="sv-now" class="sv-now" role="status" aria-live="polite">Loading…</div>
-            <div class="btns indent"><button id="auto-backup-now-btn" class="btn solid" type="button">Make a Save Point</button><button id="sv-export-btn" class="btn" type="button">Export File</button></div>
+            <div class="btns indent"><button id="auto-backup-now-btn" class="btn solid" type="button">Make a Backup</button><button id="sv-export-btn" class="btn" type="button">Export File</button></div>
         </section>
 
-        <h2 class="sec">Save points on this device</h2>
+        <h2 class="sec">Backups</h2>
         <section class="card">
-            <p class="status indent">Made when you leave the app (last 10), every hour you use it (last 24), once a day (last 7), and before risky changes like an update, a cloud load or a restore (last 10). They never push each other out.</p>
-            <div class="sv-filter" id="sv-filter" role="tablist">
-                <button type="button" class="sv-chip on" data-k="">All</button><button type="button" class="sv-chip" data-k="exit">Left app</button><button type="button" class="sv-chip" data-k="hourly">Hourly</button><button type="button" class="sv-chip" data-k="daily">Daily</button><button type="button" class="sv-chip" data-k="checkpoint">Checkpoints</button>
-            </div>
+            <p class="status indent">Your last 3 backups (the oldest is replaced). Plus one safety copy the app makes right before anything big: an update, a restore, a change from the PC or Claude.</p>
             <div id="auto-backup-list" class="list"></div>
+            <div id="sv-safety" class="list"></div>
         </section>
 
         <div class="cloud-only" id="sv-cloud">
@@ -174,9 +172,9 @@
         </section>
         </div>
 
-        <h2 class="sec">Sync log</h2>
+        <h2 class="sec">Change log</h2>
         <section class="card">
-            <p class="status indent">Every upload, failure, device switch, restore and save point, with your level and XP at that moment.</p>
+            <p class="status indent">Every change to your save, in plain words: who made it, and your level and XP after. Tap a line to go back to that moment.</p>
             <div id="sync-log" class="list"></div>
             <div class="btns indent"><button id="sync-log-more" class="btn" type="button">Show More</button></div>
         </section>

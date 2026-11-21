@@ -356,7 +356,7 @@ const BizzyUpdates = (() => {
             return;
         }
         // Nov 20 2026 (Craft): save point + upload before a new app version installs.
-        try { if (typeof Vault !== 'undefined' && Vault.savePoint) await Vault.savePoint('checkpoint', 'Before installing a new app version'); } catch { /* still install */ }
+        try { if (typeof Vault !== 'undefined') Vault.createLocalBackup('Before installing a new app version'); } catch { /* still install */ }
         try { if (typeof CloudSyncAuto !== 'undefined' && CloudSyncAuto.pushNow) await CloudSyncAuto.pushNow(); } catch { /* still install */ }
         await up.install();
     }
