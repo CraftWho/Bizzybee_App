@@ -21,13 +21,13 @@ function harness(bees, level = 5) {
 const DAY = () => new Date(2026, 10, 9, 10, 0);   // 10 AM local: a work hour
 const bee1 = (v, id) => v.getHiveBees().find(b => b.id === id);
 
-test('jobs: all open at Lv 5 except the Undertaker; each has a minimum of slots that grows with the nest', async () => {
+test('jobs: all open at Lv 5 (the Undertaker too, Nov 21 2026); each has a minimum of slots that grows with the nest', async () => {
     const v = harness([bee('a', 'collector'), bee('b', 'nurse')], 5);
     await v.init();
     const open = [...v.hiveOpenJobs()];
     ['nurse', 'honeymaker', 'collector', 'guardian', 'watercarrier', 'architect', 'attendant', 'cleaner', 'scout', 'drone', 'barrier', 'rescue', 'fanner', 'waxmaker', 'receiver']
         .forEach(j => assert.ok(open.includes(j), j + ' is open at Lv 5'));
-    assert.ok(!open.includes('undertaker'));
+    assert.ok(open.includes('undertaker'));
     assert.equal(v.jobSlots('rescue'), 2);
     v.getUser = () => ({ level: 10 });
     assert.equal(v.jobSlots('rescue'), 3);

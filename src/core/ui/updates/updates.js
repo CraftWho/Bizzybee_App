@@ -7,6 +7,20 @@
 //    (Settings › About). When releases go public, no token is needed.
 const APP_WEB_VERSION = '1.0.5';
 const WHATS_NEW = [
+    // Nov 21 2026 (Craft): saves, phone as main, Claude API, voice, hive alerts, Grave Comb.
+    { id: 'w4', version: '1.0.9', date: 'Nov 2026',
+      new: [
+        { icon: '📱', title: 'Your phone is the main device', text: 'Only your phone writes your save. The PC and others send their changes to your phone to Accept or Reject.', href: 'features/settings/settings.html' },
+        { icon: '📜', title: 'Change log', text: 'Every change to your save in plain words, who made it, and your level after. Tap Go back to here to undo to any point.', href: 'features/settings/settings.html' },
+        { icon: '💾', title: 'Backups, simpler', text: 'One autosave, your last 3 backups (also in Documents/BizzyBee), and a safety copy before anything big.', href: 'features/settings/settings.html' },
+        { icon: '⬆️', title: 'Updates wait for you', text: 'A new version shows in Settings › Updates. Tap Update when you are ready.', href: 'features/app-updates/app-updates.html' },
+        { icon: '🤖', title: 'Claude API', text: 'Make a key in Settings › Account & cloud. Claude can read and change your tasks. Every change is logged and undoable.', href: 'features/settings/settings.html' },
+        { icon: '🎙️', title: 'Voice and Bixby', text: 'Say "complete gym" or "make stretch a daily". Bixby links and a home-screen Save button.', href: 'features/voice/voice.html' },
+        { icon: '🐝', title: 'Hive status bar and alerts', text: 'Your hive and save status in the notification bar, and a heads-up before a bee gets hungry or faints.', href: 'features/settings/settings.html' },
+        { icon: '⚰️', title: 'Grave Comb and Play Yard', text: 'Undertakers lay old finished To-Dos to rest for Pollen. Bees with no job play to stay happy.', href: 'features/hive-mind/hive-mind.html' },
+        { icon: '👟', title: 'Steps pay as you walk', text: '100 steps is 1 minute and 1 XP. Your goal adds a +25 XP bonus and a prize.', href: 'plugins/incubator/incubator.html' },
+        { icon: '⚠️', title: 'Signed-out warning', text: 'If the cloud ever signs you out, BizzyBee tells you at once.' },
+      ] },
     { id: 'w3', version: '1.0.5', date: 'Nov 2026',
       new: [
         { icon: '🥚', title: 'Egg Incubator', text: 'A plugin. Your steps and dailies hatch eggs faster.', href: 'plugins/incubator/incubator.html' },
@@ -356,7 +370,7 @@ const BizzyUpdates = (() => {
             return;
         }
         // Nov 20 2026 (Craft): save point + upload before a new app version installs.
-        try { if (typeof Vault !== 'undefined' && Vault.savePoint) await Vault.savePoint('checkpoint', 'Before installing a new app version'); } catch { /* still install */ }
+        try { if (typeof Vault !== 'undefined') Vault.createLocalBackup('Before installing a new app version'); } catch { /* still install */ }
         try { if (typeof CloudSyncAuto !== 'undefined' && CloudSyncAuto.pushNow) await CloudSyncAuto.pushNow(); } catch { /* still install */ }
         await up.install();
     }

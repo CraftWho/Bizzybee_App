@@ -1,0 +1,13 @@
+/* Nov 21 2026 (Craft): Voice screen. */
+.vcv .vc-main { padding: 18px 16px; display: grid; gap: 14px; justify-items: center; text-align: center; }
+.vcv .vc-mic { width: 96px; height: 104px; border: 0; cursor: pointer; font-size: 40px; background: var(--bb-accent, #ffcc00); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.vcv .vc-mic.on { animation: vcPulse 1s ease-in-out infinite; }
+@keyframes vcPulse { 50% { transform: scale(1.08); } }
+.vcv .vc-hint { margin: 0; color: var(--muted, #a8996f); font-size: .85rem; line-height: 1.5; }
+.vcv .vc-type { display: flex; gap: 8px; width: 100%; }
+.vcv .vc-type input { flex: 1; min-width: 0; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: rgba(255, 255, 255, .04); color: inherit; font: inherit; }
+.vcv .vc-out { width: 100%; text-align: left; display: grid; gap: 8px; padding: 12px; border-radius: 14px; border: 1px solid #5aa9ff; background: rgba(90, 169, 255, .08); }
+.vcv .vc-out .btns { display: flex; gap: 8px; }
+.vcv .vc-link { display: grid; gap: 4px; padding: 10px 16px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.vcv .vc-link code { word-break: break-all; font-size: .8rem; color: var(--bb-accent, #ffcc00); }
+.vcv .vc-link .row2 { display: flex; justify-content: space-between; gap: 8px; align-items: center; }

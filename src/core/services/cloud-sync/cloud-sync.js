@@ -148,6 +148,7 @@ const CloudSyncAuto = (() => {
         status('This device is active. Saving to the cloud.');
     }
     async function pushNow(tries = 0) {
+        if (viewOnly) return proposeChanges();
         if (!ready || running || inactive || !sameAccount()) return false;
         running = true;
         const snapshot = Vault.exportFullState();
@@ -165,6 +166,7 @@ const CloudSyncAuto = (() => {
             return true;
         } catch (error) {
             running = false;
+            if (error.code === 'not-main') { running = false; viewOnly = true; showViewOnly(error.main); return proposeChanges(); }
             if (error.code === 'other-device') { running = false; goInactive(); otherDevice(); return false; }
             if (error.status === 409 && tries < 1) {
                 // Another tab on THIS device saved first (tabs share the device
@@ -243,6 +245,94 @@ const CloudSyncAuto = (() => {
             window.location.reload();
         } finally { running = false; }
     }
+    // ---- PHONE IS MAIN + INBOX (Nov 21 2026, Craft; approved) ----
+    // One main device (the phone) writes the save. Another device (the PC) works on a copy and sends only its
+    // CHANGES (a diff against the cloud copy it loaded) to the inbox; the phone shows them for Accept / Reject.
+    // Claude's changes (API) and voice apply on the phone by themselves, logged and undoable.
+    let mainInfo = null, viewOnly = false;
+    const isAppDevice = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+    const BASE = () => Vault.storageKey + ':base';
+    function setBase(text) { try { if (text) localStorage.setItem(BASE(), text); } catch { /* storage full: proposals compare to nothing */ } }
+    function showViewOnly(main) {
+        if (document.getElementById('bb-viewonly')) return;
+        const bar = document.createElement('div');
+        bar.id = 'bb-viewonly';
+        bar.setAttribute('role', 'status');
+        bar.style.cssText = 'position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4200;background:#14223a;color:#e6f0ff;border:1px solid #5aa9ff;border-radius:14px;padding:9px 14px;font:600 12px/1.35 system-ui,sans-serif;max-width:min(92vw,460px);text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.5)';
+        bar.textContent = `📱 ${(main && main.name) || mainInfo && mainInfo.name || 'Your phone'} is your main device. Changes here are sent to it for review.`;
+        const add = () => document.body.appendChild(bar);
+        if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+    }
+    async function proposeChanges() {
+        if (!enabled() || !dirty()) return true;
+        const baseText = localStorage.getItem(BASE());
+        if (!baseText) { failure('This device has no cloud copy to compare with. Open BizzyBee again to load it.'); return false; }
+        try {
+            const base = JSON.parse(baseText), cur = JSON.parse(Vault.exportFullState());
+            const ops = jsonDiff(base, cur);
+            if (!ops.length) { localStorage.setItem(Vault.storageKey + ':dirty', 'false'); indicator(); return true; }
+            const summary = journalSummary(ops, base, cur);
+            await request('inbox', { action: 'propose', device: deviceId(), deviceName: bbDeviceName(), summary, ops, base: localStorage.getItem(Vault.storageKey + ':revision') });
+            setBase(JSON.stringify(cur));
+            localStorage.setItem(Vault.storageKey + ':dirty', 'false');
+            log('upload', `Sent changes to your main device for review: ${summary.join(' · ') || ops.length + ' changes'}`);
+            status('Changes sent to your main device for review.');
+            return true;
+        } catch (e) { failure('Could not send changes to your main device: ' + e.message); return false; }
+    }
+    function reviewProposal(item) {
+        return new Promise((resolve) => {
+            const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            const w = document.createElement('div');
+            w.className = 'bbr-scrim'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+            const when = (() => { try { return new Date(item.at).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } })();
+            w.innerHTML = `<style>.bbr-scrim{position:fixed;inset:0;z-index:6000;background:rgba(5,4,2,.92);display:flex;align-items:center;justify-content:center;padding:16px;font:14px/1.4 system-ui,sans-serif;color:#f5ecd4}
+                .bbr{width:100%;max-width:420px;background:#15110a;border:1px solid #5aa9ff;border-radius:18px;padding:18px}.bbr h2{margin:0 0 4px;font-size:18px;color:#7cbcff}.bbr p{margin:0 0 10px;color:#c2b48f;font-size:13px}
+                .bbr ul{margin:0 0 14px;padding-left:18px;display:grid;gap:4px}.bbr button{display:block;width:100%;border:0;border-radius:12px;padding:13px;margin-top:8px;font:800 14px system-ui,sans-serif;cursor:pointer}
+                .bbr .a{background:#ffcc00;color:#1a0f02}.bbr .b{background:#2a2418;color:#f5ecd4}</style>
+                <div class="bbr"><h2>💻 Changes from ${esc(item.deviceName || 'another device')}</h2><p>${esc(when)} · ${item.ops.length} change${item.ops.length === 1 ? '' : 's'}. Accept puts them on this save (a safety copy is made first).</p>
+                <ul>${(item.summary && item.summary.length ? item.summary : ['Small changes']).map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+                <button type="button" class="a" data-k="accept">Accept</button><button type="button" class="b" data-k="reject">Reject</button></div>`;
+            w.addEventListener('click', (e) => { const b = e.target.closest('[data-k]'); if (!b) return; w.remove(); resolve(b.dataset.k); });
+            const add = () => document.body.appendChild(w);
+            if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+        });
+    }
+    let inboxBusy = false;
+    async function syncInbox() {
+        if (!ready || inboxBusy || !enabled() || Vault.devTest) return;
+        inboxBusy = true;
+        try {
+            const box = await request('inbox');
+            mainInfo = box.main || null;
+            if (!mainInfo && isAppDevice()) {
+                try { mainInfo = (await request('inbox', { action: 'set-main', device: deviceId(), deviceName: bbDeviceName() })).main; log('choice', 'This phone is now your main device'); } catch { /* next time */ }
+            }
+            if (mainInfo && mainInfo.device !== deviceId()) { viewOnly = true; showViewOnly(mainInfo); return; }
+            viewOnly = false;
+            const items = box.items || [];
+            if (!items.length) return;
+            const done = [];
+            for (const it of items.filter(i => i.kind === 'ops')) {
+                const who = it.from === 'claude' ? 'Claude' : it.from === 'voice' ? 'Voice' : 'API';
+                const res = Vault.applyOps(it.ops || [], { src: it.from || 'claude', note: `${who}${it.note ? ': ' + it.note : ''}` });
+                const ok = res.filter(r => r.ok).length;
+                done.push(it.id);
+                if (typeof Toast !== 'undefined') Toast.show(`${it.from === 'claude' ? '🤖' : '🎙️'} ${who} made ${ok} change${ok === 1 ? '' : 's'}${res.length > ok ? ` (${res.length - ok} skipped)` : ''}. It's in the change log.`, 'positive');
+            }
+            for (const it of items.filter(i => i.kind === 'diff')) {
+                const pick = await reviewProposal(it);
+                if (pick === 'accept') { const r = Vault.applyDiff(it.ops || [], { src: 'pc', note: `Accepted changes from ${it.deviceName || 'the PC'}` }); if (!r.ok) failure('Could not apply the changes: ' + r.error); }
+                else log('choice', `Rejected changes from ${it.deviceName || 'the PC'}`);
+                done.push(it.id);
+            }
+            if (done.length) { await request('inbox', { action: 'done', ids: done }); schedule(); }
+        } catch (e) { /* the inbox is optional: try again later */ }
+        finally { inboxBusy = false; }
+    }
+    window.addEventListener('cloud-sync-ready', () => syncInbox());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(syncInbox, 1500); });
+
     // ---- Review screen (Nov 20 2026, Craft; approved plan) ----
     // When the cloud copy came from another device, show both copies side by side: level, XP, coins, when, and
     // which device. You pick one; the other is kept as a save point. Same-progress copies don't ask.
@@ -255,7 +345,7 @@ const CloudSyncAuto = (() => {
         if (!me || (!me.xp && !me.level)) return 'cloud';                 // nothing here yet (new install)
         if (me.xp === cloud.xp && me.level === cloud.level && me.coins === cloud.coins) return 'cloud';   // same progress
         log('review', `Cloud copy differs: this device Lv ${me.level} · ${me.xp} XP, cloud Lv ${cloud.level} · ${cloud.xp} XP`);
-        try { await Vault.savePoint('checkpoint', 'Before choosing a copy'); } catch { /* still ask */ }
+        try { Vault.createLocalBackup('Before choosing a copy'); } catch { /* still ask */ }
         const when = (iso) => { try { return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
         let myAt = null; try { myAt = JSON.parse(local).updatedAt || null; } catch { /* no time */ }
         const card = (title, m, at, dev, rec) => `<div class="bbr-c${rec ? ' rec' : ''}"><div class="bbr-h">${title}${rec ? '<span>Most progress</span>' : ''}</div>
@@ -280,7 +370,7 @@ const CloudSyncAuto = (() => {
                 <div class="bbr-row">${card('📱 This device', me, myAt, me.device, meBest)}${card('☁️ Cloud', cloud, result.updatedAt, cloud.device, !meBest)}</div>
                 <div class="bbr-b"><button type="button" class="a" data-k="${meBest ? 'device' : 'cloud'}">${meBest ? 'Keep this device' : 'Use the cloud copy'}</button>
                   <button type="button" class="b" data-k="${meBest ? 'cloud' : 'device'}">${meBest ? 'Use the cloud copy' : 'Keep this device'}</button></div>
-                <small>The copy you don't pick is kept as a save point in Settings › Backups.</small></div>`;
+                <small>The copy you don't pick is kept: the cloud's in Cloud backups, this device's as the safety copy.</small></div>`;
             wrap.addEventListener('click', (e) => {
                 const b = e.target.closest('button[data-k]'); if (!b) return;
                 wrap.querySelectorAll('button').forEach(x => { x.disabled = true; }); b.textContent = 'One moment…';
@@ -340,7 +430,17 @@ const CloudSyncAuto = (() => {
             // without device ids), the cloud copy wins; this device's unsent
             // changes go to a device backup first.
             const mine = result.device === deviceId();
-            if (result.data && !mine && result.revision !== revision) {
+            let mainNow = null;
+            try { mainNow = (await request('inbox')).main || null; mainInfo = mainNow; } catch { /* inbox down: old rules */ }
+            if (result.data && mainNow && mainNow.device !== deviceId()) {
+                // Not the main device: send any unsent changes from here, then work on the main device's copy.
+                viewOnly = true;
+                if (dirty() && localStorage.getItem(BASE())) { ready = true; await proposeChanges(); ready = false; }
+                // The copy to compare against: this device's own (tidied) copy when it matches the cloud.
+                setBase(result.revision === revision && !dirty() ? Vault.exportFullState() : result.data);
+                showViewOnly(mainNow);
+                if (result.revision !== revision) { if (await claim(result)) return; }
+            } else if (result.data && !mine && result.revision !== revision) {
                 // Nov 20 2026 (Craft): REVIEW FIRST. Nothing replaces anything until you pick a copy.
                 const pick = await reviewCopies(result);
                 if (pick === 'cloud') { if (await claim(result)) return; }
@@ -458,7 +558,36 @@ const CloudSyncAuto = (() => {
     const GT = 'gotrue.user', GT_BK = 'bizzybee_gotrue_backup', GT_EVT = 'bizzybee_cloud_event';
     const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
     const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
-    const cloudEvent = msg => { lsSet(GT_EVT, JSON.stringify({ at: new Date().toISOString(), msg })); log('login', msg); };
+    const cloudEvent = msg => { lsSet(GT_EVT, JSON.stringify({ at: new Date().toISOString(), msg })); log('login', msg); if (/rejected|Sign in again/i.test(msg)) warnLoggedOut(); };
+    // Nov 21 2026 (Craft): LOGGED-OUT WARNING. If the cloud login is ever lost (not by you tapping Sign Out),
+    // a pop-up says so at once, so progress never piles up unsaved again.
+    function warnLoggedOut() {
+        try {
+            if (lsGet('bizzybee_user_signout') === '1' || document.getElementById('bb-loggedout')) return;
+            const last = Number(sessionStorage.getItem('bb_lo_warn') || 0);
+            if (Date.now() - last < 10 * 60000) return;
+            sessionStorage.setItem('bb_lo_warn', String(Date.now()));
+        } catch { /* show it anyway */ }
+        const show = () => {
+            const w = document.createElement('div');
+            w.id = 'bb-loggedout'; w.setAttribute('role', 'alertdialog'); w.setAttribute('aria-modal', 'true');
+            w.innerHTML = `<style>#bb-loggedout{position:fixed;inset:0;z-index:6100;background:rgba(5,4,2,.88);display:flex;align-items:center;justify-content:center;padding:16px;font:14px/1.4 system-ui,sans-serif;color:#f5ecd4}
+                #bb-loggedout .box{max-width:380px;width:100%;background:#1a0c0c;border:1px solid #ff4d4d;border-radius:18px;padding:18px}
+                #bb-loggedout h2{margin:0 0 6px;font-size:18px;color:#ff6b6b}#bb-loggedout p{margin:0 0 14px;color:#e6cfc0}
+                #bb-loggedout button{display:block;width:100%;border:0;border-radius:12px;padding:13px;margin-top:8px;font:800 14px system-ui,sans-serif;cursor:pointer}
+                #bb-loggedout .a{background:#ffcc00;color:#1a0f02}#bb-loggedout .b{background:#2a2418;color:#f5ecd4}</style>
+                <div class="box"><h2>⚠️ You're signed out of the cloud</h2><p>Your progress is still saved on this device, but it is <b>not</b> reaching the cloud. Sign in to keep it safe.</p>
+                <button type="button" class="a" data-k="in">Sign In</button><button type="button" class="b" data-k="later">Later</button></div>`;
+            w.addEventListener('click', (e) => {
+                const k = e.target.closest('[data-k]'); if (!k) return;
+                w.remove();
+                if (k.dataset.k === 'in') { try { netlifyIdentity.open('login'); } catch { location.href = (window.BB_SITE || '') + '/src/features/settings/settings.html'; } }
+            });
+            document.body.appendChild(w);
+        };
+        if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
+        log('login', 'Signed out of the cloud: warning shown');
+    }
     const backupLogin = () => { const v = lsGet(GT); if (v) lsSet(GT_BK, v); };
     const restoreLogin = () => { const b = lsGet(GT_BK); if (b && !lsGet(GT)) { lsSet(GT, b); return true; } return false; };
     const transientAuthError = e => !e || typeof e.status !== 'number' || e.status >= 500;
@@ -485,12 +614,25 @@ const CloudSyncAuto = (() => {
         if (netlifyIdentity.currentUser()) cloudEvent('Cloud login restored after it dropped.');
         else { try { localStorage.removeItem(GT); } catch { /* fine */ } }
     }
+    if (!netlifyIdentity.currentUser() && lsGet('bizzybee_session') === 'identity' && enabled() && !Vault.devTest) warnLoggedOut();
     guardLogin(netlifyIdentity.currentUser());
     setInterval(backupLogin, 60000);
     netlifyIdentity.on('init', user => { guardLogin(user); start(user); });
-    netlifyIdentity.on('login', user => { guardLogin(user); backupLogin(); start(user); });
-    netlifyIdentity.on('logout', () => { try { localStorage.removeItem(GT_BK); } catch { /* fine */ } ready = false; accountId = null; clearTimeout(timer); });
+    netlifyIdentity.on('login', user => { try { localStorage.removeItem('bizzybee_user_signout'); } catch { /* fine */ } const w = document.getElementById('bb-loggedout'); if (w) w.remove(); guardLogin(user); backupLogin(); start(user); });
+    netlifyIdentity.on('logout', () => { if (lsGet('bizzybee_user_signout') !== '1') warnLoggedOut(); try { localStorage.removeItem(GT_BK); } catch { /* fine */ } ready = false; accountId = null; clearTimeout(timer); });
     netlifyIdentity.init();
     if (netlifyIdentity.currentUser()) { guardLogin(netlifyIdentity.currentUser()); start(netlifyIdentity.currentUser()); }
-    return { request, isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, isInactive: () => inactive, continueHere, deviceId, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, request, schedule, refreshFromCloud };
+    // Make this device the main one (Settings). Its copy becomes the cloud copy (the old one is backed up).
+    async function makeMain() {
+        await request('inbox', { action: 'set-main', device: deviceId(), deviceName: bbDeviceName() });
+        mainInfo = { device: deviceId(), name: bbDeviceName() };
+        viewOnly = false;
+        const bar = document.getElementById('bb-viewonly'); if (bar) bar.remove();
+        log('choice', 'This device is now your main device');
+        const cur = await request('load-state');
+        await keepDevice(cur);
+        return true;
+    }
+    return { request, isEnabled: enabled, isReady: () => ready, hasConflict: () => conflict, isInactive: () => inactive, continueHere, deviceId, getStatus: () => lastStatus, pushNow, pullLatest, useDeviceCopy, restoreBackup, peekCloud, schedule, refreshFromCloud,
+        isViewOnly: () => viewOnly, main: () => mainInfo, makeMain, syncInbox };
 })();

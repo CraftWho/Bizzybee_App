@@ -128,7 +128,7 @@ const BizzyNative = (() => {
         try {
             await setup();
             const pending = await ln.getPending();
-            const ours = (pending.notifications || []).filter(n => !(n.extra && n.extra.snoozed));
+            const ours = (pending.notifications || []).filter(n => !(n.extra && (n.extra.snoozed || n.extra.hive)));
             if (ours.length) await ln.cancel({ notifications: ours.map(n => ({ id: n.id })) });
             if (!prefs.reminders()) return;
             const plan = buildPlan();
@@ -251,9 +251,139 @@ const BizzyNative = (() => {
         });
     }
 
+    // ---- bizzybee:// LINKS (Nov 21 2026, Craft; approved) ----
+    // The home-screen "Save BizzyBee" button and Bixby Quick Commands open these links:
+    //   bizzybee://save                       make a backup (Documents/BizzyBee too), upload, then close
+    //   bizzybee://voice                      open the voice screen
+    //   bizzybee://done?daily=Workout         complete a daily (also todo=..., task=...)
+    //   bizzybee://habit?name=Water&dir=-     +1 (or -1) on a habit
+    const root = () => { const i = location.pathname.indexOf('/src/'); return i >= 0 ? location.pathname.slice(0, i) : ''; };
+    async function quickSave(note = 'Save button') {
+        await Vault.init();
+        try { await Vault.journalFlush(); } catch { /* fine */ }
+        const r = await Vault.savePoint('backup', note);
+        let up = false;
+        try { if (typeof CloudSyncAuto !== 'undefined' && CloudSyncAuto.pushNow) up = await CloudSyncAuto.pushNow(); } catch { /* the backup still counts */ }
+        const m = Vault.backupMeta(Vault.state) || {};
+        if (typeof Toast !== 'undefined') Toast.show(`💾 Saved · Lv ${m.level} · ${Number(m.xp || 0).toLocaleString()} XP${up ? ' · in the cloud' : ''}${r.ok ? '' : ' (backup failed: ' + r.error + ')'}`, r.ok ? 'positive' : 'negative');
+        return r.ok;
+    }
+    async function handleLink(url) {
+        let u; try { u = new URL(url); } catch { return; }
+        if (u.protocol !== 'bizzybee:') return;
+        const what = (u.host || u.pathname.replace(/^\/+/, '')).toLowerCase();
+        const q = (k) => u.searchParams.get(k);
+        const close = () => setTimeout(() => { try { P('App').minimizeApp(); } catch { /* stay */ } }, 1800);
+        if (what === 'voice') { location.href = root() + '/src/features/voice/voice.html'; return; }
+        await Vault.init();
+        if (what === 'save') { await quickSave(); close(); return; }
+        const ops = [];
+        if (what === 'done') {
+            if (q('daily')) ops.push({ op: 'complete', kind: 'daily', label: q('daily') });
+            if (q('todo')) ops.push({ op: 'complete', kind: 'todo', label: q('todo') });
+            if (q('task')) ops.push({ op: 'complete', kind: 'quest-task', label: q('task') });
+        } else if (what === 'habit' && q('name')) ops.push({ op: 'habit', kind: 'habit', label: q('name'), dir: q('dir') === '-' ? '-' : '+' });
+        if (!ops.length) return;
+        const res = Vault.applyOps(ops, { src: 'bixby', note: 'Bixby' });
+        const ok = res.filter(r => r.ok);
+        if (typeof Toast !== 'undefined') Toast.show(ok.length ? `🎙️ Done: ${ok.map(r => r.label).join(', ')}` : `🎙️ Couldn't find "${res.map(r => r.label).join(', ')}"`, ok.length ? 'positive' : 'negative');
+        try { if (typeof CloudSyncAuto !== 'undefined') CloudSyncAuto.schedule(); } catch { /* uploads later */ }
+        if (ok.length) close();
+    }
+
+    // ---- HIVE ALERTS + STATUS BAR (Nov 21 2026, Craft; approved) ----
+    // Status bar: an always-on, silent notification with the hive at a glance and whether your save reached the
+    // cloud ("☁️ Saved 3:10 PM" or "⚠️ Not uploaded"). Updated while the app is open and when you leave it.
+    // Alerts: when you leave, the hive forecast (Vault.hiveForecast) is played 24 hours ahead and the first time
+    // each problem would happen (hungry, worn out, sick, fainting, honey running out) is scheduled as an alert.
+    // Channels are named "hive-..." (not "bb-...", which the reminder channels clean up).
+    const HIVE_BAR = 990001, HIVE_ALERT = 990100;
+    const hivePrefs = { bar: () => localStorage.getItem('bb_hive_bar') !== 'off', alerts: () => localStorage.getItem('bb_hive_alerts') !== 'off' };
+    let hiveChannels = false;
+    async function hiveSetup() {
+        const ln = LN(); if (!ln || hiveChannels) return;
+        try {
+            await ln.createChannel({ id: 'hive-status', name: 'Hive status', description: 'Your hive and save at a glance', importance: 2, visibility: 1, vibration: false });
+            await ln.createChannel({ id: 'hive-alerts', name: 'Hive alerts', description: 'When bees need you', importance: 3, visibility: 1, vibration: true });
+            hiveChannels = true;
+        } catch { /* older app */ }
+    }
+    function hiveText() {
+        const bees = (Vault._lifeBees ? Vault._lifeBees() : []);
+        const n = (f) => bees.filter(f).length;
+        const work = n(b => b.class && !(b.life && (b.life.recuperate || b.life.faintedAt)));
+        const rest = n(b => b.life && b.life.recuperate);
+        const hungry = n(b => b.life && b.life.fullness < (typeof CAFE !== 'undefined' ? CAFE.below : 40) && !b.life.faintedAt);
+        const sick = n(b => b.life && (b.life.nursery || b.life.sickUntil));
+        const faint = n(b => b.life && b.life.faintedAt);
+        const honey = Math.round((Vault.state.hive && Vault.state.hive.honey) || 0);
+        const m = Vault.backupMeta(Vault.state) || {};
+        const dirty = localStorage.getItem(Vault.storageKey + ':dirty') === 'true';
+        const synced = localStorage.getItem(Vault.storageKey + ':syncedAt');
+        const signedIn = localStorage.getItem('bizzybee_session') === 'identity';
+        const cloud = !signedIn ? '⚠️ Not signed in to the cloud' : dirty ? '⚠️ Not uploaded yet' : `☁️ Saved ${synced ? new Date(synced).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''}`;
+        const issues = [hungry && `${hungry} hungry`, sick && `${sick} sick`, faint && `${faint} fainted`].filter(Boolean).join(' · ');
+        return { title: `🐝 ${work} working · ${rest} resting${issues ? ' · ' + issues : ''}`, body: `Lv ${m.level} · 🍯 ${honey} honey · ${cloud}` };
+    }
+    async function updateHiveBar() {
+        const ln = LN(); if (!ln || typeof Vault === 'undefined' || !Vault.state || Vault.devTest) return;
+        await hiveSetup();
+        try {
+            if (!hivePrefs.bar()) { await ln.cancel({ notifications: [{ id: HIVE_BAR }] }); return; }
+            const t = hiveText();
+            await ln.schedule({ notifications: [{ id: HIVE_BAR, channelId: 'hive-status', title: t.title, body: t.body, ongoing: true, autoCancel: false, extra: { hive: 'bar', url: '/src/features/hive-mind/hive-mind.html?view=life' } }] });
+        } catch { /* notifications not allowed */ }
+    }
+    async function scheduleHiveAlerts() {
+        const ln = LN(); if (!ln || typeof Vault === 'undefined' || !Vault.state || Vault.devTest || !Vault.hiveForecast) return;
+        await hiveSetup();
+        try {
+            const pending = await ln.getPending();
+            const old = (pending.notifications || []).filter(n => n.extra && n.extra.hive === 'alert');
+            if (old.length) await ln.cancel({ notifications: old.map(n => ({ id: n.id })) });
+            if (!hivePrefs.alerts()) return;
+            const fc = Vault.hiveForecast(24);
+            const WANT = { hungry: 'is getting hungry', worn: 'is worn out', sick: 'is sick', faint: 'will faint', 'honey-out': '', tired: 'is too tired to work' };
+            const seen = new Set(), list = [];
+            const bees = Vault.getHiveBees();
+            for (const e of fc.events || []) {
+                if (!(e.kind in WANT) || seen.has(e.kind + (e.kind === 'honey-out' ? '' : e.beeId))) continue;
+                const at = new Date(e.at);
+                if (at.getTime() < Date.now() + 10 * 60000) continue;
+                const h = at.getHours(); if (h < 8 || h >= 22) continue;   // no alerts at night
+                seen.add(e.kind + (e.kind === 'honey-out' ? '' : e.beeId));
+                const name = e.beeId ? ((bees.find(b => b.id === e.beeId) || {}).name || 'A bee') : '';
+                list.push({ id: HIVE_ALERT + list.length, channelId: 'hive-alerts', title: e.kind === 'honey-out' ? '🍯 Honey is running out' : `${e.face || '🐝'} ${name} ${WANT[e.kind]}`, body: e.kind === 'honey-out' ? 'Finishing a task adds honey for your bees.' : 'Open Hive Life to help.', schedule: { at, allowWhileIdle: true }, extra: { hive: 'alert', url: '/src/features/hive-mind/hive-mind.html?view=life' } });
+                if (list.length >= 8) break;
+            }
+            if (list.length) await ln.schedule({ notifications: list });
+        } catch { /* notifications not allowed */ }
+    }
+
     function start() {
         if (!isApp) return;
         backButton();
+        try {
+            let hb = null;
+            const barSoon = () => { clearTimeout(hb); hb = setTimeout(updateHiveBar, 4000); };
+            window.addEventListener('vault-saved', barSoon);
+            window.addEventListener('cloud-sync-status', barSoon);
+            const leave = () => { updateHiveBar(); scheduleHiveAlerts(); };
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') leave(); else barSoon(); });
+            if (P('App')) P('App').addListener('pause', leave);
+            (typeof Vault !== 'undefined' ? Vault.init() : Promise.resolve()).then(() => setTimeout(() => { updateHiveBar(); scheduleHiveAlerts(); }, 3000));
+        } catch { /* fine */ }
+        try {
+            const App = P('App');
+            if (App) {
+                App.addListener('appUrlOpen', (e) => handleLink(e && e.url));
+                if (!sessionStorage.getItem('bb_launch_url_done')) {
+                    sessionStorage.setItem('bb_launch_url_done', '1');
+                    App.getLaunchUrl().then(r => { if (r && r.url) handleLink(r.url); }).catch(() => {});
+                }
+            }
+            if (!localStorage.getItem('bb_shortcuts_v1')) { P('BeeFiles').shortcuts({}).then(() => localStorage.setItem('bb_shortcuts_v1', '1')).catch(() => {}); }
+        } catch { /* old app */ }
         // Vibration switch: when off, quietly ignore every vibrate call.
         if (!prefs.vibration() && navigator.vibrate) navigator.vibrate = () => false;
         let t = null;
@@ -278,5 +408,7 @@ const BizzyNative = (() => {
         previewRhythm: (key) => { try { Alerts().previewVibration({ pattern: (RHYTHMS[key] || RHYTHMS.buzz).p }); } catch {} },
         buzz(ms = 30) { if (isApp && prefs.vibration() && navigator.vibrate) navigator.vibrate(ms); },
         releasesUrl: 'https://github.com/CraftWho/Bizzybee_App/releases/latest',
+        quickSave, handleLink, updateHiveBar, scheduleHiveAlerts, hivePrefs,
+        pinSaveButton: async () => { const r = await P('BeeFiles').shortcuts({ pin: true }); return r; },
     };
 })();
