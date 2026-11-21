@@ -5,10 +5,10 @@
 //   - A heading with no panel after it, and a page title, get a solid plate.
 //   - Loose notes on the honeycomb get a solid note box.
 //   - THE BACKPLATE GUARD (Nov 21 2026, Craft: "a sure fire way"): any box on
-//     the honeycomb with a see-through background gets a solid backplate under
-//     it. It keeps its own tint (green stays green), the honeycomb just can't
-//     show through. Works for anything, including boxes that only appear later
-//     (unlocks, pop-ups). Rule: docs/THEME-RULES.md.
+//     the honeycomb with a see-through background becomes the app's standard
+//     box: black, gold outline, red top border ([data-bb-plated] in global.css).
+//     Works for anything, including boxes that only appear later (unlocks,
+//     pop-ups). Rule: docs/THEME-RULES.md.
 // It only adds classes and colors (and a margin fix), never moves anything, and
 // runs again when a page draws more content or a box changes state. Styles: title-bars.css.
 const TitleBars = (() => {
@@ -30,19 +30,11 @@ const TitleBars = (() => {
     const ownText = (el) => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
     const isPanel = (el) => { if (!el || !visible(el)) return false; const cs = getComputedStyle(el); return solid(cs) && parseFloat(cs.borderTopLeftRadius) >= 4 && el.getBoundingClientRect().height > 24; };
 
-    // see-through color over the backplate -> the same color, solid
-    const PLATE = [14, 10, 4];   // --bb-plate #0e0a04
-    function blend(c) {
-        const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return null;
-        const v = m[1].split(',').map(parseFloat); const a = v.length > 3 ? v[3] : 1;
-        const mix = (i) => Math.round(v[i] * a + PLATE[i] * (1 - a));
-        return `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
-    }
     const seeThrough = (cs) => { const a = alpha(cs.backgroundColor); const img = cs.backgroundImage && cs.backgroundImage !== 'none' && !/url\(/.test(cs.backgroundImage);
         return (a > 0.02 && a < 0.85) || (img && /rgba\([^)]*,\s*0?\.\d+\)|transparent/.test(cs.backgroundImage) && a < 0.85); };
     function plate() {
         // re-check plated boxes (their state may have changed, e.g. "on")
-        document.querySelectorAll('[data-bb-plated]').forEach(el => { el.style.backgroundColor = ''; el.removeAttribute('data-bb-plated'); });
+        document.querySelectorAll('[data-bb-plated]').forEach(el => el.removeAttribute('data-bb-plated'));
         document.querySelectorAll('body *').forEach(el => {
             if (el.closest('.ah, .app-head, .app-dock, .dk, header, nav, .hn-tip, .hn-eve-pop, .toast, [class*="toast"], svg, canvas, [data-no-tidy]')) return;
             const cs = getComputedStyle(el);
@@ -50,9 +42,7 @@ const TitleBars = (() => {
             if (parseFloat(cs.opacity) < 0.95 || el.getBoundingClientRect().height < 16) return;
             if (!(el.innerText || '').trim()) return;          // only boxes that hold text
             if (!onHoneycomb(el)) return;                       // something solid is already behind it
-            const solidColor = alpha(cs.backgroundColor) > 0.02 ? blend(cs.backgroundColor) : 'var(--bb-plate, #0e0a04)';
-            el.style.backgroundColor = solidColor;
-            el.setAttribute('data-bb-plated', '');
+            el.setAttribute('data-bb-plated', '');   // the standard box look (global.css)
         });
     }
 

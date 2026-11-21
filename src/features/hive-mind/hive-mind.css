@@ -894,12 +894,12 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
    auto-manage panel (approved demo). */
 .hl-need { position: absolute; top: 4px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #ff2d4a; box-shadow: 0 0 0 2px #120d05, 0 0 10px rgba(255, 45, 74, .8); animation: hlNeed 1.4s ease-in-out infinite; pointer-events: none; }
 @keyframes hlNeed { 50% { transform: scale(1.25); } }
-/* Nov 21 2026 (Craft): solid colors (same tint as before, no honeycomb showing through) */
-.hl-buzz { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: #2b0e0c; border: 1px solid rgba(255, 45, 74, .45); color: #ffd7dd; font-size: .82rem; }
+/* Nov 21 2026 (Craft): the app's standard box (black, gold outline, red top border) */
+.hl-buzz { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: linear-gradient(#1a140b, #120d06); border: 1px solid rgba(255, 204, 0, .28); border-top: 2px solid #dc143c !important; color: #ffd7dd; font-size: .82rem; }
 .hl-buzz b { color: #fff; }
-.hl-auto { display: grid; gap: 4px; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: #1c1604; border: 1px solid rgba(255, 204, 0, .25); color: #f1ede2; font-size: .82rem; }
+.hl-auto { display: grid; gap: 4px; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: linear-gradient(#1a140b, #120d06); border-top: 2px solid #dc143c !important; border: 1px solid rgba(255, 204, 0, .25); color: #f1ede2; font-size: .82rem; }
 .hl-auto b { color: #ffcc00; }
-.hl-auto.on { background: #171b0f; border-color: rgba(127, 224, 138, .45); }
+.hl-auto.on { background: linear-gradient(#1a140b, #120d06); border-color: rgba(255, 204, 0, .28); }
 .hl-auto.on b { color: #7fe08a; }
 .hl-auto small { color: #c2b48f; font-size: .72rem; }
 .hl-chk { display: flex; flex-wrap: wrap; gap: 4px 12px; color: #c2b48f; font-size: .76rem; }
@@ -974,7 +974,7 @@ body.hive-mind-is-entering .cf-wrap { opacity: 0; transition: opacity .3s; }
 /* Nov 21 2026 (Craft): the Grave Comb (Undertakers) and the Play Yard (bees with no job). */
 .hl-cell[data-comb="grave"] { --cb-hi: #6f6a8a; --cb-lo: #2c2838; --cb-in: #15131c; }
 /* Nov 21 2026 (Craft): the Manager bee card. */
-.hl-mgr { display: grid; gap: 6px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .2); background: #161209; }
+.hl-mgr { display: grid; gap: 6px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .2); background: #0e0a04; }
 .hl-mgr-top { display: flex; align-items: center; gap: 10px; }
 .hl-mgr-face { font-size: 1.4rem; width: 38px; height: 42px; display: grid; place-items: center; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .15); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); flex: none; }
 .hl-mgr-n { flex: 1; min-width: 0; display: grid; }

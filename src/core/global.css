@@ -29,7 +29,8 @@
 /* --- BOX PRESETS (Oct 28 2026). Use these instead of new one-off boxes.
    bb-box = Panel · --frame = page header · --glow = Spotlight (one per
    screen) · --note = tips and Eve · --alert = something needs care. --- */
-.bb-plate { padding: 12px 14px; border-radius: var(--bb-radius, 16px); background: var(--bb-plate, #0e0a04); border: 1px solid var(--bb-edge, rgba(255, 204, 0, .28)); color: var(--bb-ink, #f1ede2); box-sizing: border-box; }   /* Nov 21 2026: the backplate preset */
+.bb-plate, [data-bb-plated] { border-radius: var(--bb-radius, 16px); background: linear-gradient(var(--bb-surface-2, #1a140b), var(--bb-surface, #120d06)) !important; border: 1px solid var(--bb-edge, rgba(255, 204, 0, .28)) !important; border-top: 2px solid var(--bb-alt, #dc143c) !important; color: var(--bb-ink, #f1ede2); box-sizing: border-box; }   /* Nov 21 2026 (Craft): THE BACKPLATE = the app's standard box: black, gold outline, red top border */
+.bb-plate { padding: 12px 14px; }
 .bb-box { position: relative; padding: 14px; border-radius: var(--bb-radius); background: var(--bb-surface); border: 1px solid var(--bb-edge); color: var(--bb-ink); box-sizing: border-box; }
 .bb-box::after { content: ""; position: absolute; top: 0; left: 0; width: 40px; height: 40px; background: var(--bb-corner) no-repeat; pointer-events: none; }
 .bb-box > :first-child { margin-top: 0; }
