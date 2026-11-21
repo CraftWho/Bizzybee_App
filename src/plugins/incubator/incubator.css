@@ -150,3 +150,11 @@
 .ics-card .st-goal { display: flex; gap: 6px; align-items: center; }
 .ics-card .st-goal input { width: 100px; padding: 8px; border-radius: 10px; border: 1px solid #3a2a0a; background: #0b0803; color: #f1ede2; font: 700 .9rem system-ui; }
 
+
+/* Nov 21 2026 (Craft): font rule. Reading text in the plain font; titles, numbers and buttons keep Courier Prime. */
+.icv { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.icv h1, .icv h2, .icv h3, .icv .ic-btn, .icv .ic-tier, .icv .ic-price, .icv .ic-wallet b, .icv .ic-today b, .icv .ics-top b, .icv .ics-ring b,
+.icv .ics-nums b, .icv .ics-recs b, .icv .ics-row .r, .icv .ics-month b, .icv .ic-stats summary span, .icv .ic-how summary, .icv .ics-tabs button, .icv .ics-goal button,
+.icv .st-goal input, .icv .ics-axis { font-family: var(--font-main, ui-monospace, monospace); }
+.ic-sheet { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.ic-sheet h3, .ic-sheet .ic-btn { font-family: var(--font-main, ui-monospace, monospace); }

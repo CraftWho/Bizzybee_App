@@ -77,10 +77,10 @@
 .cf-page { padding-bottom: 130px; }
 .cf-head { margin-bottom: 6px; }
 .cf-sorts { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 4px; }
-.cf-pill { min-height: 36px; margin: 0; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: transparent; color: var(--bb-ink, #f1ede2); font: 700 .78rem system-ui, sans-serif; cursor: pointer; box-shadow: none; }
+.cf-pill { min-height: 36px; margin: 0; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: #120d06; color: var(--bb-ink, #f1ede2); font: 700 .78rem system-ui, sans-serif; cursor: pointer; box-shadow: none; }
 .cf-pill[aria-pressed="true"] { background: var(--bb-accent, #ffcc00); border-color: transparent; color: #1a1000; }
 .cf-pill small { opacity: .7; font-weight: 600; }
-.cf-stage { --cf-w: 190px; --cf-s: .73; position: relative; height: calc(var(--cf-w) * 1.4 + 40px); margin: 6px -16px 0; perspective: 900px; touch-action: pan-y; user-select: none; -webkit-user-select: none; overflow: hidden; outline: none; }
+.cf-stage { --cf-w: 190px; --cf-s: .73; position: relative; height: calc(var(--cf-w) * 1.4 + 40px); margin: 6px -14px 0; perspective: 900px; touch-action: pan-y; user-select: none; -webkit-user-select: none; overflow: hidden; outline: none; }
 .cf-card { position: absolute; left: 50%; top: 16px; width: var(--cf-w); height: calc(var(--cf-w) * 1.4); margin: 0 0 0 calc(var(--cf-w) / -2); padding: 0; border: 0; background: none; box-shadow: none; cursor: pointer; transform-style: preserve-3d; transition: transform .38s cubic-bezier(.2, .8, .2, 1); -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(255, 255, 255, .14)); }
 .cf-card.dragging { transition: none; }
 /* Nov 6 2026 (Craft): smoother Cover Flow on phones. Each card is its own

@@ -1212,7 +1212,14 @@ class CodexSystem {
         document.head.appendChild(iiCss);
         const ii = document.createElement('script');
         ii.src = '../../../src/core/ui/item-intro/item-intro.js';
-        document.body.appendChild(ii);
+        document.body.appendChild(ii);        // Nov 21 2026 (Craft): no text right on the honeycomb (headings become their box's title bar).
+        const tbCss = document.createElement('link');
+        tbCss.rel = 'stylesheet';
+        tbCss.href = '../../../src/core/ui/title-bars/title-bars.css';
+        document.head.appendChild(tbCss);
+        const tb = document.createElement('script');
+        tb.src = '../../../src/core/ui/title-bars/title-bars.js';
+        document.body.appendChild(tb);
     }
 
     // "How long did it take?" pop-up after a check-off (time-log.js).

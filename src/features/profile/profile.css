@@ -10,7 +10,7 @@
 .pf-sheet ul { list-style: none; margin: 10px 0; padding: 0; color: #cdbb8a; font-size: .88rem; line-height: 1.7; }
 .pf-sheet button { width: 100%; padding: 12px; border-radius: 12px; border: 0; background: var(--bb-accent, #ffcc00); color: #1a1000; font: 700 .92rem system-ui, sans-serif; cursor: pointer; }
 .pf-burst { width: 90px; height: 100px; margin: 0 auto; display: grid; place-items: center; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: radial-gradient(circle, var(--bb-t-hi, #fff3b0), var(--bb-accent, #ffcc00) 55%, var(--bb-accent-deep, #9a6b00)); font: 800 1.6rem var(--font-main, monospace); color: #1a1000; }
-.pfv2 { --gold: var(--bb-accent, #ffcc00); --bar: var(--bb-t-lo, #d4a017); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .92); }
+.pfv2 { --gold: var(--bb-accent, #ffcc00); --bar: var(--bb-t-lo, #d4a017); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --panel: #0e0a04; }
 .pfv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
 .pfv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
 .pfv2 .head { display: flex; align-items: center; gap: 12px; }

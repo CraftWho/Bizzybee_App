@@ -1,7 +1,7 @@
 /* One change log (Nov 21 2026, Craft). Used by Settings › Saves and History › Change log. */
 .cl { display: grid; gap: 8px; min-width: 0; }
 .cl-filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px; }
-.cl-filters button { padding: 6px 10px; border-radius: 99px; border: 1px solid #3a2a0a; background: transparent; color: #c2b48f; font: 700 .72rem system-ui; cursor: pointer; }
+.cl-filters button { padding: 6px 10px; border-radius: 99px; border: 1px solid #3a2a0a; background: transparent; color: #c2b48f; font: 700 .72rem var(--font-main, monospace); cursor: pointer; }
 .cl-filters button.on { background: var(--bb-accent, #ffcc00); border-color: var(--bb-accent, #ffcc00); color: #1a0f02; }
 .cl-list { display: grid; min-width: 0; }
 .cl-row { display: grid; gap: 4px; padding: 9px 14px; border-top: 1px solid rgba(255, 255, 255, .06); font-size: .85rem; min-width: 0; overflow-wrap: anywhere; }

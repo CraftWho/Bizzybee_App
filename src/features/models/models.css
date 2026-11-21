@@ -1,7 +1,7 @@
 /* Bee Models (Oct 2026 rebuild): every kind of bee, locked until you meet it.
    From the approved reward-models demo. The royals' flap uses the same
    keyframes as the egg hatch (onboarding.css). */
-:root { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #c2b48f; --panel: rgba(14, 10, 4, .92); }
+:root { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #c2b48f; --panel: #0e0a04; }
 .bm { width: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; padding: 14px 14px 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
 
 /* header card */

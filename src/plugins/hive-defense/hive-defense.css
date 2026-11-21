@@ -2,12 +2,12 @@
 .hdv { max-width: 480px; margin: 0 auto; padding: 8px 14px 120px; color: #f1ede2; display: grid; gap: 10px; }
 .hd-head { padding: 14px; border-radius: 18px; background: linear-gradient(#1a130a, #0d0904); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); }
 .hd-head h1 { margin: 0; color: var(--bb-accent, #ffcc00); font: 800 1.05rem var(--font-main, ui-monospace, monospace); letter-spacing: .12em; }
-.hd-head p { margin: 4px 0 8px; color: #c2b48f; font-size: .82rem; }
-.hd-how { color: #c2b48f; font-size: .8rem; line-height: 1.45; }
+.hd-head p { margin: 4px 0 8px; color: #c2b48f; font: .84rem/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.hd-how { color: #c2b48f; font: .82rem/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 .hd-how summary { cursor: pointer; color: #f1ede2; }
 .hd-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font: 700 .8rem var(--font-main, ui-monospace, monospace); }
-.hd-pill { padding: 4px 10px; border-radius: 99px; background: rgba(255, 204, 0, .15); color: var(--bb-accent, #ffcc00); font-variant-numeric: tabular-nums; }
-.hd-pill.enemy { background: rgba(255, 80, 90, .18); color: #ff8a96; }
+.hd-pill { padding: 4px 10px; border-radius: 99px; background: #33280a; color: var(--bb-accent, #ffcc00); font-variant-numeric: tabular-nums; }
+.hd-pill.enemy { background: #331317; color: #ff8a96; }
 .hd-map { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .hd-map .hex { cursor: pointer; }
 .hd-pop { font: 700 15px var(--font-main, ui-monospace, monospace); paint-order: stroke; stroke: #000; stroke-width: 3px; pointer-events: none; }

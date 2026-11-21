@@ -83,8 +83,8 @@ button.qa-title:hover { transform: none; box-shadow: none; text-decoration: unde
 .qa-nums b { color: #f1ede2; }
 .qa-next-h { margin: 14px 2px 8px; font: 700 .68rem var(--font-main); letter-spacing: .12em; color: #8a7e62; text-transform: uppercase; }
 .qa-done { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(var(--bb-accent-rgb, 255, 204, 0), .08); color: var(--bb-t-hi, #e9cf7a); font-size: .88rem; }
-button.qa-open { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 12px; padding: 11px; border: 1px solid color-mix(in srgb, var(--qc) 40%, transparent); border-radius: 12px; background: rgba(0, 0, 0, .25); box-shadow: none; color: var(--qc); font: 700 .9rem system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; cursor: pointer; }
-button.qa-open:hover { transform: none; box-shadow: none; background: color-mix(in srgb, var(--qc) 12%, transparent); }
+button.qa-open { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 12px; padding: 11px; border: 1px solid color-mix(in srgb, var(--qc) 40%, transparent); border-radius: 12px; background: #0b0803; box-shadow: none; color: var(--qc); font: 700 .9rem system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; cursor: pointer; }
+button.qa-open:hover { transform: none; box-shadow: none; background: color-mix(in srgb, var(--qc) 12%, #0b0803); }
 
 .qa-empty { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; border: 1px dashed #3a3222; color: #8a7e62; font-size: .85rem; }
 .qa-empty svg { flex: none; width: 30px; height: 30px; fill: none; stroke: #6d6450; stroke-width: 1.6; }

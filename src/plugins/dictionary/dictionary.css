@@ -16,7 +16,7 @@
 .dc-sheet-bg .btns button { padding: 12px; border-radius: 12px; border: 0; font: 700 .9rem system-ui, sans-serif; cursor: pointer; }
 .dc-sheet-bg .save { flex: 2; background: var(--gold); color: #1a1000; }
 .dc-sheet-bg .del { flex: 1; background: #2a0d12; color: var(--bb-alt-soft, #ff8fa3); }
-.dcv2 { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .92); --t: #9aa6b6; --e: #34c77b; --m: var(--bb-accent, #ffcc00); --h: #e3304a; }
+.dcv2 { --gold: var(--bb-accent, #ffcc00); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --panel: #0e0a04; --t: #9aa6b6; --e: #34c77b; --m: var(--bb-accent, #ffcc00); --h: #e3304a; }
 .dcv2 .card { position: relative; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .16); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); margin-bottom: 14px; }
 .dcv2 .card.top::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cr), transparent); }
 .dcv2 .head { display: flex; align-items: center; gap: 12px; }

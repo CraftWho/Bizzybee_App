@@ -1,0 +1,18 @@
+/* Title bars (Nov 21 2026, Craft: approved "B"). See title-bars.js. */
+.bb-tb { display: flex !important; align-items: center; gap: 10px; box-sizing: border-box; margin-top: 16px !important; margin-bottom: 0 !important;
+    padding: 9px 14px !important; background: linear-gradient(var(--bb-surface-2, #1a140b), var(--bb-surface, #120d06)) !important;
+    border: 1px solid var(--bb-edge, rgba(255, 204, 0, .28)) !important; border-top: 2px solid var(--bb-alt, #dc143c) !important; border-bottom-color: transparent !important;
+    border-radius: 16px 16px 0 0 !important; color: var(--bb-accent, #ffcc00) !important; text-align: left !important; }
+.bb-tb::before, .bb-tb::after { display: none !important; }
+.bb-tb a, .bb-tb button { margin-left: auto; }
+.bb-tb-next { margin-top: 0 !important; border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; border-top-color: transparent !important; }
+.bb-tb.bb-tb-solo, .bb-tb.bb-tb-page { border-radius: 16px !important; border-bottom-color: var(--bb-edge, rgba(255, 204, 0, .28)) !important; margin-bottom: 10px !important; }
+.bb-tb.bb-tb-page { justify-content: center; padding: 12px 14px !important; }
+.bb-loose { box-sizing: border-box; padding: 8px 12px !important; border-radius: 12px !important; background: var(--bb-surface, #120d06) !important; border: 1px dashed var(--bb-edge, rgba(255, 204, 0, .28)) !important; }
+span.bb-loose, a.bb-loose, b.bb-loose, small.bb-loose { display: inline-block; }
+.bb-tb-mid { margin-top: 0 !important; margin-bottom: 0 !important; padding: 8px 14px !important; background: var(--bb-surface, #120d06) !important; border: 1px solid var(--bb-edge, rgba(255, 204, 0, .28)) !important; border-top: 0 !important; border-bottom: 0 !important; border-radius: 0 !important; color: var(--bb-muted, #b5a888) !important; }
+.bb-tb-mid + .bb-tb-next, .bb-tb-mid ~ .bb-tb-next { border-top: 1px solid rgba(255, 204, 0, .1) !important; }
+.bb-tb-mid.bb-tb-end { border-bottom: 1px solid var(--bb-edge, rgba(255, 204, 0, .28)) !important; border-radius: 0 0 16px 16px !important; margin-bottom: 10px !important; padding-bottom: 10px !important; }
+/* one heading style everywhere */
+.bb-tb:not(.bb-tb-page) { font: 700 .74rem/1.3 var(--font-main, monospace) !important; letter-spacing: .16em !important; text-transform: uppercase !important; }
+.bb-tb:not(.bb-tb-page) :is(a, small, button) { font: 600 .76rem system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: 0; text-transform: none; }

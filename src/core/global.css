@@ -33,7 +33,7 @@
 .bb-box > :last-child { margin-bottom: 0; }
 .bb-box--frame { border-top: 2px solid var(--bb-alt); background: linear-gradient(var(--bb-surface-2), var(--bb-surface)); }
 .bb-box--glow { border-color: var(--bb-accent); box-shadow: 0 0 0 1px var(--bb-glow), 0 0 22px var(--bb-glow); }
-.bb-box--note { background: transparent; border-style: dashed; }
+.bb-box--note { background: var(--bb-surface); border-style: dashed; }   /* Nov 21 2026: solid (no text on the honeycomb) */
 .bb-box--alert { border-left: 4px solid var(--bb-alt); }
 .bb-title { margin: 0 0 6px; padding: 0; border: 0; background: none; text-align: left; font: 800 .95rem var(--font-main, monospace); letter-spacing: .12em; color: var(--bb-accent); text-transform: uppercase; text-wrap: balance; }
 .bb-text { margin: 0; color: var(--bb-muted); font: .88rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -54,7 +54,7 @@
        HANDOFF.md's backlog for that, a separate and much larger project. */
     color-scheme: dark;
     --obsidian: var(--bb-bg, #000000);
-    --panel-bg: rgba(17, 17, 17, 0.85);
+    --panel-bg: #111111;
     /* Original Gold Palette */
     --gold-start: var(--bb-accent, #ffcc00); 
     --gold-end: var(--bb-accent-deep, #997A00); 
@@ -1128,3 +1128,20 @@ html.bb-unsent-bad .ah-chip::after { background: #ff4d4d; }
 html.bb-app .pc-only { display: none !important; }
 /* Nov 21 2026 (Craft): app-only controls hide on the website. */
 html:not(.bb-app) .bb-app-only { display: none !important; }
+
+/* Nov 21 2026 (Craft): POP-UPS ARE CENTERED CARDS. No more sheets sliding up from the bottom:
+   a solid box with a gold edge and red top line, centered over a dark screen. Tall ones scroll inside.
+   (Hive Life's comb rooms stay full-screen on purpose.) */
+:is(.sk-sheet-bg, .pf-sheet-bg, .mp-sheet-bg, .xt-scrim, .up-scrim, .pv2-scrim, .pm-scrim, .pj-sheet-bg, .ic-sheet-bg, .dc-sheet-bg, .dcv2 .sheet-bg, .sd2 .sd-scrim) {
+    align-items: center !important; justify-content: center !important; place-items: center !important;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)) !important;
+    background: rgba(0, 0, 0, .86) !important; overflow: hidden !important; }
+:is(.sk-sheet-bg, .pf-sheet-bg, .mp-sheet-bg, .xt-scrim, .up-scrim, .pv2-scrim, .pm-scrim, .pj-sheet-bg, .ic-sheet-bg, .dc-sheet-bg, .dcv2 .sheet-bg, .sd2 .sd-scrim) > :not(script):not(style) {
+    width: min(520px, 100%) !important; max-height: calc(100dvh - 32px) !important; overflow-y: auto !important; margin: 0 auto !important; box-sizing: border-box;
+    border-radius: 22px !important; border: 1px solid var(--bb-accent, #ffcc00) !important; border-top: 2px solid var(--bb-alt, #dc143c) !important;
+    background: linear-gradient(var(--bb-surface-2, #1a140b), var(--bb-surface, #120d06)) !important; box-shadow: 0 20px 44px rgba(0, 0, 0, .75) !important;
+    padding-bottom: 18px !important; animation: bbPopIn .22s ease !important; }
+@keyframes bbPopIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { :is(.sk-sheet-bg, .pf-sheet-bg, .mp-sheet-bg, .xt-scrim, .up-scrim, .pv2-scrim, .pm-scrim, .pj-sheet-bg, .ic-sheet-bg, .dc-sheet-bg, .dcv2 .sheet-bg, .sd2 .sd-scrim) > * { animation: none !important; } }
+/* the bee card inside a pop-up sits in the middle */
+.mp-sheet--card, .mp-sheet--card .mp-cardhost { display: grid; justify-items: center; }

@@ -344,7 +344,7 @@
 }
 .login-card::before { content: ""; position: absolute; left: 12%; right: 12%; top: -1px; height: 2px; background: linear-gradient(90deg, transparent, var(--crimson), transparent); box-shadow: 0 0 10px rgba(var(--bb-alt-rgb, 220, 20, 60), .6); }
 .login-title { margin: 0; font-size: 1.7rem; letter-spacing: .14em; padding-left: .14em; }
-.login-card .subtitle { margin: 10px 0 24px; color: #9c8f72; font-size: .86rem; letter-spacing: .04em; }
+.login-card .subtitle { margin: 10px 0 24px; color: #9c8f72; font: .9rem/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: 0; }   /* Nov 21 2026: reading text uses the plain font */
 .login-card .input-group-auth label { font: 600 .68rem system-ui, sans-serif; letter-spacing: .2em; text-transform: uppercase; color: var(--bb-t-mid, #d9b968); }
 .login-card .input-group-auth input { padding: 13px 14px; border-radius: 12px; border: 1px solid rgba(217, 185, 104, .25); background: #050402; color: #efe6cf; font: 500 1rem system-ui, sans-serif; box-shadow: none; }
 .login-card .input-group-auth input:focus { border-color: var(--bb-t-mid, #d9b968); box-shadow: 0 0 0 3px rgba(217, 185, 104, .15), 0 0 18px rgba(217, 185, 104, .15); }

@@ -2,7 +2,7 @@
    Inventory and Hive Bees. Scope everything to .pv2 so older pages
    are untouched. Hex icons, dark rounded cards, gold section labels with
    a red line, pill tabs, bottom sheets. */
-.pv2 { --gold: var(--bb-accent, #ffcc00); --gold2: var(--bb-t-hi, #ffd977); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --panel: rgba(14, 10, 4, .94);
+.pv2 { --gold: var(--bb-accent, #ffcc00); --gold2: var(--bb-t-hi, #ffd977); --cr: var(--bb-alt, #dc143c); --ink: #f1ede2; --muted: #a69a80; --panel: #0e0a04;
     --Common: #d4d4d4; --Rare: #7fc0ff; --Epic: #c99bff; --Legendary: var(--bb-t-mid, #ffd700); --Named: #ff6a5a; --Royal: var(--bb-accent, #ffcc00);
     width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 130px; box-sizing: border-box; color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -29,7 +29,7 @@
 .pv2 .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
 .pv2 .chips::-webkit-scrollbar { display: none; }
 .pv2 .chip { flex: none; margin: 0; padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .14); background: #0d0a05; box-shadow: none; color: var(--muted); font: .8rem system-ui, sans-serif; cursor: pointer; text-transform: none; letter-spacing: 0; }
-.pv2 .chip[aria-pressed="true"] { background: rgba(var(--bb-accent-rgb, 255, 204, 0), .14); color: var(--gold); border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .5); }
+.pv2 .chip[aria-pressed="true"] { background: #33280a; color: var(--gold); border-color: rgba(var(--bb-accent-rgb, 255, 204, 0), .5); }
 .pv2 .chip small { margin-left: 4px; opacity: .7; }
 .pv2 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
 @media (min-width: 560px) { .pv2 .tiles { grid-template-columns: repeat(4, 1fr); } }
