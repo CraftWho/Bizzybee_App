@@ -149,3 +149,13 @@
 .ics-goal { display: flex; gap: 6px; flex-wrap: wrap; }
 .ics-card .st-goal { display: flex; gap: 6px; align-items: center; }
 .ics-card .st-goal input { width: 100px; padding: 8px; border-radius: 10px; border: 1px solid #3a2a0a; background: #0b0803; color: #f1ede2; font: 700 .9rem system-ui; }
+
+/* Steps without an incubator (Nov 21 2026, Craft): the Home Steps tile always opens this page. */
+.ic-get { display: none; }
+.icv.ic-steps-only .ic-get { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: #120d06; border: 1px solid #3a2a0a; color: #f1ede2; text-decoration: none; font-size: 1.4rem; }
+.ic-get span { display: grid; gap: 2px; font-size: .84rem; }
+.ic-get b { color: var(--bb-accent, #ffcc00); }
+.ic-get small { color: #c2b48f; font-size: .74rem; }
+.ic-get i { font-style: normal; color: var(--bb-accent, #ffcc00); }
+.icv.ic-steps-only .ic-machine-card, .icv.ic-steps-only .ic-sec, .icv.ic-steps-only .ic-note,
+.icv.ic-steps-only #ic-waiting, .icv.ic-steps-only #ic-shop, .icv.ic-steps-only .ic-how { display: none; }

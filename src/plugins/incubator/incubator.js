@@ -87,7 +87,7 @@ function renderSteps() {
     if (typeof Vault.getStepPage !== 'function') return;
     const P = Vault.getStepPage(), T = P.today, today = todayISO(), nowH = new Date().getHours();
     const pct = Math.min(100, Math.round(T.steps / P.goal * 100));
-    $('ic-strip').innerHTML = `<div class="ics-top"><b>👟 ${fmt(T.steps)}</b><span>of ${fmt(P.goal)} goal · 🔥 ${P.streak.cur}-day streak · +${T.xp} XP</span></div>
+    $('ic-strip').innerHTML = `<div class="ics-top"><b>👟 ${fmt(T.steps)}</b><span>of ${fmt(P.goal)} goal · 🔥 ${P.streak.cur ? `${P.streak.cur}-day streak` : 'no streak yet'} · +${T.xp} XP</span></div>
         <div class="ics-bar"><i style="width:${pct}%"></i></div>${isApp ? '' : '<small class="ics-web">Steps count in the Android app. This shows what it last saved.</small>'}`;
 
     // today: ring + numbers
@@ -101,8 +101,9 @@ function renderSteps() {
     // today by hour
     let hours;
     if (hasHours(T.hours, T.span)) {
-        const sp = T.span, busy = sp.busy == null ? 'New steps show here by the hour.' : `Busiest: ${hourName(sp.busy)}–${hourName((sp.busy + 1) % 24)} · ${fmt(sp.busySteps)} steps`;
-        hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">${busy}${sp.pre ? ` · ${fmt(sp.pre)} steps before ${hourName(sp.from)}` : ''}</p>
+        const sp = T.span, pre = sp.pre ? `${fmt(sp.pre)} steps before ${hourName(sp.from)}.` : '';
+        const busy = sp.busy == null ? `${pre} New steps show here by the hour.` : `Busiest: ${hourName(sp.busy)}–${hourName((sp.busy + 1) % 24)} · ${fmt(sp.busySteps)} steps.${pre ? ' ' + pre : ''}`;
+        hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">${busy.trim()}</p>
             ${hourBars(T.hours, nowH, 'ics-bars')}<div class="ics-axis"><span>12 AM</span><span>6 AM</span><span>Noon</span><span>6 PM</span><span>11 PM</span></div>
             ${T.span.src === 'snap' ? '<p class="ics-sub">Your step app only saves day totals, so BizzyBee counts the hours itself while it runs.</p>' : ''}</section>`;
     } else hours = `<section class="ics-card"><h3>Today by hour</h3><p class="ics-sub">${isApp ? 'Hours show up after your first steps sync today.' : 'Hours come from the Android app.'}</p></section>`;
@@ -173,9 +174,17 @@ function sheet(bee) {
 document.addEventListener('DOMContentLoaded', async () => {
     await Vault.init();
     const installed = typeof Plugins === 'undefined' || Plugins.isEnabled('incubator');
-    $('ic-not-installed').hidden = installed;
-    $('ic-main').hidden = !installed;
-    if (!installed) return;
+    // Nov 21 2026 (Craft: "When I press the steps button nothing happens"): the Home Steps tile always
+    // opens this page. With no incubator yet it shows your steps and Step stats, and where to get one.
+    const stepsOnly = !installed;
+    $('ic-not-installed').hidden = true;
+    $('ic-main').hidden = false;
+    $('ic-main').classList.toggle('ic-steps-only', stepsOnly);
+    if (stepsOnly) {
+        document.title = '👟 Steps';
+        document.querySelector('.ic-head h1').textContent = '👟 STEPS';
+        document.querySelector('.ic-head p').textContent = 'Your steps, hours, streak, history and records.';
+    }
     // Fresh steps first (Android app).
     if (isApp) {
         let tries = 0;
@@ -233,9 +242,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Remember whether Step stats is open (this phone only). #steps opens it.
     const det = $('steps');
     let open = false; try { open = localStorage.getItem('bb_ic_stats_open') === '1'; } catch { /* fine */ }
-    if (location.hash === '#steps') open = true;
+    if (location.hash === '#steps' || $('ic-main').classList.contains('ic-steps-only')) open = true;
     det.open = open;
-    det.addEventListener('toggle', () => { try { localStorage.setItem('bb_ic_stats_open', det.open ? '1' : '0'); } catch { /* fine */ } });
+    // Only your own taps are remembered (opening it for you in the steps-only view isn't).
+    det.querySelector('summary').addEventListener('click', () => setTimeout(() => { try { localStorage.setItem('bb_ic_stats_open', det.open ? '1' : '0'); } catch { /* fine */ } }, 0));
     window.addEventListener('vault-saved', () => render());
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') render(); });
     if (typeof Waggle !== 'undefined' && typeof baseWaggleActions === 'function') Waggle.setActions(baseWaggleActions());
