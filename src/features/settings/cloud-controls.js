@@ -438,3 +438,52 @@ function initPasswordReset() {
         document.getElementById('reset-password-status').textContent = 'If that account exists, a reset link will arrive by email. Check your spam folder too.';
     });
 }
+
+// ---- Main device + Claude API (Nov 21 2026, Craft; approved) ----
+async function initMainAndApi(tries = 0) {
+    const text = document.getElementById('main-device-text');
+    if (!text) return;
+    const C = typeof CloudSyncAuto !== 'undefined' ? CloudSyncAuto : null;
+    if (!C || !C.isReady || !C.isReady()) { if (tries < 60) setTimeout(() => initMainAndApi(tries + 1), 1000); else text.textContent = 'Sign in to the cloud to use this.'; return; }
+    let box;
+    try { box = await C.request('inbox'); } catch (e) { text.textContent = 'Could not check: ' + e.message; return; }
+    const btn = document.getElementById('main-device-btn');
+    const me = box.main && box.main.device === C.deviceId();
+    text.textContent = !box.main ? 'Not set yet. The Android app becomes main by itself.' : me ? `✅ This device (${box.main.name || 'this device'}) writes your save.` : `${box.main.name || 'Another device'} writes your save. Changes here are sent to it for review.`;
+    btn.hidden = me;
+    btn.onclick = () => settingsAction(btn, async () => {
+        if (btn.dataset.sure !== '1') { btn.dataset.sure = '1'; btn.textContent = 'Tap again to confirm'; setTimeout(() => { btn.dataset.sure = ''; btn.textContent = 'Make This Main'; }, 4000); return; }
+        await C.makeMain(); Toast.show('📱 This device is now your main device.', 'positive'); initMainAndApi();
+    });
+    const list = document.getElementById('api-keys');
+    const draw = (keys) => {
+        list.replaceChildren();
+        document.getElementById('api-sum').textContent = keys.length ? `${keys.length} key${keys.length === 1 ? '' : 's'}${box.paused ? ' · paused' : ''}` : 'Let Claude read and change your BizzyBee';
+        if (!keys.length) { list.textContent = 'No keys yet.'; return; }
+        for (const k of keys) {
+            list.append(svRow({ kind: 'other', createdAt: k.createdAt, meta: null }, `${k.prefix}… · ${k.scope === 'write' ? 'Read + write' : 'Read only'}`, [
+                svBtn('Revoke', async () => { await C.request('inbox', { action: 'revoke-key', prefix: k.prefix }); Toast.show('Key revoked.', 'positive'); initMainAndApi(); }),
+            ]));
+            const sub = list.lastElementChild.querySelector('small'); if (sub) sub.textContent = k.lastUsed ? `Last used ${svWhen(k.lastUsed)}` : 'Not used yet';
+        }
+    };
+    draw(box.keys || []);
+    const make = (scope) => async () => {
+        const r = await C.request('inbox', { action: 'new-key', scope });
+        const box2 = document.getElementById('api-new');
+        box2.hidden = false;
+        box2.innerHTML = '';
+        const t = document.createElement('small'); t.textContent = 'Your new key. It is shown only this once: copy it into Claude now.';
+        const k = document.createElement('code'); k.textContent = r.key; k.style.cssText = 'word-break:break-all;user-select:all;font-size:.85rem;padding:8px;border-radius:8px;background:rgba(255,255,255,.06)';
+        const c = svBtn('Copy', async () => { await navigator.clipboard.writeText(r.key); Toast.show('Copied.', 'positive'); });
+        box2.append(t, k, c);
+        initMainAndApi();
+    };
+    const w = document.getElementById('api-key-write'), rd = document.getElementById('api-key-read');
+    w.onclick = () => settingsAction(w, make('write'));
+    rd.onclick = () => settingsAction(rd, make('read'));
+    const pause = document.getElementById('api-pause');
+    pause.checked = !!box.paused;
+    pause.onchange = async () => { try { await C.request('inbox', { action: 'pause', paused: pause.checked }); Toast.show(pause.checked ? '⏸ API paused.' : '▶️ API on.', 'positive'); } catch (e) { pause.checked = !pause.checked; Toast.show(e.message, 'negative'); } };
+}
+setTimeout(() => initMainAndApi(), 500);

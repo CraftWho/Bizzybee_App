@@ -1,7 +1,8 @@
 import { authenticatedUser } from '../lib/auth.mjs';
 import { encryptSave } from '../lib/save-crypto.mjs';
 import { json, saves, readLatest, validateSave, createBackup, cleanMeta } from '../lib/cloud-store.mjs';
-import { withCors } from '../lib/cors.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
+import { withCors } from '../lib/cors.mjs';
+import { getMain, setMain } from '../lib/inbox.mjs';   // Nov 1 2026 (Craft): the Android app's own copy calls in
 const handler = async (req) => {
     if (req.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405);
     let user;
@@ -17,7 +18,15 @@ const handler = async (req) => {
         // (open the app, or tap Continue here) before it can save.
         const device = typeof body.device === 'string' && body.device.length <= 80 ? body.device : null;
         const active = current?.data.device || null;
-        if (active && device && active !== device && !body.takeover) return json({ ok: false, code: 'other-device', error: 'Active on another device.' }, 423);
+        // Nov 21 2026 (Craft): PHONE IS MAIN. Once a main device is set, only it writes the save. Others send
+        // their changes to the inbox (inbox.mjs) for the phone to accept. becomeMain moves "main" here (asked in Settings).
+        let main = null;
+        try { main = await getMain(user.id); } catch { /* inbox store down: fall back to the old rule */ }
+        if (main && device && main.device !== device) {
+            if (!body.becomeMain) return json({ ok: false, code: 'not-main', main: { name: main.name, at: main.at }, error: `Your main device (${main.name || 'phone'}) writes your save. Changes here go to it for review.` }, 423);
+            main = await setMain(user.id, device, body.deviceName);
+        } else if (!main && device && body.becomeMain) main = await setMain(user.id, device, body.deviceName);
+        if (active && device && active !== device && !body.takeover && !(main && main.device === device)) return json({ ok: false, code: 'other-device', error: 'Active on another device.' }, 423);
         if (body.revision !== (current?.etag ?? null)) return json({ ok: false, error: 'Cloud progress changed. Resolve the conflict in Settings.' }, 409);
         const updatedAt = new Date().toISOString();
         const encrypted = encryptSave(body.data, user.id);

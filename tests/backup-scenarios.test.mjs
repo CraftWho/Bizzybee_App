@@ -137,3 +137,32 @@ test('change log: plain-words entries, and going back undoes later changes (and 
     assert.equal(list[0].src, 'restore');
     assert.equal(w.V.getLocalBackups()[0].reason, 'Before going back in the change log');
 });
+
+test('changes from outside: Claude ops add/complete/habit by name, PC diff accepted on top of this save', async () => {
+    const w = world({ local: { key: 'bizzybee_user_data', save: save(100, { dailyTasks: [{ id: 'd1', label: 'Gym', xp: 15, difficulty: 'Easy', completedDates: [] }], todos: [{ id: 't1', label: 'Call mom', xp: 10, difficulty: 'Easy' }], habits: [{ id: 'h1', label: 'Water', xp: 5, positive: true }] }) } });
+    await w.V.init();
+    w.V._jPrev = JSON.parse(JSON.stringify(w.V.state)); w.V._jStarted = true;
+    const res = w.V.applyOps([
+        { op: 'add', kind: 'daily', label: 'Stretch 10 min', minutes: 10 },
+        { op: 'complete', kind: 'daily', label: 'gym' },
+        { op: 'complete', kind: 'todo', id: 't1' },
+        { op: 'habit', kind: 'habit', label: 'Water', dir: '+' },
+        { op: 'complete', kind: 'todo', label: 'Not there' },
+    ], { src: 'claude' });
+    assert.equal(res.map(r => r.ok).join(), 'true,true,true,true,false');
+    assert.ok(w.V.state.dailyTasks.some(d => d.label === 'Stretch 10 min'));
+    assert.equal(w.V.state.dailyTasks.find(d => d.id === 'd1').completedDates.length, 1);
+    assert.equal(w.V.state.todos.find(t => t.id === 't1').completed, true);
+    await new Promise(r => setTimeout(r, 20));
+    const log = await w.V.journalList();
+    assert.equal(log[0].src, 'claude');
+    // The PC sends a diff against the copy it loaded; the phone accepts it on top of its own newer save.
+    const base = JSON.parse(JSON.stringify(w.V.state));
+    const pc = JSON.parse(JSON.stringify(base)); pc.todos.push({ id: 't9', label: 'From PC', xp: 5 });
+    w.V.state.habits[0].label = 'Water (phone edit)';                 // the phone moved on meanwhile
+    const r = w.V.applyDiff(w.g('jsonDiff')(base, pc));
+    assert.equal(r.ok, true);
+    assert.ok(w.V.state.todos.some(t => t.label === 'From PC'));
+    assert.equal(w.V.state.habits[0].label, 'Water (phone edit)');    // the phone's own change survives
+    assert.match(w.V.getLocalBackups()[0].reason, /Before accepting changes/);
+});
