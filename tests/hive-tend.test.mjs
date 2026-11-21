@@ -159,3 +159,24 @@ test('Grave Comb: once a day each Undertaker lays up to 5 week-old finished To-D
     v._tendHive(noon());
     assert.equal(v.state.todos.length, 4);                       // once a day
 });
+
+test('work boredom: 5 days straight -> 😤 and extra unhappiness; workaholics never; auto-swap sends a bored worker to a play break', async () => {
+    const { v, g } = world([bee('lead', { class: 'nurse', rarity: 'Rare', life: life({}) }), bee('w', { class: 'collector', talent: 'collector', life: life({}) }), bee('s', { talent: 'collector', life: life({}) })], { autoManage: { on: true } });
+    await v.init();
+    Object.assign(B(v, 'w'), { class: 'collector', talent: 'collector' }); Object.assign(B(v, 's'), { class: null, talent: 'collector' });
+    for (let i = 0; v.jobHolders('collector').length < v.jobSlots('collector'); i++) v.state.hive.bees.push({ ...bee('f' + i, { class: 'collector', talent: 'collector', life: life({}) }) });
+    B(v, 'w').life.workFrom = daysAgo(6);
+    assert.equal(g('beeFeeling')(B(v, 'w')).face, '😤');
+    const h0 = B(v, 'w').life.happiness;
+    v._lifeHour(noon());
+    assert.ok(B(v, 'w').life.happiness < h0 - 1);                       // bored work costs extra happiness
+    const wk = { ...B(v, 'w'), life: { ...B(v, 'w').life, birthTrait: 'workaholic' } };
+    assert.notEqual(g('beeFeeling')(wk).face, '😤');
+    v._ensureQueen().bonus = 100000; v.purchaseStoreItem('queens-whistle');
+    v._autoSwapHour();
+    assert.equal(B(v, 'w').class, null);
+    assert.equal(B(v, 'w').life.recuperate, undefined);                  // a play break, not rest
+    assert.ok(v._onBreak(B(v, 'w')));
+    assert.equal(v._autoReady(B(v, 'w')), false);                       // not put straight back to work
+    assert.equal(B(v, 's').class, 'collector');
+});
