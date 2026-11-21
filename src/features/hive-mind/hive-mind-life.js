@@ -211,7 +211,43 @@ const HiveLife = (() => {
     }
     // Auto-manage panel (Nov 1 2026, Craft; approved demos). Nothing at all
     // shows until auto-manage or Auto-swap is unlocked: no hints.
-    function autoPanel() {
+    // Nov 21 2026 (Craft: "it should just say change... the button can handle that"):
+// a centered pop-up to pick the Manager. Shows each Rare+ bee's mood, stamina and happiness.
+function managerPicker(done) {
+    const cands = Vault.managerCandidates ? Vault.managerCandidates() : [];
+    const cur = (Vault.hiveManager && Vault.hiveManager()) || null;
+    const bg = document.createElement('div');
+    bg.className = 'hl-pick-scrim';
+    const row = (b) => {
+        const L = b.life || {}, job = b.class && BEE_CLASSES[b.class] ? BEE_CLASSES[b.class].label : 'No job';
+        const face = typeof beeFeeling === 'function' ? beeFeeling(b).face : '🐝';
+        return `<button type="button" class="hl-pick-row" data-mgrset="${esc(b.id)}" aria-pressed="${!!(cur && cur.beeId === b.id)}">
+            <span class="hl-pick-face" aria-hidden="true">${esc(face)}</span>
+            <span class="hl-pick-n"><b>${esc(b.name)}</b><small>${esc(b.rarity)} · ${esc(job)}</small></span>
+            <span class="hl-pick-v">⚡${Math.round(L.stamina || 0)} 😊${Math.round(L.happiness || 0)}</span>
+            ${cur && cur.beeId === b.id ? '<span class="hl-pick-now">Now</span>' : ''}</button>`;
+    };
+    bg.innerHTML = `<div class="hl-pick" role="dialog" aria-modal="true" aria-labelledby="hl-pick-t">
+        <h3 id="hl-pick-t">👔 Pick your Manager</h3>
+        <p>A Rare or better bee. It runs auto on 5% of the XP you earn each night. Pick a happy, rested one.</p>
+        <div class="hl-pick-list">${cands.map(row).join('') || '<p>No Rare or better bee yet.</p>'}</div>
+        <button type="button" class="hl-pick-x" data-close>Close</button></div>`;
+    const close = () => { bg.remove(); document.removeEventListener('keydown', esc_); };
+    const esc_ = (e) => { if (e.key === 'Escape') close(); };
+    bg.addEventListener('click', (e) => {
+        if (e.target === bg || e.target.closest('[data-close]')) { close(); return; }
+        const ms = e.target.closest('[data-mgrset]');
+        if (!ms) return;
+        const r = Vault.setManager(ms.dataset.mgrset);
+        if (typeof Toast !== 'undefined') Toast.show(r.ok ? `👔 ${r.bee.name} is your Manager now.` : r.error, r.ok ? 'positive' : 'negative');
+        close(); if (r.ok && done) done();
+    });
+    document.addEventListener('keydown', esc_);
+    document.body.appendChild(bg);
+    const first = bg.querySelector('[aria-pressed="true"]') || bg.querySelector('.hl-pick-row'); if (first) first.focus();
+}
+
+function autoPanel() {
         const el = document.createElement('div');
         const st = Vault.hiveAutoStatus && Vault.hiveAutoStatus();
         const swap = Vault.autoSwapUnlocked && Vault.autoSwapUnlocked();
@@ -232,7 +268,7 @@ const HiveLife = (() => {
                 <div class="hl-mgr-bar" role="meter" aria-label="Manager energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${e}"><i style="width:${e}%;background:${col}"></i></div>
                 <small>⚡ ${e}/100 · eats ${Math.round(100 * 0.05)}% of your XP each night (tonight: +${today.feed} from ${today.xp} XP) · −10 a day${m.lastFeed ? ` · last night +${m.lastFeed.feed}` : ''}</small>
               </div>` : `<div class="hl-mgr"><small>👔 Pick a Rare or better bee to be your Manager. It runs auto on a share of the XP you earn.</small><button type="button" class="hl-mgr-ch" data-mgr="pick">Pick a Manager</button></div>`;
-            html += `<div class="hl-pool" data-mgrlist hidden>${cands.map(b => `<button type="button" class="hl-chip" data-mgrset="${esc(b.id)}" aria-pressed="${m && m.beeId === b.id}">${esc(b.name)} · ${esc(b.rarity)}</button>`).join('') || '<small>No Rare or better bee yet.</small>'}</div>`;
+            // Nov 21 2026 (Craft): only the Manager shows here; "Change" opens a picker (no list of every bee).
         }
         if (swap) {
             const P = Vault.autoSwapPrefs();
@@ -243,7 +279,8 @@ const HiveLife = (() => {
                 ? `<small>🔄 ${esc(byId(last.in).name)} took over the ${esc(BEE_CLASSES[last.job].label)} job. ${esc(byId(last.out).name)} is resting.</small>` : '';
             html += `<div class="hl-swap">
                 <div class="hl-swap-row"><b class="hl-swap-t">🔄 Auto-swap</b><button type="button" class="hl-sw" data-swap="toggle" role="switch" aria-checked="${P.on}" aria-label="Auto-swap"><i></i></button></div>
-                ${P.on ? `<div class="hl-swap-row"><span class="hl-swap-l">Swap below</span><input type="range" min="10" max="60" step="5" value="${P.pct}" data-swap="pct" aria-label="Swap a bee out below this stamina"><span class="hl-swap-p">${P.pct}%</span></div>
+                ${P.on ? `<div class="hl-swap-row"><span class="hl-swap-l">Swap below</span><input type="range" min="10" max="60" step="5" value="${P.pct}" data-swap="pct" aria-label="Swap a bee out when its stamina or happiness drops below this"><span class="hl-swap-p">${P.pct}%</span></div>
+                <small class="hl-swap-note">⚡ Tired bees go rest. 😊 Unhappy bees go play until they cheer up.</small>
                 <div class="hl-swap-row"><span class="hl-swap-l">Return at</span><input type="range" min="50" max="100" step="5" value="${P.returnPct}" data-swap="ret" aria-label="A resting bee goes back to work at this stamina"><span class="hl-swap-p">${P.returnPct}%</span></div>
                 <div class="hl-seg"><button type="button" data-swap="auto" aria-pressed="${P.mode === 'auto'}">Automatic</button><button type="button" data-swap="pick" aria-pressed="${P.mode === 'pick'}">I choose</button></div>
                 ${P.mode === 'pick' ? `<div class="hl-pool">${bees.map(b => `<button type="button" class="hl-chip" data-pool="${esc(b.id)}" aria-pressed="${P.pool.includes(b.id)}">${esc(b.name)}</button>`).join('')}</div>` : ''}
@@ -252,9 +289,7 @@ const HiveLife = (() => {
         el.innerHTML = html;
         el.addEventListener('click', (e) => {
             const mp = e.target.closest('[data-mgr]');
-            if (mp) { const list = el.querySelector('[data-mgrlist]'); if (list) list.hidden = !list.hidden; return; }
-            const ms = e.target.closest('[data-mgrset]');
-            if (ms) { const r = Vault.setManager(ms.dataset.mgrset); if (typeof Toast !== 'undefined') Toast.show(r.ok ? `👔 ${r.bee.name} is your Manager now.` : r.error, r.ok ? 'positive' : 'negative'); el.replaceWith(autoPanel()); return; }
+            if (mp) { managerPicker(() => el.replaceWith(autoPanel())); return; }
             const b = e.target.closest('[data-swap], [data-pool]');
             if (!b) return;
             const P = Vault.autoSwapPrefs();

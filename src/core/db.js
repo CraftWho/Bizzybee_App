@@ -1651,7 +1651,10 @@ const BIRTH_TRAITS = {
 // burns 10 energy a day. Energy 50+: full speed. 25-49: slower (auto checks every 3 hours). 1-24: only swaps
 // tired bees, empty jobs stay empty. 0: it rests and auto stops until you earn XP again.
 const MANAGER = { feedPct: 0.05, drainPerDay: 10, slowBelow: 50, swapOnlyBelow: 25, start: 100 };
-const WORK_BORED = { days: 5, perHour: -1, breakHours: 4, breakBelow: 50 };   // Nov 21 2026 (Craft): -1/h; under 50 happiness a bored bee takes its own break
+const WORK_BORED = { days: 5, perHour: -1, breakHours: 4, breakBelow: 50 };
+// Nov 21 2026 (Craft): happiness counts for auto-swap too. Under the "Swap below" % a worker goes to play;
+// it comes back once happiness is up to UNHAPPY.back. Without auto-swap, a worker under UNHAPPY.self plays on its own.
+const UNHAPPY = { back: 60, self: 15, breakHours: 4 };   // Nov 21 2026 (Craft): -1/h; under 50 happiness a bored bee takes its own break
 function beeWorkDays(bee, today = todayISO()) {
     const L = bee && bee.life;
     if (!L || !L.workFrom || !bee.class) return 0;
@@ -6598,7 +6601,7 @@ Object.assign(DatabaseManager.prototype, {
         return this.getHiveBees().filter(b => b.rarity !== 'Royal' && b.life);
     },
     _workers(role) {
-        return this._lifeBees().filter(b => b.class === role && beeCanWork(b));
+        return this._lifeBees().filter(b => b.class === role && beeCanWork(b) && !this._onBreak(b));
     },
     _lifeEvent(type, text, extra = {}) {
         const c = this.state.hive;
@@ -6982,19 +6985,27 @@ Object.assign(DatabaseManager.prototype, {
         if (!P.on) return [];
         const notes = [];
         this.hiveOpenJobs().forEach(j => this.jobHolders(j).forEach(h => {
-            const bored = beeWorkBored(h) && h.life.stamina >= P.pct;
+            if (this._onBreak(h)) return;
+            const unhappy = h.life.happiness < P.pct && h.life.stamina >= P.pct;   // Nov 21 2026 (Craft): happiness counts too
+            const bored = (beeWorkBored(h) || unhappy) && h.life.stamina >= P.pct;
+            if (beeLockedJob(h) && unhappy && !h.life.nursery) {   // a title-locked bee keeps its job and plays for a while
+                h.life.playUntil = new Date((this._fcAt ? this._fcAt.getTime() : Date.now()) + UNHAPPY.breakHours * 3600000).toISOString();
+                const text = `🪀 ${h.name} was unhappy, so it's playing in the Play Yard for a while. Its ${BEE_CLASSES[j].label} job waits for it.`;
+                this._lifeEvent('bored', text, { beeId: h.id }); notes.push(text); return;
+            }
             if ((h.life.stamina >= P.pct && !bored) || beeLockedJob(h) || h.life.nursery) return;   // a bee in a Nursery bed is not swapped to rest
-            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
+            const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && !this._onBreak(b) && b.life.happiness >= UNHAPPY.back && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
             h.class = null; h.jobSince = todayISO(); delete h.life.idleSince; h.life.restFrom = j;
+            if (unhappy) h.life.playFor = 'happy';
             if (bored) h.life.playUntil = new Date((this._fcAt ? this._fcAt.getTime() : Date.now()) + WORK_BORED.breakHours * 3600000).toISOString();   // Nov 21 2026 (Craft): a play break, not rest
             else h.life.recuperate = true;   // Nov 9 2026 (Craft): resting = recuperating, not upset
             const returned = !!pick.life.recuperate;   // Nov 16 2026 (Craft): came back from resting
             delete pick.life.recuperate;
             pick.class = j; pick.jobSince = todayISO(); delete pick.life.idleSince; delete pick.life.restFrom;
             this.state.hive.lastSwap = { in: pick.id, out: h.id, job: j, at: new Date().toISOString() };
-            const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} ${bored ? 'was bored and went to play for a few hours' : 'is resting'}.`;
+            const text = `🔄 ${pick.name} ${returned ? 'returned from resting and ' : ''}took over the ${BEE_CLASSES[j].label} job. ${h.name} ${unhappy ? 'was unhappy and went to play until it cheers up' : bored ? 'was bored and went to play for a few hours' : 'is resting'}.`;
             this._lifeEvent('auto', text, { beeId: pick.id });
             notes.push(text);
         }));
@@ -7133,7 +7144,7 @@ Object.assign(DatabaseManager.prototype, {
             if (!L || L.faintedAt || L.hatchOn) return;
             if (L.fatigue == null) L.fatigue = 0;
             const relentless = beeTitlePower(b, 'relentless');
-            const working = !night && !!b.class && !L.recuperate && beeCanWork(b, day);
+            const working = !night && !!b.class && !L.recuperate && beeCanWork(b, day) && !this._onBreak(b);
             const hungerX = L.birthTrait === 'deep-stomach' ? 0.75 : 1;
             // Work boredom: count working days; a 4-hour daytime break resets it.
             if (!night) {
@@ -7159,7 +7170,7 @@ Object.assign(DatabaseManager.prototype, {
             } else {
                 let r = L.nursery ? REST_RATES.nursery : night ? REST_RATES.night : REST_RATES.day;
                 // Nov 21 2026 (Craft): PLAY YARD. A bee with no job plays by day: twice the happiness, a little less fatigue.
-                if (!night && !b.class && !L.recuperate && !L.nursery) r = [r[0], r[1], r[2] + 1, r[3] - 1, r[4]];
+                if (!night && (!b.class || this._onBreak(b)) && !L.recuperate && !L.nursery) r = [r[0], r[1], r[2] + 1, r[3] - 1, r[4]];
                 // Nov 10 2026 (Craft): Recuperate does not feed a bee, and it does not get hungrier there.
                 if (L.recuperate && !L.nursery) r = [r[0], 0, r[2], r[3], r[4]];
                 L.stamina = clampVital(L.stamina + r[0], true);
@@ -7375,6 +7386,12 @@ Object.assign(DatabaseManager.prototype, {
                 this._lifeEvent('rest', `😴 ${b.name} was too tired to work and went to rest. It will come back to the ${(BEE_CLASSES[j] || {}).label || ''} job.`, { beeId: b.id });
                 n++; return;
             }
+            if (b.class && !this._onBreak(b) && L.happiness < UNHAPPY.self && !L.nursery && beeCanWork(b, day)) {   // Nov 21 2026 (Craft)
+                L.playUntil = new Date(nowMs + UNHAPPY.breakHours * 3600000).toISOString(); L.playFor = 'happy';
+                if (!beeLockedJob(b)) { const j = b.class; b.class = null; b.jobSince = day; delete L.idleSince; L.restFrom = j; }
+                this._lifeEvent('bored', `🪀 ${b.name} was too unhappy to work and went to play in the Play Yard until it cheers up.`, { beeId: b.id });
+                n++; return;
+            }
             if (b.class && !beeLockedJob(b) && beeWorkBored(b, day) && L.happiness < WORK_BORED.breakBelow) {
                 const j = b.class; b.class = null; b.jobSince = day; delete L.idleSince; L.restFrom = j;
                 L.playUntil = new Date(nowMs + WORK_BORED.breakHours * 3600000).toISOString();
@@ -7389,9 +7406,12 @@ Object.assign(DatabaseManager.prototype, {
                     delete L.restFrom; delete L.readySince; L.idleSince = day; n++; return;
                 }
             } else if (L.readySince) delete L.readySince;
+            // an unhappy bee keeps playing until it's happy again (2 more hours at a time)
+            if (L.playUntil && L.playFor === 'happy' && Date.parse(L.playUntil) <= nowMs && L.happiness < UNHAPPY.back) { L.playUntil = new Date(nowMs + 2 * 3600000).toISOString(); return; }
+            if (b.class && L.playUntil && Date.parse(L.playUntil) <= nowMs) { delete L.playUntil; delete L.playFor; return; }   // a title-locked bee goes back to its job
             if (!b.class && L.playUntil && Date.parse(L.playUntil) <= nowMs) {
                 const j = L.restFrom;
-                delete L.playUntil;
+                delete L.playUntil; delete L.playFor;
                 if (j && this.hiveOpenJobs().includes(j) && this.jobHolders(j).length < this.jobSlots(j) && beeCanWork(b, day)) {
                     b.class = j; b.jobSince = day; delete L.restFrom; delete L.idleSince;
                     this._lifeEvent('auto', `🐝 ${b.name} came back from its break to the ${(BEE_CLASSES[j] || {}).label || ''} job.`, { beeId: b.id });
