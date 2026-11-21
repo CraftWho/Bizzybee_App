@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+const day = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString('sv-SE');
 const today = day(0);
 const life = (o) => ({ health: 100, stamina: 100, fullness: 50, happiness: 50, bornAt: day(-1), faintedAt: null, royalJelly: false, birthTrait: null, ...o });
 const egg = (id, hatchOn) => ({ id, name: id, rarity: 'Common', class: null, sex: 'f', talent: 'x', stats: { level: 1 }, life: life({ hatchOn }) });

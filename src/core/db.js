@@ -7587,7 +7587,8 @@ Object.assign(DatabaseManager.prototype, {
     _beeDies(bee, cause, day = todayISO()) {
         const c = this.state.hive;
         c.bees = c.bees.filter(b => b.id !== bee.id);
-        const undertakers = this._workers('undertaker').length;
+        // Nov 21 2026: an Undertaker on a short rest still counts (it keeps its job in restFrom).
+        const undertakers = this._workers('undertaker').length + this._lifeBees().filter(b => !b.class && b.life && b.life.restFrom === 'undertaker' && !b.life.faintedAt).length;
         if (undertakers) this._addMaterial('pollen', Math.min(2, undertakers));
         c.fallen.unshift({ id: bee.id, name: bee.name, rarity: bee.rarity, element: bee.element, sex: bee.sex, role: bee.class, cause, diedAt: day, bornAt: bee.life && bee.life.bornAt, dexNumber: bee.dexNumber });
         this._lifeEvent('death', cause === 'old age' ? `🕯️ ${bee.name} died of old age.` : `🕯️ ${bee.name} died after being fainted too long.`, { beeId: bee.id });
@@ -7952,6 +7953,56 @@ Object.assign(DatabaseManager.prototype, {
         const best = all.reduce((b, x) => x.steps > b.steps ? x : b, { day: '', steps: 0 });
         const r = (S.stepRewards || {})[today] || {};
         return { goal, today: Number(st[today]) || 0, week, weekTotal: week.reduce((n, x) => n + x.steps, 0), streak, best, daysHit: all.filter(x => x.steps >= goal).length, gaveToday: r.gave || [], xpToday: r.xp || 0, goalXP: STEP_GOAL.goalXP, perMin: STEP_GOAL.perMin, minToday: Math.min(STEP_GOAL.capMin, Math.floor((Number(st[today]) || 0) / STEP_GOAL.perMin)) };
+    },
+    // Everything the Incubator's "Step stats" drop-down shows (Nov 21 2026, Craft):
+    // today, today by hour, streak + month calendar, history, records.
+    // stepHours[day] = { h: [24 numbers], src: 'hc' (Health Connect) | 'snap' (our own count) }.
+    getStepPage(today = todayISO()) {
+        const S = this.state || {}, st = S.steps || {}, goal = this.getStepGoal();
+        const n = (d) => Number(st[d]) || 0;
+        const minOf = (steps) => Math.min(STEP_GOAL.capMin, Math.floor(steps / STEP_GOAL.perMin));
+        const hoursOf = (d) => { const x = (S.stepHours || {})[d]; return x && Array.isArray(x.h) && x.h.length === 24 ? x : null; };
+        const xpByDay = {};
+        (S.bonusXP || []).forEach(b => { if (/^(steps|stepgoal):/.test(String(b.key || ''))) xpByDay[b.date] = (xpByDay[b.date] || 0) + (Number(b.xp) || 0); });
+        const span = (h) => {
+            if (!h) return null;
+            const on = h.h.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0);
+            if (!on.length) return null;
+            const busy = h.h.reduce((b, v, i) => v > h.h[b] ? i : b, 0);
+            return { first: on[0], last: on[on.length - 1], busy, busySteps: h.h[busy], src: h.src };
+        };
+        const days = Object.keys(st).filter(d => d <= today && /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+        if (!days.includes(today)) days.push(today);
+        const list = days.map(d => {
+            const steps = n(d), h = hoursOf(d);
+            return { day: d, steps, min: minOf(steps), xp: xpByDay[d] != null ? xpByDay[d] : minOf(steps) + (steps >= goal ? STEP_GOAL.goalXP : 0), hit: steps >= goal, hours: h ? h.h.slice() : null, span: span(h) };
+        });
+        // streaks (a day without the goal yet doesn't break today's streak)
+        let cur = 0;
+        for (let i = n(today) >= goal ? 0 : 1; ; i++) { if (n(shiftISODate(today, -i)) >= goal) cur++; else break; }
+        let best = { len: 0, from: '', to: '' }, run = 0, from = '';
+        days.forEach((d, i) => {
+            const prevOk = i > 0 && shiftISODate(days[i - 1], 1) === d;
+            if (n(d) >= goal) { if (run && prevOk) run++; else { run = 1; from = d; } if (run > best.len) best = { len: run, from, to: d }; }
+            else run = 0;
+        });
+        // records
+        const bestDay = list.reduce((b, x) => x.steps > b.steps ? x : b, { day: '', steps: 0 });
+        const weeks = {};
+        list.forEach(x => { const dt = new Date(x.day + 'T12:00:00'); const mon = shiftISODate(x.day, -((dt.getDay() + 6) % 7)); weeks[mon] = (weeks[mon] || 0) + x.steps; });
+        const bw = Object.entries(weeks).reduce((b, [d, v]) => v > b.steps ? { from: d, to: shiftISODate(d, 6), steps: v } : b, { from: '', to: '', steps: 0 });
+        const t = list.find(x => x.day === today);
+        return {
+            goal, goalXP: STEP_GOAL.goalXP, perMin: STEP_GOAL.perMin, capMin: STEP_GOAL.capMin,
+            today: { steps: t.steps, min: t.min, xp: t.xp, toGoal: Math.max(0, goal - t.steps), hit: t.hit, hours: t.hours, span: t.span },
+            streak: { cur, best: best.len, bestFrom: best.from, bestTo: best.to },
+            days: list.slice().reverse(),
+            records: {
+                bestDay: { day: bestDay.day, steps: bestDay.steps }, bestWeek: bw,
+                total: list.reduce((a, x) => a + x.steps, 0), minutes: list.reduce((a, x) => a + x.min, 0),
+                xp: list.reduce((a, x) => a + x.xp, 0), goalDays: list.filter(x => x.hit).length, since: days[0],
+            },
+        };
     },
     spendCoins(n) {
         const q = this._ensureQueen();
