@@ -17,6 +17,8 @@
     --bb-accent-hi: #ffd84a;  --bb-accent-lo: #e6b52c;  --bb-accent-ink: #1a1000;
     --bb-alt: #dc143c;  --bb-alt-rgb: 220, 20, 60;  --bb-alt-soft: #ff8fa3;
     --bb-bg: #000000;  --bb-surface: #120d06;  --bb-surface-2: #1a140b;
+    /* Nov 21 2026 (Craft): THE BACKPLATE. Anything on the honeycomb sits on this solid color (docs/THEME-RULES.md). */
+    --bb-plate: #0e0a04;
     --bb-ink: #f1ede2;  --bb-muted: #b5a888;
     --bb-edge: rgba(var(--bb-accent-rgb), .28);
     --bb-glow: rgba(var(--bb-accent-rgb), .45);
@@ -27,6 +29,8 @@
 /* --- BOX PRESETS (Oct 28 2026). Use these instead of new one-off boxes.
    bb-box = Panel · --frame = page header · --glow = Spotlight (one per
    screen) · --note = tips and Eve · --alert = something needs care. --- */
+.bb-plate, [data-bb-plated] { border-radius: var(--bb-radius, 16px); background: linear-gradient(var(--bb-surface-2, #1a140b), var(--bb-surface, #120d06)) !important; border: 1px solid var(--bb-edge, rgba(255, 204, 0, .28)) !important; border-top: 2px solid var(--bb-alt, #dc143c) !important; color: var(--bb-ink, #f1ede2); box-sizing: border-box; }   /* Nov 21 2026 (Craft): THE BACKPLATE = the app's standard box: black, gold outline, red top border */
+.bb-plate { padding: 12px 14px; }
 .bb-box { position: relative; padding: 14px; border-radius: var(--bb-radius); background: var(--bb-surface); border: 1px solid var(--bb-edge); color: var(--bb-ink); box-sizing: border-box; }
 .bb-box::after { content: ""; position: absolute; top: 0; left: 0; width: 40px; height: 40px; background: var(--bb-corner) no-repeat; pointer-events: none; }
 .bb-box > :first-child { margin-top: 0; }

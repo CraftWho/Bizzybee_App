@@ -4,8 +4,13 @@
 //     title bar (one box: title strip on top, panel below).
 //   - A heading with no panel after it, and a page title, get a solid plate.
 //   - Loose notes on the honeycomb get a solid note box.
-// It only adds classes (and a margin fix), never moves anything, and runs
-// again when a page draws more content. Styles: title-bars.css.
+//   - THE BACKPLATE GUARD (Nov 21 2026, Craft: "a sure fire way"): any box on
+//     the honeycomb with a see-through background becomes the app's standard
+//     box: black, gold outline, red top border ([data-bb-plated] in global.css).
+//     Works for anything, including boxes that only appear later (unlocks,
+//     pop-ups). Rule: docs/THEME-RULES.md.
+// It only adds classes and colors (and a margin fix), never moves anything, and
+// runs again when a page draws more content or a box changes state. Styles: title-bars.css.
 const TitleBars = (() => {
     const HEAD = 'main h1, main h2, main h3, body > h1, body > h2, .sec, [class*="-sec"]:not(section), .settings-title, .page-title';
     const LOOSE = 'p, small, li, label, a, span, div, b';
@@ -25,7 +30,24 @@ const TitleBars = (() => {
     const ownText = (el) => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
     const isPanel = (el) => { if (!el || !visible(el)) return false; const cs = getComputedStyle(el); return solid(cs) && parseFloat(cs.borderTopLeftRadius) >= 4 && el.getBoundingClientRect().height > 24; };
 
+    const seeThrough = (cs) => { const a = alpha(cs.backgroundColor); const img = cs.backgroundImage && cs.backgroundImage !== 'none' && !/url\(/.test(cs.backgroundImage);
+        return (a > 0.02 && a < 0.85) || (img && /rgba\([^)]*,\s*0?\.\d+\)|transparent/.test(cs.backgroundImage) && a < 0.85); };
+    function plate() {
+        // re-check plated boxes (their state may have changed, e.g. "on")
+        document.querySelectorAll('[data-bb-plated]').forEach(el => el.removeAttribute('data-bb-plated'));
+        document.querySelectorAll('body *').forEach(el => {
+            if (el.closest('.ah, .app-head, .app-dock, .dk, header, nav, .hn-tip, .hn-eve-pop, .toast, [class*="toast"], svg, canvas, [data-no-tidy]')) return;
+            const cs = getComputedStyle(el);
+            if (!seeThrough(cs) || cs.position === 'fixed' || !visible(el)) return;
+            if (parseFloat(cs.opacity) < 0.95 || el.getBoundingClientRect().height < 16) return;
+            if (!(el.innerText || '').trim()) return;          // only boxes that hold text
+            if (!onHoneycomb(el)) return;                       // something solid is already behind it
+            el.setAttribute('data-bb-plated', '');   // the standard box look (global.css)
+        });
+    }
+
     function run() {
+        try { plate(); } catch (e) { /* never break a page */ }
         // 1. headings
         document.querySelectorAll(HEAD).forEach(h => {
             if (h.classList.contains('bb-tb') || h.closest(SKIP.replace(', .bb-tb', '')) || !visible(h) || !(h.innerText || '').trim()) return;
@@ -68,7 +90,8 @@ const TitleBars = (() => {
     const soon = () => { clearTimeout(t); t = setTimeout(run, 150); };
     function start() {
         run();
-        new MutationObserver(soon).observe(document.body, { childList: true, subtree: true });
+        new MutationObserver((list) => { if (list.some(m => m.type === 'childList' || (m.attributeName === 'class' && !/^bb-/.test(String(m.target.className))))) soon(); })
+            .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
         window.addEventListener('load', soon);
         setTimeout(run, 1500);
     }
