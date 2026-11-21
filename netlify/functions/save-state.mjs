@@ -25,13 +25,8 @@ const handler = async (req) => {
         // copy) or the one-time upgrade of an old unencrypted save. Normal
         // saves and device switches make none (Oct 31 2026: daily backups only).
         if (current && (body.preservePrevious || !current.data.encrypted)) await createBackup(user.id, current.data, 'before-replacement');
-        // Nov 20 2026 (Craft): an hourly copy of the cloud save, made right before an upload replaces it.
-        else if (current && Date.now() - (Number(current.data.hourlyAt) || 0) >= 3600000) {
-            try { await createBackup(user.id, current.data, 'hourly', `${Date.now()}-hourly`); current.data.hourlyAt = Date.now(); } catch { /* the upload still goes through */ }
-        }
         const meta = cleanMeta(body.meta);
-        const hourlyAt = current ? (Number(current.data.hourlyAt) || 0) : 0;
-        const result = await saves().setJSON(user.id, { encrypted, updatedAt, device: device || active, meta, hourlyAt }, current ? { onlyIfMatch: current.etag } : { onlyIfNew: true });
+        const result = await saves().setJSON(user.id, { encrypted, updatedAt, device: device || active, meta }, current ? { onlyIfMatch: current.etag } : { onlyIfNew: true });
         if (!result.modified || !result.etag) return json({ ok: false, error: 'Cloud progress changed. Resolve the conflict in Settings.' }, 409);
         return json({ ok: true, revision: result.etag, updatedAt, encrypted: true });
     } catch (error) {

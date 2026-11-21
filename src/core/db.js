@@ -2016,6 +2016,102 @@ function syncLog(kind, msg, meta) {
 }
 function syncLogList() { try { return JSON.parse(localStorage.getItem('bizzybee_sync_log') || '[]'); } catch { return []; } }
 
+// ---- CHANGE LOG helpers (Nov 21 2026, Craft) ----
+// A diff of two saves as small "ops" ({p: path, o: old, n: new, ho/hn: had old/new}). Lists of things with an
+// id (tasks, bees...) are compared by id, so one finished task is one small op, not the whole list.
+const J_SKIP_ROOT = new Set(['updatedAt']);
+function jIsObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+function jIdList(arr) {
+    if (!Array.isArray(arr) || !arr.length) return false;
+    const seen = new Set();
+    for (const x of arr) { if (!jIsObj(x) || (typeof x.id !== 'string' && typeof x.id !== 'number') || seen.has(x.id)) return false; seen.add(x.id); }
+    return true;
+}
+function jsonDiff(a, b, path = [], out = []) {
+    if (a === b) return out;
+    const sa = JSON.stringify(a), sb = JSON.stringify(b);
+    if (sa === sb) return out;
+    if (jIsObj(a) && jIsObj(b)) {
+        for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+            if (!path.length && J_SKIP_ROOT.has(k)) continue;
+            const ha = Object.prototype.hasOwnProperty.call(a, k) && a[k] !== undefined, hb = Object.prototype.hasOwnProperty.call(b, k) && b[k] !== undefined;
+            if (ha && hb) jsonDiff(a[k], b[k], path.concat(k), out);
+            else if (ha || hb) out.push({ p: path.concat(k), o: ha ? a[k] : null, n: hb ? b[k] : null, ho: ha, hn: hb });
+        }
+        return out;
+    }
+    if (Array.isArray(a) && Array.isArray(b) && (jIdList(a) || !a.length) && (jIdList(b) || !b.length) && (a.length || b.length)) {
+        const ia = new Map(a.map((x, i) => [x.id, i])), ib = new Map(b.map((x, i) => [x.id, i]));
+        for (const [id, i] of ia) if (!ib.has(id)) out.push({ p: path.concat({ id }), o: a[i], n: null, ho: true, hn: false, i });
+        for (const [id, i] of ib) {
+            if (!ia.has(id)) out.push({ p: path.concat({ id }), o: null, n: b[i], ho: false, hn: true, i });
+            else jsonDiff(a[ia.get(id)], b[i], path.concat({ id }), out);
+        }
+        return out;
+    }
+    out.push({ p: path, o: a === undefined ? null : a, n: b === undefined ? null : b, ho: a !== undefined, hn: b !== undefined });
+    return out;
+}
+function jStep(node, seg) {
+    if (node == null) return undefined;
+    if (jIsObj(seg)) return Array.isArray(node) ? node.find(x => x && x.id === seg.id) : undefined;
+    return node[seg];
+}
+function jSet(root, op, useNew) {
+    const has = useNew ? op.hn : op.ho, val = JSON.parse(JSON.stringify(useNew ? op.n : op.o));
+    if (!op.p.length) return has ? val : root;
+    let node = root;
+    for (const seg of op.p.slice(0, -1)) {
+        let next = jStep(node, seg);
+        if (next == null && !jIsObj(seg)) { next = {}; node[seg] = next; }
+        if (next == null) return root;   // the parent is gone: nothing to put back
+        node = next;
+    }
+    const last = op.p[op.p.length - 1];
+    if (jIsObj(last)) {
+        if (!Array.isArray(node)) return root;
+        const at = node.findIndex(x => x && x.id === last.id);
+        if (has) { if (at >= 0) node[at] = val; else node.splice(Math.min(op.i ?? node.length, node.length), 0, val); }
+        else if (at >= 0) node.splice(at, 1);
+    } else if (has) node[last] = val; else delete node[last];
+    return root;
+}
+// Undo ops (newest last in the list, so walk backwards) / redo ops (in order).
+function jsonUnpatch(state, ops) { let s = state; for (let i = ops.length - 1; i >= 0; i--) s = jSet(s, ops[i], false); return s; }
+function jsonPatch(state, ops) { let s = state; for (const op of ops) s = jSet(s, op, true); return s; }
+// Plain words for a change: "Completed 'Read 30 min'", "Level 12 → 13", "Storm: Collector → resting"...
+function jName(v) { return jIsObj(v) ? (v.title || v.name || v.label || v.text || v.id || '') : ''; }
+function journalSummary(ops, prev, cur) {
+    const out = [], seen = new Set(), add = (t) => { if (t && !seen.has(t)) { seen.add(t); out.push(t); } };
+    const at = (root, p) => p.reduce((n, s) => jStep(n, s), root);
+    let hiveTime = 0, other = new Set();
+    for (const op of ops) {
+        const last = op.p[op.p.length - 1], top = typeof op.p[0] === 'string' ? op.p[0] : '';
+        if (top === 'hive' || top === 'colony') {
+            if (last === 'class') { const bee = at(cur, op.p.slice(0, -1)) || at(prev, op.p.slice(0, -1)); add(`${jName(bee) || 'A bee'}: ${op.o || 'no job'} → ${op.n || 'no job'}`); continue; }
+            if (jIsObj(last) && op.p.length === 2 && op.p[1] === 'bees') { add(op.hn ? `New bee: ${jName(op.n)}` : `Bee gone: ${jName(op.o)}`); continue; }
+            hiveTime++; continue;
+        }
+        if (jIsObj(last) && (op.hn !== op.ho)) { const nm = jName(op.hn ? op.n : op.o); if (nm && top !== 'bonusXP' && top !== 'timeLog') { add(`${op.hn ? 'Added' : 'Removed'} ${top.replace(/s$/, '')} '${nm}'`); continue; } }
+        if (['completed', 'done', 'checked', 'isCompleted'].includes(last)) {
+            const thing = at(cur, op.p.slice(0, -1)) || at(prev, op.p.slice(0, -1));
+            add(`${op.n ? 'Completed' : 'Unchecked'} '${jName(thing) || 'a task'}'`); continue;
+        }
+        if (top) other.add(top);
+    }
+    const m0 = typeof Vault !== 'undefined' ? Vault.backupMeta(prev) : null, m1 = typeof Vault !== 'undefined' ? Vault.backupMeta(cur) : null;
+    if (m0 && m1) {
+        if (m1.level !== m0.level) add(`Level ${m0.level} → ${m1.level}`);
+        if (m1.xp !== m0.xp) add(`${m1.xp > m0.xp ? '+' : ''}${m1.xp - m0.xp} XP`);
+        if (m1.coins !== m0.coins) add(`${m1.coins > m0.coins ? '+' : ''}${m1.coins - m0.coins} coins`);
+    }
+    if (hiveTime && !out.some(t => t.includes('→'))) add('Hive time passed');
+    const NAMES = { dailyTasks: 'dailies', habits: 'habits', todos: 'To-Dos', quests: 'quests', inventory: 'items', user: 'profile', settings: 'settings', calendarEvents: 'calendar', dictionary: 'dictionary', studyQueue: 'study list', projects: 'projects', skills: 'skills', notifications: 'reminders', steps: 'steps' };
+    const named = [...other].map(k => NAMES[k]).filter(Boolean);
+    if (named.length && out.length < 3) add('Changed ' + named.slice(0, 4).join(', '));
+    return out.slice(0, 6);
+}
+
 class DatabaseManager {
     constructor() {
         this.dbName = 'BizzybeeVault';
@@ -2051,7 +2147,8 @@ class DatabaseManager {
     init() {
         if (this._initPromise) return this._initPromise;
         if (this.state) return Promise.resolve(this.state);
-        this._initPromise = this._initialize().finally(() => { this._initPromise = null; });
+        this._loading = true; this._loadCopied = false;
+        this._initPromise = this._initialize().finally(() => { this._initPromise = null; this._loading = false; });
         return this._initPromise;
     }
 
@@ -2605,20 +2702,20 @@ class DatabaseManager {
             return { level: ack ? Math.min(ack, level) : level, xp: Math.round(xp), coins: Math.round(Number((s.user && s.user.coins) ?? s.coins) || 0), bees: ((s.hive || s.colony || {}).bees || []).length, quests: (s.quests || []).length, name: s.displayName || (s.user && s.user.name) || '', device: bbDeviceName() };
         } catch { return null; }
     }
-    _trimBackups(entries) {
-        let plain = 0, safe = 0;
-        return entries.filter(e => e.protect ? ++safe <= 5 : ++plain <= 6);
-    }
+    // Nov 21 2026 (Craft): ONE safety copy. Made right before anything risky (restore, update, a change from the
+    // PC or Claude, a merge...) and overwritten each time. Your own backups (last 3) live in the Backups list.
+    _trimBackups(entries) { return entries.slice(0, 1); }
     createLocalBackup(reason = 'Manual backup', { protect = false } = {}) {
         const data = localStorage.getItem(this.storageKey);
         if (!data) return;
+        // While the save is loading, several upgrades may each ask for a copy: keep the first (the untouched save).
+        if (this._loading) { if (this._loadCopied) return; this._loadCopied = true; }
         let meta = null;
         try { meta = this.backupMeta(JSON.parse(data)); } catch { /* unreadable save: still keep the raw copy */ }
         const entries = this.getLocalBackups();
         let id = Date.now().toString();
         while (entries.some(e => e.id === id)) id = String(Number(id) + 1);
         entries.unshift({ id, createdAt: new Date().toISOString(), reason, meta, protect: !!protect, data });
-        this.savePoint('checkpoint', reason).catch(() => {});   // Nov 20 2026 (Craft): also kept in the big save-point ring
         let list = this._trimBackups(entries);
         for (;;) {
             try { localStorage.setItem(this.storageKey + ':backups', JSON.stringify(list)); this._backupHealth({ safetyAt: new Date().toISOString(), safetyErr: null }); return; }
@@ -2654,8 +2751,11 @@ class DatabaseManager {
     // and a checkpoint before anything risky (update, cloud load, restore, merge...). Each shows level, XP,
     // coins, time and the device that made it.
     AUTO_BACKUP_EVERY_MS = 3600000;
-    SAVE_POINT_KEEP = { exit: 10, hourly: 24, daily: 7, checkpoint: 10 };
-    SAVE_POINT_LABEL = { exit: 'Left the app', hourly: 'Hourly', daily: 'Daily', checkpoint: 'Checkpoint' };
+    // Nov 21 2026 (Craft): simpler. One autosave (the live save, rewritten on every change), your last 3 backups
+    // (Make a Backup, the home-screen Save button, or the app before a big step), one safety copy, and the change
+    // log, which can take you back to any point. The old hourly/exit/daily copies are cleared after 2 days.
+    SAVE_POINT_KEEP = { backup: 3 };
+    SAVE_POINT_LABEL = { backup: 'Backup' };
     _autoDb() {
         return new Promise((resolve, reject) => {
             if (typeof indexedDB === 'undefined') return reject(new Error('This browser has no IndexedDB.'));
@@ -2669,7 +2769,7 @@ class DatabaseManager {
         const db = await this._autoDb();
         return new Promise((resolve, reject) => {
             const req = db.transaction('copies', 'readonly').objectStore('copies').getAll();
-            req.onsuccess = () => resolve((req.result || []).filter(c => c.key === this.storageKey).map(c => ({ ...c, kind: c.kind || 'hourly' })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+            req.onsuccess = () => resolve((req.result || []).filter(c => c.key === this.storageKey).map(c => ({ ...c, kind: c.kind || 'old' })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
             req.onerror = () => reject(req.error);
         });
     }
@@ -2680,12 +2780,10 @@ class DatabaseManager {
         return new Promise((resolve, reject) => { const tx = db.transaction('copies', 'readwrite'); tx.objectStore('copies').delete(id); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
     }
     autoBackupLastAt() { return Number(localStorage.getItem(this.storageKey + ':autobackup_at') || 0); }
-    autoBackupDue(now = Date.now()) {
-        return !!this.state && !this.devTest && !this.pcLocal && now - this.autoBackupLastAt() >= this.AUTO_BACKUP_EVERY_MS;
-    }
+    autoBackupDue() { return false; }   // Nov 21 2026: backups are made by you (or before a big step), not on a timer
     // Makes one copy (when due, or force). Never throws: a failure is recorded for Backup health.
     savePoint(kind, reason) { return this.autoBackupNow({ force: true, kind, reason: reason || this.SAVE_POINT_LABEL[kind] }); }
-    async autoBackupNow({ force = false, reason = 'Hourly', kind = 'hourly' } = {}) {
+    async autoBackupNow({ force = false, reason = 'Backup', kind = 'backup' } = {}) {
         if (!this.state || this.devTest || this.pcLocal) return { ok: false, error: 'no-save' };
         if (!force && !this.autoBackupDue()) return { ok: true, skipped: true };
         if (this._autoBusy) return { ok: true, skipped: true };
@@ -2697,10 +2795,10 @@ class DatabaseManager {
             const db = await this._autoDb();
             const rec = { id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 6), key: this.storageKey, kind, createdAt: new Date().toISOString(), reason, meta: this.backupMeta(JSON.parse(data)), data };
             await new Promise((resolve, reject) => { const tx = db.transaction('copies', 'readwrite'); tx.objectStore('copies').put(rec); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error || new Error('Could not write the copy.')); tx.onabort = () => reject(tx.error || new Error('The browser refused the copy (storage full?).')); });
-            const same = (await this._autoAll()).filter(c => c.kind === kind);
-            for (const old of same.slice(this.SAVE_POINT_KEEP[kind] || 10)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
-            if (kind === 'hourly') localStorage.setItem(this.storageKey + ':autobackup_at', String(Date.now()));
-            if (kind === 'daily') localStorage.setItem(this.storageKey + ':dailypoint', todayISO());
+            const all = await this._autoAll();
+            for (const old of all.filter(c => c.kind === kind).slice(this.SAVE_POINT_KEEP[kind] || 3)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
+            for (const old of all.filter(c => !this.SAVE_POINT_KEEP[c.kind] && Date.now() - Date.parse(c.createdAt) > 2 * 86400000)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
+            localStorage.setItem(this.storageKey + ':autobackup_at', String(Date.now()));
             syncLog('save-point', `${this.SAVE_POINT_LABEL[kind] || kind} save point`, rec.meta);
             this._backupHealth({ autoAt: rec.createdAt, autoErr: null });
             return { ok: true, id: rec.id };
@@ -2709,26 +2807,92 @@ class DatabaseManager {
             return { ok: false, error: (error && error.message) || 'failed' };
         } finally { this._autoBusy = false; }
     }
-    // Checks on load, when the app comes back, and every 5 minutes while it is open.
-    // Leaving the app (or the phone freezing it) makes an "exit" save point at once.
+    // Nov 21 2026: no timed copies any more. On start, old-style copies older than 2 days are cleared, and the
+    // change log starts watching saves.
     startAutoBackup() {
         if (this._autoStarted || typeof window === 'undefined' || typeof document === 'undefined') return;
         this._autoStarted = true;
-        const check = () => {
-            this.autoBackupNow().catch(() => {});
-            if (localStorage.getItem(this.storageKey + ':dailypoint') !== todayISO()) this.savePoint('daily').catch(() => {});
-        };
-        setTimeout(check, 10000);
-        setInterval(check, 5 * 60000);
-        let lastExit = 0;
-        const leave = () => {
-            if (Date.now() - lastExit < 60000) return;   // one per minute is plenty
-            lastExit = Date.now();
-            this.savePoint('exit').catch(() => {});
-        };
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); else leave(); });
-        window.addEventListener('pagehide', leave);
-        try { const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (App && App.addListener) App.addListener('pause', leave); } catch { /* not the app */ }
+        setTimeout(() => {
+            this._autoAll().then(all => Promise.all(all.filter(c => !this.SAVE_POINT_KEEP[c.kind] && Date.now() - Date.parse(c.createdAt) > 2 * 86400000).map(c => this.removeAutoBackup(c.id)))).catch(() => {});
+        }, 15000);
+        this.journalStart();
+    }
+
+    // ---- CHANGE LOG (Nov 21 2026, Craft; approved) ----
+    // A second source of truth, like Git history: every change to your save, in plain words, with who made it
+    // (this phone, the PC, Claude, voice, an update, a restore), the level and XP after, and the exact changes,
+    // so you can go back to any point. Kept on this device (last 3000 changes or 60 days).
+    _jDb() {
+        return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') return reject(new Error('No IndexedDB.'));
+            const req = indexedDB.open('bizzybee-journal', 1);
+            req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('entries')) req.result.createObjectStore('entries', { keyPath: 'id' }); };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error || new Error('IndexedDB failed.'));
+        });
+    }
+    async _jAll() {
+        const db = await this._jDb();
+        return new Promise((resolve, reject) => {
+            const req = db.transaction('entries', 'readonly').objectStore('entries').getAll();
+            req.onsuccess = () => resolve((req.result || []).filter(e => e.key === this.storageKey).sort((a, b) => b.id.localeCompare(a.id)));
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async _jPut(e) {
+        const db = await this._jDb();
+        await new Promise((resolve, reject) => { const tx = db.transaction('entries', 'readwrite'); tx.objectStore('entries').put(e); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); });
+    }
+    async _jTrim() {
+        const all = await this._jAll();
+        const cut = Date.now() - 60 * 86400000;
+        const drop = all.filter((e, i) => i >= 3000 || Date.parse(e.at) < cut);
+        if (!drop.length) return;
+        const db = await this._jDb();
+        await new Promise((resolve) => { const tx = db.transaction('entries', 'readwrite'); drop.forEach(e => tx.objectStore('entries').delete(e.id)); tx.oncomplete = resolve; tx.onerror = resolve; });
+    }
+    journalStart() {
+        if (this._jStarted || !this.state || this.devTest || this.pcLocal || typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+        this._jStarted = true;
+        this._jPrev = JSON.parse(JSON.stringify(this.state));
+        window.addEventListener('vault-saved', () => { clearTimeout(this._jT); this._jT = setTimeout(() => this.journalFlush().catch(() => {}), 2500); });
+        if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') this.journalFlush().catch(() => {}); });
+        setTimeout(() => this._jTrim().catch(() => {}), 20000);
+    }
+    // Who made the next change (phone is the default): 'pc', 'claude', 'voice', 'update', 'restore', 'bixby'...
+    journalSource(src, note = '') { this._jSrc = src; this._jNote = note; }
+    async journalFlush({ src, note, force = false } = {}) {
+        if (!this._jPrev || !this.state) return null;
+        clearTimeout(this._jT);
+        const cur = JSON.parse(JSON.stringify(this.state));
+        const ops = jsonDiff(this._jPrev, cur);
+        if (!ops.length && !force) return null;
+        const before = this.backupMeta(this._jPrev) || {}, after = this.backupMeta(cur) || {};
+        const e = { id: new Date().toISOString() + '-' + Math.random().toString(36).slice(2, 6), key: this.storageKey, at: new Date().toISOString(), dev: bbDeviceName(),
+            src: src || this._jSrc || 'app', note: note || this._jNote || '', sum: ops.length ? journalSummary(ops, this._jPrev, cur) : [], lv: after.level, xp: after.xp, coins: after.coins, lv0: before.level, xp0: before.xp, n: ops.length, ops };
+        this._jPrev = cur; this._jSrc = null; this._jNote = null;
+        try { await this._jPut(e); } catch { return null; }
+        try { window.dispatchEvent(new CustomEvent('journal-entry', { detail: { id: e.id } })); } catch { /* fine */ }
+        return e;
+    }
+    async journalList(limit = 300) { return (await this._jAll()).slice(0, limit).map(({ ops, ...rest }) => rest); }
+    // Go back to the moment right after entry `id`: undo every change made after it. A safety copy is made first,
+    // and the trip back is itself logged, so it can be undone too.
+    async journalGoBack(id) {
+        await this.journalFlush();
+        const all = await this._jAll();
+        const idx = all.findIndex(e => e.id === id);
+        if (idx < 0) return { ok: false, error: 'That point is no longer in the log.' };
+        const target = all[idx];
+        let st = JSON.parse(JSON.stringify(this.state));
+        for (const e of all.slice(0, idx)) st = jsonUnpatch(st, e.ops || []);
+        this.createLocalBackup('Before going back in the change log');
+        const text = JSON.stringify(st);
+        const r = this.importFullState(text, { backup: false });
+        if (!r.ok) return r;
+        const when = new Date(target.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        await this.journalFlush({ src: 'restore', note: `Went back to ${when}`, force: true });
+        return { ok: true, at: target.at };
     }
 
     // Time-based XP (Oct 2026), once per save:
@@ -5809,6 +5973,7 @@ class DatabaseManager {
             localStorage.setItem(this.storageKey, JSON.stringify(parsed));
             this.state = parsed;
             this._shadow = undefined;   // save merge: new baseline on the next save
+            if (this._jStarted) this.journalFlush({ src: fromCloud ? 'cloud' : 'import' }).catch(() => {});
             if (!fromCloud) window.dispatchEvent(new Event('vault-saved'));
             return { ok: true };
         } catch (error) {

@@ -38,16 +38,15 @@ function world({ local, cloud, loggedIn, quota = Infinity, idb = true, extra = {
 }
 const save = (xp, extra = {}) => ({ schemaVersion: 8, user: { name: 'T' }, quests: [], hive: { bees: [], tickets: 0 }, bonusXP: [{ xp }], ...extra });
 
-test('copies know their level, and protected copies are never pushed out by ordinary ones', async () => {
+test('one safety copy: it knows its level and the newest replaces the old one', async () => {
     const w = world({ local: { key: 'bizzybee_user_data', save: save(0) } });
     w.data.set('bizzybee_user_data', JSON.stringify(save(w.xp(13))));
     await w.V.init();
-    w.V.createLocalBackup('before cloud replaced it', { protect: true });
-    for (let i = 0; i < 9; i++) w.V.createLocalBackup('ordinary ' + i);
+    for (let i = 0; i < 5; i++) w.V.createLocalBackup('step ' + i);
     const list = w.V.getLocalBackups();
-    assert.equal(list.filter(b => !b.protect).length, 6);
-    assert.equal(list.filter(b => b.protect).length, 1);
-    assert.equal(list.find(b => b.protect).meta.level, 13);
+    assert.equal(list.length, 1);
+    assert.equal(list[0].reason, 'step 4');
+    assert.equal(list[0].meta.level, 13);
 });
 
 test('storage full: the oldest ordinary copy goes, the new copy stays; nothing fits: a clear error and health note', async () => {
@@ -72,38 +71,25 @@ test('storage full: the oldest ordinary copy goes, the new copy stays; nothing f
     assert.match(none.V.backupHealth().safetyErr || '', /storage/i);
 });
 
-test('save points: hourly when due, rings per kind never push each other out, labels carry level/XP/device, test saves skipped', async () => {
+test('backups: made on demand, last 3 kept, labels carry level/XP/device, test saves skipped', async () => {
     const w = world({ local: { key: 'bizzybee_user_data', save: save(100) } });
     await w.V.init();
-    assert.equal(w.V.autoBackupDue(), true);
-    const r1 = await w.V.autoBackupNow();
-    assert.equal(r1.ok, true);
-    assert.equal(w.V.autoBackupDue(), false);
-    assert.equal((await w.V.autoBackupNow()).skipped, true);
-    assert.equal(w.V.autoBackupDue(Date.now() + 3600000 + 1000), true);
-    for (let i = 0; i < 30; i++) await w.V.autoBackupNow({ force: true, reason: 'x' + i });
-    for (let i = 0; i < 12; i++) await w.V.savePoint('exit');
-    await w.V.savePoint('checkpoint', 'Before update');
+    assert.equal(w.V.autoBackupDue(), false);                // no timed copies any more
+    for (let i = 0; i < 5; i++) assert.equal((await w.V.savePoint('backup', 'mine ' + i)).ok, true);
     const all = await w.V.listAutoBackups();
-    const n = (k) => all.filter(c => c.kind === k).length;
-    assert.equal(n('hourly'), 24);
-    assert.equal(n('exit'), 10);
-    assert.ok(n('checkpoint') >= 1);
-    const cp = all.find(c => c.reason === 'Before update');
-    assert.equal(typeof cp.meta.level, 'number');
-    assert.equal(typeof cp.meta.xp, 'number');
-    assert.ok(cp.meta.device);
-    const data = await w.V.getAutoBackupData(all[0].id);
-    assert.ok(JSON.parse(data).user);
+    assert.deepEqual(all.map(c => c.reason), ['mine 4', 'mine 3', 'mine 2']);
+    assert.equal(typeof all[0].meta.level, 'number');
+    assert.ok(all[0].meta.device);
+    assert.ok(JSON.parse(await w.V.getAutoBackupData(all[0].id)).user);
     const dev = world({ local: { key: 'bizzybee_user_data:devtest', save: save(1) }, extra: { bizzybee_dev_test: '1' } });
     await dev.V.init();
-    assert.equal(dev.V.autoBackupDue(), false);
+    assert.equal((await dev.V.savePoint('backup')).ok, false);
 });
 
 test('a browser with no IndexedDB: the automatic copy fails quietly and Backup health says why', async () => {
     const w = world({ local: { key: 'bizzybee_user_data', save: save(100) }, idb: false });
     await w.V.init();
-    const r = await w.V.autoBackupNow();
+    const r = await w.V.savePoint('backup');
     assert.equal(r.ok, false);
     assert.match(w.V.backupHealth().autoErr, /IndexedDB/);
 });
@@ -126,4 +112,28 @@ test('signing in with the cloud up: the cloud copy loads and the device copy sta
     await w.V.init();
     assert.equal(w.V.getUser().level, 11);
     assert.equal(JSON.parse(w.data.get('bizzybee_user_data')).bonusXP[0].xp, probe.xp(13));
+});
+
+test('change log: plain-words entries, and going back undoes later changes (and is logged)', async () => {
+    const w = world({ local: { key: 'bizzybee_user_data', save: save(100, { quests: [{ id: 'q1', title: 'Learn JS', tasks: [{ id: 't1', title: 'Read ch 1', completed: false, xp: 10 }] }] }) } });
+    await w.V.init();
+    w.V._jPrev = JSON.parse(JSON.stringify(w.V.state)); w.V._jStarted = true;
+    w.V.state.quests.push({ id: 'q2', title: 'Walk more', tasks: [] });
+    const e1 = await w.V.journalFlush();
+    assert.ok(e1.sum.some(t => /Added quest 'Walk more'/.test(t)), e1.sum.join(' | '));
+    w.V.state.quests[0].tasks[0].completed = true;
+    w.V.state.bonusXP.push({ key: 'x', xp: 50 });
+    const e2 = await w.V.journalFlush({ src: 'claude' });
+    assert.ok(e2.sum.some(t => /Completed 'Read ch 1'/.test(t)), e2.sum.join(' | '));
+    assert.ok(e2.sum.some(t => /\+60 XP/.test(t)), e2.sum.join(' | '));
+    assert.equal(e2.src, 'claude');
+    assert.equal(await w.V.journalFlush(), null);                     // nothing changed: no entry
+    const r = await w.V.journalGoBack(e1.id);
+    assert.equal(r.ok, true);
+    assert.equal(w.V.state.quests.length, 2);                        // q2 stays (it was added at e1)
+    assert.equal(w.V.state.quests[0].tasks[0].completed, false);     // later change undone
+    assert.equal(w.V.state.bonusXP.length, 1);
+    const list = await w.V.journalList();
+    assert.equal(list[0].src, 'restore');
+    assert.equal(w.V.getLocalBackups()[0].reason, 'Before going back in the change log');
 });

@@ -57,7 +57,7 @@ function initCloudSync() {
         }
         netlifyIdentity.open('login');
     };
-    document.getElementById('cloud-sync-logout-btn').onclick = () => netlifyIdentity.logout();
+    document.getElementById('cloud-sync-logout-btn').onclick = () => { try { localStorage.setItem('bizzybee_user_signout', '1'); } catch { /* fine */ } netlifyIdentity.logout(); };
     const wire = (id, action) => { const button = document.getElementById(id); button.onclick = () => settingsAction(button, action); };
     wire('cloud-sync-push-btn', async () => {
         const engine = cloudEngine();
@@ -101,7 +101,7 @@ function initCloudSync() {
 async function refreshCloudBackups() {
     const result = await cloudEngine().request('backups');
     // Oct 31 2026 (Craft): daily backups, keep 4, plus copies made before a restore.
-    document.getElementById('backup-status').textContent = `Hourly while you upload (last ${result.keepHourly || 24}), daily at about 4 AM when something changed (last ${result.keepDaily || 7} days), and before a restore or Back Up Now (last ${result.keepOther || 10}).`;
+    document.getElementById('backup-status').textContent = `The cloud keeps a copy each day at about 4 AM when something changed (last ${result.keepDaily || 2}), and one before each restore or Back Up Now (last ${result.keepOther || 3}).`;
     const list = document.getElementById('cloud-backup-list');
     list.replaceChildren();
     if (!result.backups.length) list.textContent = 'No cloud backups yet. Use Back Up Now to create your first.';
@@ -187,7 +187,18 @@ function svRow(item, title, buttons) {
     return row;
 }
 function svBtn(text, fn) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = text; b.onclick = () => settingsAction(b, fn); return b; }
-let svKind = '';
+// The one safety copy (made before anything big; replaced each time).
+function renderSafety() {
+    const host = document.getElementById('sv-safety');
+    if (!host) return;
+    host.replaceChildren();
+    const c = Vault.getLocalBackups()[0];
+    if (!c) return;
+    host.append(svRow({ ...c, kind: 'checkpoint' }, `Safety copy: ${c.reason}`, [
+        svBtn('Export', async () => downloadFile(c.data, `bizzybee-safety-copy.json`, 'application/json')),
+        svBtn('Restore', deviceRestore(() => c.data, 'the safety copy')),
+    ]));
+}
 function renderSaveNow() {
     const el = document.getElementById('sv-now');
     if (!el || typeof Vault === 'undefined' || !Vault.state) return;
@@ -208,18 +219,41 @@ function renderSaveNow() {
     const line = (t) => { const s = document.createElement('small'); s.textContent = t; return s; };
     el.append(big, line(`${m.device || 'This device'} · last change ${svWhen(Vault.state.updatedAt) || '—'}`), line(cloud));
 }
-function renderSyncLog(all = false) {
+const SRC = { app: '📱', phone: '📱', pc: '💻', claude: '🤖', voice: '🎙️', bixby: '🎙️', update: '⬆️', restore: '↩️', cloud: '☁️', import: '📥', api: '🤖' };
+async function renderSyncLog(all = false) {
     const host = document.getElementById('sync-log');
     if (!host) return;
-    const list = typeof syncLogList === 'function' ? syncLogList() : [];
+    let entries = [];
+    try { entries = await Vault.journalList(all ? 300 : 25); } catch { /* no IndexedDB */ }
+    const sync = (typeof syncLogList === 'function' ? syncLogList() : []).filter(e => e.kind !== 'save-point').slice(0, all ? 200 : 15);
+    const rows = [...entries.map(e => ({ t: e.at, e })), ...sync.map(x => ({ t: x.at, x }))].sort((a, b) => b.t.localeCompare(a.t)).slice(0, all ? 400 : 25);
     host.replaceChildren();
-    if (!list.length) { host.textContent = 'Nothing logged yet. Saves, uploads and switches show up here.'; return; }
-    const ICON = { fail: '⚠️', upload: '☁️', load: '⬇️', inactive: '🔴', review: '❓', choice: '👆', 'save-point': '💾', restore: '↩️', login: '🔑', open: '📱' };
-    for (const e of list.slice(0, all ? 200 : 20)) {
+    if (!rows.length) { host.textContent = 'Nothing yet. Changes show up here a few seconds after you make them.'; return; }
+    const ICON = { fail: '⚠️', upload: '☁️', load: '⬇️', inactive: '🔴', review: '❓', choice: '👆', restore: '↩️', login: '🔑', open: '📱', update: '⬆️' };
+    for (const r of rows) {
         const row = document.createElement('div'); row.className = 'sv-log';
-        const t = document.createElement('small'); t.textContent = `${svWhen(e.at)}${e.lv != null ? ` · Lv ${e.lv} · ${Number(e.xp || 0).toLocaleString()} XP` : ''}${e.dev ? ' · ' + e.dev : ''}`;
-        const b = document.createElement('span'); b.textContent = `${ICON[e.kind] || '•'} ${e.msg}`;
-        row.append(b, t); host.append(row);
+        if (r.x) {
+            row.classList.add('sv-sync');
+            const b = document.createElement('span'); b.textContent = `${ICON[r.x.kind] || '•'} ${r.x.msg}`;
+            const t = document.createElement('small'); t.textContent = svWhen(r.x.at);
+            row.append(b, t); host.append(row); continue;
+        }
+        const e = r.e;
+        const b = document.createElement('span');
+        b.textContent = `${SRC[e.src] || '📱'} ${(e.note ? [e.note] : []).concat(e.sum || []).join(' · ') || 'Small changes'}`;
+        const t = document.createElement('small');
+        t.textContent = `${svWhen(e.at)} · Lv ${e.lv ?? '?'} · ${Number(e.xp || 0).toLocaleString()} XP${e.dev ? ' · ' + e.dev : ''}`;
+        const go = document.createElement('button'); go.type = 'button'; go.className = 'btn sv-go'; go.textContent = 'Go back to here';
+        go.onclick = () => {
+            if (go.dataset.sure !== '1') { go.dataset.sure = '1'; go.textContent = 'Tap again to go back'; setTimeout(() => { go.dataset.sure = ''; go.textContent = 'Go back to here'; }, 4000); return; }
+            settingsAction(go, async () => {
+                const res = await Vault.journalGoBack(e.id);
+                if (!res.ok) throw new Error(res.error);
+                Toast.show(`↩️ Back to ${svWhen(res.at)}. A safety copy was made first.`, 'positive');
+                setTimeout(() => window.location.reload(), 800);
+            });
+        };
+        row.append(b, t, go); host.append(row);
     }
 }
 function metaOfRaw(raw) { try { return Vault.backupMeta(JSON.parse(raw)); } catch { return null; } }
@@ -273,8 +307,9 @@ async function renderAutoBackups() {
     let copies = [];
     try { copies = await Vault.listAutoBackups(); } catch (error) { list.textContent = 'Automatic copies could not be read: ' + error.message; return; }
     list.replaceChildren();
-    const shown = copies.filter(c => !svKind || c.kind === svKind);
-    if (!shown.length) { list.textContent = copies.length ? 'None of this kind yet.' : 'No save points yet. The first is made shortly after the app opens.'; return; }
+    const shown = copies.filter(c => c.kind === 'backup');
+    renderSafety();
+    if (!shown.length) { list.textContent = 'No backups yet. Tap Make a Backup.'; return; }
     for (const item of shown) {
         const name = `bizzybee-${Vault.saveType ? Vault.saveType() : 'REAL'}-savepoint-${(item.createdAt || '').slice(0, 16).replace(/[:T]/g, '-')}.json`;
         list.append(svRow(item, item.reason || 'Save point', [
@@ -316,16 +351,14 @@ function initDeviceBackups() {
     document.getElementById('local-backup-refresh-btn').onclick = renderDeviceBackups;
     const nowBtn = document.getElementById('auto-backup-now-btn');
     if (nowBtn) nowBtn.onclick = event => settingsAction(event.currentTarget, async () => {
-        const r = await Vault.savePoint('checkpoint', 'Made by you');
-        if (!r.ok) throw new Error('Could not make the save point: ' + r.error);
-        Toast.show('💾 Save point made.', 'positive');
+        const r = await Vault.savePoint('backup', 'Made by you');
+        if (!r.ok) throw new Error('Could not make the backup: ' + r.error);
+        Toast.show('💾 Backup made.', 'positive');
         renderAutoBackups(); renderBackupHealth(); renderSyncLog();
     });
     const exp = document.getElementById('sv-export-btn');
     if (exp) exp.onclick = event => settingsAction(event.currentTarget, async () => downloadFile(Vault.exportFullState(), Vault.saveFileName ? Vault.saveFileName() : 'bizzybee-save.json', 'application/json'));
-    document.querySelectorAll('#sv-filter .sv-chip').forEach(c => c.onclick = () => {
-        svKind = c.dataset.k; document.querySelectorAll('#sv-filter .sv-chip').forEach(x => x.classList.toggle('on', x === c)); renderAutoBackups();
-    });
+    window.addEventListener('journal-entry', () => renderSyncLog(more));
     let more = false;
     const mb = document.getElementById('sync-log-more');
     if (mb) mb.onclick = () => { more = !more; mb.textContent = more ? 'Show Less' : 'Show More'; renderSyncLog(more); };

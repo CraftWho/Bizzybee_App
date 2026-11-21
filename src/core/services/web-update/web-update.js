@@ -27,7 +27,7 @@ const WebUpdate = (() => {
         try {
             const r = await P.update({ site: window.BB_SITE });
             // Nov 20 2026 (Craft): a checkpoint before new app files load, so an update can never cost progress.
-            if (r && r.updated && typeof Vault !== 'undefined' && Vault.savePoint) { try { await Vault.savePoint('checkpoint', `Before app update${r.version ? ' ' + r.version : ''}`); } catch { /* still update */ } }
+            if (r && r.updated && typeof Vault !== 'undefined') { try { Vault.createLocalBackup(`Before app update${r.version ? ' ' + r.version : ''}`); } catch { /* still update */ } }
             if (r && r.updated && typeof syncLog === 'function') syncLog('update', `App files updated (${r.downloaded} file${r.downloaded === 1 ? '' : 's'})`);
             record(r && r.updated ? { state: 'updated', version: r.version, note: `Downloaded ${r.downloaded} file${r.downloaded === 1 ? '' : 's'}. Opens next time you start the app.` } : { state: 'current', version: r && r.version, note: 'Already on the newest files.' });
             if (r && r.updated && typeof Toast !== 'undefined') {
