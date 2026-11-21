@@ -8,7 +8,7 @@
 const APP_WEB_VERSION = '1.0.5';
 const WHATS_NEW = [
     // Nov 21 2026 (Craft): saves, phone as main, Claude API, voice, hive alerts, Grave Comb.
-    { id: 'w4', version: '1.0.9', date: 'Nov 2026',
+    { id: 'w4', version: '1.1.0', date: 'Nov 2026',
       new: [
         { icon: '📱', title: 'Your phone is the main device', text: 'Only your phone writes your save. The PC and others send their changes to your phone to Accept or Reject.', href: 'features/settings/settings.html' },
         { icon: '📜', title: 'Change log', text: 'Every change to your save in plain words, who made it, and your level after. Tap Go back to here to undo to any point.', href: 'features/settings/settings.html' },
