@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 const src = readFileSync(new URL('../src/core/db.js', import.meta.url), 'utf8');
-const today = new Date().toISOString().slice(0, 10);
+const today = new Date().toLocaleDateString('sv-SE');
 function world(seed, opts = {}) {
     let s = seed; const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
     const jobs = ['nurse', 'honeymaker', 'collector', 'rescue', 'receiver', 'fanner', 'cleaner', 'guardian', 'scout', 'architect', 'watercarrier', 'attendant', 'undertaker'];

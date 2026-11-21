@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const today = new Date().toISOString().slice(0, 10);
-const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const today = new Date().toLocaleDateString('sv-SE');
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toLocaleDateString('sv-SE');
 const HOUR = 3600000;
 const bee = (id, extra = {}) => ({ id, name: `Bee ${id}`, rarity: 'Common', class: null, sex: 'f', stats: { level: 1, hp: 30, offense: 10, defense: 10, speed: 10, power: 10 }, element: 'fire', dexNumber: 1, weight: 1, customNamed: false, ...extra });
 const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, fatigue: 0, bornAt: daysAgo(5), faintedAt: null, birthTrait: null, ...o });
@@ -38,7 +38,7 @@ test('forecast: every predicted hunger, tired, rest and rested moment is true in
         bee('sleeper', { life: life({ recuperate: true, stamina: 70, fullness: 90 }) }),
     ];
     const { a, b } = await pair(mkHive(bees()));
-    const fc = a.vault.hiveForecast(48);
+    const fc = a.vault.hiveForecast(72);
     const kinds = new Set(fc.events.map(e => e.kind));
     assert.ok(kinds.has('hungry') || kinds.has('tired'), 'something is predicted: ' + [...kinds]);
     const start = b.vault.state.hive.vitalsAt;
@@ -46,12 +46,12 @@ test('forecast: every predicted hunger, tired, rest and rested moment is true in
     const byHour = new Map();
     fc.events.forEach(e => { const k = Math.round((Date.parse(e.at) - start) / HOUR); if (!byHour.has(k)) byHour.set(k, []); byHour.get(k).push(e); });
     let checked = 0;
-    for (let k = 1; k <= 48; k++) {
+    for (let k = 1; k <= 72; k++) {   // 72 h: started in the evening, the first hunger can land just past 48 h (Nov 21 2026)
         b.vault.hiveHourlyTick(start + k * HOUR);
         for (const e of byHour.get(k) || []) {
             const real = b.vault.getHiveBees().find(x => x.id === e.beeId);
             if (!real || !keyOf[e.kind]) continue;
-            const f = b.g('beeFeeling')(real, new Date(start + k * HOUR).toISOString().slice(0, 10), start + k * HOUR);
+            const f = b.g('beeFeeling')(real, new Date(start + k * HOUR).toLocaleDateString('sv-SE'), start + k * HOUR);
             assert.equal(f.key, keyOf[e.kind], `${e.name} at hour ${k}: predicted ${e.kind}, real face ${f.face} ${f.why}`);
             checked++;
         }

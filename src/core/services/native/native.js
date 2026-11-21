@@ -379,9 +379,13 @@ const BizzyNative = (() => {
             (typeof Vault !== 'undefined' ? Vault.init() : Promise.resolve()).then(() => setTimeout(() => { updateHiveBar(); scheduleHiveAlerts(); }, 3000));
             // While BizzyBee runs in the background (kept alive by the hive service): every 5 minutes refresh the bar,
             // catch the hive up and upload anything not yet in the cloud.
+            let bgTicks = 0;
             setInterval(() => {
                 if (document.visibilityState !== 'hidden' || !hivePrefs.bar()) return;
                 try { if (Vault.hiveHourlyTick) Vault.hiveHourlyTick(); } catch { /* fine */ }
+                // Steps every 15 minutes, so "Today by hour" stays close even when the step app only saves day totals.
+                // (Android may refuse Health Connect reads in the background; then it waits for the next open.)
+                if (++bgTicks % 3 === 0 && typeof BizzyPhone !== 'undefined' && BizzyPhone.Steps) BizzyPhone.Steps.sync().catch(() => null);
                 try { if (typeof CloudSyncAuto !== 'undefined' && localStorage.getItem(Vault.storageKey + ':dirty') === 'true') CloudSyncAuto.pushNow(); } catch { /* next time */ }
                 updateHiveBar();
             }, 5 * 60000);

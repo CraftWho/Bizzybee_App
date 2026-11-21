@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const today = new Date().toISOString().slice(0, 10);
-const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const today = new Date().toLocaleDateString('sv-SE');
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toLocaleDateString('sv-SE');
 const bee = (id, extra = {}) => ({ id, name: `Bee ${id}`, rarity: 'Common', class: null, stats: { level: 1, hp: 30, offense: 10, defense: 10, speed: 10, power: 10 }, element: 'fire', dexNumber: 1, weight: 1, customNamed: false, ...extra });
 function harness(state) {
     const save = { schemaVersion: 8, user: { name: 'T' }, quests: [], hive: { bees: [], tickets: 0 }, ...state };
@@ -100,7 +100,7 @@ test('hive life: with death paused, a long-fainted or old bee stays in the hive'
 
 test('comb rooms: new bees start as eggs, can\'t take a job until they hatch, and hatch (faster with a Nurse)', async () => {
     const life = (o) => ({ health: 100, stamina: 100, fullness: 80, happiness: 70, bornAt: daysAgo(5), faintedAt: null, royalJelly: false, birthTrait: null, ...o });
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('sv-SE');
     const h = harness({ hive: { bees: [
         bee('egg1', { sex: 'f', class: 'guardian', life: life({ hatchOn: today }) }),
         bee('egg2', { sex: 'f', life: life({ hatchOn: tomorrow }) }),
