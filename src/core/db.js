@@ -2800,6 +2800,16 @@ class DatabaseManager {
             for (const old of all.filter(c => c.kind === kind).slice(this.SAVE_POINT_KEEP[kind] || 3)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
             for (const old of all.filter(c => !this.SAVE_POINT_KEEP[c.kind] && Date.now() - Date.parse(c.createdAt) > 2 * 86400000)) { try { await this.removeAutoBackup(old.id); } catch { /* leave it */ } }
             localStorage.setItem(this.storageKey + ':autobackup_at', String(Date.now()));
+            // Nov 21 2026 (Craft): in the Android app, backups also go to Documents/BizzyBee (3 files, oldest
+            // overwritten), a normal folder you can see in the Files app, even if the app is uninstalled.
+            try {
+                const F = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.BeeFiles;
+                if (F && kind === 'backup') {
+                    const slot = (Number(localStorage.getItem('bb_doc_slot')) || 0) % 3 + 1;
+                    await F.saveDocument({ name: `BizzyBee-backup-${slot}.json`, text: data });
+                    localStorage.setItem('bb_doc_slot', String(slot));
+                }
+            } catch { /* old app or no storage: the in-app backup still counts */ }
             syncLog('save-point', `${this.SAVE_POINT_LABEL[kind] || kind} save point`, rec.meta);
             this._backupHealth({ autoAt: rec.createdAt, autoErr: null });
             return { ok: true, id: rec.id };

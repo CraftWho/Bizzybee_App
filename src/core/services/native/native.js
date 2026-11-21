@@ -251,9 +251,60 @@ const BizzyNative = (() => {
         });
     }
 
+    // ---- bizzybee:// LINKS (Nov 21 2026, Craft; approved) ----
+    // The home-screen "Save BizzyBee" button and Bixby Quick Commands open these links:
+    //   bizzybee://save                       make a backup (Documents/BizzyBee too), upload, then close
+    //   bizzybee://voice                      open the voice screen
+    //   bizzybee://done?daily=Workout         complete a daily (also todo=..., task=...)
+    //   bizzybee://habit?name=Water&dir=-     +1 (or -1) on a habit
+    const root = () => { const i = location.pathname.indexOf('/src/'); return i >= 0 ? location.pathname.slice(0, i) : ''; };
+    async function quickSave(note = 'Save button') {
+        await Vault.init();
+        try { await Vault.journalFlush(); } catch { /* fine */ }
+        const r = await Vault.savePoint('backup', note);
+        let up = false;
+        try { if (typeof CloudSyncAuto !== 'undefined' && CloudSyncAuto.pushNow) up = await CloudSyncAuto.pushNow(); } catch { /* the backup still counts */ }
+        const m = Vault.backupMeta(Vault.state) || {};
+        if (typeof Toast !== 'undefined') Toast.show(`💾 Saved · Lv ${m.level} · ${Number(m.xp || 0).toLocaleString()} XP${up ? ' · in the cloud' : ''}${r.ok ? '' : ' (backup failed: ' + r.error + ')'}`, r.ok ? 'positive' : 'negative');
+        return r.ok;
+    }
+    async function handleLink(url) {
+        let u; try { u = new URL(url); } catch { return; }
+        if (u.protocol !== 'bizzybee:') return;
+        const what = (u.host || u.pathname.replace(/^\/+/, '')).toLowerCase();
+        const q = (k) => u.searchParams.get(k);
+        const close = () => setTimeout(() => { try { P('App').minimizeApp(); } catch { /* stay */ } }, 1800);
+        if (what === 'voice') { location.href = root() + '/src/features/voice/voice.html'; return; }
+        await Vault.init();
+        if (what === 'save') { await quickSave(); close(); return; }
+        const ops = [];
+        if (what === 'done') {
+            if (q('daily')) ops.push({ op: 'complete', kind: 'daily', label: q('daily') });
+            if (q('todo')) ops.push({ op: 'complete', kind: 'todo', label: q('todo') });
+            if (q('task')) ops.push({ op: 'complete', kind: 'quest-task', label: q('task') });
+        } else if (what === 'habit' && q('name')) ops.push({ op: 'habit', kind: 'habit', label: q('name'), dir: q('dir') === '-' ? '-' : '+' });
+        if (!ops.length) return;
+        const res = Vault.applyOps(ops, { src: 'bixby', note: 'Bixby' });
+        const ok = res.filter(r => r.ok);
+        if (typeof Toast !== 'undefined') Toast.show(ok.length ? `🎙️ Done: ${ok.map(r => r.label).join(', ')}` : `🎙️ Couldn't find "${res.map(r => r.label).join(', ')}"`, ok.length ? 'positive' : 'negative');
+        try { if (typeof CloudSyncAuto !== 'undefined') CloudSyncAuto.schedule(); } catch { /* uploads later */ }
+        if (ok.length) close();
+    }
+
     function start() {
         if (!isApp) return;
         backButton();
+        try {
+            const App = P('App');
+            if (App) {
+                App.addListener('appUrlOpen', (e) => handleLink(e && e.url));
+                if (!sessionStorage.getItem('bb_launch_url_done')) {
+                    sessionStorage.setItem('bb_launch_url_done', '1');
+                    App.getLaunchUrl().then(r => { if (r && r.url) handleLink(r.url); }).catch(() => {});
+                }
+            }
+            if (!localStorage.getItem('bb_shortcuts_v1')) { P('BeeFiles').shortcuts({}).then(() => localStorage.setItem('bb_shortcuts_v1', '1')).catch(() => {}); }
+        } catch { /* old app */ }
         // Vibration switch: when off, quietly ignore every vibrate call.
         if (!prefs.vibration() && navigator.vibrate) navigator.vibrate = () => false;
         let t = null;
@@ -278,5 +329,7 @@ const BizzyNative = (() => {
         previewRhythm: (key) => { try { Alerts().previewVibration({ pattern: (RHYTHMS[key] || RHYTHMS.buzz).p }); } catch {} },
         buzz(ms = 30) { if (isApp && prefs.vibration() && navigator.vibrate) navigator.vibrate(ms); },
         releasesUrl: 'https://github.com/CraftWho/Bizzybee_App/releases/latest',
+        quickSave, handleLink,
+        pinSaveButton: async () => { const r = await P('BeeFiles').shortcuts({ pin: true }); return r; },
     };
 })();
