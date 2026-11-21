@@ -487,3 +487,14 @@ async function initMainAndApi(tries = 0) {
     pause.onchange = async () => { try { await C.request('inbox', { action: 'pause', paused: pause.checked }); Toast.show(pause.checked ? '⏸ API paused.' : '▶️ API on.', 'positive'); } catch (e) { pause.checked = !pause.checked; Toast.show(e.message, 'negative'); } };
 }
 setTimeout(() => initMainAndApi(), 500);
+
+// Hive status bar + alerts switches (Nov 21 2026, Craft).
+(() => {
+    const wire = (id, key, after) => {
+        const el = document.getElementById(id); if (!el) return;
+        el.checked = localStorage.getItem(key) !== 'off';
+        el.onchange = () => { localStorage.setItem(key, el.checked ? 'on' : 'off'); try { after(); } catch { /* not the app */ } };
+    };
+    wire('hive-bar-toggle', 'bb_hive_bar', () => BizzyNative.updateHiveBar());
+    wire('hive-alerts-toggle', 'bb_hive_alerts', () => BizzyNative.scheduleHiveAlerts());
+})();
