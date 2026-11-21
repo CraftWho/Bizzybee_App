@@ -81,6 +81,18 @@
                 <div class="row"><span class="hx">☁️</span><span class="mid"><b>Automatic cloud uploads</b><small>Saves to the cloud shortly after changes</small></span><label class="toggle-switch"><input type="checkbox" id="cloud-sync-auto-toggle" aria-label="Automatic cloud uploads" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
                 <div class="btns indent"><button id="cloud-sync-push-btn" class="btn solid" type="button">Save to Cloud</button><button id="cloud-sync-pull-btn" class="btn" type="button">Load from Cloud</button></div>
                 <p id="cloud-sync-status" class="status indent" role="status" aria-live="polite">Connecting to cloud…</p>
+                <!-- Nov 21 2026 (Craft; approved): one main device writes the save; Claude's API key. -->
+                <div class="row" id="main-device-row"><span class="hx">📱</span><span class="mid"><b>Main device</b><small id="main-device-text">Checking…</small></span><button id="main-device-btn" class="btn" type="button" hidden>Make This Main</button></div>
+                <details id="api-box">
+                    <summary class="row"><span class="hx">🤖</span><span class="mid"><b>Claude API</b><small id="api-sum">Let Claude read and change your BizzyBee</small></span><span class="chev">›</span></summary>
+                    <div class="inner">
+                        <p class="status indent">Claude uses a key to read your dailies, To-Dos, habits and quests, and to add or complete them. Its changes apply on your main device by themselves and show in the change log as 🤖 Claude, so you can undo any of them.</p>
+                        <div id="api-keys" class="list"></div>
+                        <div id="api-new" class="sv-now" hidden></div>
+                        <div class="btns indent"><button id="api-key-write" class="btn solid" type="button">New Key (Read + Write)</button><button id="api-key-read" class="btn" type="button">New Read-Only Key</button></div>
+                        <div class="row"><span class="mid"><b>Pause the API</b><small>Blocks every key at once.</small></span><label class="toggle-switch"><input type="checkbox" id="api-pause" aria-label="Pause the API"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+                    </div>
+                </details>
                 <div class="row"><span class="mid"><b>Sign out of the cloud</b><small>This device keeps working offline.</small></span><button id="cloud-sync-logout-btn" class="btn" type="button">Sign Out</button></div>
                 <button type="button" class="row" data-g="data"><span class="hx">💾</span><span class="mid"><b>Saves &amp; backups</b><small>Backups, change log, cloud copies</small></span><span class="chev">›</span></button>
             </section>

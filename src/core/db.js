@@ -2092,7 +2092,8 @@ function journalSummary(ops, prev, cur) {
             if (jIsObj(last) && op.p.length === 2 && op.p[1] === 'bees') { add(op.hn ? `New bee: ${jName(op.n)}` : `Bee gone: ${jName(op.o)}`); continue; }
             hiveTime++; continue;
         }
-        if (jIsObj(last) && (op.hn !== op.ho)) { const nm = jName(op.hn ? op.n : op.o); if (nm && top !== 'bonusXP' && top !== 'timeLog') { add(`${op.hn ? 'Added' : 'Removed'} ${top.replace(/s$/, '')} '${nm}'`); continue; } }
+        const KIND = { dailyTasks: 'daily', todos: 'To-Do', habits: 'habit', quests: 'quest', tasks: 'task', calendarEvents: 'event', dictionary: 'word', projects: 'project' };
+        if (jIsObj(last) && (op.hn !== op.ho)) { const nm = jName(op.hn ? op.n : op.o); const what = KIND[op.p[op.p.length - 2]] || KIND[top]; if (nm && what) { add(`${op.hn ? 'Added' : 'Removed'} ${what} '${nm}'`); continue; } }
         if (['completed', 'done', 'checked', 'isCompleted'].includes(last)) {
             const thing = at(cur, op.p.slice(0, -1)) || at(prev, op.p.slice(0, -1));
             add(`${op.n ? 'Completed' : 'Unchecked'} '${jName(thing) || 'a task'}'`); continue;
@@ -2105,7 +2106,7 @@ function journalSummary(ops, prev, cur) {
         if (m1.xp !== m0.xp) add(`${m1.xp > m0.xp ? '+' : ''}${m1.xp - m0.xp} XP`);
         if (m1.coins !== m0.coins) add(`${m1.coins > m0.coins ? '+' : ''}${m1.coins - m0.coins} coins`);
     }
-    if (hiveTime && !out.some(t => t.includes('→'))) add('Hive time passed');
+    if (hiveTime && !out.length) add('Hive time passed');
     const NAMES = { dailyTasks: 'dailies', habits: 'habits', todos: 'To-Dos', quests: 'quests', inventory: 'items', user: 'profile', settings: 'settings', calendarEvents: 'calendar', dictionary: 'dictionary', studyQueue: 'study list', projects: 'projects', skills: 'skills', notifications: 'reminders', steps: 'steps' };
     const named = [...other].map(k => NAMES[k]).filter(Boolean);
     if (named.length && out.length < 3) add('Changed ' + named.slice(0, 4).join(', '));
@@ -2875,6 +2876,85 @@ class DatabaseManager {
         try { window.dispatchEvent(new CustomEvent('journal-entry', { detail: { id: e.id } })); } catch { /* fine */ }
         return e;
     }
+    // ---- APPLY CHANGES (Nov 21 2026, Craft; approved) ----
+    // Changes that come from outside this phone: Claude (API), voice / Bixby. Each is applied with the normal
+    // app logic (XP, streaks, time log), then written to the change log with its source, so any can be undone.
+    applyOps(ops, { src = 'claude', note = '' } = {}) {
+        if (!this.state || !Array.isArray(ops)) return [];
+        const DIFF = { trivial: 'Trivial', easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+        const lists = { daily: () => this.state.dailyTasks || [], todo: () => this.state.todos || [], habit: () => this.state.habits || [] };
+        const norm = (t) => String(t || '').trim().toLowerCase();
+        const find = (kind, o) => {
+            if (kind === 'quest-task') {
+                for (const q of this.state.quests || []) {
+                    if (o.questId && q.id !== o.questId) continue;
+                    if (o.questTitle && norm(q.title || q.name) !== norm(o.questTitle)) continue;
+                    const t = (q.tasks || []).find(x => (o.id && x.id === o.id) || (o.label && norm(x.label || x.title) === norm(o.label)));
+                    if (t) return { q, t };
+                }
+                return null;
+            }
+            const list = lists[kind] ? lists[kind]() : [];
+            return list.find(x => o.id && x.id === o.id) || list.find(x => o.label && norm(x.label) === norm(o.label)) || null;
+        };
+        const day = todayISO();
+        const results = [];
+        for (const o of ops) {
+            let ok = false, why = '';
+            try {
+                const diff = DIFF[norm(o.difficulty)] || 'Easy';
+                const minutes = Number(o.minutes) > 0 ? Number(o.minutes) : 15;
+                if (o.op === 'add') {
+                    const base = { label: String(o.label || '').slice(0, 200), xp: xpForMinutes(minutes, diff), difficulty: diff, minutes, notes: o.notes || '' };
+                    if (!base.label) why = 'No name';
+                    else if (o.kind === 'daily') { this.addDailyTask(base); ok = true; }
+                    else if (o.kind === 'todo') { this.addTodo({ ...base, dueDate: o.dueDate || null }); ok = true; }
+                    else if (o.kind === 'habit') { this.addHabit({ ...base, positive: true, negative: false }); ok = true; }
+                    else why = 'Can only add dailies, To-Dos and habits';
+                } else {
+                    const hit = find(o.kind, o);
+                    if (!hit) why = 'Not found';
+                    else if (o.op === 'complete' || o.op === 'uncomplete') {
+                        const want = o.op === 'complete';
+                        if (o.kind === 'daily') { const done = (hit.completedDates || []).includes(day); if (done !== want) this.toggleDailyTask(hit.id); ok = true; }
+                        else if (o.kind === 'todo') { if (!!hit.completed !== want) this.toggleTodoComplete(hit.id); ok = true; }
+                        else if (o.kind === 'quest-task') { if (!!hit.t.completed !== want) this.toggleTask(hit.q.id, hit.t.id); ok = true; }
+                        else why = 'Habits use +/-';
+                    } else if (o.op === 'habit') { this.bumpHabit(hit.id, o.dir === '-' ? 'negative' : 'positive'); ok = true; }
+                    else if (o.op === 'remove') {
+                        if (o.kind === 'daily') this.removeDailyTask(hit.id); else if (o.kind === 'todo') this.removeTodo(hit.id); else if (o.kind === 'habit') this.removeHabit(hit.id); else { why = 'Not removable here'; }
+                        ok = !why;
+                    } else if (o.op === 'update') {
+                        const f = o.fields || {};
+                        const cur = { label: hit.label, notes: hit.notes, difficulty: hit.difficulty, minutes: hit.minutes, xp: hit.xp };
+                        const next = { ...cur, ...('label' in f ? { label: f.label } : {}), ...('notes' in f ? { notes: f.notes } : {}), ...('difficulty' in f ? { difficulty: DIFF[norm(f.difficulty)] || cur.difficulty } : {}), ...('minutes' in f ? { minutes: f.minutes } : {}) };
+                        next.xp = xpForMinutes(next.minutes || 15, next.difficulty);
+                        if (o.kind === 'daily') this.updateDailyTask(hit.id, { ...hit, ...next });
+                        else if (o.kind === 'todo') this.updateTodo(hit.id, { ...hit, ...next, ...('dueDate' in f ? { dueDate: f.dueDate } : {}) });
+                        else if (o.kind === 'habit') this.updateHabit(hit.id, { ...hit, ...next });
+                        else why = 'Not editable here';
+                        ok = !why;
+                    }
+                }
+            } catch (e) { why = e.message || 'Failed'; }
+            results.push({ ...o, ok, why });
+        }
+        const done = results.filter(r => r.ok).length;
+        if (done) this.save();
+        this.journalFlush({ src, note: note || `${src === 'claude' ? 'Claude' : src === 'voice' ? 'Voice' : src}: ${done} change${done === 1 ? '' : 's'}`, force: true }).catch(() => {});
+        return results;
+    }
+    // Accept the PC's changes: put them on top of this save (made from a diff of the PC's copy).
+    applyDiff(ops, { src = 'pc', note = '' } = {}) {
+        if (!this.state || !Array.isArray(ops)) return { ok: false, error: 'Nothing to apply.' };
+        this.createLocalBackup('Before accepting changes from ' + (src === 'pc' ? 'the PC' : src));
+        const st = jsonPatch(JSON.parse(JSON.stringify(this.state)), ops);
+        this._jQuiet = true;
+        let r;
+        try { r = this.importFullState(JSON.stringify(st), { backup: false }); } finally { this._jQuiet = false; }
+        if (r.ok) this.journalFlush({ src, note: note || 'Accepted changes from the PC', force: true }).catch(() => {});
+        return r;
+    }
     async journalList(limit = 300) { return (await this._jAll()).slice(0, limit).map(({ ops, ...rest }) => rest); }
     // Go back to the moment right after entry `id`: undo every change made after it. A safety copy is made first,
     // and the trip back is itself logged, so it can be undone too.
@@ -2888,7 +2968,9 @@ class DatabaseManager {
         for (const e of all.slice(0, idx)) st = jsonUnpatch(st, e.ops || []);
         this.createLocalBackup('Before going back in the change log');
         const text = JSON.stringify(st);
-        const r = this.importFullState(text, { backup: false });
+        this._jQuiet = true;
+        let r;
+        try { r = this.importFullState(text, { backup: false }); } finally { this._jQuiet = false; }
         if (!r.ok) return r;
         const when = new Date(target.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
         await this.journalFlush({ src: 'restore', note: `Went back to ${when}`, force: true });
@@ -5973,7 +6055,7 @@ class DatabaseManager {
             localStorage.setItem(this.storageKey, JSON.stringify(parsed));
             this.state = parsed;
             this._shadow = undefined;   // save merge: new baseline on the next save
-            if (this._jStarted) this.journalFlush({ src: fromCloud ? 'cloud' : 'import' }).catch(() => {});
+            if (this._jStarted && !this._jQuiet) this.journalFlush({ src: fromCloud ? 'cloud' : 'import' }).catch(() => {});
             if (!fromCloud) window.dispatchEvent(new Event('vault-saved'));
             return { ok: true };
         } catch (error) {
