@@ -23,3 +23,9 @@
 
 /* Nov 1 2026 (Craft): ✓ = already seen */
 .gd-read { margin-left: 8px; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(46, 204, 113, .18); color: #5fe39a; font-size: .7rem; vertical-align: 1px; }
+
+/* Tutorials (Nov 23 2026, Craft) */
+.gdv .gd-prize { color: var(--bb-accent, #ffcc00) !important; font-family: var(--font-main, monospace); margin-top: 2px; }
+.gdv .gd-tut.done .gd-prize { color: #7fe08a !important; }
+.gdv .gd-locked { color: #8a7d5f; font: 700 .72rem var(--font-main, monospace); white-space: nowrap; }
+.gdv .gd-go { border-color: var(--bb-accent, #ffcc00); }

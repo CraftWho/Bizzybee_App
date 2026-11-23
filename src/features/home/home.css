@@ -254,7 +254,7 @@ a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left
 /* Nov 1 2026 (Craft): Eve (or Adam) pops up instead of the "bees need help" card. */
 .home-eve { position: fixed; z-index: 1100; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: min(78vw, 340px); display: flex; align-items: flex-end; gap: 8px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; text-align: left; cursor: pointer; opacity: 0; transform: translateY(12px); transition: opacity .4s, transform .4s; }
 .home-eve.in { opacity: 1; transform: none; }
-.home-eve-bub { background: #fbf3dc; color: #2a1d06; border: 2px solid #c98a00; border-radius: 14px 14px 4px 14px; padding: 10px 12px; font: 700 .82rem/1.4 var(--font-main, monospace); box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
+.home-eve-bub { background: #fbf3dc; color: #2a1d06; border: 2px solid #c98a00; border-radius: 14px 14px 4px 14px; padding: 10px 12px; font: 600 .86rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;   /* Nov 23 2026: reading text plain */ box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
 .home-eve-bub small { display: block; margin-top: 4px; font: .7rem system-ui, sans-serif; color: #7a5a20; }
 .home-eve-who { flex: none; width: 58px; height: 64px; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #3b2808, #120c02 75%); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); box-shadow: inset 0 0 0 2px #c98a00; }
 .home-eve-who img { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .6)); }   /* Nov 1 2026 (Craft): the real Queen / King */
