@@ -15,7 +15,12 @@ try {
     const src = readFileSync(new URL('../src/core/ui/updates/updates.js', import.meta.url), 'utf8');
     const nums = [...src.matchAll(/Batch (\d+)/g)].map(m => Number(m[1]));
     if (nums.length) batch = 'Batch ' + Math.max(...nums);
-} catch { /* no batch, fine */ }
+    // Nov 23 2026 (Craft): batch numbers stopped at 24, so About was stuck on "Batch 24".
+    // The label is now the newest What's New version (e.g. "Version 1.1.0"). The field keeps
+    // its old name, because app copies already installed read `batch`.
+    const ver = src.match(/\{ id: '[^']+', version: '([^']+)'/);
+    if (ver) batch = 'Version ' + ver[1];
+} catch { /* no label, fine */ }
 // Nov 21 2026 (Craft): the Updates page in the app lists what's new, from the newest What's New entry.
 let notes = [];
 try {
