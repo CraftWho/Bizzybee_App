@@ -17,9 +17,11 @@ python -m http.server 8000
 
 Any static server works (VS Code Live Server, `npx serve`, etc.).
 
-On `localhost` you can sign in with the local dev login (see `src/local/admin.local.js`). It gives a plain on-device save and a 🛠 dev panel on every page. It never loads on the live site.
+On `localhost` the app opens **PC LOCAL**: a local test account with its own save and a 🛠 dev panel on every page. No sign-in and no cloud. It never loads on the live site.
 
-Cloud Sync, password reset, push reminders and the Terminal use Netlify Functions, so they only work on a Netlify deploy (or `netlify dev`).
+To try it on a phone with no deploy, run `npm run phone` and open the printed address on the same Wi-Fi.
+
+Cloud Sync, password reset and the Terminal use Netlify Functions, so they only work on a Netlify deploy (or `netlify dev`).
 
 ## Run the checks
 
@@ -34,11 +36,12 @@ npm run check
 
 ```
 index.html            the login page (the site's front door)
-sw.js                 service worker: push reminders + downloaded packs
+sw.js                 service worker: app cache (one copy per deploy) + downloaded packs
 manifest.json         PWA install info
 netlify.toml          Netlify config + redirects for moved pages
 docs/                 roadmap and Cloud Sync setup
-netlify/functions/    server functions (cloud save, backups, push, Terminal access)
+netlify/functions/    server functions (cloud save, backups, device inbox, API,
+                      friends' hives, Mailbox, Terminal access)
 netlify/lib/          code shared by those functions
 
 src/core/             code every page shares
@@ -52,14 +55,14 @@ src/core/             code every page shares
   login/              login page code, password reset, auth and recovery
   ui/                 shared interface pieces (bee card, toast, task rows,
                       pickers, Hive Mind menu, Eevee chat, page-v2 styles...)
-  services/           background parts (cloud sync, push, reminders,
-                      Habitica sync, folder backup, packs)
+  services/           background parts (cloud sync, phone alerts planner, native
+                      app bridge, app updates, Habitica sync, folder backup, packs)
   dev-tools/          the local 🛠 panel
 
 src/features/<page>/  one folder per page: <page>.html, .css, .js
-src/plugins/<name>/   optional add-on pages (Calendar, Dictionary, Study, Terminal)
+src/plugins/<name>/   optional add-on pages (Calendar, Dictionary, Gaming, Hive Defense,
+                      Incubator, Projects, Study, Terminal)
 src/assets/           art: bees, icons, images, 3D model
-src/local/            local-only dev login
 tests/                automated tests (Node's built-in test runner)
 tools/check.mjs       the `npm run check` script
 ```
@@ -101,5 +104,5 @@ The pages that aren't part of the signed-in app load their files directly: the l
 - **New UI gets a demo first.** Mock it up, get it reviewed, then build it into the app.
 - **Keep pages self-contained.** Page code stays in its own folder. Only truly shared code goes in `src/core/`.
 - **Original art and code.** Common UI patterns are fine; copying another app's art, code or overall look is not.
-- **Zero cost.** Everything runs on free tiers (Netlify, Netlify Blobs, Netlify Identity).
+- **Low cost.** Keep Netlify builds few (only `main` deploys). Everything else stays on free tiers.
 - Run `npm run check` before committing.

@@ -215,6 +215,22 @@ function computeHabitXP(habits) {
 // `completed` flips true (see Vault.toggleTodoComplete below). Unlike a
 // Daily/Habit there's no repeat count to multiply by; a To-Do happens
 // exactly once by definition.
+// Nov 23 2026 (Craft: deleting a habit gave XP): deleting something never changes your XP.
+// Items deleted from now on stay in the Archive marked xpKept, and their XP (good or bad) still counts,
+// worked out live the same way as above. Restoring moves it back to its list, so it's never counted twice.
+// Archive items deleted before this fix aren't marked, so they don't count (Craft keeps his level).
+function computeArchiveXP(archive) {
+    return (archive || []).filter(a => a && a.xpKept && a.item).reduce((sum, a) => {
+        const it = a.item;
+        if (a.kind === 'daily') return sum + computeDailyXP([it]);
+        if (a.kind === 'habit') return sum + computeHabitXP([it]);
+        if (a.kind === 'todo') return sum + computeTodoXP([it]);
+        if (a.kind === 'quest') return sum + computeTotalXP([it]);
+        if (a.kind === 'task') return sum + computeTotalXP([{ tasks: [it] }]);
+        return sum;
+    }, 0);
+}
+
 function computeTodoXP(todos) {
     return (todos || []).filter(t => t.completed).reduce((sum, t) => sum + completionXP(t, t.minutesSpent), 0);
 }
@@ -2721,7 +2737,7 @@ class DatabaseManager {
     // let one restore delete the very copy you needed.
     backupMeta(s) {
         try {
-            const xp = Math.max(0, computeTotalXP(s.quests || []) + computeDailyXP(s.dailyTasks) + computeHabitXP(s.habits) + computeTodoXP(s.todos)
+            const xp = Math.max(0, computeTotalXP(s.quests || []) + computeDailyXP(s.dailyTasks) + computeHabitXP(s.habits) + computeTodoXP(s.todos) + computeArchiveXP(s.archive)
                 + (s.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0));
             const level = computeLevelProgress(xp).level;
             const ack = s.characterLevelBar && s.characterLevelBar.acknowledgedLevel;
@@ -3102,6 +3118,7 @@ class DatabaseManager {
             + computeDailyXP(this.state.dailyTasks)
             + computeHabitXP(this.state.habits)
             + computeTodoXP(this.state.todos)
+            + computeArchiveXP(this.state.archive)
             + (this.state.bonusXP || []).reduce((n, b) => n + (Number(b.xp) || 0), 0);
     }
 
@@ -7786,6 +7803,23 @@ Object.assign(DatabaseManager.prototype, {
         return { hp: Math.max(0, Math.round(q.hp)), maxHp: QUEEN.maxHp, coins: Math.max(0, earned + (q.bonus || 0) - (q.spent || 0) - (q.lost || 0)), earned, fainted: q.faintedOn === todayISO() };
     },
     getCoins() { const s = this.getQueenStats(); return s ? s.coins : 0; },
+    // Tutorials (Nov 23 2026, Craft: "give rewards for completing each tutorial or guide").
+    // Finishing a walk-through the first time pays once; the record lives in the save.
+    tutorialDone(id) { const h = this.state && this.state.hints; return !!(h && h.tutorials && h.tutorials[id]); },
+    tutorialsDone() { const h = this.state && this.state.hints; return Object.assign({}, (h && h.tutorials) || {}); },
+    claimTutorial(id, reward = {}) {
+        if (!this.state || !/^[a-z0-9-]{2,40}$/.test(String(id))) return { ok: false, error: 'Unknown tutorial.' };
+        const h = this.state.hints || (this.state.hints = {});
+        h.tutorials = h.tutorials || {};
+        if (h.tutorials[id]) return { ok: false, already: true };
+        const coins = Math.max(0, Math.min(100, Math.round(Number(reward.coins) || 0)));
+        const pollen = Math.max(0, Math.min(3, Math.round(Number(reward.pollen) || 0)));
+        h.tutorials[id] = todayISO();
+        if (coins) { const q = this._ensureQueen(); if (q) q.bonus = (q.bonus || 0) + coins; }
+        if (pollen) this._addMaterial('pollen', pollen);
+        this.save();
+        return { ok: true, coins, pollen };
+    },
 
     // ---- Daily bonus (Nov 1 2026, Craft, approved demo option A "7-day comb") ----
     // Open the app each day to move along a 7-day week. Miss a day and it
@@ -8848,10 +8882,12 @@ const CHANGE_LOG_MAX = 1000;
         _archive(kind, item, extra = {}) {
             const s = this._rt();
             if (!s || !item) return;
-            s.archive.unshift({ id: uid('arc'), kind, item: clone(item), deletedAt: new Date().toISOString(), ...extra });
+            const entry = { id: uid('arc'), kind, item: clone(item), deletedAt: new Date().toISOString(), xpKept: true, ...extra };
+            s.archive.unshift(entry);
             const kept = kind === 'quest' ? (item.tasks || []).reduce((n, t) => n + this.realMinutesFor(t.id), 0) : this.realMinutesFor(item.id);
+            const xp = computeArchiveXP([entry]);
             const NAMES = { daily: 'Daily', habit: 'Habit', todo: 'To-Do', quest: 'Quest', task: 'Quest task' };
-            this._changeLog('delete', `Deleted ${NAMES[kind]} "${item.label || item.title}"`, `${fmtMin(kept)} real time kept · in the Archive`);
+            this._changeLog('delete', `Deleted ${NAMES[kind]} "${item.label || item.title}"`, `${fmtMin(kept)} real time kept · XP kept (${xp >= 0 ? '+' : ''}${xp}) · in the Archive`);
         },
         removeDailyTask(id) { const it = (this.state && this.state.dailyTasks || []).find(x => x.id === id); const r = orig.removeDailyTask.call(this, id); if (r && it) { this._archive('daily', it); this.save(); } return r; },
         removeHabit(id) { const it = (this.state && this.state.habits || []).find(x => x.id === id); const r = orig.removeHabit.call(this, id); if (r && it) { this._archive('habit', it); this.save(); } return r; },

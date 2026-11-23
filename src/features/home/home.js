@@ -180,28 +180,51 @@ function renderBeeHelp() {
     if (typeof beeNeeds !== 'function') return;
     const list = Vault.getHiveBees().filter(b => b.rarity !== 'Royal')
         .map(b => ({ b, needs: beeNeeds(b) })).filter(x => x.needs.length);
-    if (!list.length) return;
+    // Nov 23 2026 (Craft: "Adam keeps telling me about the bee condition but nothing else"):
+    // bee alerts come first; otherwise, at most once a day, a "Try this" tip for a feature
+    // you haven't finished the walk-through for (it pays a small reward).
+    if (!list.length) { showTip(); return; }
     const line = list.slice(0, 2).map(({ b, needs }) => `${b.name}: ${needs[0].need.toLowerCase()}`).join(' · ') + (list.length > 2 ? ` · +${list.length - 2} more` : '');
     try {
         const last = JSON.parse(sessionStorage.getItem('bizzybee_eve_help') || 'null');
-        if (last && last.line === line && Date.now() - last.at < 30 * 60000) return;
+        if (last && last.line === line && Date.now() - last.at < 30 * 60000) { showTip(); return; }
         sessionStorage.setItem('bizzybee_eve_help', JSON.stringify({ line, at: Date.now() }));
     } catch { /* storage off: show it */ }
+    royalSays(line, 'tap to check on them', () => { location.href = '../bee-care/bee-care.html'; });
+}
+// Eve (your Queen) or Adam (your King) pops up in the corner with one line for 5 seconds.
+function royalSays(line, small, onTap, onShown) {
     const royal = Vault.getHiveBees().find(b => b.rarity === 'Royal');
     // Nov 1 2026 (Craft): Eve is your Queen, Adam your King, drawn with their real art.
     const king = !!(royal && royal.royal === 'king');
     const art = AppShell.url(`src/assets/bees/${king ? 'king/king' : 'queen/queen'}-body.webp`);
     const who = { name: king ? 'Adam' : 'Eve', face: `<img src="${art}" alt="" draggable="false">` };
-    setTimeout(() => {
+    // wait while Start My Day, What's New or another pop-up is open, so the line isn't missed
+    const BUSY = '.ds-scrim, .wn-scrim, .ss-scrim, .pm-scrim, .dbn-scrim, .ii-scrim, .hn-eve-pop, .lvr, dialog[open]';
+    const when = (fn, n = 0) => setTimeout(() => (document.querySelector(BUSY) && n < 170 ? when(fn, n + 1) : fn()), n ? 700 : 1200);
+    when(() => {
+        if (document.querySelector('.home-eve')) return;
+        if (onShown) onShown();
         const el = document.createElement('button');
         el.type = 'button'; el.className = 'home-eve';
-        el.setAttribute('aria-label', `${who.name}: ${line}. Tap to check on them.`);
-        el.innerHTML = `<span class="home-eve-bub">${escapeHTML(line)}<small>${who.name} · tap to check on them</small></span><span class="home-eve-who" aria-hidden="true">${who.face}</span>`;
-        el.addEventListener('click', () => { location.href = '../bee-care/bee-care.html'; });
+        el.setAttribute('aria-label', `${who.name}: ${line.replace(/\.$/, '')}. ${small}.`);
+        el.innerHTML = `<span class="home-eve-bub">${escapeHTML(line)}<small>${who.name} · ${escapeHTML(small)}</small></span><span class="home-eve-who" aria-hidden="true">${who.face}</span>`;
+        el.addEventListener('click', onTap);
         document.body.appendChild(el);
         requestAnimationFrame(() => el.classList.add('in'));
-        setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 450); }, 5000);
-    }, 1200);
+        setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 450); }, 7000);
+    });
+}
+// "Try this": once a day, one walk-through you haven't finished (core/ui/item-intro).
+function showTip(tries = 0) {
+    if (typeof ItemIntro === 'undefined') { if (tries < 10) setTimeout(() => showTip(tries + 1), 300); return; }
+    try { if (!Vault.hintsOn || !Vault.hintsOn()) return; } catch { return; }
+    const t = ItemIntro.nextTip(); if (!t) return;
+    const day = todayISO();
+    try { if (localStorage.getItem('bb_tip_day') === day) return; } catch { /* show it */ }
+    const prize = [t.reward.coins ? `+${t.reward.coins} coins` : '', t.reward.pollen ? `+${t.reward.pollen} Pollen` : ''].filter(Boolean).join(', ');
+    // counts as today's tip only once you've actually seen it
+    royalSays(`Try this: ${t.icon} ${t.title}. ${t.tip}`, `tap to start · 🎁 ${prize}`, () => ItemIntro.go(t.id), () => { try { localStorage.setItem('bb_tip_day', day); } catch { /* fine */ } });
 }
 
 // ---- Today ----

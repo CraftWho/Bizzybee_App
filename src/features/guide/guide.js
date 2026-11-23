@@ -20,10 +20,24 @@ function render() {
         ? groups.map(([c, l]) => `<h2 class="gd-cat">${esc(c)} <small>${l.length}</small></h2>${l.map(g => item(g, seen)).join('')}`).join('')
         : '<p class="gd-empty">Nothing matches. Try another word.</p>';
 }
+// Tutorials (Nov 23 2026, Craft): finish a walk-through for a small reward, once.
+function renderTuts(tries = 0) {
+    const host = document.getElementById('gd-tuts');
+    if (typeof ItemIntro === 'undefined') { if (tries < 40) setTimeout(() => renderTuts(tries + 1), 150); else host.closest('main').querySelectorAll('#gd-tuts, .gd-tuts-h').forEach(x => x.remove()); return; }
+    const all = ItemIntro.list();
+    const done = all.filter(t => t.done).length;
+    document.getElementById('gd-tuts-n').textContent = `${done} of ${all.length} done`;
+    const prize = (r) => [r.coins ? `${r.coins} coins` : '', r.pollen ? `${r.pollen} Pollen` : ''].filter(Boolean).join(' + ');
+    host.innerHTML = all.map(t => `<div class="gd-item gd-tut${t.done ? ' done' : ''}"><span class="gd-ic" aria-hidden="true">${t.icon}</span>
+        <span class="gd-mid"><b>${esc(t.title)}${t.done ? ' <span class="gd-read" title="Done">✓</span>' : ''}</b><small>${esc(t.tip || t.what || '')}</small><small class="gd-prize">🎁 ${t.done ? 'Reward collected' : prize(t.reward)}</small></span>
+        ${t.done ? `<button type="button" class="btn" data-tut="${esc(t.id)}">Again</button>` : t.ready ? `<button type="button" class="btn gd-go" data-tut="${esc(t.id)}">Start</button>` : '<span class="gd-locked">Not yet</span>'}</div>`).join('');
+    host.onclick = (e) => { const b = e.target.closest('[data-tut]'); if (b) ItemIntro.go(b.dataset.tut); };
+}
 async function start(tries = 0) {
     if (typeof Hints === 'undefined') { if (tries < 60) setTimeout(() => start(tries + 1), 100); return; }
     await Vault.init();
     render();
+    renderTuts();
     document.getElementById('gd-q').addEventListener('input', render);
 }
 document.addEventListener('DOMContentLoaded', () => start());
