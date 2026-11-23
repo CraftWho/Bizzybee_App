@@ -2675,6 +2675,10 @@ class DatabaseManager {
                 }
                 this._shadow = stampSaveChanges(this.state, this._shadow);
                 this.state.updatedAt = new Date().toISOString();
+                // Nov 23 2026 (Craft): the device's time zone travels with the save, so the server
+                // (the Claude API) can tell which LOCAL day it is for you. It never used UTC days before
+                // by design; the API did by mistake.
+                try { this.state.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || this.state.timeZone || null; } catch { /* keep the old one */ }
                 localStorage.setItem(this.storageKey + ':dirty', 'true');
                 localStorage.setItem(this.storageKey, JSON.stringify(this.state));
                 window.dispatchEvent(new Event('vault-saved'));

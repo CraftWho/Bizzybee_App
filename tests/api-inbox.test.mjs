@@ -84,3 +84,17 @@ test('API: key made once (hash stored), reads a summary, queues writes for the p
     await inbox(req('inbox', { action: 'revoke-key', prefix: made.prefix }));
     assert.equal((await api(call(made.key))).status, 401);
 });
+
+// Nov 23 2026 (Craft): the API's "today" follows the phone's time zone, not UTC.
+test('API: doneToday uses the local day of the save\'s time zone, with UTC only as the fallback', async () => {
+    const { summarize, dayIn } = await import('../netlify/functions/api.mjs');
+    const night = new Date('2026-11-24T01:30:00Z');   // 8:30 PM Nov 23 in New York
+    assert.equal(dayIn('America/New_York', night), '2026-11-23');
+    assert.equal(dayIn(undefined, night), '2026-11-24');
+    assert.equal(dayIn('Not/AZone', night), '2026-11-24');
+    const state = { timeZone: 'America/New_York', dailyTasks: [{ id: 'd1', label: 'Gym', completedDates: ['2026-11-23'] }] };
+    const sum = summarize(state, night);
+    assert.equal(sum.today, '2026-11-23');
+    assert.equal(sum.dailies[0].doneToday, true);
+    assert.equal(summarize({ ...state, timeZone: undefined }, night).dailies[0].doneToday, false);
+});
