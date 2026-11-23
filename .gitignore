@@ -62,3 +62,6 @@ decky-plugin/node_modules/
 decky-plugin/dist/
 decky-plugin/out/
 decky-plugin/build.json
+
+# Nov 22 2026 (Craft): files waiting to be deleted by hand. Never commit.
+_To_Delete/
