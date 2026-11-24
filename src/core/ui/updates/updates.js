@@ -22,6 +22,8 @@ const WHATS_NEW = [
         { icon: '⚠️', title: 'Signed-out warning', text: 'If the cloud ever signs you out, BizzyBee tells you at once.' },
         // Nov 24 2026 (Craft): honest cloud card, and Delete on backups.
         { icon: '☁️', title: 'Cloud vs this device', text: 'Settings shows level and XP for both copies and who saved the cloud one. No more false "cloud is newer".', href: 'features/settings/settings.html' },
+        // Nov 24 2026 (Craft): title-locked bees can rest.
+        { icon: '💤', title: 'Named bees can rest', text: 'A bee whose title sets its job, like Grimzy, can Recuperate now. Its job waits for it.', href: 'features/hive-mind/hive-mind.html' },
         { icon: '🗑️', title: 'Delete a backup', text: 'Each backup, the safety copy and each cloud backup has a Delete button. It asks first.', href: 'features/settings/settings.html' },
       ] },
     { id: 'w3', version: '1.0.5', date: 'Nov 2026',

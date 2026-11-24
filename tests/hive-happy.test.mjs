@@ -60,3 +60,46 @@ test('happy: a bee on a play break does not count as working', async () => {
     B(v, 'p').life.playUntil = new Date(Date.now() + 3600000).toISOString();
     assert.equal(v._workers('cleaner').length, 0);
 });
+
+// Nov 24 2026 (Craft): Grimzy (The Reaper) could not be rested at all, so a tired one never cleared.
+test('title-locked bees: can Recuperate, keep their job, and go back to it', async () => {
+    const { v } = world([bee('grim', { rarity: 'Named', title: 'reaper', class: 'undertaker', life: life({ stamina: 20, happiness: 80 }) })]);
+    await v.init();
+    const g = () => B(v, 'grim');
+    g().class = 'undertaker';
+    assert.ok(v.assignBeeClass('grim', 'recuperate'), 'rest is allowed');
+    assert.equal(g().life.recuperate, true);
+    assert.equal(g().class, 'undertaker');                       // the job is kept
+    assert.equal(v.assignBeeClass('grim', 'cleaner'), null);    // still no other job
+    assert.ok(v.assignBeeClass('grim', 'undertaker'));           // picking its job sends it back
+    assert.equal(g().life.recuperate, undefined);
+});
+
+test('title-locked bees: too tired -> rests in place by itself; Auto-swap sends it back at Return at', async () => {
+    const { v } = world([bee('grim', { rarity: 'Named', title: 'reaper', class: 'undertaker', life: life({ stamina: 5, happiness: 80 }) })]);
+    await v.init();
+    const g = () => B(v, 'grim');
+    g().class = 'undertaker';
+    const at = noon(), day = at.toLocaleDateString('sv-SE');
+    v._careHour(at, day);
+    assert.equal(g().life.recuperate, true); assert.equal(g().class, 'undertaker');
+    v.state.hive.autoSwap = { on: true, pct: 30, returnPct: 80, mode: 'auto', pool: [] };
+    v.autoSwapUnlocked = () => true;
+    g().life.stamina = 50; v._careHour(at, day);
+    assert.equal(g().life.recuperate, true);                     // not rested enough yet
+    g().life.stamina = 85; v._careHour(at, day);
+    assert.equal(g().life.recuperate, undefined);                // back at work
+    assert.equal(g().class, 'undertaker');
+});
+
+test('title-locked bees: Auto-swap rests a tired one in place instead of skipping it', async () => {
+    const { v } = world([bee('grim', { rarity: 'Named', title: 'reaper', class: 'undertaker', life: life({ stamina: 20, happiness: 80 }) })]);
+    await v.init();
+    B(v, 'grim').class = 'undertaker';
+    v.state.hive.autoSwap = { on: true, pct: 30, returnPct: 80, mode: 'auto', pool: [] };
+    v.autoSwapUnlocked = () => true;
+    v.hiveOpenJobs = () => ['undertaker'];
+    const notes = v._autoSwapHour();
+    assert.ok(notes.some(n => /resting/.test(n)), notes.join(' | '));
+    assert.equal(B(v, 'grim').life.recuperate, true); assert.equal(B(v, 'grim').class, 'undertaker');
+});

@@ -4291,7 +4291,17 @@ class DatabaseManager {
         if (!bee) return null;
         // Recuperate (Oct 28 2026): no job, on purpose. Eats, sleeps, heals slowly. Never gets upset.
         if (className === 'recuperate') {
-            if (beeIsBrood(bee) || beeLockedJob(bee)) return null;
+            if (beeIsBrood(bee)) return null;
+            // Nov 24 2026 (Craft; approved): a title-locked bee (like Grimzy, The Reaper) can rest too. Before,
+            // nothing could rest it, so a tired one stayed "needs help" forever. It keeps its job: the spot
+            // waits for it, and it goes back by itself when rested (or pick its job again to send it back now).
+            if (beeLockedJob(bee)) {
+                if (!bee.life) return null;
+                if (!bee.class) bee.class = beeLockedJob(bee);
+                bee.life.recuperate = true; delete bee.life.idleSince; delete bee.life.playUntil; delete bee.life.playFor;
+                this.save();
+                return bee;
+            }
             if (bee.class) bee.jobSince = todayISO();
             if (bee.class && bee.life) bee.life.restFrom = bee.class;   // Nov 17 2026 (Craft): Return sends it back here
             bee.class = null;
@@ -7014,7 +7024,15 @@ Object.assign(DatabaseManager.prototype, {
                 const text = `🪀 ${h.name} was unhappy, so it's playing in the Play Yard for a while. Its ${BEE_CLASSES[j].label} job waits for it.`;
                 this._lifeEvent('bored', text, { beeId: h.id }); notes.push(text); return;
             }
-            if ((h.life.stamina >= P.pct && !bored) || beeLockedJob(h) || h.life.nursery) return;   // a bee in a Nursery bed is not swapped to rest
+            if (beeLockedJob(h)) {   // Nov 24 2026 (Craft): a tired title-locked bee rests in place; its job waits for it
+                if (!h.life.recuperate && h.life.stamina < P.pct && !h.life.nursery) {
+                    h.life.recuperate = true;
+                    const text = `😴 ${h.name} was tired and is resting. Its ${BEE_CLASSES[j].label} job waits for it.`;
+                    this._lifeEvent('rest', text, { beeId: h.id }); notes.push(text);
+                }
+                return;
+            }
+            if ((h.life.stamina >= P.pct && !bored) || h.life.nursery) return;   // a bee in a Nursery bed is not swapped to rest
             const pick = this._lifeBees().filter(b => !b.class && !beeIsBrood(b) && !this._onBreak(b) && b.life.happiness >= UNHAPPY.back && ((this._autoReady(b) && b.life.stamina >= P.pct + 20) || this._returnReady(b)) && this.beeFitsJob(b, j) && (P.mode === 'auto' || P.pool.includes(b.id)))
                 .sort((a, b) => b.life.stamina - a.life.stamina || beeJobScore(b, j) - beeJobScore(a, j))[0];
             if (!pick) return;
@@ -7402,6 +7420,21 @@ Object.assign(DatabaseManager.prototype, {
         this._lifeBees().forEach(b => {
             const L = b.life;
             if (!L || L.faintedAt || L.hatchOn || beeIsBrood(b)) return;
+            // Nov 24 2026 (Craft): title-locked bees. Too tired -> rest in place (job kept). Rested to the
+            // "Return at" level with Auto-swap on -> back to work. (Fully rested always ends the rest.)
+            if (b.class && beeLockedJob(b) && !L.recuperate && L.stamina < 10 && !L.nursery) {
+                L.recuperate = true;
+                this._lifeEvent('rest', `😴 ${b.name} was too tired to work and is resting. Its ${(BEE_CLASSES[b.class] || {}).label || ''} job waits for it.`, { beeId: b.id });
+                n++; return;
+            }
+            if (b.class && beeLockedJob(b) && L.recuperate && !L.nursery && !L.sickUntil && this.autoSwapUnlocked()) {
+                const P = this.autoSwapPrefs();
+                if (P.on && L.stamina >= P.returnPct && L.health >= 50 && (L.fatigue || 0) < 80) {
+                    delete L.recuperate;
+                    this._lifeEvent('auto', `🐝 ${b.name} is rested and back at its ${(BEE_CLASSES[b.class] || {}).label || ''} job.`, { beeId: b.id });
+                    n++; return;
+                }
+            }
             if (b.class && !beeLockedJob(b) && L.stamina < 10 && !L.nursery) {
                 const j = b.class; b.class = null; b.jobSince = day; delete L.idleSince; L.recuperate = true; L.restFrom = j;
                 this._lifeEvent('rest', `😴 ${b.name} was too tired to work and went to rest. It will come back to the ${(BEE_CLASSES[j] || {}).label || ''} job.`, { beeId: b.id });

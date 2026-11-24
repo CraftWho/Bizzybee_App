@@ -358,10 +358,12 @@ function autoPanel() {
     }
 
     // ⭐ = the bee's natural talent (+20% at it). A Named Beast's job is
-    // locked by its title, so its picker is shown but can't change.
+    // locked by its title: it can't take another job, but (Nov 24 2026, Craft) it can rest.
+    // Recuperate keeps its spot; picking its job again sends it back to work.
     function jobSelect(bee, allowed, { blank = '— No job —', mark = [] } = {}) {
         const locked = typeof beeLockedJob === 'function' ? beeLockedJob(bee) : null;
-        if (locked) return `<select class="hl-job" disabled aria-label="${esc(bee.name)}'s job is set by its title" title="Set by its title"><option>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option></select>`;
+        if (locked) return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="${esc(bee.name)}'s job is set by its title. It can rest." title="Set by its title">
+            <option value="${locked}"${bee.life && bee.life.recuperate ? '' : ' selected'}>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option><option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate (job kept)</option></select>`;
         return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="Job for ${esc(bee.name)}">
             <option value="">${blank}</option><option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
     }
