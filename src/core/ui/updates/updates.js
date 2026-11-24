@@ -20,6 +20,9 @@ const WHATS_NEW = [
         { icon: '👟', title: 'Steps pay as you walk', text: '100 steps is 1 minute and 1 XP. Your goal adds a +25 XP bonus and a prize.', href: 'plugins/incubator/incubator.html' },
         { icon: '📊', title: 'Step stats', text: 'Tap Steps on Home. Under the incubator, open Step stats: today by hour, your streak calendar, history, records and your goal.', href: 'plugins/incubator/incubator.html#steps' },
         { icon: '⚠️', title: 'Signed-out warning', text: 'If the cloud ever signs you out, BizzyBee tells you at once.' },
+        // Nov 24 2026 (Craft): honest cloud card, and Delete on backups.
+        { icon: '☁️', title: 'Cloud vs this device', text: 'Settings shows level and XP for both copies and who saved the cloud one. No more false "cloud is newer".', href: 'features/settings/settings.html' },
+        { icon: '🗑️', title: 'Delete a backup', text: 'Each backup, the safety copy and each cloud backup has a Delete button. It asks first.', href: 'features/settings/settings.html' },
       ] },
     { id: 'w3', version: '1.0.5', date: 'Nov 2026',
       new: [

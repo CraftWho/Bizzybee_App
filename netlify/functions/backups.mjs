@@ -16,6 +16,13 @@ const handler = async (req) => {
                 const current = await readLatest(user.id);
                 if (!current) return json({ ok: false, error: 'Save to cloud before creating a backup.' }, 400);
                 await createBackup(user.id, current.data);
+            } else if (body.action === 'delete') {
+                // Nov 24 2026 (Craft): delete one cloud backup you pick. Only your own (the key starts with your id),
+                // and never the live save, which is kept in a different store.
+                const del = String(body.id || '');
+                if (!/^\d{13}-[a-zA-Z0-9-]+$/.test(del)) return json({ ok: false, error: 'Invalid backup.' }, 400);
+                if (!(await backups().get(`${user.id}/${del}`, { type: 'json' }))) return json({ ok: false, error: 'Backup not found.' }, 404);
+                await backups().delete(`${user.id}/${del}`);
             } else return json({ ok: false, error: 'Unknown action.' }, 400);
         }
         const id = new URL(req.url).searchParams.get('id');
