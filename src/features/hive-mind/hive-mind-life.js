@@ -407,6 +407,8 @@ function autoPanel() {
             const P = Vault.autoSwapPrefs();
             const note = `😴 ⚡${Math.round(L.stamina ?? 0)} now · Ready at ⚡${P.returnPct}`;
             if (from) return cardFor(bee, { job: L.restFrom, action: 'return', label: 'Return', actClass: 'back', note });
+            // Nov 24 2026 (Craft; review fix): a title-locked bee rests in place, so it has no restFrom. Same Return button.
+            if (bee.class && typeof beeLockedJob === 'function' && beeLockedJob(bee)) return cardFor(bee, { job: bee.class, action: 'return', label: 'Return', actClass: 'back', note });
             return cardFor(bee, { note, extra: renBtn(bee), action: 'pick', label: 'Job ▾', actClass: 'soft' });
         }
         const merge = !bee.class && Vault.beeMergeStatus && Vault.beeMergeStatus(bee) === 'spare' ? `<a class="hl-ren hl-merge" href="../gacha/gacha.html?pick=${encodeURIComponent(bee.id)}#merge" aria-label="Merge ${esc(bee.name)}">🧬</a>` : '';
@@ -455,6 +457,8 @@ function autoPanel() {
                 let out = `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="${hs.length ? 'hl-count' : 'hl-empty'}">${hs.length}/${n}</span></h3>${slots}`;
                 out += hs.map(h => {
                     const fresh = ls && ls.in === h.id && ls.job === j && Date.now() - Date.parse(ls.at) < 6 * 3600000;
+                    // Nov 24 2026 (Craft; review fix): a title-locked bee resting in its spot gets Work, not Rest again.
+                    if (h.life && h.life.recuperate && typeof beeLockedJob === 'function' && beeLockedJob(h)) return WC.html(h, { job: j, action: 'return', label: 'Work', actClass: 'go', note: '💤 Resting. Its job waits for it' });
                     return WC.html(h, { job: j, action: 'rest', label: ({ nursery: '🛏️ Heal', cafe: '🍽️ Eat', rest: 'Rest' })[Vault.beeNeed(h)], leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
                 }).join('');
                 // Nov 17 2026 (Craft; approved demo): rested bees that came from this job wait here as Ready.

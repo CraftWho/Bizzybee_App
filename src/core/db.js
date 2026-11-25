@@ -4295,9 +4295,10 @@ class DatabaseManager {
             // Nov 24 2026 (Craft; approved): a title-locked bee (like Grimzy, The Reaper) can rest too. Before,
             // nothing could rest it, so a tired one stayed "needs help" forever. It keeps its job: the spot
             // waits for it, and it goes back by itself when rested (or pick its job again to send it back now).
-            if (beeLockedJob(bee)) {
+            // Nov 24 2026 (Craft; review fix): only a locked bee that HAS its job keeps it. One with no job rests
+            // the normal way below, so resting never hands out a job that is full or not open yet.
+            if (beeLockedJob(bee) && bee.class) {
                 if (!bee.life) return null;
-                if (!bee.class) bee.class = beeLockedJob(bee);
                 bee.life.recuperate = true; delete bee.life.idleSince; delete bee.life.playUntil; delete bee.life.playFor;
                 this.save();
                 return bee;
@@ -6905,6 +6906,13 @@ Object.assign(DatabaseManager.prototype, {
     },
     returnBeeToWork(id) {
         const b = this.getHiveBees().find(x => x.id === id);
+        // Nov 24 2026 (Craft; review fix): a title-locked bee rests in place (it keeps its job), so going
+        // back to work is just ending the rest. This is what the Return / Work button calls.
+        if (b && b.life && b.class && beeLockedJob(b) && b.life.recuperate) {
+            delete b.life.recuperate;
+            this.save(); this.tendSoon();
+            return b;
+        }
         if (!b || !b.life || !b.life.restFrom) { this.lastJobError = 'This bee has no job to go back to.'; return null; }
         const j = b.life.restFrom;
         // Nov 21 2026 (Craft): job full? The rested bee swaps in for the most tired worker there, who goes to rest.
@@ -7025,7 +7033,9 @@ Object.assign(DatabaseManager.prototype, {
                 this._lifeEvent('bored', text, { beeId: h.id }); notes.push(text); return;
             }
             if (beeLockedJob(h)) {   // Nov 24 2026 (Craft): a tired title-locked bee rests in place; its job waits for it
-                if (!h.life.recuperate && h.life.stamina < P.pct && !h.life.nursery) {
+                // Review fix: never rest it at a stamina the "Return at" rule would send straight back (swap % above
+                // Return at made it flip between rest and work on every tend).
+                if (!h.life.recuperate && h.life.stamina < Math.min(P.pct, P.returnPct) && !h.life.nursery) {
                     h.life.recuperate = true;
                     const text = `😴 ${h.name} was tired and is resting. Its ${BEE_CLASSES[j].label} job waits for it.`;
                     this._lifeEvent('rest', text, { beeId: h.id }); notes.push(text);
@@ -7429,7 +7439,8 @@ Object.assign(DatabaseManager.prototype, {
             }
             if (b.class && beeLockedJob(b) && L.recuperate && !L.nursery && !L.sickUntil && this.autoSwapUnlocked()) {
                 const P = this.autoSwapPrefs();
-                if (P.on && L.stamina >= P.returnPct && L.health >= 50 && (L.fatigue || 0) < 80) {
+                // Review fix: only when it can really work (not while it must rest after exhaustion, or is too hurt).
+                if (P.on && beeCanWork(b, day) && L.stamina >= P.returnPct && L.health >= 50 && (L.fatigue || 0) < 80) {
                     delete L.recuperate;
                     this._lifeEvent('auto', `🐝 ${b.name} is rested and back at its ${(BEE_CLASSES[b.class] || {}).label || ''} job.`, { beeId: b.id });
                     n++; return;
