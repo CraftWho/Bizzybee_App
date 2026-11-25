@@ -12,7 +12,8 @@ const WHATS_NEW = [
         { icon: '📱', title: 'Your phone is the main device', text: 'Only your phone writes your save. The PC and others send their changes to your phone to Accept or Reject.', href: 'features/settings/settings.html' },
         { icon: '📜', title: 'Change log', text: 'Every change to your save in plain words, who made it, and your level after. Tap Go back to here to undo to any point.', href: 'features/settings/settings.html' },
         { icon: '💾', title: 'Backups, simpler', text: 'One autosave, your last 3 backups (also in Documents/BizzyBee), and a safety copy before anything big.', href: 'features/settings/settings.html' },
-        { icon: '⬆️', title: 'Updates wait for you', text: 'A new version shows in Settings › Updates. Tap Update when you are ready.', href: 'features/app-updates/app-updates.html' },
+        // Nov 24 2026 (Craft): the auto-update switch replaced "Updates wait for you" (now the Off setting).
+        { icon: '🔄', title: 'Updates load by themselves', text: 'The app downloads a new version and restarts by itself, after a safety copy. Turn it off in Settings › Updates to make updates wait for you.', href: 'features/app-updates/app-updates.html' },
         { icon: '🤖', title: 'Claude API', text: 'Make a key in Settings › Account & cloud. Claude can read and change your tasks. Every change is logged and undoable.', href: 'features/settings/settings.html' },
         { icon: '🎙️', title: 'Voice and Bixby', text: 'Say "complete gym" or "make stretch a daily". Bixby links and a home-screen Save button.', href: 'features/voice/voice.html' },
         { icon: '🐝', title: 'Hive status bar and alerts', text: 'Your hive and save status in the notification bar, and a heads-up before a bee gets hungry or faints.', href: 'features/settings/settings.html' },
