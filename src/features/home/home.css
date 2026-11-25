@@ -260,11 +260,4 @@ a.xt-row::after { content: "›"; color: #8f8466; font-size: 1.1rem; margin-left
 .home-eve-who img { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .6)); }   /* Nov 1 2026 (Craft): the real Queen / King */
 @media (prefers-reduced-motion: reduce) { .home-eve { transition: none; } }
 
-/* Hive Life shortcut (Nov 13 2026, Craft) */
-.home-life { display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-decoration: none; color: #f1ede2; }
-.home-life-ic { flex: none; font-size: 22px; }
-.home-life-t { flex: 1; min-width: 0; }
-.home-life-t b { display: block; font-size: .9rem; color: var(--bb-accent, #ffcc00); }
-.home-life-t small { display: block; margin-top: 1px; color: #a69a80; font-size: .74rem; }
-.home-life.need .home-life-t small { color: #ff8aa0; }
-.home-life:focus-visible { outline: 2px solid var(--bb-accent, #ffcc00); outline-offset: 2px; }
+/* Nov 23 2026 (Craft): the Hive Life shortcut card styles were removed with the card. */

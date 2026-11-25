@@ -403,6 +403,9 @@ body.st-in-group .stv2 > .st-list, body.st-in-group #dev-section, body.st-in-gro
 .sv-info small { color: var(--muted, #a8996f); font-size: .78rem; }
 .sv-acts { display: flex; gap: 6px; flex: none; }
 .sv-acts .btn { padding: 7px 12px; font-size: .78rem; }
+/* Nov 24 2026 (Craft): Delete on a backup row reads as the risky one (red text, same box as the others). */
+.sv-acts .btn.sv-del { color: #ff8aa0; border-color: rgba(255, 138, 160, .45); }
+.sv-acts { flex-wrap: wrap; }
 .sv-log { display: grid; gap: 2px; padding: 8px 16px; border-top: 1px solid rgba(255, 255, 255, .06); font-size: .85rem; }
 .sv-log small { color: var(--muted, #a8996f); font-size: .74rem; }
 .sv-log .sv-go { justify-self: start; margin-top: 4px; padding: 5px 10px; font-size: .74rem; }

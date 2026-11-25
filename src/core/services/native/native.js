@@ -238,7 +238,9 @@ const BizzyNative = (() => {
             if (document.querySelector(BLOCKING)) return;
             // 2. A page with its own views (Settings groups) pushes a history entry for each: undo that first.
             if (history.state && (history.state.st || history.state.bb)) { history.back(); return; }
-            // 3. One page back.
+            // 3. One page back. Nov 24 2026 (Craft): the shared rule (BBNav in app.js), so this key, the ← hexagon
+            // and the forms all agree. On Home with nothing behind, leave the app.
+            if (typeof BBNav !== 'undefined') { if (!BBNav.back()) { try { App.minimizeApp(); } catch {} } return; }
             let list = [];
             try { list = JSON.parse(sessionStorage.getItem(NAV) || '[]'); } catch {}
             if (list[list.length - 1] === here) list.pop();

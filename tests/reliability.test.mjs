@@ -278,3 +278,20 @@ test('each upload carries level/XP/device, and backups list them', async () => {
     assert.equal(list.backups[0].meta.xp, 4200);   // the copy is of the save before the replace
     assert.equal(list.keepOther, 3);
 });
+
+// Nov 24 2026 (Craft): delete one cloud backup you pick.
+test('cloud backups: delete removes only the one you pick, only your own, and never the live save', async () => {
+    const meta = { level: 5, xp: 900, coins: 10, device: 'Android app' };
+    const a = await (await save(req('save-state', { data: sample(), revision: null, device: 'phone', meta }, 'dana'))).json();
+    await save(req('save-state', { data: sample(), revision: a.revision, device: 'phone', meta, preservePrevious: true }, 'dana'));
+    const before = await (await backup(req('backups', null, 'dana'))).json();
+    assert.equal(before.backups.length, 1);
+    const id = before.backups[0].id;
+    assert.equal((await backup(req('backups', { action: 'delete', id }, 'erin'))).status, 404);   // someone else can't
+    assert.equal((await backup(req('backups', { action: 'delete', id: '../' + id }, 'dana'))).status, 400);
+    const after = await (await backup(req('backups', { action: 'delete', id }, 'dana'))).json();
+    assert.equal(after.ok, true); assert.equal(after.backups.length, 0);
+    assert.equal((await backup(req('backups', { action: 'delete', id }, 'dana'))).status, 404);
+    const live = await (await load(req('load-state', null, 'dana'))).json();
+    assert.ok(live.data);   // the live save is untouched
+});

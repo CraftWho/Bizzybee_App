@@ -358,10 +358,12 @@ function autoPanel() {
     }
 
     // ⭐ = the bee's natural talent (+20% at it). A Named Beast's job is
-    // locked by its title, so its picker is shown but can't change.
+    // locked by its title: it can't take another job, but (Nov 24 2026, Craft) it can rest.
+    // Recuperate keeps its spot; picking its job again sends it back to work.
     function jobSelect(bee, allowed, { blank = '— No job —', mark = [] } = {}) {
         const locked = typeof beeLockedJob === 'function' ? beeLockedJob(bee) : null;
-        if (locked) return `<select class="hl-job" disabled aria-label="${esc(bee.name)}'s job is set by its title" title="Set by its title"><option>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option></select>`;
+        if (locked) return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="${esc(bee.name)}'s job is set by its title. It can rest." title="Set by its title">
+            <option value="${locked}"${bee.life && bee.life.recuperate ? '' : ' selected'}>🔒 ${BEE_CLASSES[locked].icon} ${esc(BEE_CLASSES[locked].label)}</option><option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate (job kept)</option></select>`;
         return `<select class="hl-job" data-bee="${esc(bee.id)}" aria-label="Job for ${esc(bee.name)}">
             <option value="">${blank}</option><option value="recuperate"${bee.life && bee.life.recuperate ? ' selected' : ''}>💤 Recuperate</option>${allowed.map(j => `<option value="${j}"${bee.class === j ? ' selected' : ''}>${BEE_CLASSES[j].icon} ${esc(BEE_CLASSES[j].label)}${bee.talent === j ? ' ⭐' : ''}${mark.includes(j) ? ' ★' : ''}</option>`).join('')}</select>`;
     }
@@ -405,6 +407,8 @@ function autoPanel() {
             const P = Vault.autoSwapPrefs();
             const note = `😴 ⚡${Math.round(L.stamina ?? 0)} now · Ready at ⚡${P.returnPct}`;
             if (from) return cardFor(bee, { job: L.restFrom, action: 'return', label: 'Return', actClass: 'back', note });
+            // Nov 24 2026 (Craft; review fix): a title-locked bee rests in place, so it has no restFrom. Same Return button.
+            if (bee.class && typeof beeLockedJob === 'function' && beeLockedJob(bee)) return cardFor(bee, { job: bee.class, action: 'return', label: 'Return', actClass: 'back', note });
             return cardFor(bee, { note, extra: renBtn(bee), action: 'pick', label: 'Job ▾', actClass: 'soft' });
         }
         const merge = !bee.class && Vault.beeMergeStatus && Vault.beeMergeStatus(bee) === 'spare' ? `<a class="hl-ren hl-merge" href="../gacha/gacha.html?pick=${encodeURIComponent(bee.id)}#merge" aria-label="Merge ${esc(bee.name)}">🧬</a>` : '';
@@ -453,6 +457,8 @@ function autoPanel() {
                 let out = `<h3 class="hl-sub">${info.icon} ${esc(info.label)} · <span class="${hs.length ? 'hl-count' : 'hl-empty'}">${hs.length}/${n}</span></h3>${slots}`;
                 out += hs.map(h => {
                     const fresh = ls && ls.in === h.id && ls.job === j && Date.now() - Date.parse(ls.at) < 6 * 3600000;
+                    // Nov 24 2026 (Craft; review fix): a title-locked bee resting in its spot gets Work, not Rest again.
+                    if (h.life && h.life.recuperate && typeof beeLockedJob === 'function' && beeLockedJob(h)) return WC.html(h, { job: j, action: 'return', label: 'Work', actClass: 'go', note: '💤 Resting. Its job waits for it' });
                     return WC.html(h, { job: j, action: 'rest', label: ({ nursery: '🛏️ Heal', cafe: '🍽️ Eat', rest: 'Rest' })[Vault.beeNeed(h)], leader: lead && lead.id === h.id, effect: fresh ? '🔄 Just took over' : '' }).replace('class="wk-card', `class="wk-card${fresh ? ' wk-fresh' : ''}`);
                 }).join('');
                 // Nov 17 2026 (Craft; approved demo): rested bees that came from this job wait here as Ready.

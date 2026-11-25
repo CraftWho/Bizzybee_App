@@ -108,8 +108,17 @@ function loadExisting(quest) {
     document.title = '✏️ Edit Quest';
 }
 
-function goBack(id) {
-    window.location.href = id ? `./quest.html?id=${encodeURIComponent(id)}` : './quests.html';
+// Nov 24 2026 (Craft): leave the form without leaving it behind you (BBNav in app.js).
+//  - edit saved or cancelled: back to the quest's page (where Edit was tapped);
+//  - new quest saved: its page opens in place of this form;
+//  - new quest cancelled: back to where you came from;
+//  - deleted: the quest list, and the deleted quest's page is forgotten too.
+function goBack(id, { deleted = false } = {}) {
+    const page = id ? `./quest.html?id=${encodeURIComponent(id)}` : './quests.html';
+    if (typeof BBNav === 'undefined') { window.location.href = page; return; }
+    if (deleted) { const gone = encodeURIComponent(editingQuestId || ''); BBNav.leaveTo('./quests.html', p => p.includes('/quest.html?') && p.includes('id=' + gone)); return; }
+    if (id && !editingQuestId) { BBNav.leaveTo(page); return; }
+    BBNav.back({ fallback: page });
 }
 
 function saveQuest() {
@@ -237,6 +246,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         Vault.removeQuest(editingQuestId);
         Toast.show('Quest deleted', 'negative');
-        goBack(null);
+        goBack(null, { deleted: true });
     });
 });

@@ -3,9 +3,8 @@
 //    Improved / Fixed, with TRY buttons. Settings › About lists them all.
 //  - App updates (Android app only): checks GitHub for a newer APK, then
 //    downloads and installs it in the app (native BeeUpdater, app 1.0.6+).
-//    The repo is private for now, so the app needs a read-only GitHub token
-//    (Settings › About). When releases go public, no token is needed.
-const APP_WEB_VERSION = '1.0.5';
+//    Nov 23 2026 (Craft): the repo is public now, so no GitHub token is needed.
+//    A saved token is still sent if there is one (it does no harm).
 const WHATS_NEW = [
     // Nov 21 2026 (Craft): saves, phone as main, Claude API, voice, hive alerts, Grave Comb.
     { id: 'w4', version: '1.1.0', date: 'Nov 2026',
@@ -21,6 +20,13 @@ const WHATS_NEW = [
         { icon: '👟', title: 'Steps pay as you walk', text: '100 steps is 1 minute and 1 XP. Your goal adds a +25 XP bonus and a prize.', href: 'plugins/incubator/incubator.html' },
         { icon: '📊', title: 'Step stats', text: 'Tap Steps on Home. Under the incubator, open Step stats: today by hour, your streak calendar, history, records and your goal.', href: 'plugins/incubator/incubator.html#steps' },
         { icon: '⚠️', title: 'Signed-out warning', text: 'If the cloud ever signs you out, BizzyBee tells you at once.' },
+        // Nov 24 2026 (Craft): honest cloud card, and Delete on backups.
+        { icon: '☁️', title: 'Cloud vs this device', text: 'Settings shows level and XP for both copies and who saved the cloud one. No more false "cloud is newer".', href: 'features/settings/settings.html' },
+        // Nov 24 2026 (Craft): title-locked bees can rest.
+        { icon: '💤', title: 'Named bees can rest', text: 'A bee whose title sets its job, like Grimzy, can Recuperate now. Its job waits for it.', href: 'features/hive-mind/hive-mind.html' },
+        // Nov 24 2026 (Craft): one back rule (BBNav in app.js).
+        { icon: '⬅️', title: 'Back goes back one page', text: 'After you save or cancel a form, back no longer opens the form again. The phone\'s back key and the ← button now agree.' },
+        { icon: '🗑️', title: 'Delete a backup', text: 'Each backup, the safety copy and each cloud backup has a Delete button. It asks first.', href: 'features/settings/settings.html' },
       ] },
     { id: 'w3', version: '1.0.5', date: 'Nov 2026',
       new: [
@@ -200,6 +206,9 @@ const WHATS_NEW = [
         { icon: '🩹', title: 'Header flicker on short pages', text: 'Plus quest stats, form panels and Start My Day loading twice.' },
       ] },
 ];
+// Nov 23 2026 (Craft): the version shown in Settings › About comes from the newest What's New
+// entry above, so it can't fall behind again (it still said 1.0.5 on 1.1.0).
+const APP_WEB_VERSION = WHATS_NEW[0].version;
 
 const BizzyUpdates = (() => {
     const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -376,13 +385,13 @@ const BizzyUpdates = (() => {
         await up.install();
     }
     function problemText(state) {
-        return state === 'no-token' ? 'Add your GitHub token in Settings › About to get app updates.'
+        return state === 'no-token' ? "Couldn't find the app's releases on GitHub right now."
             : state === 'bad-token' ? "GitHub didn't accept the token. Check it in Settings › About."
             : state === 'offline' ? "Couldn't reach GitHub. Check your connection."
             : "Couldn't check for updates right now.";
     }
     async function autoCheck() {
-        if (!isApp || !token()) return;
+        if (!isApp) return;   // Nov 23 2026 (Craft): no token needed any more (public repo)
         const last = Number(get(CHECK_KEY) || 0);
         if (Date.now() - last < 6 * 3600000) return;
         setTimeout(() => check().catch(() => {}), 6000);
@@ -407,7 +416,7 @@ const BizzyUpdates = (() => {
         host.innerHTML = `
             <div class="row"><span class="hx">🐝</span><span class="mid"><b id="ab-title">BizzyBee ${esc(APP_WEB_VERSION)}</b><small id="ab-sub">Website …${mine ? ` · App ${esc(mine)}` : ''}</small></span><button type="button" class="btn" id="ab-update" hidden>Update</button></div>
             ${isApp ? `<div class="row"><span class="hx">🔁</span><span class="mid"><b>Check for updates</b><small id="ab-check-note">${get(CHECK_KEY) ? `Checked ${new Date(Number(get(CHECK_KEY))).toLocaleString()}` : 'Not checked yet'}</small></span><button type="button" class="btn" id="ab-check">Check</button></div>
-            <div class="row ab-token"><span class="hx">🔑</span><span class="mid"><b>GitHub token</b><small>The app's releases are private for now. A read-only token lets this phone see them. It stays on this phone.</small>
+            <div class="row ab-token"><span class="hx">🔑</span><span class="mid"><b>GitHub token (optional)</b><small>Not needed any more: app updates work without it. If you saved one before, it stays on this phone.</small>
                 <span class="ab-tok-line"><input type="password" id="ab-token" autocomplete="off" placeholder="${token() ? 'Saved ✓ (paste to replace)' : 'github_pat_…'}"><button type="button" class="btn" id="ab-token-save">Save</button></span>
                 <small><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Make one on GitHub</a>: Fine-grained → Only select repositories: Bizzybee_App → Repository permissions: Contents → Read-only.</small></span></div>` : ''}
             <button type="button" class="row" id="ab-news"><span class="hx">📰</span><span class="mid"><b>What's new</b><small>Every update and what changed</small></span><span class="chev">›</span></button>`;
@@ -429,7 +438,7 @@ const BizzyUpdates = (() => {
             Toast.show('🔑 Token saved on this phone.', 'positive');
             show(await check({ quiet: true }));
         });
-        if (token()) show(await check({ quiet: true }));
+        if (isApp) show(await check({ quiet: true }));   // Nov 23 2026 (Craft): works without a token now
     }
 
     function start() {

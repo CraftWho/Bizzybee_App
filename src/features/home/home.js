@@ -164,17 +164,9 @@ function renderReadyEggs() {
 // the Home apps down. Eve (Adam if your royal is a King) pops up in the
 // corner with one line, leaves after 5 seconds, and a tap takes you to
 // the bees that need help. At most once every 30 minutes for the same news.
-function renderLifeLink() {
-    const el = document.getElementById('home-life');
-    if (!el || typeof beeNeeds !== 'function') return;
-    const bees = Vault.getHiveBees().filter(b => b.rarity !== 'Royal');
-    const need = bees.filter(b => beeNeeds(b).length).length;
-    el.innerHTML = `<span class="home-life-ic" aria-hidden="true">🐝</span><span class="home-life-t"><b>Hive Life</b><small>${need ? `${need} bee${need === 1 ? '' : 's'} need${need === 1 ? 's' : ''} help` : 'All your bees are doing fine'}</small></span><span class="home-help-go" aria-hidden="true">›</span>`;
-    el.classList.toggle('need', need > 0);
-}
+// Nov 23 2026 (Craft): renderLifeLink (the always-on Hive Life card on Home) was removed.
 function renderBeeHelp() {
     renderReadyEggs();
-    try { renderLifeLink(); } catch { /* not ready yet */ }
     const card = document.getElementById('home-help');
     if (card) card.hidden = true;
     if (typeof beeNeeds !== 'function') return;

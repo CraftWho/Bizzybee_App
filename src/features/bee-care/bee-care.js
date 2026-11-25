@@ -43,7 +43,7 @@ function beeHTML(b) {
             <div class="bc-job">${mood.face} ${esc(mood.label)} · ${esc(jobText(b))}</div>
             <div class="bc-acts">
                 ${fainted ? '<button type="button" class="btn solid" data-a="revive">💛 Revive</button>' : canFix ? `<button type="button" class="btn solid" data-a="fix">${fixLabel(b)}</button>` : ''}
-                ${fainted ? '' : `<button type="button" class="btn" data-a="job"${locked ? ' disabled title="Its title sets its job"' : ''}>Job</button>${showRest ? `<button type="button" class="btn" data-a="rest"${locked ? ' disabled' : ''}>Rest</button>` : ''}`}
+                ${fainted ? '' : `<button type="button" class="btn" data-a="job"${locked ? ' disabled title="Its title sets its job"' : ''}>Job</button>${showRest ? `<button type="button" class="btn" data-a="rest">Rest</button>` : ''}${locked && b.class && L.recuperate ? '<button type="button" class="btn" data-a="work">Work</button>' : ''}`}
                 <a class="btn" href="../combine/combine.html?a=${encodeURIComponent(b.id)}">🧬 Combine</a>
             </div>
         </div></section>`;
@@ -107,6 +107,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const r = Vault.assignBeeClass(id, 'recuperate');
             if (!r) { toast('It can\'t rest right now.', 'negative'); return; }
             toast(`💤 ${b.name} is resting.`); render(); flash(id); return;
+        }
+        // Nov 24 2026 (Craft; review fix): a title-locked bee can rest now, and Work sends it back to its job.
+        if (a === 'work') {
+            const r = Vault.returnBeeToWork(id);
+            if (!r) { toast(Vault.lastJobError || 'It can\'t go back yet.', 'negative'); return; }
+            toast(`${b.name} is back at work.`); render(); flash(id); return;
         }
         if (a === 'revive') {
             const r = Vault.reviveBee(id);

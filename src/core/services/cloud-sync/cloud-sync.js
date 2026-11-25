@@ -217,7 +217,9 @@ const CloudSyncAuto = (() => {
     async function peekCloud() {
         if (!sameAccount()) throw new Error('Sign in to your cloud account to sync.');
         const result = await request('load-state');
-        return { updatedAt: result.updatedAt || null, revision: result.revision ?? null, hasData: !!result.data, encrypted: !!result.encrypted };
+        // Nov 24 2026 (Craft): also who saved it and its level/XP, so Settings can compare the copies honestly.
+        return { updatedAt: result.updatedAt || null, revision: result.revision ?? null, hasData: !!result.data, encrypted: !!result.encrypted,
+            device: result.device || null, meta: result.meta || null, mine: !!result.device && result.device === deviceId(), unsent: dirty() };
     }
     async function restoreBackup(id) {
         if (running || !ready) throw new Error('Wait for the current sync to finish.');

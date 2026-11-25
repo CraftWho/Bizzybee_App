@@ -122,8 +122,10 @@ async function refreshCloudBackups() {
             if (written.ok) { Toast.show(`💾 Saved ${name} to ${written.folder}.`, 'positive'); return; }
             await downloadFile(text, name, 'application/json');
         });
+        // Nov 24 2026 (Craft): delete one cloud backup. Asks first; it can't be undone.
+        const del = svDelete('this cloud backup', item.meta, async () => { await cloudEngine().request('backups', { action: 'delete', id: item.id }); await refreshCloudBackups(); });
         button.className = save.className = 'btn';
-        list.append(svRow({ ...item, kind: item.kind === 'other' ? 'checkpoint' : item.kind }, item.kind === 'daily' ? 'Daily' : item.kind === 'hourly' ? 'Hourly' : 'Before change', [save, button]));
+        list.append(svRow({ ...item, kind: item.kind === 'other' ? 'checkpoint' : item.kind }, item.kind === 'daily' ? 'Daily' : item.kind === 'hourly' ? 'Hourly' : 'Before change', [save, button, del]));
     }
 }
 function getLocalUpdateText() {
@@ -151,12 +153,26 @@ async function refreshSyncCompare() {
         verdictEl.textContent = localUpdatedAt ? '📍 This device has progress not yet saved to the cloud. Use Save to Cloud.' : 'Nothing saved yet on either copy.';
         return;
     }
-    cloudEl.textContent = cloud.updatedAt ? new Date(cloud.updatedAt).toLocaleString() : 'Unknown';
-    if (!localUpdatedAt || !cloud.updatedAt) { verdictEl.textContent = 'Comparison unavailable — keep using the app so both sides have a timestamp.'; return; }
-    const diff = new Date(localUpdatedAt).getTime() - new Date(cloud.updatedAt).getTime();
-    if (Math.abs(diff) < 5000) verdictEl.textContent = '✅ In sync — both copies match.';
-    else if (diff > 0) verdictEl.textContent = '📍 This device is newer. Use Save to Cloud to update the cloud copy.';
-    else verdictEl.textContent = '☁️ The cloud copy is newer. Use Load from Cloud to update this device.';
+    // Nov 24 2026 (Craft): the cloud time is when the server RECEIVED an upload, so right after this phone
+    // uploaded, the cloud always looked "newer" and asked for a Load from Cloud that wasn't needed. Now the
+    // card shows level and XP for both copies, says who saved the cloud copy, and only calls the cloud
+    // newer when another device wrote it.
+    const mine = typeof Vault !== 'undefined' && Vault.state ? Vault.backupMeta(Vault.state) : null;
+    const prog = (m) => m && m.level != null ? ` · Lv ${m.level} · ${Number(m.xp || 0).toLocaleString()} XP` : '';
+    localEl.textContent = localText + prog(mine);
+    cloudEl.textContent = (cloud.updatedAt ? new Date(cloud.updatedAt).toLocaleString() : 'Unknown') + prog(cloud.meta) + (cloud.mine ? ' · saved by this device' : cloud.meta && cloud.meta.device ? ' · saved by ' + cloud.meta.device : '');
+    verdictEl.textContent = syncVerdict({ localUpdatedAt, cloudUpdatedAt: cloud.updatedAt, mine: cloud.mine, unsent: cloud.unsent, local: mine, cloud: cloud.meta });
+}
+// Which copy is ahead, in words. Kept separate so it can be tested (tests/sync-verdict.test.mjs).
+function syncVerdict({ localUpdatedAt, cloudUpdatedAt, mine, unsent, local, cloud }) {
+    const same = local && cloud && local.level === cloud.level && Number(local.xp) === Number(cloud.xp);
+    if (mine) return unsent ? '📍 This device has changes not sent yet. They upload by themselves, or use Save to Cloud.' : '✅ In sync. The cloud copy is this device\'s own save.';
+    if (!localUpdatedAt || !cloudUpdatedAt) return 'Comparison unavailable. Keep using the app so both sides have a timestamp.';
+    const diff = new Date(localUpdatedAt).getTime() - new Date(cloudUpdatedAt).getTime();
+    const who = cloud && cloud.device ? cloud.device : 'another device';
+    const lead = local && cloud && !same ? (Number(local.level) > Number(cloud.level) || (Number(local.level) === Number(cloud.level) && Number(local.xp) > Number(cloud.xp)) ? ' This device has more progress.' : ' The cloud copy has more progress.') : same ? ' Level and XP are the same on both.' : '';
+    if (diff > 0) return `📍 This device is newer than the cloud copy from ${who}.${lead}`;
+    return `☁️ The cloud copy was saved by ${who} after this device last changed.${lead} Check level and XP before you use Load from Cloud.`;
 }
 function deviceRecoveryEntries() {
     const entries = Vault.getLocalBackups();
@@ -187,6 +203,18 @@ function svRow(item, title, buttons) {
     return row;
 }
 function svBtn(text, fn) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = text; b.onclick = () => settingsAction(b, fn); return b; }
+// Nov 24 2026 (Craft): one Delete button for every kind of backup. It names the copy's level and XP and asks
+// first, because a deleted copy can't be brought back. Your live save (the autosave) has no Delete.
+function svDelete(what, meta, fn) {
+    const b = svBtn('Delete', async () => {
+        const m = meta && meta.level != null ? ` (Level ${meta.level}, ${Number(meta.xp || 0).toLocaleString()} XP)` : '';
+        if (!confirm(`Delete ${what}${m}? This can't be undone. Export it first if you might want it.`)) return;
+        await fn();
+        if (typeof Toast !== 'undefined') Toast.show('🗑️ Deleted.', 'positive');
+    });
+    b.classList.add('sv-del');
+    return b;
+}
 // The one safety copy (made before anything big; replaced each time).
 function renderSafety() {
     const host = document.getElementById('sv-safety');
@@ -197,6 +225,7 @@ function renderSafety() {
     host.append(svRow({ ...c, kind: 'checkpoint' }, `Safety copy: ${c.reason}`, [
         svBtn('Export', async () => downloadFile(c.data, `bizzybee-safety-copy.json`, 'application/json')),
         svBtn('Restore', deviceRestore(() => c.data, 'the safety copy')),
+        svDelete('the safety copy', c.meta || metaOfRaw(c.data), async () => { Vault.removeLocalBackup(c.id); renderDeviceBackups(); }),
     ]));
 }
 function renderSaveNow() {
@@ -286,6 +315,7 @@ async function renderAutoBackups() {
         list.append(svRow(item, item.reason || 'Save point', [
             svBtn('Export', async () => downloadFile(await Vault.getAutoBackupData(item.id), name, 'application/json')),
             svBtn('Restore', deviceRestore(() => Vault.getAutoBackupData(item.id), item.reason || 'save point')),
+            svDelete('this backup', item.meta, async () => { await Vault.removeAutoBackup(item.id); await renderAutoBackups(); }),
         ]));
     }
 }
@@ -301,6 +331,8 @@ async function renderBackupHealth() {
     else if (!autoAt) add(false, 'Save points: none yet (the first is made shortly after the app opens).');
     else add(now - autoAt < 26 * 3600000, `Hourly save point: last ${ago(new Date(autoAt).toISOString())}.`);
     if (h.safetyErr) add(false, `Device copy failed: ${h.safetyErr}`);
+    // Nov 24 2026 (Craft; review fix): the safety copy can be deleted now, so say when there is none on the device.
+    else if (!Vault.getLocalBackups().length) add(true, 'Safety copy: none right now. One is made before the next big change.');
     else add(true, `Device copies before changes: last ${ago(h.safetyAt)}.`);
     const synced = localStorage.getItem(Vault.storageKey + ':syncedAt');
     const signedIn = localStorage.getItem('bizzybee_session') === 'identity';

@@ -17,13 +17,25 @@ function limited(prefix) {
     if (list.length >= 30) return true;
     list.push(now); rate.set(prefix, list); return false;
 }
-const today = () => new Date().toISOString().slice(0, 10);
-export function summarize(state) {
-    const day = today();
+// Nov 23 2026 (Craft): "today" is the LOCAL day on the phone (the save carries its time zone),
+// never the UTC day. Before, after 7 PM Eastern the API already counted it as tomorrow.
+// A save with no time zone yet (not opened since this change) falls back to UTC.
+export function dayIn(timeZone, now = new Date()) {
+    try {
+        if (timeZone) {
+            const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now).map(x => [x.type, x.value]));
+            if (p.year && p.month && p.day) return `${p.year}-${p.month}-${p.day}`;
+        }
+    } catch { /* unknown zone: fall through */ }
+    return now.toISOString().slice(0, 10);
+}
+export function summarize(state, now = new Date()) {
+    const day = dayIn(state.timeZone, now);
     const pick = (t) => ({ id: t.id, label: t.label || t.title || '', difficulty: t.difficulty || null, minutes: t.minutes || null });
     const xp = [...(state.bonusXP || [])].reduce((n, b) => n + (Number(b.xp) || 0), 0);
     return {
         name: (state.user && state.user.name) || null,
+        today: day,
         level: state.characterLevelBar && state.characterLevelBar.acknowledgedLevel || null,
         bonusXP: xp,
         dailies: (state.dailyTasks || []).map(t => ({ ...pick(t), doneToday: (t.completedDates || []).includes(day) })),

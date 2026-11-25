@@ -19,7 +19,9 @@ const WebUpdate = (() => {
     const record = (o) => set(LAST, JSON.stringify({ at: Date.now(), ...o }));
     const last = () => { try { return JSON.parse(get(LAST) || 'null'); } catch { return null; } };
     const ready = () => { try { return JSON.parse(get(READY) || 'null'); } catch { return null; } };
-    const labelOf = (v) => (v && (v.batch || (v.builtAt ? 'Version of ' + new Date(v.builtAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : v.version))) || '';
+    // Nov 23 2026 (Craft): the label is now "Version 1.1.0 · Nov 23" (version + the day it was published),
+    // so two updates under the same version don't look the same on the Updates page.
+    const labelOf = (v) => { if (!v) return ''; const day = v.builtAt ? new Date(v.builtAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''; return v.batch ? [v.batch, day].filter(Boolean).join(' · ') : (day ? 'Version of ' + day : v.version || ''); };
     const log = (msg) => { try { if (typeof syncLog === 'function') syncLog('update', msg); } catch { /* best effort */ } };
     let busy = false;
 
