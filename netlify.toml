@@ -22,10 +22,15 @@
   for = "/src/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+# Nov 25 2026 (Craft): the Android app's own copy runs at https://localhost and reads this file from the
+# site to see if a new version is out. Without this header the phone blocked the answer, so the app never
+# saw an update (since Nov 21) and the Updates page said "newest version". The file is public: only the
+# version id and the What's New notes.
 [[headers]]
   for = "/version.json"
   [headers.values]
     Cache-Control = "no-store"
+    Access-Control-Allow-Origin = "*"
 [[headers]]
   for = "/sw.js"
   [headers.values]

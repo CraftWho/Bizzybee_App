@@ -100,3 +100,32 @@ test('auto-update: turning the switch back on clears the give-up count', async (
     await a.WU.autoApply();
     assert.equal(a.calls.update, 3);
 });
+
+// Nov 25 2026 (Craft): the app could never see an update. Its copy runs at https://localhost and reads
+// version.json from the site, and the site did not allow that. The Updates page then said "newest version".
+test('update check: the site lets the app read version.json from another address', () => {
+    const toml = readFileSync(new URL('../netlify.toml', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    const block = toml.split('[[headers]]').find(b => /for = "\/version\.json"/.test(b)) || '';
+    assert.match(block, /Access-Control-Allow-Origin = "\*"/);
+    assert.match(block, /Cache-Control = "no-store"/);
+});
+
+test('update check: a failed check says so on the Updates page, not "newest version"', async () => {
+    const page = readFileSync(new URL('../src/features/app-updates/app-updates.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    const els = {};
+    const el = (id) => (els[id] = els[id] || { id, innerHTML: '', hidden: false, checked: false, textContent: '' });
+    const run = async (check, last) => {
+        for (const k of Object.keys(els)) delete els[k];
+        const ctx = vm.createContext({
+            document: { getElementById: el },
+            WebUpdate: { isApp: () => true, current: async () => ({ label: 'Version 1.1.0 · Nov 21' }), check, ready: () => null, last: () => last, autoOn: () => true, setAuto() {} },
+            Date, String, Number, Promise, console,
+        });
+        vm.runInContext(page, ctx);
+        await new Promise(r => setTimeout(r, 20));
+        return els['up-now'].innerHTML;
+    };
+    assert.match(await run(async () => null, { state: 'failed', note: 'Failed to fetch' }), /Could not check for updates \(Failed to fetch\)/);
+    assert.match(await run(async () => ({ current: true }), { state: 'current' }), /You have the newest version/);
+    assert.match(await run(async () => ({ offline: true }), { state: 'skipped' }), /Offline/);
+});

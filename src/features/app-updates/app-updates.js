@@ -20,7 +20,10 @@
         const r = await WebUpdate.check({ force: true });
         const ready = WebUpdate.ready();
         if (!ready) {
-            now.innerHTML = `<b>Installed: ${esc(cur.label || 'unknown')}</b><small>${r && r.offline ? 'Offline. Try again when connected.' : '✅ You have the newest version.'}</small>`;
+            // Nov 25 2026 (Craft): a check that FAILED used to say "newest version" too. Now it says it could not check.
+            const l = WebUpdate.last && WebUpdate.last();
+            const failed = !r && l && l.state === 'failed';
+            now.innerHTML = `<b>Installed: ${esc(cur.label || 'unknown')}</b><small>${r && r.offline ? 'Offline. Try again when connected.' : failed ? `⚠️ Could not check for updates (${esc(l.note || 'no answer from the site')}). Try again in a minute.` : '✅ You have the newest version.'}</small>`;
             box.hidden = true;
         } else {
             now.innerHTML = `<b>Installed: ${esc(cur.label || 'unknown')}</b><small>${WebUpdate.autoOn() ? 'An update is ready. It loads by itself in a moment, or tap Update now.' : 'An update is ready.'}</small>`;
