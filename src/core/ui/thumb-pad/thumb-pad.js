@@ -12,7 +12,7 @@
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const go = (href) => { if (typeof AppShell !== 'undefined' && AppShell.url) location.href = AppShell.url(href); };
     const ACTIONS = [
-        { k: 'back', ic: '←', label: 'Back', run: () => history.length > 1 ? history.back() : go('src/features/home/home.html') },
+        { k: 'back', ic: '←', label: 'Back', run: () => typeof BBNav !== 'undefined' ? BBNav.back() : history.length > 1 ? history.back() : go('src/features/home/home.html') },   // Nov 24 2026 (Craft): one back rule (BBNav in app.js)
         { k: 'home', ic: '🏠', label: 'Home', run: () => go('src/features/home/home.html') },
         { k: 'dailies', ic: '☀️', label: 'Dailies', run: () => go('src/features/dailies/dailies.html') },
         { k: 'new', ic: '＋', label: 'New', run: () => { const a = document.querySelector('.app-dock .dk-add'); if (a) { document.body.classList.remove('tp-out'); a.click(); document.body.classList.add('tp-out'); } } },

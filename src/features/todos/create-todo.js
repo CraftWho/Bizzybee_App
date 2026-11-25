@@ -98,7 +98,10 @@ function loadExistingTodo(todo) {
     document.title = '✏️ Edit To-Do';
 }
 
+// Nov 24 2026 (Craft): go BACK to the page that opened this form (the list, or Home), not forward to the
+// list as a new page. Before, the form stayed behind you and the back button opened it again.
 function goBack() {
+    if (typeof BBNav !== 'undefined') { BBNav.back({ fallback: './todos.html' }); return; }
     window.location.href = './todos.html';
 }
 

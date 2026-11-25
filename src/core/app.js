@@ -1,5 +1,68 @@
 console.log("/// BIZZYBEE MOTHERBOARD ONLINE ///");
 
+// <BBNav>
+// Nov 24 2026 (Craft): ONE back rule for the whole app. Before, the ← hexagon and the thumb pad used the
+// browser's history, the phone's back key used its own page list (native.js), and the create/edit forms
+// opened their list as a NEW page after Save. So the form stayed behind you (Home > Dailies > New Daily >
+// Save, then back opened the form again), and mixing the two back buttons sent you forward again.
+// Now every page keeps the same list (this session), and every back uses it:
+//   BBNav.back({ fallback })  one page back. Nothing behind: fallback, else Home. On Home with nothing: false.
+//   BBNav.leaveTo(url, drop)  for a form that is done: forget this page (and any that match drop), open url.
+// The list lives in sessionStorage 'bb_nav' (the key native.js already used), pathname + search per page.
+const BBNav = (() => {
+    const KEY = 'bb_nav';
+    const here = () => location.pathname + location.search;
+    const read = () => { try { const v = JSON.parse(sessionStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+    const write = (list) => { try { sessionStorage.setItem(KEY, JSON.stringify(list.slice(-40))); } catch { /* storage off */ } };
+    const isHome = () => /\/home\/home\.html$/.test(location.pathname);
+    const homeUrl = () => { const i = location.pathname.indexOf('/src/'); return location.origin + (i >= 0 ? location.pathname.slice(0, i) : '') + '/src/features/home/home.html'; };
+    // Called once per page load: add this page, or (after a real "back") cut the list back to it.
+    function track() {
+        let stack = read(), cameBack = false;
+        try { const nav = performance.getEntriesByType('navigation')[0]; cameBack = !!nav && nav.type === 'back_forward'; } catch { /* old browser */ }
+        const h = here();
+        if (cameBack && stack.lastIndexOf(h) >= 0) stack = stack.slice(0, stack.lastIndexOf(h) + 1);
+        else if (stack[stack.length - 1] !== h) stack.push(h);
+        write(stack);
+        return stack;
+    }
+    // The page that sent us here, as the list spells it ('' when unknown or another site).
+    function cameFrom() {
+        try { const r = new URL(document.referrer); return r.origin === location.origin ? r.pathname + r.search : ''; } catch { return ''; }
+    }
+    function back({ fallback } = {}) {
+        // A page with its own views (a Settings group) pushed a history entry for it: close that first.
+        if (history.state && (history.state.st || history.state.bb)) { history.back(); return true; }
+        const h = here(), list = read();
+        while (list.length && list[list.length - 1] === h) list.pop();
+        const prev = list[list.length - 1];
+        write(list);
+        if (prev) {
+            // The browser's own history has the same page behind us: really go back, so the browser's back
+            // and ours stay in step. Otherwise (a page that replaced itself, a new tab) open it in place.
+            if (history.length > 1 && cameFrom() === prev) history.back();
+            else location.replace(location.origin + prev);
+            return true;
+        }
+        if (fallback) { location.replace(new URL(fallback, location.href).href); return true; }
+        if (isHome()) return false;
+        location.replace(homeUrl());
+        return true;
+    }
+    function leaveTo(url, drop) {
+        const h = here(), target = new URL(url, location.href);
+        const list = read().filter(p => p !== h && !(drop && drop(p)));
+        write(list);
+        location.replace(target.href);
+    }
+    return { track, back, leaveTo, list: read };
+})();
+try { BBNav.track(); } catch { /* never blocks a page */ }
+// A page the browser brings back from its memory does not run its scripts again, so it would show old tasks
+// and the list above would be wrong. Load it fresh instead. (The egg page handles this itself.)
+window.addEventListener('pageshow', (e) => { if (e.persisted && !location.pathname.includes('/onboarding/')) location.reload(); });
+// </BBNav>
+
 // Page titles used to live here (NAV_ITEMS / EXTRA_PAGE_META) for the old
 // yellow header. That header was replaced by AppShell (below) on 2026-10-08:
 // a top bar with your royal + level and a bottom dock.
@@ -1564,6 +1627,8 @@ class CodexSystem {
         btn.innerHTML = '<span class="back-fab-btn-icon">←</span>';
 
         btn.addEventListener('click', () => {
+            // Nov 24 2026 (Craft): the same back rule as the phone's back key and the forms (BBNav, top of this file).
+            if (typeof BBNav !== 'undefined') { BBNav.back(); return; }
             if (window.history.length > 1) {
                 window.history.back();
                 return;

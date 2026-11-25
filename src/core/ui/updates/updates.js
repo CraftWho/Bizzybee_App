@@ -24,6 +24,8 @@ const WHATS_NEW = [
         { icon: '☁️', title: 'Cloud vs this device', text: 'Settings shows level and XP for both copies and who saved the cloud one. No more false "cloud is newer".', href: 'features/settings/settings.html' },
         // Nov 24 2026 (Craft): title-locked bees can rest.
         { icon: '💤', title: 'Named bees can rest', text: 'A bee whose title sets its job, like Grimzy, can Recuperate now. Its job waits for it.', href: 'features/hive-mind/hive-mind.html' },
+        // Nov 24 2026 (Craft): one back rule (BBNav in app.js).
+        { icon: '⬅️', title: 'Back goes back one page', text: 'After you save or cancel a form, back no longer opens the form again. The phone\'s back key and the ← button now agree.' },
         { icon: '🗑️', title: 'Delete a backup', text: 'Each backup, the safety copy and each cloud backup has a Delete button. It asks first.', href: 'features/settings/settings.html' },
       ] },
     { id: 'w3', version: '1.0.5', date: 'Nov 2026',
