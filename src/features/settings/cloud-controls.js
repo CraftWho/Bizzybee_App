@@ -331,6 +331,8 @@ async function renderBackupHealth() {
     else if (!autoAt) add(false, 'Save points: none yet (the first is made shortly after the app opens).');
     else add(now - autoAt < 26 * 3600000, `Hourly save point: last ${ago(new Date(autoAt).toISOString())}.`);
     if (h.safetyErr) add(false, `Device copy failed: ${h.safetyErr}`);
+    // Nov 24 2026 (Craft; review fix): the safety copy can be deleted now, so say when there is none on the device.
+    else if (!Vault.getLocalBackups().length) add(true, 'Safety copy: none right now. One is made before the next big change.');
     else add(true, `Device copies before changes: last ${ago(h.safetyAt)}.`);
     const synced = localStorage.getItem(Vault.storageKey + ':syncedAt');
     const signedIn = localStorage.getItem('bizzybee_session') === 'identity';

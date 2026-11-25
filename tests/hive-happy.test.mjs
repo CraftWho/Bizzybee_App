@@ -156,3 +156,24 @@ test('title-locked bees: not sent back to work while it must still rest after ex
     v._careHour(at, day);
     assert.equal(B(v, 'grim').life.recuperate, undefined);
 });
+
+test('needs help: a bee that is already resting does not count as Tired or Worn out', async () => {
+    const { v, g } = world([bee('nap', { life: life({ stamina: 15, fatigue: 90, happiness: 80 }) })]);
+    await v.init();
+    const needs = () => g('beeNeeds')(B(v, 'nap')).map(n => n.need);
+    assert.equal(needs().sort().join(), 'Tired,Worn out');   // joined: the list comes from the vm's own Array
+    B(v, 'nap').life.recuperate = true;
+    assert.equal(needs().join(), '');
+    B(v, 'nap').life.fullness = 10;
+    assert.equal(needs().join(), 'Hungry');                       // rest does not feed it: still needs help
+});
+
+test('title-locked bees: a resting one is not also sent to play', async () => {
+    const { v } = world([bee('grim', { rarity: 'Named', title: 'reaper', class: 'undertaker', life: life({ stamina: 40, happiness: 5 }) })]);
+    await v.init();
+    const g = B(v, 'grim'); g.class = 'undertaker'; g.life.recuperate = true;
+    const at = noon();
+    v._careHour(at, at.toLocaleDateString('sv-SE'));
+    assert.equal(B(v, 'grim').life.playUntil, undefined);
+    assert.equal(B(v, 'grim').life.recuperate, true);
+});

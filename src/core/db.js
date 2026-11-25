@@ -1967,8 +1967,12 @@ function beeNeeds(bee, today = todayISO()) {
     const hurt = beeHurtLevel(bee);
     if (hurt) out.push({ need: HURT_LEVELS[hurt].label, value: `health ${Math.round(L.health)}/100`, fix: inBed ? 'In the Nursery: +4 health an hour.' : hurt === 3 ? 'Can\'t work. Send it to the Nursery (+4 an hour) or set it to Recuperate (+1 an hour).' : 'Nursery: +4 health an hour. Recuperate: +1 an hour.' });
     if (L.fullness < 40) out.push({ need: 'Hungry', value: `fullness ${Math.round(L.fullness)}/100`, fix: 'Finish tasks (+4 each), or send it to the Cafeteria.' });
-    if (L.stamina < 30) out.push({ need: 'Tired', value: `stamina ${Math.round(L.stamina)}/100`, fix: 'Recuperate: +4 an hour by day, +7 asleep at night.' });
-    if ((L.fatigue || 0) >= 80) out.push({ need: 'Worn out', value: `fatigue ${Math.round(L.fatigue)}/100`, fix: 'Recuperate: −3 an hour by day, −6 at night. At 100 it must rest 2 days.' });
+    // Nov 24 2026 (Craft; review fix): a bee that is already resting (Recuperate or a Nursery bed) is being
+    // fixed for Tired and Worn out, so it no longer counts as "needs help" for those. Hungry, hurt, sick and
+    // unhappy still count: rest alone does not fix them.
+    const resting = !!(L.recuperate || L.nursery);
+    if (L.stamina < 30 && !resting) out.push({ need: 'Tired', value: `stamina ${Math.round(L.stamina)}/100`, fix: 'Recuperate: +4 an hour by day, +7 asleep at night.' });
+    if ((L.fatigue || 0) >= 80 && !resting) out.push({ need: 'Worn out', value: `fatigue ${Math.round(L.fatigue)}/100`, fix: 'Recuperate: −3 an hour by day, −6 at night. At 100 it must rest 2 days.' });
     if (L.happiness < 30) out.push({ need: 'Unhappy', value: `happiness ${Math.round(L.happiness)}/100`, fix: 'Finish all your dailies. A streak cheers the hive up.' });
     return out;
 }
@@ -7451,7 +7455,8 @@ Object.assign(DatabaseManager.prototype, {
                 this._lifeEvent('rest', `😴 ${b.name} was too tired to work and went to rest. It will come back to the ${(BEE_CLASSES[j] || {}).label || ''} job.`, { beeId: b.id });
                 n++; return;
             }
-            if (b.class && !this._onBreak(b) && L.happiness < UNHAPPY.self && !L.nursery && beeCanWork(b, day)) {   // Nov 21 2026 (Craft)
+            // Nov 24 2026 (Craft; review fix): not while it rests in place (a title-locked bee keeps its job while resting).
+            if (b.class && !L.recuperate && !this._onBreak(b) && L.happiness < UNHAPPY.self && !L.nursery && beeCanWork(b, day)) {   // Nov 21 2026 (Craft)
                 L.playUntil = new Date(nowMs + UNHAPPY.breakHours * 3600000).toISOString(); L.playFor = 'happy';
                 if (!beeLockedJob(b)) { const j = b.class; b.class = null; b.jobSince = day; delete L.idleSince; L.restFrom = j; }
                 this._lifeEvent('bored', `🪀 ${b.name} was too unhappy to work and went to play in the Play Yard until it cheers up.`, { beeId: b.id });
