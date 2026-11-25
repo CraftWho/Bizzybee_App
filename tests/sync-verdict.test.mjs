@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const src = readFileSync(new URL('../src/features/settings/cloud-controls.js', import.meta.url), 'utf8');
+// Nov 24 2026 (Craft): Windows checkouts use CRLF line ends, which hid the function's end from the search below.
+const src = readFileSync(new URL('../src/features/settings/cloud-controls.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const start = src.indexOf('function syncVerdict(');
 const end = src.indexOf('\n}\n', start) + 3;
 const ctx = {}; vm.createContext(ctx); vm.runInContext(src.slice(start, end) + '; globalThis.syncVerdict = syncVerdict;', ctx);
