@@ -245,21 +245,8 @@ function initAbout(tries = 0) {
     if (!host) return;
     if (typeof BizzyUpdates === 'undefined') { if (tries < 50) setTimeout(() => initAbout(tries + 1), 100); return; }
     BizzyUpdates.renderAbout(host);
-    // Nov 17 2026 (Craft): the Android app's own copy updates itself from the site. Show how that last went.
-    if (window.BB_APP_COPY && typeof WebUpdate !== 'undefined') {
-        const row = document.createElement('div');
-        row.className = 'row';
-        row.id = 'web-update-row';
-        host.appendChild(row);
-        const draw = () => {
-            const l = WebUpdate.last();
-            const when = l ? new Date(l.at).toLocaleString() : '';
-            const rd = WebUpdate.ready && WebUpdate.ready();
-            // Nov 21 2026 (Craft): updates wait for you on the Updates page.
-            row.innerHTML = `<span class="hx">⬆️</span><span class="mid"><b>Updates</b><small>${rd ? `Update ready: ${rd.label}` : l ? `${l.state === 'failed' ? '⚠️ Check failed' : l.state === 'skipped' ? 'Skipped' : '✅ Up to date'} · ${when}` : 'Not checked yet.'}</small></span><a class="btn" href="../app-updates/app-updates.html">${rd ? 'See update' : 'Open'}</a>`;
-        };
-        draw();
-    }
+    // Nov 25 2026 (Craft): the old "Updates" row that was added here is gone. It was drawn before its code had
+    // loaded, so it never showed. About's one Check (BizzyUpdates.renderAbout) covers the app files now.
 }
 
 // Phone features (Android app). Notifications moved to their own page

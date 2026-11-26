@@ -129,3 +129,50 @@ test('update check: a failed check says so on the Updates page, not "newest vers
     assert.match(await run(async () => ({ current: true }), { state: 'current' }), /You have the newest version/);
     assert.match(await run(async () => ({ offline: true }), { state: 'skipped' }), /Offline/);
 });
+
+// Nov 25 2026 (Craft): ONE Check for updates on About: the APK and the app files together.
+const upd = readFileSync(new URL('../src/core/ui/updates/updates.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const cut = (from, to) => upd.slice(upd.indexOf(from), upd.indexOf(to, upd.indexOf(from)));
+const sumCtx = vm.createContext({});
+vm.runInContext(cut('    function problemText(state) {', '    async function autoCheck()') + cut('    function updateSummary(', '    // </UpdateSummary>') + '; globalThis.S = updateSummary;', sumCtx);
+const S = (o) => sumCtx.S(o);
+
+test('one check: new app files are found even when the APK is current', () => {
+    const r = S({ apk: { state: 'current' }, files: { ready: { label: 'Version 1.1.0 · Nov 25' } } });
+    assert.match(r.text, /App files: update ready \(Version 1\.1\.0 · Nov 25\)/);
+    assert.equal(r.kind, 'files');
+    assert.doesNotMatch(r.text, /newest version/);
+});
+
+test('one check: "newest version" only when both the APK and the files are current', () => {
+    assert.match(S({ apk: { state: 'current' }, files: { current: true } }).text, /newest version/);
+    assert.equal(S({ apk: { state: 'current' }, files: { current: true } }).kind, null);
+    assert.match(S({ apk: { state: 'current' }, files: null }).text, /newest version/);   // not the app's own copy
+});
+
+test('one check: a failed file check says so, and never claims "newest version"', () => {
+    const r = S({ apk: { state: 'current' }, files: { failed: 'Failed to fetch' } });
+    assert.match(r.text, /App files: could not check \(Failed to fetch\)/);
+    assert.doesNotMatch(r.text, /newest version/);
+    assert.equal(r.kind, null);
+});
+
+test('one check: a new APK alone offers the installer; both ready loads the files first', () => {
+    const apk = { state: 'available', latest: { version: '1.1.1' } };
+    const a = S({ apk, files: { current: true } });
+    assert.match(a.text, /App 1\.1\.1 is ready to install/); assert.equal(a.kind, 'apk');
+    const b = S({ apk, files: { ready: { label: 'Nov 25' } } });
+    assert.match(b.text, /App files: update ready/); assert.match(b.text, /App 1\.1\.1 is ready/); assert.equal(b.kind, 'files');
+});
+
+test('one check: an APK check that could not reach GitHub is named, the file result still shows', () => {
+    const r = S({ apk: { state: 'offline' }, files: { ready: { label: 'Nov 25' } } });
+    assert.match(r.text, /App files: update ready/); assert.match(r.text, /App: Couldn't reach GitHub/);
+    assert.equal(r.kind, 'files');
+});
+
+test('one check: About has one Check row and no GitHub token row', () => {
+    assert.doesNotMatch(upd, /ab-token/);
+    assert.match(upd, /id="ab-auto"/);
+    assert.equal((upd.match(/id="ab-check"/g) || []).length, 1);
+});

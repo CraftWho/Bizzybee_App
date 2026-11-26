@@ -189,7 +189,11 @@ const Hints = (() => {
 
         // Nov 24 2026 (Craft): the auto-update switch.
 
-        { id: "auto-update", icon: "🔄", title: "Update by itself", cat: "App & settings", text: "Android app only. With this on, a new version downloads and restarts BizzyBee by itself. It makes a safety copy and saves to the cloud first, and it never restarts while you type or fill in a form. Turn it off in Settings › Updates and a new version waits there for the Update button.", v: "1.1.0", page: F + 'app-updates/app-updates.html' },
+        { id: "auto-update", icon: "🔄", title: "Update by itself", cat: "App & settings", text: "Android app only. With this on, a new version downloads and restarts BizzyBee by itself. It makes a safety copy and saves to the cloud first, and it never restarts while you type or fill in a form. Turn it off in Settings › About and new files wait there for the Update button.", v: "1.1.0", page: F + 'settings/settings.html' },
+
+        // Nov 25 2026 (Craft): one Check for both kinds of update.
+
+        { id: "check-updates", icon: "🔁", title: "Check for updates", cat: "App & settings", text: "Android app only. Settings › About › Check looks for two things at once: a new app (the APK) and new app files. It says what it found in one line, and one Update button loads it. New app files restart BizzyBee; a new app opens the Android installer.", v: "1.1.0", page: F + 'settings/settings.html' },
         { id: "settings-groups", icon: "⚙️", title: "Settings groups", cat: "App & settings", text: "Settings is a short list of groups: Account & cloud, Notifications & phone, Look & feel, Eve & help, Tracking, Your data and About. Tap one to open it, ← to go back. Search finds any setting. A red dot means something there needs you.", v: "1.0.5", page: F + 'settings/settings.html' },
         // Nov 1 2026 (Craft): Batch 13 (brought back from 1.0.7).
         // Nov 1 2026 (Craft): Batch 13 (B).
