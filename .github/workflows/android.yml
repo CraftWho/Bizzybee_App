@@ -1,0 +1,87 @@
+# Builds the BizzyBee Android app (native/) on GitHub's servers and posts
+# the APK as a GitHub Release. Free for this repo. Runs ONLY by hand:
+# Actions tab > Android APK > "Run workflow" (on the Sunday update).
+# The version people see comes from native/version.txt (you set it).
+# The hidden build number (github.run_number) always goes up, so Android
+# installs each build over the old one.
+# Needs two repo secrets: BB_KEYSTORE_B64 and BB_KEYSTORE_PASSWORD.
+name: Android APK
+on:
+  workflow_dispatch:
+    # Oct 30 2026 (Craft): tester builds can be inspected from a PC
+    # (chrome://inspect). Leave off for public releases.
+    inputs:
+      tester:
+        description: "Tester build (WebView debugging on)"
+        type: boolean
+        default: false
+      # Nov 2 2026 (Craft): "BizzyBee Dev", Craft's own app. Run it on the
+      # `personal` branch. Its own app id, name and DEV icon (installs next to
+      # BizzyBee), owner tools on, WebView debugging on, and it never takes
+      # files from the live site. Posted as a pre-release, so BizzyBee's own
+      # update check never offers it to anyone.
+      personal:
+        description: "BizzyBee Dev (your own app; run on the personal branch)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # GitHub's Ubuntu runners already include the Android SDK (ANDROID_HOME).
+      - name: Read version
+        run: echo "BB_VERSION_NAME=$(tr -d ' \r\n' < version.txt)" >> "$GITHUB_ENV"
+      - run: npm ci
+      - name: Tester build - turn on WebView debugging
+        if: ${{ inputs.tester }}
+        run: |
+          node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          echo "BB_TAG_SUFFIX=-tester" >> "$GITHUB_ENV"
+      - name: BizzyBee Dev - own app id, name, icon, debugging
+        if: ${{ inputs.personal || github.ref_name == 'personal' }}   # the personal branch always builds Dev
+        run: |
+          node -e "const f='capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.appId='com.craftwho.bizzybee.dev';c.appName='BizzyBee Dev';c.android=c.android||{};c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          sed -i 's/applicationId "com.craftwho.bizzybee"/applicationId "com.craftwho.bizzybee.dev"/' android/app/build.gradle
+          sed -i 's|<string name="app_name">BizzyBee</string>|<string name="app_name">BizzyBee Dev</string>|; s|<string name="title_activity_main">BizzyBee</string>|<string name="title_activity_main">BizzyBee Dev</string>|' android/app/src/main/res/values/strings.xml
+          cp -r assets/dev-icon/res/. android/app/src/main/res/
+          grep -q 'com.craftwho.bizzybee.dev' android/app/build.gradle
+          echo "BB_PERSONAL=1" >> "$GITHUB_ENV"
+          echo "BB_TAG_SUFFIX=-dev" >> "$GITHUB_ENV"
+          echo "BB_APP_NAME=BizzyBee-Dev" >> "$GITHUB_ENV"
+      # Nov 1 2026 (Craft): the app's own copy of the app files goes inside the APK.
+      - name: Build the app copy
+        run: node ../tools/make-app-copy.mjs www
+      - run: npx cap sync android
+      - name: Build signed APK
+        env:
+          BB_KEYSTORE_B64: ${{ secrets.BB_KEYSTORE_B64 }}
+          BB_KEYSTORE_PASSWORD: ${{ secrets.BB_KEYSTORE_PASSWORD }}
+          BB_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          if [ -z "$BB_KEYSTORE_B64" ]; then echo "Missing BB_KEYSTORE_B64 secret"; exit 1; fi
+          echo "$BB_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/bizzybee.jks"
+          export BB_KEYSTORE_PATH="$RUNNER_TEMP/bizzybee.jks"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/${BB_APP_NAME:-BizzyBee}-$BB_VERSION_NAME.apk"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-v${{ env.BB_VERSION_NAME }}-b${{ github.run_number }}${{ env.BB_TAG_SUFFIX }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ env.BB_PERSONAL == '1' && 'BizzyBee Dev' || 'BizzyBee Android' }} ${{ env.BB_VERSION_NAME }}${{ env.BB_TAG_SUFFIX }}
+          prerelease: ${{ inputs.tester || env.BB_PERSONAL == '1' }}
+          body: Install on your phone, or tap Update in the app (Settings › About). Updates install over the old version.
+          files: ${{ env.BB_APP_NAME || 'BizzyBee' }}-${{ env.BB_VERSION_NAME }}.apk

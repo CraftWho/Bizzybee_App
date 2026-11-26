@@ -1,0 +1,3 @@
+node_modules/
+# Nov 1 2026 (Craft): the app's own copy, built by tools/make-app-copy.mjs
+www/
