@@ -41,7 +41,5 @@
 
 /* Settings › About */
 .stv2 .ab-dot { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: var(--bb-alt, #dc143c); vertical-align: 1px; }
-.stv2 .ab-tok-line { display: flex; gap: 6px; margin: 8px 0 6px; }
-.stv2 .ab-tok-line input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(var(--bb-accent-rgb, 255, 204, 0), .3); background: #0a0703; color: #f1ede2; font: inherit; }
-.stv2 .ab-token .mid small a { color: var(--bb-accent, #ffcc00); }
+/* Nov 25 2026 (Craft): the GitHub token row is gone (the repo is public), and so are its styles. */
 @media (prefers-reduced-motion: reduce) { .wn, .up-sheet { animation: none; } }

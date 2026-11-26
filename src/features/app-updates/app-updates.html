@@ -18,6 +18,10 @@
         <h1 class="settings-title">⬆️ UPDATES</h1>
         <section class="card up-now" id="up-now" aria-live="polite">Checking…</section>
         <section class="card up-new" id="up-new" hidden></section>
+        <!-- Nov 24 2026 (Craft): on = a new version loads by itself; off = it waits for the Update button. -->
+        <section class="card" id="up-auto-card" hidden>
+            <div class="row"><span class="hx">🔄</span><span class="mid"><b>Update by itself</b><small id="up-auto-note">A new version downloads and restarts BizzyBee by itself. A safety copy is made first.</small></span><label class="toggle-switch"><input type="checkbox" id="up-auto" aria-label="Update by itself" checked><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+        </section>
         <h2 class="sec">Update history</h2>
         <section class="card"><div id="up-history" class="list"></div></section>
     </main>

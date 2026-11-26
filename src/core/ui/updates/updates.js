@@ -12,7 +12,10 @@ const WHATS_NEW = [
         { icon: '📱', title: 'Your phone is the main device', text: 'Only your phone writes your save. The PC and others send their changes to your phone to Accept or Reject.', href: 'features/settings/settings.html' },
         { icon: '📜', title: 'Change log', text: 'Every change to your save in plain words, who made it, and your level after. Tap Go back to here to undo to any point.', href: 'features/settings/settings.html' },
         { icon: '💾', title: 'Backups, simpler', text: 'One autosave, your last 3 backups (also in Documents/BizzyBee), and a safety copy before anything big.', href: 'features/settings/settings.html' },
-        { icon: '⬆️', title: 'Updates wait for you', text: 'A new version shows in Settings › Updates. Tap Update when you are ready.', href: 'features/app-updates/app-updates.html' },
+        // Nov 24 2026 (Craft): the auto-update switch replaced "Updates wait for you" (now the Off setting).
+        // Nov 25 2026 (Craft): one Check for the APK and the app files, on About.
+        { icon: '🔁', title: 'One Check for updates', text: 'Settings › About › Check now looks for a new app and for new app files together. One Update button loads what it finds.', href: 'features/settings/settings.html#about' },
+        { icon: '🔄', title: 'Updates load by themselves', text: 'The app downloads new app files and restarts by itself, after a safety copy. Turn it off in Settings › About to make updates wait for you.', href: 'features/settings/settings.html#about' },
         { icon: '🤖', title: 'Claude API', text: 'Make a key in Settings › Account & cloud. Claude can read and change your tasks. Every change is logged and undoable.', href: 'features/settings/settings.html' },
         { icon: '🎙️', title: 'Voice and Bixby', text: 'Say "complete gym" or "make stretch a daily". Bixby links and a home-screen Save button.', href: 'features/voice/voice.html' },
         { icon: '🐝', title: 'Hive status bar and alerts', text: 'Your hive and save status in the notification bar, and a heads-up before a bee gets hungry or faints.', href: 'features/settings/settings.html' },
@@ -410,35 +413,96 @@ const BizzyUpdates = (() => {
             return [day, v.batch, v.commit ? String(v.commit).slice(0, 7) : ''].filter(Boolean).join(' · ') || 'unknown';
         } catch { return 'unknown'; }
     }
+    // <UpdateSummary>
+    // Nov 25 2026 (Craft): ONE "Check for updates". It used to look for a new APK only; new app files were on
+    // a separate Updates page, so "You're on the newest version" was shown while an update was waiting.
+    // This turns what both checks found into one line and says what the Update button will do.
+    //   apk:   { state: 'available' | 'current' | 'offline' | ..., latest }   (the APK on GitHub)
+    //   files: null (not the app's own copy) | { ready: info } | { current: true } | { offline: true } | { failed: 'why' }
+    function updateSummary({ apk, files } = {}) {
+        const parts = [];
+        let kind = null;
+        if (files && files.ready) { parts.push(`App files: update ready${files.ready.label ? ` (${files.ready.label})` : ''}.`); kind = 'files'; }
+        else if (files && files.failed) parts.push(`App files: could not check (${files.failed}).`);
+        else if (files && files.offline) parts.push('App files: offline, try again when connected.');
+        if (apk && apk.state === 'available') { parts.push(`App ${apk.latest.version} is ready to install.`); if (!kind) kind = 'apk'; }
+        else if (apk && apk.state !== 'current' && apk.state !== 'none' && apk.state !== 'web') parts.push('App: ' + problemText(apk.state));
+        if (!parts.length) parts.push("You're on the newest version. Checked just now.");
+        return { text: parts.join(' '), kind };
+    }
+    // </UpdateSummary>
+    const WU = () => (typeof WebUpdate !== 'undefined' ? WebUpdate : null);
+    // web-update.js is added by app.js a moment after the page starts: wait for it (up to 3 seconds).
+    async function waitWU() {
+        for (let i = 0; i < 30 && !WU(); i++) await new Promise(r => setTimeout(r, 100));
+        const W = WU();
+        return W && W.isApp && W.isApp() ? W : null;
+    }
+    async function checkFiles() {
+        const W = await waitWU();
+        if (!W) return null;
+        let r = null;
+        try { r = await W.check({ force: true }); } catch { /* reported below */ }
+        const rd = W.ready();
+        if (rd) return { ready: rd };
+        if (r && r.offline) return { offline: true };
+        if (r && r.current) return { current: true };
+        const l = W.last && W.last();
+        return { failed: (l && l.state === 'failed' && l.note) || 'no answer from the site' };
+    }
+    // Both checks at once: the APK (GitHub) and the app's files (the site).
+    async function checkAll() {
+        const [apk, files] = await Promise.all([check({ quiet: true }).catch(() => ({ state: 'error' })), checkFiles().catch(() => ({ failed: 'check failed' }))]);
+        return { apk, files };
+    }
     async function renderAbout(host) {
         if (!host) return;
         const mine = isApp ? await installedVersion() : null;
         host.innerHTML = `
             <div class="row"><span class="hx">🐝</span><span class="mid"><b id="ab-title">BizzyBee ${esc(APP_WEB_VERSION)}</b><small id="ab-sub">Website …${mine ? ` · App ${esc(mine)}` : ''}</small></span><button type="button" class="btn" id="ab-update" hidden>Update</button></div>
             ${isApp ? `<div class="row"><span class="hx">🔁</span><span class="mid"><b>Check for updates</b><small id="ab-check-note">${get(CHECK_KEY) ? `Checked ${new Date(Number(get(CHECK_KEY))).toLocaleString()}` : 'Not checked yet'}</small></span><button type="button" class="btn" id="ab-check">Check</button></div>
-            <div class="row ab-token"><span class="hx">🔑</span><span class="mid"><b>GitHub token (optional)</b><small>Not needed any more: app updates work without it. If you saved one before, it stays on this phone.</small>
-                <span class="ab-tok-line"><input type="password" id="ab-token" autocomplete="off" placeholder="${token() ? 'Saved ✓ (paste to replace)' : 'github_pat_…'}"><button type="button" class="btn" id="ab-token-save">Save</button></span>
-                <small><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Make one on GitHub</a>: Fine-grained → Only select repositories: Bizzybee_App → Repository permissions: Contents → Read-only.</small></span></div>` : ''}
+            <div class="row" id="ab-auto-row" hidden><span class="hx">🔄</span><span class="mid"><b>Update by itself</b><small id="ab-auto-note"></small></span><label class="toggle-switch"><input type="checkbox" id="ab-auto" aria-label="Update by itself"><span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span></label></div>
+            <a class="row" id="ab-history" href="../app-updates/app-updates.html" hidden><span class="hx">🗂️</span><span class="mid"><b>Update history</b><small>Every update this phone loaded</small></span><span class="chev">›</span></a>` : ''}
             <button type="button" class="row" id="ab-news"><span class="hx">📰</span><span class="mid"><b>What's new</b><small>Every update and what changed</small></span><span class="chev">›</span></button>`;
         const $ = (id) => host.querySelector('#' + id);
         siteStamp().then(t => { $('ab-sub').textContent = `Website ${t}${mine ? ` · App ${mine}` : ''}`; });   // Nov 2 2026 (Craft)
         $('ab-news').addEventListener('click', () => openWhatsNew(WHATS_NEW));
         if (!isApp) return;
+        let found = { text: '', kind: null };
         const show = (r) => {
-            $('ab-check-note').textContent = r.state === 'available' ? `Version ${r.latest.version} is ready.` : r.state === 'current' ? `You're on the newest version. Checked just now.` : problemText(r.state);
-            $('ab-update').hidden = r.state !== 'available';
-            $('ab-title').innerHTML = `BizzyBee ${esc(APP_WEB_VERSION)}${r.state === 'available' ? '<span class="ab-dot"></span>' : ''}`;
+            found = updateSummary(r);
+            $('ab-check-note').textContent = found.text;
+            $('ab-update').hidden = !found.kind;
+            $('ab-update').disabled = false; $('ab-update').textContent = 'Update';
+            $('ab-title').innerHTML = `BizzyBee ${esc(APP_WEB_VERSION)}${found.kind ? '<span class="ab-dot"></span>' : ''}`;
         };
-        $('ab-check').addEventListener('click', async () => { $('ab-check-note').textContent = 'Checking…'; set(LATER_KEY, null); show(await check({ quiet: true })); });
-        $('ab-update').addEventListener('click', openUpdater);
-        $('ab-token-save').addEventListener('click', async () => {
-            const v = $('ab-token').value.trim();
-            if (!v) return;
-            set(TOKEN_KEY, v); $('ab-token').value = ''; $('ab-token').placeholder = 'Saved ✓ (paste to replace)';
-            Toast.show('🔑 Token saved on this phone.', 'positive');
-            show(await check({ quiet: true }));
+        // New app files load first (safety copy, cloud save, restart). A new APK opens its installer.
+        const update = async () => {
+            if (found.kind === 'apk') { openUpdater(); return; }
+            const W = WU(); if (found.kind !== 'files' || !W) return;
+            $('ab-update').disabled = true; $('ab-update').textContent = 'Updating…';
+            $('ab-check-note').textContent = 'Loading the new files. BizzyBee restarts in a moment.';
+            const res = await W.apply();
+            if (!res.ok) { $('ab-update').disabled = false; $('ab-update').textContent = 'Update'; $('ab-check-note').textContent = 'Update failed: ' + res.error; }
+        };
+        const run = async () => {
+            $('ab-check-note').textContent = 'Checking…'; set(LATER_KEY, null);
+            show(await checkAll());
+            // The switch is on: a ready file update loads by itself, right after the check found it.
+            const W = WU();
+            if (found.kind === 'files' && W && W.autoOn && W.autoOn()) update();
+        };
+        $('ab-check').addEventListener('click', run);
+        $('ab-update').addEventListener('click', update);
+        // The auto-update switch and the history link belong to the app's own copy of the files.
+        waitWU().then(W => {
+            if (!W || !W.autoOn || !$('ab-auto-row')) return;
+            const sw = $('ab-auto'), say = () => { $('ab-auto-note').textContent = sw.checked ? 'New app files download and restart BizzyBee by themselves. A safety copy is made first.' : 'Off: new app files wait until you tap Update here.'; };
+            $('ab-auto-row').hidden = false; $('ab-history').hidden = false;
+            sw.checked = W.autoOn(); say();
+            sw.addEventListener('change', () => { W.setAuto(sw.checked); say(); if (typeof Toast !== 'undefined') Toast.show(sw.checked ? '🔄 Updates load by themselves.' : 'Updates wait for you.', 'positive'); });
         });
-        if (isApp) show(await check({ quiet: true }));   // Nov 23 2026 (Craft): works without a token now
+        run();   // Nov 23 2026 (Craft): works without a token now. Nov 25: checks the APK and the files together.
     }
 
     function start() {
@@ -448,5 +512,5 @@ const BizzyUpdates = (() => {
         autoCheck();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-    return { version: APP_WEB_VERSION, entries: WHATS_NEW, openWhatsNew, check, openUpdater, renderAbout, isApp };
+    return { version: APP_WEB_VERSION, entries: WHATS_NEW, openWhatsNew, check, checkAll, updateSummary, openUpdater, renderAbout, isApp };
 })();
